@@ -3,6 +3,12 @@
 /public/build
 /public/hot
 /public/storage
+/public/uploads/components/*
+!/public/uploads/components/.gitkeep
+/public/uploads/disposals/*
+!/public/uploads/disposals/.gitkeep
+/public/uploads/ecr_docs/*
+!/public/uploads/ecr_docs/.gitkeep
 /storage/*.key
 /vendor
 .env

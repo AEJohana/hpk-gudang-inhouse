@@ -6,7 +6,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.1",
-        "chillerlan/php-qrcode": "^6.0",
+        "chillerlan/php-qrcode": "^5.0.5",
         "guzzlehttp/guzzle": "^7.2",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
@@ -56,6 +56,9 @@
         }
     },
     "config": {
+        "platform": {
+            "php": "8.1.0"
+        },
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,

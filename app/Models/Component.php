@@ -76,6 +76,7 @@ class Component extends Model
         $payload = $this->qr_code_payload ?: $this->part_number;
         $options = new QROptions([
             'outputType' => QRCode::OUTPUT_MARKUP_SVG,
+            'outputBase64' => false,
             'svgUseFill' => true,
             'addQuietzone' => true,
         ]);
