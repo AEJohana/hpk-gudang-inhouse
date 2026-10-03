@@ -1,0 +1,1591 @@
+<script>
+  function calculateNextStatus(current, routing) {
+    const cur = current ? current.trim() : "";
+    const routeStr = routing ? routing.trim() : "";
+
+    // --- LOGIKA BARU: Final Pickup ---
+    if (cur === 'Sudah diambil') return null; // Final state
+    if (cur === 'Menuju Pengaju') return 'Sudah diambil';
+    if (cur === 'Siap diambil' || cur === 'Selesai') return 'Menuju Pengaju';
+
+    if (cur === '' || cur === '-' || cur === 'Belum Verifikasi' || cur.toLowerCase() === 'belum verifikasi') return 'Dalam antrian';
+    if (cur.toLowerCase().includes('antrian')) {
+      if (!routeStr || routeStr === '-' || routeStr === 'undefined') return 'Proses (In)';
+      const steps = routeStr.split('-').map(s => s.trim()).filter(s => s !== "");
+      if (steps.length === 0) return 'Proses (In)';
+      return `Proses: ${steps[0]} (In)`;
+    }
+
+    if (cur === 'Proses' || cur === 'Proses (In)') return 'Proses (Out)';
+    if (cur === 'Proses (Out)') return 'Siap diambil';
+
+    // --- LOGIKA BARU: Transisi MH Pickup (Gudang) ---
+    // Jika status saat ini "MH Pickup: [Lokasi]", maka lanjut ke "Dalam antrian: [Next Lokasi]"
+    if (cur.startsWith('MH Pickup:')) {
+      const stepName = cur.replace('MH Pickup:', '').trim();
+      if (!routeStr || routeStr === '-') return 'Siap diambil';
+      const steps = routeStr.split('-').map(s => s.trim());
+      const idx = steps.indexOf(stepName);
+      if (idx !== -1 && idx < steps.length - 1) {
+        return `Proses: ${steps[idx + 1]} (In)`;
+      }
+      return 'Siap diambil';
+    }
+
+    if (cur.startsWith('MH Drop:')) {
+      const stepName = cur.replace('MH Drop:', '').trim();
+      if (!routeStr || routeStr === '-') return 'Siap diambil';
+      const steps = routeStr.split('-').map(s => s.trim());
+      const idx = steps.indexOf(stepName);
+      if (idx !== -1 && idx < steps.length - 1) {
+        return `Proses: ${steps[idx + 1]} (In)`;
+      }
+      return 'Siap diambil';
+    }
+
+    // Fallback Legacy (Data Lama)
+    if (cur.startsWith('Proses:')) {
+      let stepName = cur.replace('Proses:', '').trim();
+      let isOut = false;
+      if (stepName.endsWith('(Out)')) { isOut = true; stepName = stepName.substring(0, stepName.length - 5).trim(); }
+      else if (stepName.endsWith('(In)')) stepName = stepName.substring(0, stepName.length - 4).trim();
+
+      if (!routeStr || routeStr === '-') return 'Siap diambil';
+      const steps = routeStr.split('-').map(s => s.trim());
+      const idx = steps.indexOf(stepName);
+
+      if (idx === -1) return 'Siap diambil';
+      if (!isOut) {
+        if (idx === steps.length - 1) return 'Siap diambil';
+        return `Proses: ${stepName} (Out)`;
+      } else {
+        // PERUBAHAN: Jika Out, jangan langsung In. Tapi ke MH Pickup dulu.
+        if (idx < steps.length - 1) return `MH Pickup: ${stepName}`;
+        else return 'Siap diambil';
+      }
+    }
+    return 'Dalam antrian';
+  }
+
+  function loadDataWR() {
+    const loading = document.getElementById('loadingData');
+    renderWRTable('listPengajuanPending', [], true); renderWRTable('listPengajuanApproved', [], true);
+    renderWRTable('listPengajuanCompleted', [], true); renderWRTable('listPengajuanRejected', [], true);
+    renderWRTable('listPenerimaanPending', [], true); renderWRTable('listPenerimaanApproved', [], true);
+    renderWRTable('listPenerimaanCompleted', [], true); renderWRTable('listPenerimaanRejected', [], true);
+    loading.style.display = "none";
+
+    const timeoutHandler = setTimeout(() => {
+      const errorHTML = '<tr><td colspan="10" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle me-2"></i>Koneksi Timeout. Silakan refresh ulang.</td></tr>';
+      if (document.querySelector('#listPengajuanPending .spinner-border')) {
+        document.querySelectorAll('.table-body').forEach(el => el.innerHTML = errorHTML);
+      }
+    }, 15000);
+
+    google.script.run
+      .withFailureHandler(function (err) {
+        clearTimeout(timeoutHandler); loading.style.display = "none";
+        const errorHTML = '<tr><td colspan="10" class="text-center text-danger py-4"><i class="fas fa-exclamation-triangle me-2"></i>Gagal memuat data: ' + err + '</td></tr>';
+        document.querySelectorAll('.table-body').forEach(el => el.innerHTML = errorHTML);
+      })
+      .withSuccessHandler(function (data) {
+        clearTimeout(timeoutHandler); loading.style.display = "none";
+        try {
+          if (!data || !Array.isArray(data)) data = [];
+          let dataPengajuan = []; let dataPenerimaan = [];
+          if (getCurrentDeptList().length > 0) {
+            dataPengajuan = data.filter(item => item.pengaju && userHasDept(item.pengaju));
+            // UPDATE: Data Penerima hanya muncul jika Status Pengaju sudah 'Diterima'
+            // FIX: Hanya penerima urutan PERTAMA yang berhak melakukan verifikasi
+            dataPenerimaan = data.filter(item => {
+              if (!item.penerima || item.statusPengaju !== 'Diterima') return false;
+              // FIX: Pisahkan multiple penerima hanya berdasarkan koma atau titik koma agar spasi tidak memotong nama departemen
+              const penerimaPertama = String(item.penerima).split(/[,;]+/)[0].trim();
+              return userHasDeptInText(penerimaPertama);
+            });
+          }
+          globalDataPengajuan = dataPengajuan; globalDataPenerimaan = dataPenerimaan;
+          applyFilters();
+        } catch (e) {
+          console.error("Error processing data:", e);
+          const errorHTML = '<tr><td colspan="10" class="text-center text-danger py-4"><i class="fas fa-exclamation-triangle me-2"></i>Terjadi kesalahan: ' + e.message + '</td></tr>';
+          document.querySelectorAll('.table-body').forEach(el => el.innerHTML = errorHTML);
+        }
+      }).getLogWRData();
+  }
+
+  function updateDashboardStats(data, idSuffix = "") {
+    let pending = 0; let process = 0; let verified = 0; let ready = 0;
+    if (!data) return;
+    data.forEach(item => {
+      const sPengaju = String(item.statusPengaju).toLowerCase();
+      const sPenerima = String(item.statusPenerima).toLowerCase();
+      const sBarang = String(item.status).toLowerCase();
+
+      if ((sPengaju.includes('belum') || sPengaju === '-') && !sPengaju.includes('ditolak')) pending++;
+      else if ((sPengaju.includes('diterima') || sPengaju.includes('disetujui')) && (sPenerima.includes('belum') || sPenerima === '-') && !sPenerima.includes('ditolak')) verified++;
+      else if (sBarang.includes('siap') || sBarang.includes('selesai') || sBarang.includes('sudah diambil') || sBarang.includes('menuju pengaju')) ready++;
+      else if ((sPenerima.includes('diterima') || sPenerima.includes('diproses') || sPenerima.includes('verifikasi')) && !sPenerima.includes('ditolak') && !sPenerima.includes('belum')) process++;
+    });
+    const getCur = (id) => { const el = document.getElementById(id); return el ? (parseInt(el.innerText) || 0) : 0; };
+    animateValue("countPending" + idSuffix, getCur("countPending" + idSuffix), pending, 500); animateValue("countProcess" + idSuffix, getCur("countProcess" + idSuffix), process, 500);
+    animateValue("countVerified" + idSuffix, getCur("countVerified" + idSuffix), verified, 500); animateValue("countReady" + idSuffix, getCur("countReady" + idSuffix), ready, 500);
+  }
+
+  function animateValue(id, start, end, duration) {
+    const obj = document.getElementById(id); if (!obj) return;
+    if (start === end) { obj.innerText = end; return; }
+    const range = end - start; let current = start; const increment = end > start ? 1 : -1;
+    const stepTime = Math.abs(Math.floor(duration / range));
+    const timer = setInterval(function () {
+      current += increment; obj.innerText = current;
+      if (current == end) clearInterval(timer);
+    }, stepTime);
+  }
+
+  function applyFilters() {
+    const searchText = document.getElementById('filterSearch').value.toLowerCase();
+    const dateFilter = document.getElementById('filterDate').value;
+
+    const checkDate = (itemDateRaw) => {
+      if (dateFilter === 'all') return true;
+      if (!itemDateRaw) return false;
+      const parts = itemDateRaw.split('-');
+      const itemDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const diffDays = Math.floor((today - itemDate) / (1000 * 60 * 60 * 24));
+
+      if (dateFilter === 'today') return diffDays === 0;
+      if (dateFilter === 'yesterday') return diffDays === 1;
+      if (dateFilter === 'last2') return diffDays >= 0 && diffDays <= 1;
+      if (dateFilter === 'last3') return diffDays >= 0 && diffDays <= 2;
+      if (dateFilter === 'last7') return diffDays >= 0 && diffDays <= 6;
+      if (dateFilter === 'thisMonth') return itemDate.getMonth() === today.getMonth() && itemDate.getFullYear() === today.getFullYear();
+      return true;
+    };
+
+    const checkSearch = (item) => {
+      if (!searchText) return true;
+      return (String(item.noWR).toLowerCase().includes(searchText) || String(item.nama).toLowerCase().includes(searchText) || String(item.kode).toLowerCase().includes(searchText));
+    };
+
+    const filterData = (sourceData) => sourceData.filter(item => checkDate(item.tglRaw) && checkSearch(item));
+
+    const filteredPengajuan = filterData(globalDataPengajuan);
+    const filteredPenerimaan = filterData(globalDataPenerimaan);
+
+    if (window.updateDashboardStats) {
+      updateDashboardStats(filteredPengajuan);
+      updateDashboardStats(filteredPenerimaan, "Penerima");
+    }
+
+    // --- HELPER FUNGSI KATEGORISASI (Mutually Exclusive) ---
+    const categorizeWR = (dataList, role) => {
+      const result = { pending: [], approved: [], completed: [], rejected: [] };
+
+      dataList.forEach(item => {
+        const sPengaju = String(item.statusPengaju || '').toLowerCase();
+        const sPenerima = String(item.statusPenerima || '').toLowerCase();
+        const sBarang = String(item.status || '').toLowerCase();
+
+        // Prioritas 1: Ditolak (Jika salah satu ada yang menolak)
+        if (sPengaju.includes('ditolak') || sPenerima.includes('ditolak')) {
+          result.rejected.push(item);
+        }
+        // Prioritas 2: Selesai (Hanya yang sudah benar-benar dikonfirmasi diterima / "Sudah diambil")
+        else if (sBarang === 'sudah diambil') {
+          result.completed.push(item);
+        }
+        // Prioritas 3: Disetujui vs Menunggu
+        else {
+          const isApproved = role === 'pengaju'
+            ? (sPengaju === 'diterima' || sPengaju.includes('diterima'))
+            : (sPenerima === 'diterima' || sPenerima.includes('diterima'));
+
+          if (isApproved) {
+            result.approved.push(item);
+          } else {
+            result.pending.push(item);
+          }
+        }
+      });
+
+      return result;
+    };
+
+    // Proses Data
+    const catPengajuan = categorizeWR(filteredPengajuan, 'pengaju');
+    const catPenerimaan = categorizeWR(filteredPenerimaan, 'penerima');
+
+    // Render Tabel Pengajuan
+    renderWRTable('listPengajuanPending', catPengajuan.pending, false);
+    renderWRTable('listPengajuanApproved', catPengajuan.approved, false);
+    renderWRTable('listPengajuanCompleted', catPengajuan.completed, false);
+    renderWRTable('listPengajuanRejected', catPengajuan.rejected, false);
+
+    // Render Tabel Penerimaan
+    renderWRTable('listPenerimaanPending', catPenerimaan.pending, false);
+    renderWRTable('listPenerimaanApproved', catPenerimaan.approved, false);
+    renderWRTable('listPenerimaanCompleted', catPenerimaan.completed, false);
+    renderWRTable('listPenerimaanRejected', catPenerimaan.rejected, false);
+  }
+
+  function openStatusDetailModal(simpleId) {
+    const item = wrDataMap[simpleId]; if (!item) return;
+    const currentStatus = item.status || "Belum Verifikasi";
+    document.getElementById('detailNoWR').innerText = item.noWR;
+    document.getElementById('detailNama').innerText = item.nama;
+    document.getElementById('detailStatusTitle').innerText = currentStatus;
+
+    // --- LOGIKA VERIFIKATOR UTAMA ---
+    let verifier = "";
+    if (item.kaPenerima && item.kaPenerima !== '-') verifier = item.kaPenerima + " (Kepala Penerima)";
+    else if (item.kaPengaju && item.kaPengaju !== '-') verifier = item.kaPengaju + " (Kepala Pengaju)";
+    else if (item.opPenerima && item.opPenerima !== '-') verifier = item.opPenerima + " (OP Penerima)";
+    else if (item.opPengaju && item.opPengaju !== '-') verifier = item.opPengaju + " (OP Pengaju)";
+
+    const verifContainer = document.getElementById('detailVerifikatorContainer');
+    const verifText = document.getElementById('detailVerifikator');
+    if (verifContainer && verifText) {
+      if (verifier !== "") {
+        verifText.innerText = verifier;
+        verifContainer.style.display = 'block';
+      } else {
+        verifContainer.style.display = 'none';
+      }
+    }
+
+    const heroContainer = document.getElementById('detailHeroIcon');
+    const lowerStatus = currentStatus.toLowerCase();
+    const routingRaw = item.routing || "";
+    const steps = routingRaw.split('-').map(s => s.trim()).filter(s => s !== "");
+
+    // KALKULATOR LIVE TRACKING (TOTAL PARSIAL DALAM PERJALANAN)
+    let totalInTransit = 0;
+    for (let i = 0; i < steps.length - 1; i++) {
+      let p = calculateTotalProcessedForStatus(item.logs, `MH Pickup: ${steps[i]}`);
+      let n = calculateTotalProcessedForStatus(item.logs, `Proses: ${steps[i + 1]} (In)`) + calculateTotalProcessedForStatus(item.logs, `Defect > Proses: ${steps[i + 1]} (In)`);
+      if (p - n > 0) totalInTransit += (p - n);
+    }
+    let tMenuju = calculateTotalProcessedForStatus(item.logs, 'Menuju Pengaju');
+    let tSudah = calculateTotalProcessedForStatus(item.logs, 'Sudah diambil') + calculateTotalProcessedForStatus(item.logs, 'Defect > Sudah diambil');
+    if (tMenuju - tSudah > 0) totalInTransit += (tMenuju - tSudah);
+
+    let iconHtml = '';
+    if (totalInTransit > 0) {
+      iconHtml = `<div class="hero-anim-icon" style="background: linear-gradient(135deg, #b2ebf2 0%, #00bcd4 100%); color: #00838f; border-color: #e0f7fa;"><i class="fas fa-truck-fast" style="animation: bounce 2s infinite;"></i></div>`;
+    } else if (lowerStatus.includes('siap') || lowerStatus.includes('selesai') || lowerStatus.includes('diterima') || lowerStatus.includes('sudah diambil')) {
+      iconHtml = `<div class="hero-anim-icon hero-theme-success"><i class="fas fa-check-circle" style="animation: bounce 2s infinite;"></i></div>`;
+    } else if (lowerStatus.includes('pickup')) {
+      iconHtml = `<div class="hero-anim-icon" style="background: linear-gradient(135deg, #b2ebf2 0%, #00bcd4 100%); color: #00838f;"><i class="fas fa-truck-loading" style="animation: bounce 2s infinite;"></i></div>`;
+    } else if (lowerStatus.includes('antrian') || lowerStatus.includes('menunggu') || lowerStatus.includes('belum')) {
+      iconHtml = `<div class="hero-anim-icon hero-theme-waiting"><i class="fas fa-clock" style="animation: swing 2s infinite ease-in-out;"></i></div>`;
+    } else {
+      iconHtml = `<div class="hero-anim-icon hero-theme-process"><i class="fas fa-cog" style="animation: spin 4s infinite linear;"></i></div>`;
+    }
+    heroContainer.innerHTML = iconHtml;
+
+    // --- AMBIL QR CODE DARI DATA SERVER ---
+    const qrImg = document.getElementById('detailQRCodeImg');
+    if (qrImg) {
+      qrImg.src = item.qrUrl;
+      // Fitur Zoom QR Code
+      qrImg.style.cursor = "pointer";
+      qrImg.title = "Klik untuk memperbesar";
+      qrImg.onclick = function () {
+        showImageModal(item.qrUrl, item.noWR, "QR Code WR");
+      };
+    }
+
+    let desc = "Status saat ini";
+    if (totalInTransit > 0) {
+      desc = `<span class="badge bg-info text-white px-3 py-2 rounded-pill shadow-sm mt-2" style="font-size:0.8rem; border: 1px solid #00bcd4;"><i class="fas fa-truck me-2"></i><b>${totalInTransit} pcs</b> Sedang Diantar Gudang</span>`;
+    } else {
+      if (currentStatus.includes('antrian')) desc = "Menunggu giliran proses";
+      else if (currentStatus.includes('Proses') || currentStatus.includes('progress')) desc = "Sedang dalam pengerjaan";
+      else if (currentStatus.includes('Pickup')) desc = "Sedang diambil / dipindahkan oleh Gudang";
+      else if (currentStatus.includes('Sudah diambil')) desc = "Telah diambil oleh Pengaju";
+      else if (currentStatus.includes('Siap') || currentStatus.includes('Selesai')) desc = "Selesai & Siap diambil";
+      else if (currentStatus.includes('Menuju Pengaju')) desc = "Sedang diantar kembali ke Pengaju";
+    }
+    document.getElementById('detailStatusDesc').innerHTML = desc;
+
+    const container = document.getElementById('detailStepsTimeline'); container.innerHTML = '';
+
+    let activeIndex = -1; let isFinished = false;
+    if (currentStatus === 'Siap diambil' || currentStatus === 'Selesai' || currentStatus === 'Sudah diambil' || currentStatus === 'Menuju Pengaju') { activeIndex = steps.length; isFinished = true; }
+    else if (currentStatus.startsWith('Proses:')) {
+      let stepName = currentStatus.replace('Proses:', '').trim();
+      if (stepName.endsWith('(In)')) stepName = stepName.substring(0, stepName.length - 4).trim();
+      if (stepName.endsWith('(Out)')) stepName = stepName.substring(0, stepName.length - 5).trim();
+      activeIndex = steps.indexOf(stepName);
+    } else if (currentStatus === 'Dalam antrian') { activeIndex = -1; }
+    else if (currentStatus.startsWith('Proses')) { if (steps.length > 0) activeIndex = 0; }
+
+    if (steps.length === 0) {
+      container.innerHTML = '<div class="text-muted small fst-italic">Tidak ada data routing.</div>';
+    } else {
+      let html = '';
+
+      // Helper Create Badge (Updated for Partial)
+      const createBadge = (logItem, type, isPartial) => {
+        if (!logItem) return '';
+
+        let colorClass = 'bg-secondary-subtle text-secondary border-secondary';
+        let label = type === 'IN' ? 'Masuk' : 'Selesai';
+        let icon = type === 'IN' ? 'fa-arrow-right' : 'fa-check';
+
+        if (type === 'IN') {
+          colorClass = 'bg-primary-subtle text-primary border-primary';
+        } else if (type === 'OUT') {
+          colorClass = 'bg-success-subtle text-success border-success';
+        } else if (type === 'PICKUP') {
+          colorClass = 'bg-info-subtle text-info-emphasis border-info';
+          label = 'Diambil Gudang';
+          icon = 'fa-truck-loading';
+        } else if (type === 'RECEIVE') {
+          colorClass = 'bg-success-subtle text-success border-success';
+          label = 'Diterima Pengaju';
+          icon = 'fa-box-open';
+        } else if (type === 'DROP') {
+          colorClass = 'bg-info-subtle text-info border-info';
+          label = 'Diantar Gudang (Legacy)';
+          icon = 'fa-check';
+        }
+
+        if (isPartial && type !== 'PICKUP') {
+          colorClass = 'bg-warning-subtle text-dark border-warning';
+          label = `Parsial (${label})`;
+          icon = 'fa-chart-pie';
+        }
+
+        const noteHtml = (logItem.note && logItem.note !== '-' && logItem.note !== '')
+          ? `<div class="mt-3 pt-2 border-top border-opacity-25 text-dark" style="font-size: 0.95rem; font-weight: 600; line-height: 1.4;"><i class="fas fa-sticky-note me-2 opacity-50"></i>${logItem.note}</div>`
+          : '';
+
+        return `
+            <div class="mt-2 p-3 rounded-4 border ${colorClass} shadow-sm" style="position: relative;">
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                   <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width:38px; height:38px; background:rgba(255,255,255,0.8); color:inherit;">
+                      <i class="fas ${icon} fa-lg"></i>
+                   </div>
+                   <span class="fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">${label}</span>
+                </div>
+                <div class="text-end">
+                  <div class="fw-bold text-dark" style="font-size: 1.4rem; line-height: 1;">${logItem.qty}</div>
+                  <div class="text-secondary fw-bold mt-1" style="font-size: 0.8rem;"><i class="far fa-clock me-1"></i>${logItem.time}</div>
+                </div>
+              </div>
+              ${noteHtml}
+            </div>
+          `;
+      };
+
+      steps.forEach((step, index) => {
+        let itemClass = ''; let statusText = 'Menunggu';
+        if (isFinished || index < activeIndex) { itemClass = 'completed'; statusText = 'Selesai'; }
+        else if (index === activeIndex) {
+          itemClass = 'active'; statusText = 'Sedang Diproses';
+          if (currentStatus.includes('(Out)')) { statusText = 'Selesai (Menunggu Next)'; itemClass = 'completed'; }
+        }
+
+        let logHtml = '';
+
+        // Filter logs relevant to this step (Full & Partial)
+        const relevantLogs = (item.logs || []).filter(l => {
+          const s = l.status || "";
+          // HAPUS LOG DEFECT DARI TIMELINE ATAS: Cek apakah status TIDAK diawali "Defect >"
+          const isNotDefect = !s.startsWith('Defect >');
+          const isRelevantStep = s.includes(`Proses: ${step} (In)`) || s.includes(`Proses: ${step} (Out)`) || s.includes(`MH Pickup: ${step}`) || s.includes(`MH Drop: ${step}`);
+          return isNotDefect && isRelevantStep;
+        });
+
+        relevantLogs.forEach(log => {
+          const isPartial = log.status.includes('Parsial >');
+          let type = 'UNKNOWN';
+          if (log.status.includes('(In)')) type = 'IN';
+          else if (log.status.includes('(Out)')) type = 'OUT';
+          else if (log.status.includes('MH Pickup:')) type = 'PICKUP';
+          else if (log.status.includes('MH Drop:')) type = 'DROP';
+          else if (log.status.includes('Dalam antrian:')) type = 'QUEUE';
+
+          logHtml += createBadge(log, type, isPartial);
+        });
+
+        // Hanya tampilkan OUT untuk step terakhir. Pickup dipindah ke node pengembalian.
+        if (index === steps.length - 1) {
+          const finalLogs = (item.logs || []).filter(l => l.status === 'Siap diambil' || l.status === 'Parsial > Siap diambil');
+          finalLogs.forEach(log => {
+            logHtml += createBadge(log, 'OUT', log.status.includes('Parsial >'));
+          });
+        }
+
+        // INDIKATOR LIVE: SEDANG DIANTAR KE SINI (ANTAR MESIN)
+        if (index > 0) {
+          const prevStep = steps[index - 1];
+          const totalPickedUpPrev = calculateTotalProcessedForStatus(item.logs, `MH Pickup: ${prevStep}`);
+          const totalInCurrent = calculateTotalProcessedForStatus(item.logs, `Proses: ${step} (In)`) + calculateTotalProcessedForStatus(item.logs, `Defect > Proses: ${step} (In)`);
+          const inTransit = totalPickedUpPrev - totalInCurrent;
+
+          if (inTransit > 0) {
+            logHtml += `
+              <div class="mt-2 p-2 rounded-4 border border-info bg-info-subtle d-flex align-items-center gap-3 shadow-sm" style="border-style: dashed !important;">
+                <div class="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm" style="width:30px; height:30px; color:#0dcaf0;">
+                  <i class="fas fa-truck-fast" style="animation: bounce 2s infinite;"></i>
+                </div>
+                <div class="fw-bold text-info-emphasis" style="font-size: 0.8rem;">${inTransit} pcs Dalam Perjalanan (MH)</div>
+              </div>
+            `;
+          }
+        }
+
+        // INDIKATOR LIVE: MENUNGGU DIAMBIL GUDANG
+        let waitingForPickup = 0;
+        if (index < steps.length - 1) {
+          const totalOut = calculateTotalProcessedForStatus(item.logs, `Proses: ${step} (Out)`);
+          const totalPickedUp = calculateTotalProcessedForStatus(item.logs, `MH Pickup: ${step}`);
+          const defectPickedUp = calculateTotalProcessedForStatus(item.logs, `Defect > MH Pickup: ${step}`);
+          waitingForPickup = totalOut - (totalPickedUp + defectPickedUp);
+        } else {
+          let totalSiap = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+          if (totalSiap === 0) totalSiap = calculateTotalProcessedForStatus(item.logs, `Proses: ${step} (Out)`);
+          const totalMenuju = calculateTotalProcessedForStatus(item.logs, 'Menuju Pengaju');
+          const defectMenuju = calculateTotalProcessedForStatus(item.logs, 'Defect > Menuju Pengaju');
+          waitingForPickup = totalSiap - (totalMenuju + defectMenuju);
+        }
+
+        if (waitingForPickup > 0) {
+          logHtml += `
+            <div class="mt-2 p-2 rounded-4 border border-warning bg-warning-subtle d-flex align-items-center gap-3 shadow-sm">
+              <div class="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm" style="width:30px; height:30px; color:#fd7e14;">
+                <i class="fas fa-hourglass-half"></i>
+              </div>
+              <div class="fw-bold text-warning-emphasis" style="font-size: 0.8rem;">${waitingForPickup} pcs Menunggu Pickup Gudang</div>
+            </div>
+          `;
+        }
+
+        html += `<div class="timeline-item ${itemClass}"><div class="timeline-dot"></div><div class="timeline-content"><div class="timeline-title">${step}</div><div class="timeline-desc">${statusText}</div>${logHtml ? `<div class="mt-2 border-top pt-1">${logHtml}</div>` : ''}</div></div>`;
+      });
+
+      // NODE FINAL: PENGIRIMAN KE PENGAJU
+      const tSiap = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+      const tMenuju = calculateTotalProcessedForStatus(item.logs, 'Menuju Pengaju');
+      const tSudah = calculateTotalProcessedForStatus(item.logs, 'Sudah diambil');
+      const tDefectSudah = calculateTotalProcessedForStatus(item.logs, 'Defect > Sudah diambil');
+
+      if (tSiap > 0 || tMenuju > 0 || tSudah > 0) {
+        let finalClass = ''; let finalDesc = 'Menunggu Gudang';
+        if ((tSudah + tDefectSudah) >= (parseInt(item.qty) || 1) && tSudah > 0) { finalClass = 'completed'; finalDesc = 'Sudah Diterima'; }
+        else if (tMenuju > 0) { finalClass = 'active'; finalDesc = 'Sedang Diantar'; }
+
+        let deliveryLogsHtml = '';
+        const finalPickupLogs = (item.logs || []).filter(l => l.status === 'Menuju Pengaju' || l.status === 'Parsial > Menuju Pengaju');
+        finalPickupLogs.forEach(log => { deliveryLogsHtml += createBadge(log, 'PICKUP', log.status.includes('Parsial >')); });
+
+        const finalSudahLogs = (item.logs || []).filter(l => l.status === 'Sudah diambil' || l.status === 'Parsial > Sudah diambil');
+        finalSudahLogs.forEach(log => { deliveryLogsHtml += createBadge(log, 'RECEIVE', log.status.includes('Parsial >')); });
+
+        let inTransitFinal = tMenuju - (tSudah + tDefectSudah);
+        if (inTransitFinal > 0) {
+          deliveryLogsHtml += `
+            <div class="mt-2 p-2 rounded-4 border border-info bg-info-subtle d-flex align-items-center gap-3 shadow-sm" style="border-style: dashed !important;">
+              <div class="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm" style="width:30px; height:30px; color:#0dcaf0;">
+                <i class="fas fa-truck-fast" style="animation: bounce 2s infinite;"></i>
+              </div>
+              <div class="fw-bold text-info-emphasis" style="font-size: 0.8rem;">${inTransitFinal} pcs Diantar ke Dept Pengaju</div>
+            </div>`;
+        }
+        const deptPengajuName = (item.noWR || "").split('/')[1] || item.pengaju || 'Pengaju';
+        html += `<div class="timeline-item ${finalClass}"><div class="timeline-dot"></div><div class="timeline-content"><div class="timeline-title">Pengiriman ke ${deptPengajuName}</div><div class="timeline-desc">${finalDesc}</div>${deliveryLogsHtml ? `<div class="mt-2 border-top pt-1">${deliveryLogsHtml}</div>` : ''}</div></div>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    // --- LOGIKA BARU: TAMPILKAN ALASAN / KETERANGAN & DEFECT ---
+    const logsContainer = document.getElementById('detailLogsContainer');
+    const logsContent = document.getElementById('detailLogsContent');
+    const totalDefects = calculateTotalProcessedForStatus(item.logs, 'Defect');
+
+    if (totalDefects > 0) {
+      logsContainer.style.display = 'block';
+      let contentHtml = `<div class="p-3 rounded-4 border shadow-sm mt-2" style="background-color: #fcfcfc;">`;
+
+      // Bagian Defect (Atas)
+      if (totalDefects > 0) {
+        const defectLogs = (item.logs || []).filter(l => l.status && l.status.startsWith('Defect >'));
+        let defectNotesHtml = '';
+        if (defectLogs.length > 0) {
+          defectNotesHtml = `<div class="mt-2 pt-2 border-top">`;
+          defectLogs.forEach(dl => {
+            defectNotesHtml += `<div class="small text-muted mb-1"><i class="fas fa-caret-right me-1"></i><b>${dl.qty} pcs</b> (${dl.time}) - ${dl.note}</div>`;
+          });
+          defectNotesHtml += `</div>`;
+        }
+
+        contentHtml += `
+          <div class="d-flex align-items-start gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-danger-subtle text-danger shadow-sm" style="width: 38px; height: 38px; flex-shrink: 0;">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="w-100">
+              <div class="fw-bold small text-danger" style="text-transform: uppercase; letter-spacing: 0.5px;">Barang Defect / Reject</div>
+              <div class="fw-bold text-dark mt-1" style="font-size: 1.15rem; line-height: 1;">${totalDefects} <span class="small text-muted fw-normal" style="font-size: 0.8rem;">pcs</span></div>
+              ${defectNotesHtml}
+            </div>
+          </div>
+        `;
+      }
+
+      // Bagian Alasan telah dihapus karena redundant dengan verifikasi atas
+
+      contentHtml += `</div>`;
+      logsContent.innerHTML = contentHtml;
+    } else {
+      logsContainer.style.display = 'none';
+      logsContent.innerHTML = '';
+    }
+
+    document.getElementById('statusDetailModal').style.display = 'flex';
+  }
+
+  function closeStatusDetailModal() { document.getElementById('statusDetailModal').style.display = 'none'; }
+
+  function openScannerForWR(simpleId) {
+    const item = wrDataMap[simpleId];
+    if (!item) { alert("Data WR tidak ditemukan di memori."); return; }
+
+    initScanProcess(item.noWR, item.status || "", item.routing || "");
+  }
+
+  function openBarangStatusModal(noWR) {
+    const item = wrDataMap[noWR]; if (!item) { alert("Data tidak ditemukan"); return; }
+    const currentStatus = item.status || ""; const routing = item.routing || "";
+
+    pendingBarangUpdateWR = noWR; pendingBarangRouting = routing;
+    let baseCategory = currentStatus;
+    if (currentStatus && (currentStatus.startsWith('Proses') || currentStatus === 'On progress')) baseCategory = 'On progress';
+
+    selectStatusPreview(baseCategory);
+    document.getElementById('heroTitle').innerText = currentStatus ? currentStatus : document.getElementById('heroTitle').innerText;
+
+    const nextStatus = calculateNextStatus(currentStatus, routing);
+    const btnSave = document.getElementById('btnSaveStatus');
+    const manualSelectors = document.querySelector('.p-4 .row.g-2');
+    if (manualSelectors) manualSelectors.style.display = 'flex';
+
+    btnSave.innerHTML = 'Update Status'; btnSave.className = "btn btn-primary w-100 py-3 mt-4 fw-bold shadow-sm"; btnSave.onclick = commitBarangStatus;
+
+    let btnScan = document.getElementById('btnScanExtra');
+    if (!btnScan) {
+      btnScan = document.createElement('button'); btnScan.id = 'btnScanExtra'; btnScan.className = "btn btn-dark w-100 py-3 mt-2 fw-bold shadow-sm";
+      btnScan.innerHTML = '<i class="fas fa-qrcode me-2"></i> Verifikasi via Scan';
+      btnSave.parentNode.insertBefore(btnScan, btnSave.nextSibling);
+    }
+    btnScan.onclick = function () {
+      closeBarangStatusModal();
+      initScanProcess(noWR, currentStatus, routing);
+    };
+
+    let infoHtml = `<div class="alert alert-info small mt-3 mb-0 text-start"><i class="fas fa-info-circle me-2"></i><b>Langkah Selanjutnya:</b><br>${nextStatus || 'Selesai'}</div>`;
+    let infoEl = document.getElementById('statusInfoBox');
+    if (!infoEl) {
+      infoEl = document.createElement('div'); infoEl.id = 'statusInfoBox';
+      document.querySelector('.p-4').insertBefore(infoEl, btnSave);
+    }
+    infoEl.innerHTML = infoHtml;
+
+    document.getElementById('statusBarangModal').style.display = 'flex';
+  }
+
+  function closeBarangStatusModal() { document.getElementById('statusBarangModal').style.display = 'none'; pendingBarangUpdateWR = null; pendingBarangRouting = ""; }
+
+  function selectStatusPreview(status) {
+    currentSelectedStatus = status;
+    const hero = document.getElementById('statusHero'); const iconBox = document.getElementById('heroIcon');
+    const title = document.getElementById('heroTitle'); const desc = document.getElementById('heroDesc');
+
+    document.querySelectorAll('.status-select-item').forEach(el => {
+      el.classList.remove('active'); if (el.dataset.status === status) el.classList.add('active');
+    });
+
+    const routingContainer = document.getElementById('routingStepContainer'); const routingOptions = document.getElementById('routingStepOptions');
+    routingContainer.style.display = 'none'; routingOptions.innerHTML = '';
+
+    if (status === 'Dalam antrian') {
+      hero.style.background = "linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%)"; iconBox.innerHTML = '<i class="fas fa-clock text-warning" style="animation: swing 2s infinite ease-in-out;"></i>';
+      title.innerText = "Dalam Antrian"; title.className = "fw-bold mb-1 text-warning"; desc.innerText = "Pesanan sedang menunggu giliran";
+    } else if (status === 'On progress') {
+      hero.style.background = "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)"; iconBox.innerHTML = '<i class="fas fa-cog text-primary" style="animation: spin 3s infinite linear;"></i>';
+      title.innerText = "Sedang Diproses"; title.className = "fw-bold mb-1 text-primary"; desc.innerText = "Teknisi sedang mengerjakan komponen";
+      if (pendingBarangRouting && pendingBarangRouting !== '-' && pendingBarangRouting.includes(' - ')) {
+        const steps = pendingBarangRouting.split(' - ');
+        if (steps.length > 1) {
+          routingContainer.style.display = 'block';
+          steps.forEach(step => {
+            const btn = document.createElement('button'); btn.className = 'btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-bold'; btn.innerText = step; btn.style.border = "2px solid #2196f3";
+            btn.onclick = function () {
+              Array.from(routingOptions.children).forEach(c => { c.classList.remove('btn-primary', 'text-white'); c.classList.add('btn-outline-primary'); });
+              this.classList.remove('btn-outline-primary'); this.classList.add('btn-primary', 'text-white');
+              currentSelectedStatus = `Proses: ${step} (In)`;
+            };
+            routingOptions.appendChild(btn);
+          });
+        }
+      }
+    } else if (status === 'Siap diambil') {
+      hero.style.background = "linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)"; iconBox.innerHTML = '<i class="fas fa-check-circle text-success" style="animation: bounce 2s infinite;"></i>';
+      title.innerText = "Siap Diambil"; title.className = "fw-bold mb-1 text-success"; desc.innerText = "Komponen sudah selesai & siap diambil";
+    } else {
+      hero.style.background = "#f8f9fa"; iconBox.innerHTML = '<i class="fas fa-box text-muted"></i>';
+      title.innerText = "Status Saat Ini"; title.className = "fw-bold mb-1 text-muted"; desc.innerText = status || "Belum Verifikasi";
+    }
+  }
+
+  function commitBarangStatus() {
+    if (pendingBarangUpdateWR && currentSelectedStatus) updateStatus(pendingBarangUpdateWR, 'barang', currentSelectedStatus);
+    closeBarangStatusModal();
+  }
+
+  function closeStatusConfirmModal() { document.getElementById('statusConfirmModal').style.display = 'none'; pendingStatusUpdate = null; }
+
+  function executeStatusUpdate() {
+    if (pendingStatusUpdate) {
+      let qtyInfo = pendingStatusUpdate.qty ? `${pendingStatusUpdate.qty}` : null;
+      let reason = pendingStatusUpdate.qty ? "Konfirmasi Diterima" : "";
+
+      // Pastikan status "Sudah diambil" selalu mencatat Qty ke dalam log
+      if (pendingStatusUpdate.newStatus === 'Sudah diambil') {
+        reason = "Konfirmasi Diterima";
+        if (!qtyInfo) {
+          const simpleId = pendingStatusUpdate.noWR.replace(/[^a-zA-Z0-9]/g, '');
+          const item = wrDataMap[simpleId];
+          qtyInfo = item ? item.qty : "0";
+        }
+      }
+
+      processUpdate(pendingStatusUpdate.noWR, pendingStatusUpdate.type, pendingStatusUpdate.newStatus, qtyInfo, reason);
+    }
+    closeStatusConfirmModal();
+  }
+
+  function getActingDeptForWR(item, role) {
+    const deptList = (typeof getCurrentDeptList === 'function' ? getCurrentDeptList() : (currentDept ? [currentDept] : []));
+    if (!item || deptList.length === 0) return currentDept;
+
+    const matches = (value, dept) => {
+      const target = String(value || "").toUpperCase().trim();
+      const userDept = String(dept || "").toUpperCase().trim();
+      return target && userDept && (target === userDept || target.includes(userDept) || userDept.includes(target));
+    };
+
+    if (role === 'pengaju') {
+      return deptList.find(dept => matches(item.pengaju, dept)) || currentDept;
+    }
+
+    if (role === 'penerima') {
+      const penerimaPertama = String(item.penerima || "").split(/\s+-\s+|\s*,\s*/)[0];
+      const penerimaList = penerimaPertama ? [penerimaPertama.trim()] : [];
+      return deptList.find(dept => penerimaList.some(penerima => matches(penerima, dept))) || currentDept;
+    }
+
+    if (role === 'barang') {
+      const steps = String(item.routing || "").split('-').map(s => s.trim()).filter(s => s !== "");
+      return deptList.find(dept => steps.some(step => matches(step, dept)) || matches(item.pengaju, dept)) || currentDept;
+    }
+
+    return currentDept;
+  }
+
+  function updateStatus(idOrNoWR, type, newStatus, isSimpleId = false, qty = null) {
+    let noWR = idOrNoWR;
+    if (isSimpleId) { const item = wrDataMap[idOrNoWR]; if (item) noWR = item.noWR; }
+    const simpleIdForUpdate = String(noWR || "").replace(/[^a-zA-Z0-9]/g, '');
+    const itemForUpdate = isSimpleId ? wrDataMap[idOrNoWR] : wrDataMap[simpleIdForUpdate];
+    const actingDept = getActingDeptForWR(itemForUpdate, type);
+    document.querySelectorAll('.dropdown-toggle.show').forEach(toggle => {
+      const instance = bootstrap.Dropdown.getInstance(toggle);
+      if (instance) instance.hide();
+      else { toggle.classList.remove('show'); if (toggle.nextElementSibling) toggle.nextElementSibling.classList.remove('show'); }
+    });
+
+    pendingStatusUpdate = { noWR, type, newStatus, qty };
+
+    // --- LOGIKA BARU: Intercept untuk "Penerima" -> "Diterima" ---
+    if (type === 'penerima' && newStatus === 'Diterima') {
+      const modal = document.getElementById('assignOpModal');
+      const select = document.getElementById('assignOpSelect');
+
+      modal.style.display = 'flex';
+      select.innerHTML = '<option value="">Memuat operator...</option>';
+      select.disabled = true;
+
+      // Panggil server untuk mendapatkan daftar operator di departemen yang sama
+      google.script.run
+        .withSuccessHandler(function (operators) {
+          select.innerHTML = '<option value="">-- Pilih Operator --</option>';
+          if (operators && operators.length > 0) {
+            operators.forEach(op => {
+              const option = document.createElement('option');
+              option.value = op;
+              option.innerText = op;
+              select.appendChild(option);
+            });
+          } else {
+            select.innerHTML = '<option value="">Tidak ada operator ditemukan</option>';
+          }
+          select.disabled = false;
+        })
+        .withFailureHandler(err => select.innerHTML = '<option value="">Gagal memuat data</option>')
+        .getOperatorsByDept(actingDept);
+      return;
+    }
+
+    const modal = document.getElementById('statusConfirmModal'); const iconBg = document.getElementById('confirmIconBg'); const icon = document.getElementById('confirmIcon'); const title = document.getElementById('confirmTitle'); const msg = document.getElementById('confirmMessage'); const btn = document.getElementById('btnConfirmAction');
+
+    iconBg.className = "success-icon"; iconBg.style.cssText = ""; icon.className = "";
+
+    if (newStatus === 'Ditolak') {
+      iconBg.className = "danger-icon"; icon.className = "fas fa-times"; title.innerText = "Tolak Pengajuan?"; msg.innerText = "Yakin ingin menolak WR ini? Tindakan ini tidak dapat dibatalkan.";
+      btn.className = "btn btn-danger fw-bold flex-grow-1"; btn.innerText = "Ya, Tolak";
+    } else if (newStatus === 'Sudah diambil') {
+      iconBg.className = "success-icon";
+      iconBg.style.cssText = "background: #d1e7dd; color: #198754; box-shadow: 0 10px 20px rgba(25, 135, 84, 0.2); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 20px;";
+      icon.className = "fas fa-box-open";
+      title.innerText = "Barang Diterima?";
+      msg.innerHTML = "Pastikan fisik komponen sudah Anda terima dengan baik.<br><b class='text-danger'>Tindakan ini akan mengakhiri proses Work Request dan tidak bisa dibatalkan!</b>";
+      btn.className = "btn btn-success fw-bold flex-grow-1"; btn.innerText = "Ya, Konfirmasi Selesai";
+    } else if (newStatus === 'Diterima' || newStatus === 'Siap diambil') {
+      iconBg.className = "success-icon"; icon.className = "fas fa-check"; title.innerText = "Konfirmasi " + newStatus; msg.innerText = `Ubah status menjadi '${newStatus}'?`;
+      btn.className = "btn btn-success fw-bold flex-grow-1"; btn.innerText = "Ya, " + newStatus;
+    } else if (newStatus === 'Dalam antrian') {
+      iconBg.style.cssText = "background: #fff3cd; color: #ff9800; box-shadow: 0 10px 20px rgba(255, 152, 0, 0.2); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 20px;";
+      icon.className = "fas fa-clock"; title.innerText = "Masuk Antrian?"; msg.innerText = "Pindahkan item ini ke antrian?";
+      btn.className = "btn btn-warning text-dark fw-bold flex-grow-1"; btn.innerText = "Ya, Antrikan";
+    } else if (newStatus === 'On progress') {
+      iconBg.style.cssText = "background: #e3f2fd; color: #2196f3; box-shadow: 0 10px 20px rgba(33, 150, 243, 0.2); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 20px;";
+      icon.className = "fas fa-spinner fa-spin"; title.innerText = "Mulai Pengerjaan?"; msg.innerText = "Set status menjadi On Progress?";
+      btn.className = "btn btn-primary fw-bold flex-grow-1"; btn.innerText = "Ya, Mulai";
+    } else {
+      icon.className = "fas fa-question"; title.innerText = "Konfirmasi Update"; msg.innerText = `Ubah status menjadi ${newStatus}?`;
+      btn.className = "btn btn-primary fw-bold flex-grow-1"; btn.innerText = "Ya, Ubah";
+    }
+    modal.style.display = 'flex';
+  }
+
+  function closeAssignOpModal() {
+    document.getElementById('assignOpModal').style.display = 'none';
+    pendingStatusUpdate = null;
+  }
+
+  function executeAssignOp() {
+    const opName = document.getElementById('assignOpSelect').value;
+    if (!opName) {
+      alert("Harap pilih operator yang ditugaskan!");
+      return;
+    }
+
+    if (pendingStatusUpdate) {
+      processUpdate(pendingStatusUpdate.noWR, pendingStatusUpdate.type, pendingStatusUpdate.newStatus, null, "", currentName, opName);
+    }
+    closeAssignOpModal();
+  }
+
+  function processUpdate(noWR, type, newStatus, additionalInfo = null, reason = "", userIdent = currentName, assignedOP = "") {
+    const simpleId = noWR.replace(/[^a-zA-Z0-9]/g, '');
+    const containerId = 'status-container-' + type + '-' + simpleId;
+    const container = document.getElementById(containerId);
+    let btn, originalText, originalClass;
+
+    if (container) { // Jika dipanggil dari tabel Data WR, kelola status tombol
+      btn = container.querySelector('button');
+      originalText = btn.innerText;
+      originalClass = btn.className;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      btn.disabled = true;
+    } else { // Jika dipanggil dari scanner (Task Gudang), tampilkan modal loading
+      showResultModal(true, "Memproses...", "Sedang memperbarui status...");
+      const modalBtn = document.getElementById('resultBtn');
+      const modalIcon = document.getElementById('resultIcon');
+      if (modalBtn) modalBtn.style.display = 'none';
+      if (modalIcon) modalIcon.className = 'fas fa-spinner fa-spin';
+    }
+
+    google.script.run.withSuccessHandler(function (res) {
+      const modalBtn = document.getElementById('resultBtn');
+      if (modalBtn) modalBtn.style.display = 'block';
+      if (res && res.startsWith("Status berhasil diperbarui")) {
+        showResultModal(true, "Berhasil!", `Status Work Request <b>${noWR}</b> berhasil diperbarui menjadi <b>${newStatus}</b>.`);
+
+        // --- PERBAIKAN UTAMA: Muat ulang data di latar belakang ---
+        // Ini memastikan data di semua halaman (Data WR & Task Gudang) menjadi sinkron.
+        if (typeof loadDataWR === 'function') {
+          loadDataWR();
+        }
+
+
+      } else {
+        showResultModal(false, "Gagal Update", `Sistem menolak perubahan status.<br><br><b>Alasan:</b> ${res}`);
+        if (btn) { btn.innerText = originalText; btn.className = originalClass; btn.disabled = false; }
+      }
+    }).withFailureHandler(function (err) {
+      const modalBtn = document.getElementById('resultBtn');
+      if (modalBtn) modalBtn.style.display = 'block';
+      showResultModal(false, "Terjadi Kesalahan", `Gagal menghubungi server.<br><br><b>Error:</b> ${err}`);
+      if (btn) { btn.innerText = originalText; btn.className = originalClass; btn.disabled = false; }
+    }).updateWRStatus(noWR, type, newStatus, additionalInfo, reason, userIdent, assignedOP);
+  }
+
+  function getPermissionState(item, role, userDept) {
+    try {
+      if (!item) return false;
+      let canEdit = false;
+      const userDeptList = (typeof getCurrentDeptList === 'function' ? getCurrentDeptList() : (userDept ? [userDept] : []))
+        .map(dept => String(dept || "").toUpperCase().trim())
+        .filter(dept => dept !== "");
+      const matchesUserDept = (value) => {
+        const target = String(value || "").toUpperCase().trim();
+        if (!target) return false;
+        return userDeptList.some(dept => target === dept || target.includes(dept) || dept.includes(target));
+      };
+
+      let rawPenerimaList = [];
+      if (item.penerima) {
+        const firstPenerima = String(item.penerima).split(/\s+-\s+|\s*,\s*/)[0];
+        if (firstPenerima) rawPenerimaList = [firstPenerima.trim()];
+      }
+      const penerimaList = rawPenerimaList.map(s => s.trim().toUpperCase());
+
+      if (userDeptList.length > 0) {
+        if (role === 'pengaju' && item.pengaju && matchesUserDept(item.pengaju)) canEdit = true;
+
+        if (role === 'penerima') {
+          if (penerimaList.length > 0 && penerimaList.some(dept => matchesUserDept(dept))) canEdit = true;
+        }
+
+        if (role === 'barang') {
+          canEdit = false;
+          const routingRaw = item.routing || "";
+          const steps = routingRaw.split('-').map(s => s.trim()).filter(s => s !== "");
+          const userIndex = steps.findIndex(step => matchesUserDept(step));
+
+          const sBarang = (item.status || '').toLowerCase();
+
+          if (userIndex !== -1) {
+            const myStep = steps[userIndex];
+            const totalWRQty = parseInt(item.qty) || 0;
+
+            let totalMyIn = calculateTotalProcessedForStatus(item.logs, `Proses: ${myStep} (In)`);
+            let consumedIn = totalMyIn + calculateTotalProcessedForStatus(item.logs, `Defect > Proses: ${myStep} (In)`);
+
+            let totalMyOut = 0, consumedOut = 0;
+            if (userIndex === steps.length - 1) {
+              totalMyOut = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+              consumedOut = totalMyOut + calculateTotalProcessedForStatus(item.logs, 'Defect > Siap diambil');
+            } else {
+              totalMyOut = calculateTotalProcessedForStatus(item.logs, `Proses: ${myStep} (Out)`);
+              consumedOut = totalMyOut + calculateTotalProcessedForStatus(item.logs, `Defect > Proses: ${myStep} (Out)`);
+            }
+
+            let saldoIn = 0;
+            if (userIndex === 0) {
+              let totalAllDefects = calculateTotalProcessedForStatus(item.logs, 'Defect');
+              saldoIn = (totalWRQty + totalAllDefects) - consumedIn;
+            } else {
+              const prevStep = steps[userIndex - 1];
+              let totalPickedUp = calculateTotalProcessedForStatus(item.logs, `MH Pickup: ${prevStep}`);
+              if (totalPickedUp === 0) totalPickedUp = calculateTotalProcessedForStatus(item.logs, `MH Drop: ${prevStep}`);
+              saldoIn = totalPickedUp - consumedIn;
+            }
+
+            const saldoOut = totalMyIn - consumedOut;
+
+            if (saldoIn > 0 || saldoOut > 0) {
+              canEdit = true;
+            }
+
+            // Kunci akses edit untuk operator jika barang sudah masuk tahap final
+            if (sBarang === 'siap diambil' || sBarang === 'selesai' || sBarang === 'sudah diambil' || sBarang === 'menuju pengaju') {
+              canEdit = false;
+            }
+          }
+
+          // LOGIKA BARU: Buka KUNCI AKSES KHUSUS untuk PENGAJU agar bisa klik tombol "Konfirmasi Diterima"
+          const ownerDept = String(item.pengaju || "").trim().toUpperCase();
+          const isOwner = matchesUserDept(ownerDept);
+
+          let totalSiap = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+          const stepsArrP = (item.routing || "").split('-').map(s => s.trim()).filter(s => s !== "");
+          if (totalSiap === 0 && stepsArrP.length > 0) {
+            totalSiap = calculateTotalProcessedForStatus(item.logs, `Proses: ${stepsArrP[stepsArrP.length - 1]} (Out)`);
+          }
+          let totalMenuju = calculateTotalProcessedForStatus(item.logs, 'Menuju Pengaju');
+          let defectMenuju = calculateTotalProcessedForStatus(item.logs, 'Defect > Menuju Pengaju');
+          let totalSudah = calculateTotalProcessedForStatus(item.logs, 'Sudah diambil');
+          let totalDefectSudah = calculateTotalProcessedForStatus(item.logs, 'Defect > Sudah diambil');
+          let consumedSudah = totalSudah + totalDefectSudah;
+
+          let saldoTerima = (totalMenuju - defectMenuju) - consumedSudah;
+          if (totalMenuju === 0 && defectMenuju === 0) saldoTerima = totalSiap - consumedSudah;
+
+          // LOGIKA PENYELAMAT: Jika data lama / update manual tanpa Qty, paksa gunakan total Qty utama
+          if (saldoTerima <= 0 && (sBarang === 'siap diambil' || sBarang === 'menuju pengaju' || sBarang === 'selesai')) {
+            saldoTerima = parseInt(item.qty || 0) - consumedSudah;
+          }
+
+          if (isOwner && saldoTerima > 0 && sBarang !== 'sudah diambil') {
+            canEdit = true;
+          }
+        }
+      }
+
+      const codes = (typeof currentAccessCodes !== 'undefined' && Array.isArray(currentAccessCodes)) ? currentAccessCodes : [];
+      if ((role === 'pengaju' || role === 'penerima') && canEdit) { if (!codes.includes('5')) canEdit = false; }
+
+      if (role === 'penerima' && item.statusPengaju !== 'Diterima') canEdit = false;
+      if (role === 'barang' && item.statusPenerima !== 'Diterima') canEdit = false;
+      if (role === 'pengaju' && item.statusPenerima === 'Diterima') canEdit = false;
+      if (role === 'penerima') {
+        const sBarang = (item.status || '').toLowerCase();
+        if (sBarang && sBarang !== '-' && sBarang !== 'belum verifikasi' && !sBarang.includes('antrian')) canEdit = false;
+      }
+      return canEdit;
+    } catch (e) { console.warn("Permission Error:", e); return false; }
+  }
+
+  function createStatusElement(item, role, userDept) {
+    const simpleId = item.noWR.replace(/[^a-zA-Z0-9]/g, '');
+
+    const getStatusColor = (s) => {
+      if (!s || s === '-') return 'secondary';
+      const lower = String(s || '').toLowerCase();
+      if (lower === 'diterima' || lower === 'siap diambil' || lower === 'selesai' || lower === 'disetujui' || lower === 'sudah diambil') return 'success';
+      if (lower === 'ditolak') return 'danger';
+      if (lower === 'dalam antrian' || lower.includes('menunggu')) return 'warning';
+      if (lower.includes('mh pickup') || lower.includes('pickup')) return 'info';
+      if (lower.includes('proses') || lower === 'on progress') return 'primary';
+      return 'secondary';
+    };
+
+    let currentStatus = '-';
+    if (role === 'pengaju') currentStatus = item.statusPengaju || 'Belum Verifikasi';
+    if (role === 'penerima') currentStatus = item.statusPenerima || 'Belum Verifikasi';
+    if (role === 'barang') currentStatus = item.status || '-';
+
+    const colorType = getStatusColor(currentStatus);
+    const canEdit = getPermissionState(item, role, userDept);
+
+    if (role === 'barang') {
+      let action = "";
+      let btnText = currentStatus;
+      let btnIcon = canEdit ? 'fa-qrcode' : 'fa-info-circle';
+      let btnClass = `btn btn-sm w-100 text-start ps-3 shadow-sm`;
+      let btnStyle = `background: white; border: 1px solid var(--bs-${colorType}); color: var(--bs-${colorType}); font-weight: 700; font-size: 0.75rem; padding: 6px 10px;`;
+
+      if (canEdit) {
+        let availableActions = [];
+        const userDeptList = (typeof getCurrentDeptList === 'function' ? getCurrentDeptList() : (userDept ? [userDept] : []))
+          .map(dept => String(dept || "").toUpperCase().trim())
+          .filter(dept => dept !== "");
+        const matchesUserDept = (value) => {
+          const target = String(value || "").toUpperCase().trim();
+          if (!target) return false;
+          return userDeptList.some(dept => target === dept || target.includes(dept) || dept.includes(target));
+        };
+        const ownerDept = String(item.pengaju || "").trim().toUpperCase();
+        const isOwner = matchesUserDept(ownerDept);
+
+        // A. CEK AKSES SEBAGAI PENGAJU (TERIMA BARANG PARSIAL)
+        let totalSiap = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+        const stepsArrP = (item.routing || "").split('-').map(s => s.trim()).filter(s => s !== "");
+        if (totalSiap === 0 && stepsArrP.length > 0) {
+          totalSiap = calculateTotalProcessedForStatus(item.logs, `Proses: ${stepsArrP[stepsArrP.length - 1]} (Out)`);
+        }
+
+        let totalMenuju = calculateTotalProcessedForStatus(item.logs, 'Menuju Pengaju');
+        let defectMenuju = calculateTotalProcessedForStatus(item.logs, 'Defect > Menuju Pengaju');
+        let totalSudah = calculateTotalProcessedForStatus(item.logs, 'Sudah diambil');
+        let consumedSudah = totalSudah + calculateTotalProcessedForStatus(item.logs, 'Defect > Sudah diambil');
+
+        let saldoTerima = (totalMenuju - defectMenuju) - consumedSudah;
+        if (totalMenuju === 0 && defectMenuju === 0) saldoTerima = totalSiap - consumedSudah;
+
+        const sBarangMain = (item.status || '').toLowerCase();
+
+        // LOGIKA PENYELAMAT: Jika data lama / update manual tanpa Qty, paksa gunakan total Qty utama
+        if (saldoTerima <= 0 && (sBarangMain === 'siap diambil' || sBarangMain === 'menuju pengaju' || sBarangMain === 'selesai')) {
+          saldoTerima = parseInt(item.qty || 0) - consumedSudah;
+        }
+
+        if (isOwner && saldoTerima > 0 && sBarangMain !== 'sudah diambil') {
+          availableActions.push({
+            label: `Scan Diterima (${saldoTerima} pcs)`,
+            icon: 'fa-check-double',
+            action: `event.stopPropagation(); initScanProcess('${item.noWR}', '${item.status}', '${item.routing}', 'Sudah diambil')`,
+            colorClass: 'success'
+          });
+        }
+
+        // B. CEK AKSES SEBAGAI OPERATOR
+        const routingRaw = item.routing || "";
+        const steps = routingRaw.split('-').map(s => s.trim()).filter(s => s !== "");
+        const userIndex = steps.findIndex(step => matchesUserDept(step));
+
+        if (userIndex !== -1) {
+          const myStep = steps[userIndex];
+          const totalWRQty = parseInt(item.qty) || 0;
+
+          let totalMyIn = calculateTotalProcessedForStatus(item.logs, `Proses: ${myStep} (In)`);
+          let consumedIn = totalMyIn + calculateTotalProcessedForStatus(item.logs, `Defect > Proses: ${myStep} (In)`);
+
+          let totalMyOut = 0, consumedOut = 0;
+          if (userIndex === steps.length - 1) {
+            totalMyOut = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+            consumedOut = totalMyOut + calculateTotalProcessedForStatus(item.logs, 'Defect > Siap diambil');
+          } else {
+            totalMyOut = calculateTotalProcessedForStatus(item.logs, `Proses: ${myStep} (Out)`);
+            consumedOut = totalMyOut + calculateTotalProcessedForStatus(item.logs, `Defect > Proses: ${myStep} (Out)`);
+          }
+
+          let totalSupply = 0;
+          if (userIndex === 0) {
+            let totalAllDefects = calculateTotalProcessedForStatus(item.logs, 'Defect');
+            totalSupply = (totalWRQty + totalAllDefects);
+          } else {
+            const prevStep = steps[userIndex - 1];
+            totalSupply = calculateTotalProcessedForStatus(item.logs, `MH Pickup: ${prevStep}`);
+            if (totalSupply === 0) totalSupply = calculateTotalProcessedForStatus(item.logs, `MH Drop: ${prevStep}`);
+          }
+
+          const saldoIn = totalSupply - consumedIn;
+          const saldoOut = totalMyIn - consumedOut;
+
+          if (saldoIn > 0) {
+            availableActions.push({
+              label: `Scan Masuk (${saldoIn} pcs)`,
+              icon: 'fa-sign-in-alt',
+              action: `event.stopPropagation(); initScanProcess('${item.noWR}', '${item.status}', '${item.routing}', 'Proses: ${myStep} (In)')`,
+              colorClass: 'primary-outline'
+            });
+          }
+
+          if (saldoOut > 0) {
+            let nextActionStatus = (userIndex === steps.length - 1) ? 'Siap diambil' : `Proses: ${myStep} (Out)`;
+            let actionLabel = (userIndex === steps.length - 1) ? `Scan Siap Diambil (${saldoOut} pcs)` : `Scan Keluar (${saldoOut} pcs)`;
+            let iconClass = (userIndex === steps.length - 1) ? 'fa-check-circle' : 'fa-sign-out-alt';
+            let colorCls = (userIndex === steps.length - 1) ? 'success' : 'primary';
+
+            availableActions.push({
+              label: actionLabel,
+              icon: iconClass,
+              action: `event.stopPropagation(); initScanProcess('${item.noWR}', '${item.status}', '${item.routing}', '${nextActionStatus}')`,
+              colorClass: colorCls
+            });
+          }
+        }
+
+        // C. RENDER TOMBOL ATAU DROPDOWN
+        if (availableActions.length === 1) {
+          const act = availableActions[0];
+          btnText = act.label;
+          btnIcon = act.icon;
+          action = act.action;
+
+          if (act.colorClass === 'success') {
+            btnStyle = `background: var(--bs-success); border: 1px solid var(--bs-success); color: white; font-weight: 700; font-size: 0.75rem; padding: 6px 10px; box-shadow: 0 4px 10px rgba(25, 135, 84, 0.3);`;
+          } else if (act.colorClass === 'primary-outline') {
+            btnStyle = `background: white; border: 1px solid var(--bs-primary); color: var(--bs-primary); font-weight: 700; font-size: 0.75rem; padding: 6px 10px;`;
+          } else {
+            btnStyle = `background: var(--bs-primary); border: 1px solid var(--bs-primary); color: white; font-weight: 700; font-size: 0.75rem; padding: 6px 10px;`;
+          }
+        } else if (availableActions.length > 1) {
+          let listHtml = '';
+          availableActions.forEach(act => {
+            let textClass = 'text-primary';
+            if (act.colorClass === 'success') textClass = 'text-success';
+            listHtml += `<li><a class="dropdown-item fw-bold py-2 ${textClass}" href="javascript:void(0)" onclick="${act.action}"><i class="fas ${act.icon} me-2"></i>${act.label}</a></li>`;
+          });
+
+          return `
+            <div class="dropdown" id="status-container-barang-${simpleId}" onclick="event.stopPropagation()">
+              <button class="btn btn-sm dropdown-toggle w-100 text-start ps-3 shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: var(--bs-warning); border: 1px solid var(--bs-warning); color: #000; font-weight: 700; font-size: 0.75rem; padding: 6px 10px;">
+                Pilih Aksi <span class="badge bg-danger ms-1">${availableActions.length}</span>
+              </button>
+              <ul class="dropdown-menu shadow-sm border-0">
+                ${listHtml}
+              </ul>
+            </div>`;
+        } else {
+          action = `event.stopPropagation(); openScannerForWR('${simpleId}')`;
+        }
+      } else {
+        action = `event.stopPropagation(); openStatusDetailModal('${simpleId}')`;
+      }
+
+      return `
+       <div id="status-container-barang-${simpleId}">
+       <button class="${btnClass}" type="button" onclick="${action}" style="${btnStyle}">
+         ${btnText} <i class="fas ${btnIcon} float-end mt-1"></i>
+         </button>
+       </div>`;
+    }
+
+    if (!canEdit) {
+      let badgeClass = `bg-${colorType} text-white`;
+      if (colorType === 'warning') badgeClass = `bg-${colorType} text-dark`;
+      return `<span class="badge ${badgeClass} border-0 d-block w-100 text-start ps-3 shadow-sm" style="font-weight: 600; padding: 8px 10px;">${currentStatus}</span>`;
+    }
+
+    const activeStyle = `background: white; border: 1px solid var(--bs-${colorType}); color: var(--bs-${colorType}); font-weight: 700;`;
+    return `
+    <div class="dropdown" id="status-container-${role}-${simpleId}">
+      <button class="btn btn-sm dropdown-toggle w-100 text-start ps-3 shadow-sm" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="${activeStyle} font-size: 0.75rem; padding: 6px 10px;">
+        ${currentStatus}
+      </button>
+      <ul class="dropdown-menu shadow-sm border-0">
+        <li><a class="dropdown-item text-success fw-bold py-2" href="javascript:void(0)" onclick="updateStatus('${simpleId}', '${role}', 'Diterima', true)"><i class="fas fa-check me-2"></i>Terima</a></li>
+        <li><a class="dropdown-item text-danger fw-bold py-2" href="javascript:void(0)" onclick="updateStatus('${simpleId}', '${role}', 'Ditolak', true)"><i class="fas fa-times me-2"></i>Tolak</a></li>
+      </ul>
+    </div>`;
+  }
+
+  function getPengajuStatusHTML(item, simpleId) { return ''; } // Already managed by createStatusElement
+  function getPenerimaStatusHTML(item, simpleId, isPengajuApproved) { return ''; } // Already managed
+  function getBarangStatusHTML(item, simpleId, isPenerimaApproved, statusRaw) { return ''; } // Already managed
+
+  function renderWRTable(containerId, data, isLoading) {
+    const container = document.getElementById(containerId);
+    container.setAttribute('data-sla-filtered', 'false'); // Reset status filter
+
+    if (isLoading) {
+      container.innerHTML = `<div class="table-responsive-custom"><table class="super-table text-nowrap align-middle w-100"><thead><tr><th>No WR / Status</th><th>Tanggal</th><th>Komponen</th><th>Sts Pengaju</th><th>Sts Penerima</th><th>Foto</th><th>Routing / Dimensi / Qty</th><th>Lokasi Gambar</th><th>Deskripsi</th><th>Pengaju / Penerima</th></tr></thead><tbody class="table-body"><tr><td colspan="10" class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 small text-muted">Memuat data...</div></td></tr></tbody></table></div>`;
+      return;
+    }
+    if (!data || data.length === 0) {
+      container.innerHTML = `<div class="table-responsive-custom"><table class="super-table text-nowrap align-middle w-100"><thead><tr><th>No WR / Status</th><th>Tanggal</th><th>Komponen</th><th>Sts Pengaju</th><th>Sts Penerima</th><th>Foto</th><th>Routing / Dimensi / Qty</th><th>Lokasi Gambar</th><th>Deskripsi</th><th>Pengaju / Penerima</th></tr></thead><tbody class="table-body"><tr><td colspan="10" class="text-center py-5"><div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;"><i class="fas fa-inbox fa-2x text-muted opacity-50"></i></div><p class="text-muted fw-bold mb-0 small">Tidak ada data ditemukan</p></td></tr></tbody></table></div>`;
+      return;
+    }
+
+    let overdueCount = 0;
+    const isPendingOrProcessTab = containerId.toLowerCase().includes('pending') || containerId.toLowerCase().includes('approved');
+
+    const rowsHTML = data.map((item, index) => {
+      try {
+        const simpleId = item.noWR.replace(/[^a-zA-Z0-9]/g, ''); wrDataMap[simpleId] = item;
+        let displayNoWR = item.noWR; const partsWR = String(item.noWR).split('/');
+        if (partsWR.length >= 4) displayNoWR = `<div>${partsWR.slice(0, 3).join('/')}</div><div class="small">${partsWR.slice(3).join('/')}</div>`;
+
+        // --- LOGIKA SLA (AGING ALERT > 3 HARI) ---
+        let rowClass = 'super-row';
+        let urgentBadge = '';
+
+        if (isPendingOrProcessTab && item.tglRaw) {
+          const parts = item.tglRaw.split('-');
+          if (parts.length === 3) {
+            const itemDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const diffDays = Math.floor((today - itemDate) / (1000 * 60 * 60 * 24));
+
+            if (diffDays >= 3) {
+              overdueCount++;
+              rowClass += ' urgent-card';
+              urgentBadge = `<div class="mt-2"><span class="urgent-badge shadow-sm"><i class="fas fa-fire me-1"></i> SUDAH > 3 HARI</span></div>`;
+            }
+          }
+        }
+
+        // FIX: Bungkus pembuatan elemen status barang dengan try-catch agar tidak merusak seluruh baris
+        let colBarang = '<span class="badge bg-secondary">Error</span>';
+        try { colBarang = createStatusElement(item, 'barang', currentDept); } catch (err) { console.warn(`Error creating status badge for ${item.noWR}:`, err); }
+
+        displayNoWR = `<div style="cursor:pointer;" onclick="openStatusDetailModal('${simpleId}')" title="Klik untuk lihat detail">
+          ${displayNoWR}
+          ${urgentBadge}
+          <div class="mt-2" style="min-width: 140px;">${colBarang}</div>
+        </div>`;
+
+        // Determine Row Background based on Access
+        const accessP = getPermissionState(item, 'pengaju', currentDept);
+        const accessR = getPermissionState(item, 'penerima', currentDept);
+        const accessB = getPermissionState(item, 'barang', currentDept);
+        const isRowEditable = accessP || accessR || accessB;
+        const rowBg = isRowEditable ? '#ffffff' : '#e2e8f0';
+        const tdStyle = `background-color: ${rowBg};`;
+
+        let imgBtn = '<span class="text-muted">-</span>';
+        if (item.gambar && item.gambar.length > 5) {
+          const encodedName = encodeURIComponent(item.nama).replace(/'/g, "%27");
+          imgBtn = `<button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="showImageModal('${item.gambar}', '${item.kode}', decodeURIComponent('${encodedName}'))" style="font-size: 0.75rem;"><i class="fas fa-image me-1"></i> Lihat</button>`;
+        }
+
+        const colPengaju = createStatusElement(item, 'pengaju', currentDept);
+        const colPenerima = createStatusElement(item, 'penerima', currentDept);
+        const cleanDeskripsi = (item.deskripsi || '').replace(/\[.*?:.*?@.*?\]/g, '').trim() || '-';
+
+        // --- LOGIKA TOMBOL EDIT ROUTING (KHUSUS KOMPONEN BARU) ---
+        let btnEditRouting = '';
+
+        // 1. Filter Komponen: Kode harus 'Baru' (Case Insensitive check)
+        const isKomponenBaru = String(item.kode).toUpperCase() === 'BARU';
+
+        // 2. Filter Otoritas: Dept User === Dept Pengaju
+        // Menggunakan currentDept (Global Variable)
+        const isAuthorized = typeof userHasDept === 'function' ? userHasDept(item.pengaju) : (currentDept && (String(currentDept).trim().toUpperCase() === String(item.pengaju).trim().toUpperCase()));
+
+        // 3. Filter Status: Tidak Boleh Selesai/Siap diambil/Ditolak
+        const sPengaju = String(item.statusPengaju || '').toLowerCase();
+        const sPenerima = String(item.statusPenerima || '').toLowerCase();
+        const sBarang = String(item.status || '').toLowerCase();
+
+        const isNotFinished = !['siap diambil', 'selesai'].includes(sBarang);
+        const isNotRejected = !sPengaju.includes('ditolak') && !sPenerima.includes('ditolak');
+
+        // Render Tombol jika semua syarat terpenuhi
+        if (isKomponenBaru && isAuthorized && isNotFinished && isNotRejected) {
+          // Gunakan simpleId untuk keamanan parameter
+          const safeNoWR = item.noWR.replace(/'/g, "\\'");
+          btnEditRouting = `<i class="fas fa-pencil-alt text-warning ms-2" style="cursor:pointer;" onclick="openEditRoutingModal('${simpleId}')" title="Edit Routing (Komponen Baru)"></i>`;
+        }
+        // ---------------------------------------------------------
+
+        return `<tr class="${rowClass}" style="animation-delay: ${index * 0.05}s;">
+          <td class="fw-bold text-primary" style="${tdStyle}">${displayNoWR}</td><td style="${tdStyle}">${item.tgl}</td>
+          <td style="${tdStyle}"><div class="fw-bold">${item.nama}</div><div class="small text-muted">${item.kode}</div></td>
+          <td style="${tdStyle}">${colPengaju}</td><td style="${tdStyle}">${colPenerima}</td>
+          <td class="text-center" style="${tdStyle}">${imgBtn}</td>
+          <td style="${tdStyle}">
+            <div class="small text-muted" style="display: grid; grid-template-columns: 60px 2px 1fr; column-gap: 5px; align-items: start;">
+              <div>Routing</div><div>:</div><div><span class="fw-bold text-dark">${item.routing || '-'}</span>${btnEditRouting}</div>
+              <div>Dimensi</div><div>:</div><div><span class="fw-bold text-dark">${item.dimensi || '-'}</span></div>
+              <div>Qty</div><div>:</div><div><span class="fw-bold text-dark">${item.qty}</span></div>
+            </div>
+          </td>
+          <td style="${tdStyle}">-</td><td style="${tdStyle}"><div style="min-width: 150px; max-width: 250px; white-space: normal; word-wrap: break-word;" title="${cleanDeskripsi}">${cleanDeskripsi}</div></td>
+          <td style="${tdStyle}">
+            <div class="small text-muted" style="display: grid; grid-template-columns: 65px 2px 1fr; column-gap: 5px; align-items: start;">
+              <div>Pengaju</div><div>:</div><div><span class="fw-bold text-dark">${item.pengaju}</span></div>
+              <div>Penerima</div><div>:</div><div><span class="fw-bold text-dark">${item.penerima}</span></div>
+            </div>
+          </td>
+        </tr>`;
+      } catch (e) {
+        console.warn("Error rendering row:", e);
+        // Fallback: Jika error, tetap tampilkan baris sederhana agar data tidak hilang
+        return `<tr><td colspan="10" class="text-danger small p-3">Gagal menampilkan baris WR: ${item ? item.noWR : 'Unknown'}. Error: ${e.message}</td></tr>`;
+      }
+    }).join('');
+
+    let bannerHTML = '';
+    if (overdueCount > 0) {
+      bannerHTML = `
+        <div class="urgent-banner">
+          <div class="d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle text-danger fa-2x me-3"></i>
+            <div>
+              <strong class="text-danger" style="font-size: 1.05rem;">Peringatan!</strong><br>
+              <span class="text-dark small">Terdapat <b>${overdueCount}</b> Work Request yang tertunda lebih dari 3 hari.</span>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-danger fw-bold rounded-pill shadow-sm px-3 mt-2 mt-sm-0" onclick="filterSLA('${containerId}')">
+            <i class="fas fa-filter me-1"></i>Lihat yang Terlambat
+          </button>
+        </div>
+      `;
+    }
+
+    container.innerHTML = bannerHTML + `
+    <div class="table-responsive-custom">
+      <table class="super-table text-nowrap align-middle w-100">
+        <thead>
+          <tr>
+            <th>No WR / Status</th><th>Tanggal</th><th>Komponen</th><th>Sts Pengaju</th><th>Sts Penerima</th><th>Foto</th>
+            <th>Routing / Dimensi / Qty</th><th>Lokasi Gambar</th><th>Deskripsi</th>
+            <th>Pengaju / Penerima</th>
+          </tr>
+        </thead>
+        <tbody class="table-body">${rowsHTML}</tbody>
+      </table>
+    </div>`;
+  }
+
+  // --- FUNGSI FILTER UNTUK TOMBOL "LIHAT YANG TERLAMBAT" ---
+  window.filterSLA = function (containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const rows = container.querySelectorAll('tbody tr');
+    const isFiltered = container.getAttribute('data-sla-filtered') === 'true';
+    const btn = container.querySelector('.urgent-banner button');
+
+    if (!isFiltered) {
+      rows.forEach(row => { if (!row.classList.contains('urgent-card')) row.style.display = 'none'; });
+      container.setAttribute('data-sla-filtered', 'true');
+      if (btn) { btn.innerHTML = '<i class="fas fa-times me-1"></i>Tampilkan Semua'; btn.classList.replace('btn-danger', 'btn-secondary'); }
+    } else {
+      rows.forEach(row => row.style.display = '');
+      container.setAttribute('data-sla-filtered', 'false');
+      if (btn) { btn.innerHTML = '<i class="fas fa-filter me-1"></i>Lihat yang Terlambat'; btn.classList.replace('btn-secondary', 'btn-danger'); }
+    }
+  };
+
+  function loadMonitoringData() {
+    document.getElementById('monTotalWR').innerText = "...";
+    google.script.run.withSuccessHandler(processMonitoringData).getLogWRData();
+  }
+
+  function processMonitoringData(data) {
+    if (!data) data = [];
+    const total = data.length; const done = data.filter(i => i.status === 'Sudah diambil').length;
+    const rate = total > 0 ? Math.round((done / total) * 100) : 0;
+    document.getElementById('monTotalWR').innerText = total; document.getElementById('monTotalDone').innerText = done; document.getElementById('monSuccessRate').innerText = rate + "% Completion Rate";
+
+    const statusCounts = { 'Selesai': 0, 'Proses': 0, 'Pending': 0, 'Ditolak': 0 };
+    data.forEach(i => {
+      if (i.status === 'Sudah diambil') statusCounts['Selesai']++;
+      else if (i.statusPengaju === 'Ditolak' || i.statusPenerima === 'Ditolak') statusCounts['Ditolak']++;
+      else if (i.statusPenerima === 'Diterima' || (i.status && i.status !== 'Belum Verifikasi' && i.status !== '-')) statusCounts['Proses']++;
+      else statusCounts['Pending']++;
+    });
+
+    const today = new Date(); const currentMonth = today.getMonth(); const daysInMonth = new Date(today.getFullYear(), currentMonth + 1, 0).getDate();
+    const dailyCounts = new Array(daysInMonth).fill(0);
+    data.forEach(i => { if (i.tglRaw) { const d = new Date(i.tglRaw); if (d.getMonth() === currentMonth && d.getFullYear() === today.getFullYear()) dailyCounts[d.getDate() - 1]++; } });
+    const labelsDate = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
+
+    const deptCounts = {}; data.forEach(i => { const d = i.pengaju || "Unknown"; deptCounts[d] = (deptCounts[d] || 0) + 1; });
+    const sortedDept = Object.entries(deptCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const deptLabels = sortedDept.map(x => x[0]); const deptValues = sortedDept.map(x => x[1]);
+
+    const pendingByDept = {}; data.filter(i => i.status !== 'Sudah diambil' && i.statusPengaju !== 'Ditolak' && i.statusPenerima !== 'Ditolak').forEach(i => { const d = i.pengaju || "-"; pendingByDept[d] = (pendingByDept[d] || 0) + 1; });
+    const topPending = Object.entries(pendingByDept).sort((a, b) => b[1] - a[1])[0]; document.getElementById('insightPendingDept').innerText = topPending ? topPending[0] : "-";
+
+    const itemCounts = {}; data.forEach(i => { const n = i.nama || "-"; itemCounts[n] = (itemCounts[n] || 0) + 1; });
+    const topItem = Object.entries(itemCounts).sort((a, b) => b[1] - a[1])[0]; document.getElementById('insightTopItem').innerText = topItem ? topItem[0] : "-";
+
+    renderCharts(statusCounts, { labels: labelsDate, data: dailyCounts }, { labels: deptLabels, data: deptValues });
+  }
+
+  function renderCharts(statusData, trendData, deptData) {
+    if (typeof echarts === 'undefined') return;
+    if (myChartStatus) myChartStatus.dispose(); if (myChartTrend) myChartTrend.dispose(); if (myChartDept) myChartDept.dispose();
+    myChartStatus = echarts.init(document.getElementById('chartStatus')); myChartTrend = echarts.init(document.getElementById('chartTrend')); myChartDept = echarts.init(document.getElementById('chartDept'));
+
+    const optionStatus = { tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' }, legend: { bottom: '0%', left: 'center' }, series: [{ name: 'Status WR', type: 'pie', radius: [20, 100], center: ['50%', '45%'], roseType: 'area', itemStyle: { borderRadius: 8, shadowBlur: 10, shadowOffsetX: 0, shadowOffsetY: 5, shadowColor: 'rgba(0, 0, 0, 0.2)' }, data: [{ value: statusData.Selesai, name: 'Selesai', itemStyle: { color: '#10b981' } }, { value: statusData.Proses, name: 'Proses', itemStyle: { color: '#3b82f6' } }, { value: statusData.Pending, name: 'Pending', itemStyle: { color: '#f59e0b' } }, { value: statusData.Ditolak, name: 'Ditolak', itemStyle: { color: '#ef4444' } }] }] };
+    myChartStatus.setOption(optionStatus);
+
+    const optionTrend = { tooltip: { trigger: 'axis' }, grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true }, xAxis: { type: 'category', boundaryGap: false, data: trendData.labels }, yAxis: { type: 'value' }, series: [{ name: 'Jumlah WR', type: 'line', smooth: true, lineStyle: { width: 4, color: '#6366f1' }, showSymbol: false, areaStyle: { opacity: 0.8, color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(99, 102, 241, 0.6)' }, { offset: 1, color: 'rgba(99, 102, 241, 0.0)' }]) }, data: trendData.data }] };
+    myChartTrend.setOption(optionTrend);
+
+    const optionDept = { tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } }, grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true }, xAxis: { type: 'value' }, yAxis: { type: 'category', data: deptData.labels }, series: [{ name: 'Total', type: 'bar', data: deptData.data, barWidth: '60%', itemStyle: { borderRadius: [0, 20, 20, 0], color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#3b82f6' }, { offset: 0.5, color: '#60a5fa' }, { offset: 1, color: '#2563eb' }]) }, showBackground: true, backgroundStyle: { color: 'rgba(180, 180, 180, 0.1)', borderRadius: [0, 20, 20, 0] } }] };
+    myChartDept.setOption(optionDept);
+
+    window.addEventListener('resize', function () { myChartStatus.resize(); myChartTrend.resize(); myChartDept.resize(); });
+  }
+
+
+
+  // --- FUNGSI BARU: EDIT ROUTING KHUSUS KOMPONEN BARU ---
+  function openEditRoutingModal(simpleId) {
+    const item = wrDataMap[simpleId];
+    if (!item) return;
+
+    document.getElementById('editRoutingNoWR').value = item.noWR;
+
+    // Parse Routing Lama ke Chips
+    const oldRouting = item.routing || "";
+    const steps = oldRouting.split(' - ').filter(s => s.trim() !== "" && s !== "-");
+
+    // --- LOGIKA PENGUNCIAN BERDASARKAN RIWAYAT LOG ---
+    currentRoutingChips = steps.map(step => {
+      let isLocked = false;
+      if (item.logs && Array.isArray(item.logs)) {
+        // Cek apakah step ini sudah ada di log (In/Out/Pickup)
+        isLocked = item.logs.some(log => {
+          const s = log.status || "";
+          return s.includes(`Proses: ${step} (In)`) || s.includes(`Proses: ${step} (Out)`) || s.includes(`MH Pickup: ${step}`);
+        });
+      }
+      return { label: step, locked: isLocked };
+    });
+
+    renderRoutingChips();
+
+    document.getElementById('editRoutingVal').value = "";
+    document.getElementById('editRoutingResults').style.display = 'none';
+    document.getElementById('editRoutingReason').value = ""; // Reset alasan
+
+    document.getElementById('modalEditRouting').style.display = 'flex';
+  }
+
+  // --- FUNGSI CHIPS LOGIC (WAJIB ADA UNTUK FITUR MULTI SELECT) ---
+  function renderRoutingChips() {
+    const container = document.getElementById('routingChipsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    currentRoutingChips.forEach((chip, index) => {
+      const div = document.createElement('div');
+
+      if (chip.locked) {
+        // TAMPILAN TERKUNCI (Abu-abu, Icon Gembok)
+        div.className = 'chip locked';
+        div.innerHTML = `${chip.label} <i class="fas fa-lock ms-2" title="Proses sudah berjalan/selesai"></i>`;
+      } else {
+        // TAMPILAN NORMAL (Biru, Icon Silang)
+        div.className = 'chip';
+        div.innerHTML = `${chip.label} <i class="fas fa-times-circle ms-1" onclick="removeRoutingChip(${index})"></i>`;
+      }
+
+      container.appendChild(div);
+    });
+  }
+
+  function addRoutingChip(val) {
+    const cleanVal = String(val).trim();
+    // Validasi: Tidak boleh kosong & tidak boleh duplikat persis
+    // Cek duplikat menggunakan .some() karena currentRoutingChips sekarang Array of Objects
+    const isDuplicate = currentRoutingChips.some(c => c.label === cleanVal);
+
+    if (cleanVal !== "" && !isDuplicate) {
+      // Item baru selalu Unlocked
+      currentRoutingChips.push({ label: cleanVal, locked: false });
+      renderRoutingChips();
+    }
+    // Reset input text setelah memilih
+    const input = document.getElementById('editRoutingVal');
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+  }
+
+  function removeRoutingChip(index) {
+    // Hanya boleh hapus jika TIDAK LOCKED
+    if (currentRoutingChips[index] && !currentRoutingChips[index].locked) {
+      currentRoutingChips.splice(index, 1);
+      renderRoutingChips();
+    } else {
+      alert("Tahapan ini sudah berjalan/selesai dan tidak dapat dihapus.");
+    }
+  }
+
+  function clearRoutingChips() {
+    // Hanya hapus yang unlocked, sisakan yang locked
+    currentRoutingChips = currentRoutingChips.filter(c => c.locked);
+    renderRoutingChips();
+    const input = document.getElementById('editRoutingVal');
+    if (input) input.focus();
+  }
+
+  function handleRoutingInputKey(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = e.target.value.trim();
+      if (val) addRoutingChip(val);
+    }
+    // Backspace hapus chip terakhir jika input kosong
+    if (e.key === 'Backspace' && e.target.value === '' && currentRoutingChips.length > 0) {
+      const lastIdx = currentRoutingChips.length - 1;
+      // Hanya hapus jika chip terakhir tidak terkunci
+      if (!currentRoutingChips[lastIdx].locked) {
+        removeRoutingChip(lastIdx);
+      }
+    }
+  }
+
+  function submitEditRouting() {
+    const noWR = document.getElementById('editRoutingNoWR').value;
+
+    // Ambil nilai dari Chips gabung dengan " - "
+    if (currentRoutingChips.length === 0) {
+      alert("Routing belum dipilih! Minimal satu proses.");
+      return;
+    }
+
+    // Map objek chip kembali menjadi string "Step - Step"
+    const newVal = currentRoutingChips.map(c => c.label).join(' - ');
+
+    const reason = document.getElementById('editRoutingReason').value;
+    const btn = document.getElementById('btnSaveRouting');
+
+    // Karena routing dan penerima dianggap sama untuk komponen baru:
+    const newRouting = newVal;
+    const newPenerima = newVal;
+
+    // Validasi
+    if (!reason || reason.trim() === "") {
+      alert("Alasan wajib diisi!");
+      return;
+    }
+
+    // Loading State
+    const originalText = btn.innerText;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+    btn.disabled = true;
+
+    google.script.run.withSuccessHandler(function (res) {
+      document.getElementById('modalEditRouting').style.display = 'none';
+      btn.innerText = originalText; btn.disabled = false;
+      showSuccessModal(res);
+      if (typeof loadDataWR === 'function') loadDataWR(); // Refresh Tabel
+
+    }).withFailureHandler(function (err) {
+      alert("Gagal update: " + err);
+      btn.innerText = originalText; btn.disabled = false;
+    }).updateRoutingWR(noWR, newRouting, newPenerima, reason);
+  }
+
+  // --- FUNGSI DROPDOWN KHUSUS EDIT ROUTING ---
+  function filterEditRoutingDropdown(keyword) {
+    const resultsDiv = document.getElementById('editRoutingResults');
+    const input = document.getElementById('editRoutingVal');
+    // Pastikan container dropdown di atas segalanya
+    if (input.closest('.search-container')) input.closest('.search-container').style.zIndex = "1000";
+
+    // Pastikan allDeptList tersedia (biasanya dari js_form_wr, tapi jika belum load, pakai array kosong/default)
+    // Kita ambil referensi variabel global allDeptList
+    let sourceList = (typeof allDeptList !== 'undefined') ? allDeptList : [];
+
+    // Filter berdasarkan keyword (Case Insensitive)
+    const filtered = sourceList.filter(dept =>
+      !keyword || dept.toLowerCase().includes(keyword.toLowerCase())
+    );
+
+    resultsDiv.innerHTML = '';
+
+    if (filtered.length > 0) {
+      filtered.forEach(dept => {
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        div.innerText = dept;
+        div.style.padding = "8px 12px";
+        div.style.cursor = "pointer";
+        div.style.borderBottom = "1px solid #f0f0f0";
+
+        // Event saat item dipilih
+        div.onclick = function (e) {
+          e.stopPropagation(); // Mencegah event bubbling
+          addRoutingChip(dept); // Tambah ke Chip
+          resultsDiv.style.display = 'none';
+        };
+
+        resultsDiv.appendChild(div);
+      });
+      resultsDiv.style.display = 'block';
+    } else {
+      resultsDiv.style.display = 'none';
+    }
+
+    // Klik di luar untuk menutup (Simple handler)
+    // Gunakan setTimeout agar tidak langsung tertutup saat klik pertama
+    setTimeout(() => {
+      document.addEventListener('click', function (e) {
+        if (!input.contains(e.target) && !resultsDiv.contains(e.target)) {
+          resultsDiv.style.display = 'none';
+          if (input.closest('.search-container')) input.closest('.search-container').style.zIndex = "10";
+        }
+      }, { once: true });
+    }, 100);
+  }
+</script>

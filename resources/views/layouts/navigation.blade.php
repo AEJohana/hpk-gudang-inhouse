@@ -1,99 +1,108 @@
-<nav x-data="{ open: false }" class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+<nav class="bg-[#0a2342] border-b border-white/10 text-slate-200 sticky top-0 z-40 shadow-lg">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
-            <div class="flex">
-                <!-- Logo -->
-                <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
-                        <x-application-logo class="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200" />
-                    </a>
-                </div>
+            <!-- Left: Sidebar Toggle & Brand Logo -->
+            <div class="flex items-center space-x-3">
+                <!-- Hamburger Drawer Toggle Button (Visible all screens) -->
+                <button type="button" 
+                        @click="sidebarOpen = true" 
+                        title="Buka Menu Navigasi"
+                        class="p-2 text-white hover:text-teal-300 rounded-xl hover:bg-white/10 transition flex items-center justify-center focus:outline-none">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
 
-                <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
-                    </x-nav-link>
+                <!-- Brand Logo & Title -->
+                <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 group">
+                    <div class="w-10 h-10 p-1 bg-white rounded-xl shadow-sm border border-slate-700/50 flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
+                        <img src="{{ asset('images/logo_hpk.webp') }}" alt="HPK Logo" class="w-full h-full object-contain">
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-extrabold text-sm tracking-wide text-white leading-tight">HYDRAXLE PERKASA</span>
+                        <span class="text-[10px] font-semibold text-teal-400 tracking-wider uppercase">WMS In-House Karoseri</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Shortcut Navigation Links -->
+                <div class="hidden 2xl:flex items-center space-x-1 ms-6">
+                    <a href="{{ route('dashboard') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('dashboard') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        Dashboard
+                    </a>
+                    <a href="{{ route('components.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('components.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        Komponen
+                    </a>
+                    <a href="{{ route('transactions.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('transactions.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        Transaksi
+                    </a>
+                    <a href="{{ route('ecrs.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('ecrs.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        ECR Revisi
+                    </a>
+                    <a href="{{ route('disposals.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('disposals.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        Disposal
+                    </a>
+                    <a href="{{ route('qr-requests.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('qr-requests.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        Label QR
+                    </a>
+                    <a href="{{ route('cycle-counts.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('cycle-counts.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        Cycle Count
+                    </a>
+                    <a href="{{ route('warehouse-map.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('warehouse-map.*', 'locations.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        Peta Gudang
+                    </a>
                 </div>
             </div>
 
-            <!-- Settings Dropdown -->
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
-                <x-dropdown align="right" width="48">
-                    <x-slot name="trigger">
-                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div>
+            <!-- Right: Quick Camera Scanner Button & User Glass Pill -->
+            <div class="flex items-center space-x-3">
+                <!-- Global QR & Barcode Scanner Button -->
+                <button type="button" 
+                        @click="$dispatch('open-global-scanner')" 
+                        class="inline-flex items-center px-3 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold tracking-wide transition shadow-sm hover:shadow-md">
+                    <i class="fa-solid fa-qrcode me-1.5 text-xs"></i>
+                    <span>Scan Part</span>
+                </button>
 
-                            <div class="ms-1">
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
+                <!-- User Profile Glass Pill (Reference Design) -->
+                <x-dropdown align="right" width="56">
+                    <x-slot name="trigger">
+                        <button class="user-glass-pill focus:outline-none">
+                            <div class="w-8 h-8 rounded-full bg-teal-500/30 border border-teal-400/50 text-teal-200 font-extrabold text-xs flex items-center justify-center shadow-xs">
+                                {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
                             </div>
+                            <div class="flex flex-col text-left leading-tight hidden md:flex">
+                                <span class="font-bold text-xs text-white tracking-wide truncate max-w-[130px]">{{ Auth::user()->name }}</span>
+                                <span class="text-[10px] text-teal-300 font-medium truncate max-w-[130px]">{{ Auth::user()->department ?? Auth::user()->role_badge }}</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-300 ml-0.5"></i>
                         </button>
                     </x-slot>
 
                     <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
+                        <div class="px-4 py-2.5 border-b border-slate-100 bg-slate-50 rounded-t-lg">
+                            <p class="text-xs text-slate-400">Login sebagai:</p>
+                            <p class="text-xs font-bold text-slate-800">{{ Auth::user()->name }}</p>
+                            <p class="text-[10px] font-semibold text-amber-600 uppercase">{{ Auth::user()->role_badge }} &bull; {{ Auth::user()->department ?? 'Gudang HPK' }}</p>
+                        </div>
+
+                        <x-dropdown-link :href="route('profile.edit')" class="text-xs">
+                            <i class="fa-solid fa-user-gear me-2 text-slate-400"></i> {{ __('Profil Akun') }}
                         </x-dropdown-link>
 
-                        <!-- Authentication -->
+                        <x-dropdown-link :href="route('dashboard')" class="text-xs">
+                            <i class="fa-solid fa-gauge-high me-2 text-slate-400"></i> {{ __('Dashboard WMS') }}
+                        </x-dropdown-link>
+
+                        <!-- Authentication Sign Out -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-
                             <x-dropdown-link :href="route('logout')"
-                                    onclick="event.preventDefault();
-                                                this.closest('form').submit();">
-                                {{ __('Log Out') }}
+                                    onclick="event.preventDefault(); this.closest('form').submit();"
+                                    class="text-rose-600 font-semibold text-xs border-t border-slate-100">
+                                <i class="fa-solid fa-arrow-right-from-bracket me-2 text-rose-500"></i> {{ __('Keluar (Log Out)') }}
                             </x-dropdown-link>
                         </form>
                     </x-slot>
                 </x-dropdown>
-            </div>
-
-            <!-- Hamburger -->
-            <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-900 focus:text-gray-500 dark:focus:text-gray-400 transition duration-150 ease-in-out">
-                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Responsive Navigation Menu -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
-        <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
-            </x-responsive-nav-link>
-        </div>
-
-        <!-- Responsive Settings Options -->
-        <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-600">
-            <div class="px-4">
-                <div class="font-medium text-base text-gray-800 dark:text-gray-200">{{ Auth::user()->name }}</div>
-                <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
-            </div>
-
-            <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Profile') }}
-                </x-responsive-nav-link>
-
-                <!-- Authentication -->
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-
-                    <x-responsive-nav-link :href="route('logout')"
-                            onclick="event.preventDefault();
-                                        this.closest('form').submit();">
-                        {{ __('Log Out') }}
-                    </x-responsive-nav-link>
-                </form>
             </div>
         </div>
     </div>

@@ -1,0 +1,111 @@
+<script>
+    let komponenDataGlobal = [];
+
+    function loadDataKomponen() {
+        console.log("loadDataKomponen dipanggil!");
+
+        const tbody = document.getElementById('komponenTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr class="super-row"><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted small">Memuat data komponen...</p></td></tr>';
+        }
+
+        google.script.run.withSuccessHandler(function (res) {
+            if (!res || res.status === 'error') {
+                if (tbody) tbody.innerHTML = '<tr class="super-row"><td colspan="6" class="text-center text-danger py-4">Gagal memuat data: ' + (res ? res.message : 'Unknown error') + '</td></tr>';
+                return;
+            }
+
+            komponenDataGlobal = res.data;
+            renderTableKomponen();
+        }).withFailureHandler(function (err) {
+            if (tbody) tbody.innerHTML = '<tr class="super-row"><td colspan="6" class="text-center text-danger py-4">Terjadi kesalahan: ' + err + '</td></tr>';
+        }).getComponentDataForDashboard();
+    }
+
+    function filterKomponenList() {
+        const searchVal = document.getElementById('searchKomponenList').value.toLowerCase();
+        renderTableKomponen(searchVal);
+    }
+
+    function renderTableKomponen(searchFilter) {
+        const tbody = document.getElementById('komponenTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = "";
+        const filterText = searchFilter || "";
+
+        const filteredData = komponenDataGlobal.filter(function (item) {
+            const matchSearch = item.kode.toLowerCase().includes(filterText) || item.nama.toLowerCase().includes(filterText);
+            return matchSearch;
+        });
+
+        if (filteredData.length === 0) {
+            tbody.innerHTML = '<tr class="super-row"><td colspan="6" class="text-center text-muted py-4">Data komponen tidak ditemukan.</td></tr>';
+            return;
+        }
+
+        filteredData.forEach(function (item) {
+            const originalIndex = komponenDataGlobal.indexOf(item);
+            const tr = document.createElement('tr');
+            tr.className = "super-row";
+
+            let isAman = (item.saldo >= item.saldoMin);
+            let statusBadge = isAman
+                ? '<span class="badge bg-success shadow-sm rounded-pill px-3 py-2"><i class="fas fa-check-circle me-1"></i>Aman</span>'
+                : '<span class="badge bg-danger shadow-sm rounded-pill px-3 py-2"><i class="fas fa-exclamation-triangle me-1"></i>Tidak Aman</span>';
+
+            tr.innerHTML =
+                '<td>' +
+                '<div class="fw-bold text-dark" style="font-size: 1rem;">' + item.nama + '</div>' +
+                '<div class="text-primary fw-bold" style="font-size: 0.75rem;">' + item.kode + '</div>' +
+                '</td>' +
+                '<td class="text-center"><span class="badge bg-light text-dark border">' + item.rak + '</span></td>' +
+                '<td class="text-center fw-bold fs-6">' + item.saldo + '</td>' +
+                '<td class="text-center fw-bold fs-6">' + item.saldoMin + '</td>' +
+                '<td class="text-center">' + statusBadge + '</td>' +
+                '<td class="text-center">' +
+                '<button class="btn btn-outline-info btn-sm rounded-circle shadow-sm" style="width:35px; height:35px;" onclick="showDetailKomponen(' + originalIndex + ')" title="Lihat Detail">' +
+                '<i class="fas fa-info"></i>' +
+                '</button>' +
+                '</td>';
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    function showDetailKomponen(index) {
+        const item = komponenDataGlobal[index];
+        if (!item) return;
+
+        document.getElementById('detailKomponenNama').innerText = item.nama;
+        document.getElementById('detailKomponenKode').innerText = item.kode;
+
+        let dims = [];
+        if (item.panjang) dims.push(item.panjang);
+        if (item.lebar) dims.push(item.lebar);
+        if (item.tebal) dims.push(item.tebal);
+        const dimensiStr = dims.length > 0 ? dims.join(" x ") : "-";
+        document.getElementById('detailKomponenDimensi').innerText = dimensiStr;
+
+        document.getElementById('detailKomponenSaldoMin').innerText = item.saldoMin;
+        document.getElementById('detailKomponenSaldo').innerText = item.saldo;
+        document.getElementById('detailKomponenRak').innerText = item.rak;
+
+        const imgEl = document.getElementById('detailKomponenGambar');
+        if (item.gambar && item.gambar.includes('http')) {
+            const match = item.gambar.match(/\/d\/(.+?)\//) || item.gambar.match(/id=(.+?)(&|$)/);
+            if (match && match[1]) {
+                imgEl.src = 'https://lh3.googleusercontent.com/d/' + match[1];
+            } else {
+                imgEl.src = item.gambar;
+            }
+            imgEl.style.display = 'block';
+        } else {
+            imgEl.style.display = 'none';
+            imgEl.src = "";
+        }
+
+        document.getElementById('modalDetailKomponen').style.display = 'flex';
+    }
+</script>
+<!-- === BATAS AKHIR === -->

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,6 +20,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'department',
+        'phone',
     ];
 
     /**
@@ -42,4 +44,36 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin_gudang' || $this->role === 'supervisor';
+    }
+
+    public function isSupervisor(): bool
+    {
+        return $this->role === 'supervisor';
+    }
+
+    public function isOperator(): bool
+    {
+        return $this->role === 'operator';
+    }
+
+    public function isEngineering(): bool
+    {
+        return in_array($this->role, ['engineering', 'qc', 'supervisor']);
+    }
+
+    public function getRoleBadgeAttribute(): string
+    {
+        return match($this->role) {
+            'admin_gudang' => 'Admin Gudang',
+            'supervisor' => 'Kepala Gudang / SPV',
+            'operator' => 'Operator / Picker',
+            'engineering' => 'Engineering Karoseri',
+            'qc' => 'Quality Control',
+            default => ucfirst($this->role ?? 'Staff'),
+        };
+    }
 }

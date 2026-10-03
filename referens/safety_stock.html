@@ -1,0 +1,315 @@
+<script>
+    window.currentSSData = [];
+    window.draftSS = [];
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const lastSync = localStorage.getItem('lastSyncSS');
+        if (lastSync && document.getElementById('lastSyncTime')) {
+            document.getElementById('lastSyncTime').innerText = "Terakhir Ditarik: " + lastSync;
+        }
+
+        // Deteksi Otomatis Jika Halaman Safety Stock Dibuka
+        const pageSS = document.getElementById('pageSafetyStock');
+        if (pageSS) {
+            const observerSS = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'class') {
+                        if (pageSS.classList.contains('active-page')) {
+                            loadSafetyStockData();
+                        }
+                    }
+                });
+            });
+            observerSS.observe(pageSS, { attributes: true });
+        }
+    });
+
+    function loadSafetyStockData() {
+        const tbody = document.getElementById('ssTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5"><div class="spinner-border text-primary"></div><div class="mt-2 text-muted small">Memuat data...</div></td></tr>';
+
+        google.script.run.withSuccessHandler(function (res) {
+            if (res.status === 'success') {
+                renderSafetyStockTable(res.data);
+            } else {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">${res.message}</td></tr>`;
+            }
+        }).getSafetyStockList(getCurrentDeptList());
+    }
+
+    function renderSafetyStockTable(data) {
+        window.currentSSData = data || [];
+        clearDraftSS(); // Reset keranjang ketika data di-refresh
+
+        const tbody = document.getElementById('ssTableBody');
+        const totalDataEl = document.getElementById('ssTotalData');
+        if (totalDataEl) totalDataEl.innerText = data.length;
+
+        if (data.length === 0) {
+            tbody.innerHTML = `
+            <tr>
+              <td colspan="7" class="text-center py-5">
+                <div class="py-4">
+                  <div class="bg-success-subtle rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 80px; height: 80px;">
+                    <i class="fas fa-shield-alt fa-3x text-success opacity-75"></i>
+                  </div>
+                  <h5 class="fw-bolder text-dark mb-1">Stok Aman!</h5>
+                  <p class="text-muted small fw-medium">Tidak ada komponen yang berada di bawah limit Safety Stock saat ini.</p>
+                </div>
+              </td>
+            </tr>`;
+            return;
+        }
+
+        let html = '';
+        data.forEach((item, index) => {
+            const img = item['Gambar Komponen'] || '';
+            const p = item['Panjang'] || '-';
+            const l = item['Lebar'] || '-';
+            const t = item['Tinggi'] || '-';
+            const dimensi = `${p} x ${l} x ${t}`;
+
+            const kodeKomponen = item['Kode Komponen'] || '-';
+            const namaKomponen = item['Nama Komponen'] || '-';
+            const statusPengajuan = item['Status Pengajuan'] || 'Belum diajukan';
+
+            const checkboxHtml = `<input type="checkbox" class="form-check-input ss-check border-secondary" style="cursor:pointer;" value="${index}" id="ss-chk-${index}" onchange="toggleSSItem(${index}, this.checked)">`;
+
+            let imgBtn = '<div class="text-muted small opacity-25"><i class="fas fa-image fa-2x"></i></div>';
+            if (img && img.length > 5 && img !== 'https://cdn-icons-png.flaticon.com/512/4406/4406166.png') {
+                const encodedName = encodeURIComponent(namaKomponen).replace(/'/g, "%27");
+                imgBtn = `<button class="btn btn-sm btn-light text-primary rounded-circle shadow-sm" style="width:40px; height:40px;" onclick="showImageModal('${img}', '${kodeKomponen}', decodeURIComponent('${encodedName}'))" title="Lihat Gambar"><i class="fas fa-image"></i></button>`;
+            }
+
+            html += `
+        <tr class="super-row" style="animation-delay: ${index * 0.05}s;">
+            <td class="text-center align-middle">${checkboxHtml}</td>
+            <td class="text-center">
+              ${imgBtn}
+            </td>
+            <td>
+              <div class="d-flex flex-column align-items-start gap-1">
+                <div class="fw-bolder text-dark" style="font-size: 0.85rem; line-height: 1.2;">${namaKomponen}</div>
+                <div class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">${kodeKomponen}</div>
+              </div>
+            </td>
+            <td class="text-center">
+               <div class="fw-bolder text-danger fs-5" style="text-shadow: 0 2px 4px rgba(220,53,69,0.15); line-height: 1;">${item['Saldo'] || '0'}</div>
+            </td>
+            <td class="text-center">
+               <div class="text-muted fw-bold bg-light rounded px-2 d-inline-block border border-dashed" style="font-size: 0.8rem; padding-top: 2px; padding-bottom: 2px;">${item['Saldo Minimum'] || '0'}</div>
+            </td>
+            <td>
+              <div class="d-flex flex-column gap-1 align-items-start">
+                <div class="text-dark fw-bold" style="font-size: 0.8rem;"><i class="fas fa-cube text-muted opacity-75 me-1"></i> ${dimensi}</div>
+                <div class="d-inline-flex align-items-center bg-light border rounded-pill px-2 py-1 fw-bold text-secondary shadow-sm" style="font-size: 0.7rem;">
+                  <i class="fas fa-map-marker-alt text-warning me-1"></i> ${item['Kode Rak'] || '-'}
+                </div>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="badge ${statusPengajuan === 'Sedang Diajukan' ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'} px-2 py-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">${statusPengajuan}</div>
+            </td>
+        </tr>
+      `;
+        });
+        tbody.innerHTML = html;
+    }
+
+    function toggleSSItem(index, isChecked) {
+        if (isChecked) {
+            const item = window.currentSSData[index];
+            // Hitung defisit otomatis
+            let saldo = Number(item['Saldo']) || 0;
+            let min = Number(item['Saldo Minimum']) || 0;
+            let defisit = min - saldo;
+            if (defisit <= 0) defisit = 1; // Default minimal pesan 1 jika aneh
+
+            window.draftSS.push({
+                ssIndex: index,
+                kode: item['Kode Komponen'],
+                nama: item['Nama Komponen'],
+                gambar: item['Gambar Komponen'],
+                dimensi: `${item['Panjang'] || '-'}x${item['Lebar'] || '-'}x${item['Tinggi'] || '-'}`,
+                qty: defisit,
+                penerima: "",
+                deskripsi: ""
+            });
+        } else {
+            window.draftSS = window.draftSS.filter(d => d.ssIndex !== index);
+        }
+        renderDraftSS();
+    }
+
+    function toggleAllSS(isChecked) {
+        const checkboxes = document.querySelectorAll('.ss-check');
+        checkboxes.forEach(cb => {
+            if (cb.checked !== isChecked) {
+                cb.checked = isChecked;
+                toggleSSItem(parseInt(cb.value), isChecked);
+            }
+        });
+    }
+
+    function removeDraftSS(draftIndex) {
+        const removedItem = window.draftSS[draftIndex];
+        window.draftSS.splice(draftIndex, 1);
+
+        // Hapus centang di tabel atas
+        const cb = document.getElementById('ss-chk-' + removedItem.ssIndex);
+        if (cb) cb.checked = false;
+
+        // Update status 'Pilih Semua'
+        const selectAll = document.getElementById('selectAllSS');
+        if (selectAll && window.draftSS.length === 0) selectAll.checked = false;
+
+        renderDraftSS();
+    }
+
+    function clearDraftSS() {
+        window.draftSS = [];
+        const selectAll = document.getElementById('selectAllSS');
+        if (selectAll) selectAll.checked = false;
+        document.querySelectorAll('.ss-check').forEach(cb => cb.checked = false);
+        renderDraftSS();
+    }
+
+    function updateDraftItem(idx, key, value) {
+        if (window.draftSS[idx]) {
+            window.draftSS[idx][key] = value;
+        }
+    }
+
+    function renderDraftSS() {
+        const section = document.getElementById('draftSSSection');
+        const tbody = document.getElementById('draftSSTableBody');
+        const countBadge = document.getElementById('draftSSCount');
+
+        if (window.draftSS.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = 'block';
+        countBadge.innerText = `${window.draftSS.length} Item`;
+
+        let html = '';
+        window.draftSS.forEach((item, idx) => {
+            const safeNama = (item.nama || '').replace(/"/g, "&quot;");
+            const safeKode = (item.kode || '').replace(/"/g, "&quot;");
+
+            // Dropdown Opsi Dept
+            let currentSelect = `<select class="form-select form-select-sm fw-bold border-secondary-subtle" style="font-size:0.75rem;" onchange="updateDraftItem(${idx}, 'penerima', this.value)">
+                <option value="">-- Pilih --</option>`;
+            if (typeof allDeptList !== 'undefined') {
+                const filteredList = allDeptList.filter(d => String(d).trim().toLowerCase() !== String(currentDept).trim().toLowerCase());
+                filteredList.forEach(d => {
+                    const selected = (item.penerima === d) ? 'selected' : '';
+                    currentSelect += `<option value="${d}" ${selected}>${d}</option>`;
+                });
+            }
+            currentSelect += `</select>`;
+
+            html += `
+            <tr>
+                <td>
+                    <div class="fw-bold text-dark" style="font-size: 0.8rem; line-height:1.2;">${safeNama}</div>
+                    <div class="text-muted" style="font-size: 0.7rem;">${safeKode}</div>
+                </td>
+                <td><input type="number" class="form-control form-control-sm text-center fw-bold" min="1" value="${item.qty}" oninput="updateDraftItem(${idx}, 'qty', this.value)"></td>
+                <td>${currentSelect}</td>
+                <td><input type="text" class="form-control form-control-sm" placeholder="Opsional..." value="${item.deskripsi}" oninput="updateDraftItem(${idx}, 'deskripsi', this.value)"></td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-light text-danger rounded-circle shadow-sm" onclick="removeDraftSS(${idx})"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+    }
+
+    function submitDraftSS() {
+        if (window.draftSS.length === 0) return;
+
+        // Validasi Penuh
+        for (let i = 0; i < window.draftSS.length; i++) {
+            if (!window.draftSS[i].penerima) {
+                alert(`Penerima untuk baris ke-${i + 1} (${window.draftSS[i].nama}) belum dipilih!`);
+                return;
+            }
+            if (!window.draftSS[i].qty || parseInt(window.draftSS[i].qty) <= 0) {
+                alert(`Qty untuk baris ke-${i + 1} (${window.draftSS[i].nama}) tidak valid!`);
+                return;
+            }
+        }
+
+        // Setup Tanggal
+        const today = new Date();
+        const dateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+
+        // Susun Data Sesuai Struktur Database WR
+        const payload = window.draftSS.map(item => ({
+            tglOrder: dateStr,
+            deptPengaju: currentDept,
+            opPengaju: currentName,
+            kodeKomponen: item.kode,
+            namaKomponen: item.nama,
+            gambar: item.gambar || "",
+            routing: item.penerima,
+            dimensi: item.dimensi,
+            qty: item.qty,
+            deptPenerima: item.penerima,
+            deskripsi: item.deskripsi || "-",
+            newComponentData: null
+        }));
+
+        const btn = document.getElementById('btnSubmitDraftSS');
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Mengirim...';
+        btn.disabled = true;
+
+        // Kirim via fungsi global submitBulkWR
+        google.script.run
+            .withSuccessHandler(function (res) {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+                showSuccessModal("Work Request otomatis dari Safety Stock berhasil dikirim!");
+                clearDraftSS(); // 100% Mengkosongkan draft setelah sukses
+            })
+            .withFailureHandler(function (err) {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+                showResultModal(false, "Gagal Mengirim", "Terjadi kesalahan: " + err.message);
+            })
+            .submitBulkWR(payload);
+    }
+
+    function syncSafetyStockFromWeb() {
+        const btn = document.getElementById('btnSyncSS');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
+        btn.disabled = true;
+
+        google.script.run.withSuccessHandler(function (res) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+
+            if (res.status === 'success') {
+                const now = new Date();
+                const timeStr = now.toLocaleDateString('id-ID') + " " + now.toLocaleTimeString('id-ID');
+                localStorage.setItem('lastSyncSS', timeStr);
+                document.getElementById('lastSyncTime').innerText = "Terakhir Ditarik: " + timeStr;
+
+                showResultModal(true, "Sinkronisasi Berhasil", res.message);
+                loadSafetyStockData(); // Refresh table otomatis setelah ditarik
+            } else {
+                showResultModal(false, "Gagal", res.message);
+            }
+        }).withFailureHandler(function (err) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            showResultModal(false, "Error", err.message || err.toString());
+        }).syncSafetyStockData(true); // Parameter 'true' memberi tahu script bahwa ini dari Web App
+    }
+</script>

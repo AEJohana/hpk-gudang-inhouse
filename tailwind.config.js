@@ -12,8 +12,18 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['Poppins', ...defaultTheme.fontFamily.sans],
             },
+            colors: {
+                hpk: {
+                    blue: '#0a2342',
+                    teal: '#4a9e9e',
+                    red: '#e11d48',
+                    orange: '#f59e0b',
+                    light: '#f0f4f8',
+                    slate: '#f1f5f9',
+                }
+            }
         },
     },
 

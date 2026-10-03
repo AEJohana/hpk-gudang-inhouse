@@ -1,0 +1,125 @@
+<script>
+  function handleLogin() {
+    const u = document.getElementById('loginUsername').value;
+    const p = document.getElementById('loginPassword').value;
+    const btn = document.querySelector('.btn-signin');
+
+    if (!u || !p) { showResultModal(false, "Data Belum Lengkap", "Harap isi username dan password terlebih dahulu."); return; }
+    btn.innerText = "Checking..."; btn.disabled = true;
+
+    google.script.run.withSuccessHandler(function (res) {
+      btn.innerText = "Sign In"; btn.disabled = false;
+      if (!res) {
+        showResultModal(false, "Koneksi Bermasalah", "Gagal menghubungi server. Silakan coba lagi.");
+        return;
+      }
+
+      if (res.status === 'success') {
+        currentUser = res.username; currentDept = res.dept; currentFoto = res.foto;
+        currentDepts = (Array.isArray(res.depts) && res.depts.length > 0) ? res.depts : (currentDept ? [currentDept] : []);
+        currentDeptCodes = res.deptCodes || [];
+        currentAccess = res.access || []; currentAccessCodes = res.accessCodes || [];
+        currentName = res.nama || currentUser;
+
+        localStorage.setItem('appSession', JSON.stringify({
+          username: currentUser, dept: currentDept, depts: currentDepts, deptCodes: currentDeptCodes,
+          foto: currentFoto, access: currentAccess, accessCodes: currentAccessCodes, nama: currentName
+        }));
+
+        // Gunakan try-catch agar login tetap jalan meski ada error tampilan
+        try { updateUserUI(); } catch (e) { console.log("UI Update error: " + e); }
+
+        try {
+          syncDeptPengajuOptions();
+          renderDeptPenerimaOptions();
+        } catch (e) { console.log("Dept options not loaded: " + e); }
+
+        navigateTo('pageHome');
+      } else {
+        // EFEK VISUAL: Getarkan Card Login
+        const loginCard = document.querySelector('.glass-card');
+        if (loginCard) {
+          loginCard.classList.remove('shake-animation');
+          void loginCard.offsetWidth; // Trigger reflow agar animasi bisa restart
+          loginCard.classList.add('shake-animation');
+        }
+
+        // TAMPILKAN POPUP CANTIK
+        showResultModal(false, "Akses Ditolak!", "Username atau Password salah.<br>Silakan cek kembali.");
+      }
+    }).withFailureHandler(function (err) {
+      btn.innerText = "Sign In"; btn.disabled = false;
+      showResultModal(false, "System Error", "Terjadi Kesalahan Sistem:<br>" + err);
+    }).checkLogin(u, p);
+  }
+
+  function updateUserUI() {
+    document.getElementById('sidebarName').innerText = currentUser;
+    document.getElementById('sidebarDept').innerText = currentDept;
+    document.getElementById('sidebarDept').title = getCurrentDeptList().join(', ');
+    document.getElementById('sidebarPhoto').src = currentFoto;
+
+    document.querySelectorAll('.display-name').forEach(el => el.innerText = currentUser);
+    document.querySelectorAll('.display-dept').forEach(el => {
+      el.innerText = currentDept;
+      el.title = getCurrentDeptList().join(', ');
+    });
+    document.querySelectorAll('.display-photo').forEach(el => el.src = currentFoto);
+
+    applyAccessControl();
+  }
+
+  function applyAccessControl() {
+    const allMenuItems = document.querySelectorAll('.menu-item');
+    allMenuItems.forEach(el => el.style.display = 'none');
+
+    const accessMap = {
+      "Membuat Work Request": ["nav-pageFormWR", "dash-pageFormWR"],
+      "Data Work Request": ["nav-pageDataWR", "dash-pageDataWR"],
+      "Monitoring": ["nav-pageMonitoring", "dash-pageMonitoring"],
+      "Scan QR": ["nav-pageScan", "dash-pageScan"],
+      "Scan Proses": ["nav-pageScan", "dash-pageScan"],
+      "Cetak WR": ["nav-pagePrintWR", "dash-pagePrintWR"],
+      "Safety Stock": ["nav-pageSafetyStock", "dash-pageSafetyStock"],
+      "Data Komponen": ["nav-pageDataKomponen", "dash-pageDataKomponen"]
+    };
+
+
+    // 1. Cek Berdasarkan Nama Akses (Text)
+    if (currentAccess && currentAccess.length > 0) {
+      currentAccess.forEach(accessName => {
+        const targetIds = accessMap[accessName];
+        if (targetIds) {
+          targetIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+              if (el.classList.contains('sidebar-item')) el.style.display = 'flex';
+              else el.style.display = 'flex';
+            }
+          });
+        }
+      });
+    }
+
+
+
+    if ((!currentAccess || currentAccess.length === 0) && (!currentAccessCodes || currentAccessCodes.length === 0)) {
+      console.log("User tidak memiliki akses menu spesifik.");
+    }
+  }
+
+  function confirmSignOut() {
+    const sb = document.getElementById('sidebar');
+    if (sb.classList.contains('active')) toggleSidebar();
+    document.getElementById('signOutModal').style.display = 'flex';
+  }
+  function closeSignOutModal() { document.getElementById('signOutModal').style.display = 'none'; }
+
+  function processSignOut() {
+    closeSignOutModal();
+    currentUser = ""; currentDept = ""; currentDepts = []; currentDeptCodes = []; currentFoto = ""; currentAccess = []; currentAccessCodes = []; currentName = "";
+    localStorage.removeItem('appSession'); localStorage.removeItem('lastPage'); localStorage.removeItem('cartWR');
+    navigateTo('pageLogin');
+  }
+
+</script>

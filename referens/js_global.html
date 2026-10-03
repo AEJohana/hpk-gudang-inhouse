@@ -1,0 +1,877 @@
+<script>
+  // === SEMUA VARIABEL GLOBAL ===
+  let dbKomponen = [];
+  let currentUser = "";
+  let currentDept = "";
+  let currentDepts = [];
+  let currentDeptCodes = [];
+  let currentFoto = "";
+  let currentAccess = [];
+  let currentAccessCodes = [];
+  let currentName = "";
+  let cartWR = [];
+  let scanContext = null;
+  let selectedRecipients = [];
+  let isNewComponentMode = false;
+  let globalDataPengajuan = [];
+  let globalDataPenerimaan = [];
+  let printWRList = [];
+  let selectedWRToPrint = null;
+  let wrDataMap = {};
+  let targetScanWR = "";
+  let targetScanStatus = "";
+  let targetScanRouting = "";
+  let targetScanForceNext = null;
+  let allDeptList = [];
+  let allPemohonList = [];
+  let pendingScanData = null;
+  let pendingBarangUpdateWR = null;
+  let pendingBarangRouting = "";
+  let currentSelectedStatus = "";
+  let pendingStatusUpdate = null;
+  let myChartStatus = null;
+  let myChartTrend = null;
+  let myChartDept = null;
+  const GITHUB_SCANNER_URL = "https://rchmnalha18.github.io/scanner-wr/";
+
+  // === THE UNIVERSAL PARSER (V11) ===
+  // Fungsi inti untuk mengekstrak angka dari string dan mengakumulasi total berdasarkan kata kunci status log.
+  function universalQtyParser(logsArray, statusKeyword, matchType = 'includes') {
+    if (!logsArray || !Array.isArray(logsArray)) return 0;
+
+    let totalAccumulated = 0;
+    const keyword = statusKeyword.toLowerCase();
+
+    logsArray.forEach(log => {
+      if (!log || !log.status) return; // Skip log yang kosong atau rusak
+
+      const logStatus = log.status.toLowerCase();
+      let isMatch = false;
+
+      // Mendukung pencocokan parsial (.includes) atau persis (===)
+      if (matchType === 'exact') {
+        isMatch = (logStatus === keyword);
+      } else {
+        isMatch = logStatus.includes(keyword);
+      }
+
+      // FIX: Mencegah double-counting (menghitung dua kali) antara qty proses dan qty defect
+      if (isMatch && matchType !== 'exact') {
+        if (!keyword.includes('defect') && logStatus.includes('defect')) {
+          isMatch = false; // Abaikan log defect jika kita sedang mencari log proses normal
+        }
+      }
+
+      if (isMatch) {
+        // Ekstrak HANYA angka pertama yang ditemukan dari string log.qty
+        // Contoh: "50 pcs" -> 50, " 20pcs" -> 20, "10" -> 10
+        const qtyString = String(log.qty || "0");
+        const matchNumber = qtyString.match(/\d+/);
+
+        if (matchNumber) {
+          const parsedQty = parseInt(matchNumber[0], 10);
+          if (!isNaN(parsedQty)) {
+            totalAccumulated += parsedQty; // Akumulasi (Jumlahkan)
+          }
+        }
+      }
+    });
+
+    return totalAccumulated;
+  }
+
+  function getCurrentDeptList() {
+    const source = (Array.isArray(currentDepts) && currentDepts.length > 0)
+      ? currentDepts
+      : (currentDept ? [currentDept] : []);
+
+    return [...new Set(source
+      .map(dept => String(dept || "").trim())
+      .filter(dept => dept !== "" && dept !== "-"))];
+  }
+
+  function normalizeDeptText(value) {
+    return String(value || "").trim().toUpperCase();
+  }
+
+  function userHasDept(deptName) {
+    const target = normalizeDeptText(deptName);
+    if (!target) return false;
+
+    const list = getCurrentDeptList();
+    if (list.some(dept => {
+      const u = normalizeDeptText(dept);
+      return u === "ALL" || u === "*";
+    })) return true;
+
+    return list.some(dept => {
+      const userDept = normalizeDeptText(dept);
+      return userDept && (target === userDept || target.includes(userDept) || userDept.includes(target));
+    });
+  }
+
+  function userHasDeptInText(text) {
+    const target = normalizeDeptText(text);
+    if (!target) return false;
+
+    const list = getCurrentDeptList();
+    if (list.some(dept => {
+      const u = normalizeDeptText(dept);
+      return u === "ALL" || u === "*";
+    })) return true;
+
+    return list.some(dept => {
+      const userDept = normalizeDeptText(dept);
+      return userDept && (target.includes(userDept) || userDept.includes(target));
+    });
+  }
+
+  function syncDeptPengajuOptions() {
+    const deptInput = document.getElementById('deptPengaju');
+    if (!deptInput) return;
+
+    let isAllAccess = false;
+    let deptList = getCurrentDeptList();
+    if (deptList.some(d => {
+      const u = String(d || "").trim().toUpperCase();
+      return u === "ALL" || u === "*";
+    })) {
+      isAllAccess = true;
+      deptList = (typeof allPemohonList !== 'undefined' && allPemohonList.length > 0) ? allPemohonList : ["ALL"];
+    }
+
+    // Kunci dropdown jika bukan admin (tidak punya akses ALL)
+    deptInput.disabled = !isAllAccess;
+
+    if (deptInput.tagName === 'SELECT') {
+      const previousValue = deptInput.value;
+      deptInput.innerHTML = '';
+
+      deptList.forEach(dept => {
+        const option = document.createElement('option');
+        option.value = dept;
+        option.innerText = dept;
+        deptInput.appendChild(option);
+      });
+
+      if (previousValue && deptList.includes(previousValue)) {
+        deptInput.value = previousValue;
+      } else if (currentDept && deptList.includes(currentDept)) {
+        deptInput.value = currentDept;
+      } else if (deptList.length > 0) {
+        deptInput.value = deptList[0];
+      }
+    } else {
+      deptInput.value = currentDept || (deptList[0] || "");
+    }
+  }
+
+  // === FUNGSI WINDOW ONLOAD (SAAT WEB DIBUKA) ===
+  window.onload = function () {
+    const inputPass = document.getElementById('loginPassword');
+    const inputUser = document.getElementById('loginUsername');
+
+    if (inputPass) {
+      inputPass.addEventListener("keypress", function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          handleLogin();
+        }
+      });
+    }
+
+    const today = new Date();
+    const dateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+    if (document.getElementById('tglOrder')) document.getElementById('tglOrder').value = dateStr;
+
+    const session = localStorage.getItem('appSession');
+    if (session) {
+      try {
+        const user = JSON.parse(session);
+        currentUser = user.username;
+        currentDept = user.dept || "";
+        currentDepts = (Array.isArray(user.depts) && user.depts.length > 0) ? user.depts : (currentDept ? [currentDept] : []);
+        currentDept = currentDept || currentDepts[0] || "";
+        currentDeptCodes = user.deptCodes || [];
+        currentFoto = user.foto;
+        currentAccess = user.access || [];
+        currentAccess = user.access || [];
+        currentAccessCodes = user.accessCodes || [];
+        currentName = user.nama || user.username;
+        updateUserUI();
+        syncDeptPengajuOptions();
+
+        const savedCart = localStorage.getItem('cartWR');
+        if (savedCart) {
+          cartWR = JSON.parse(savedCart);
+          renderCart();
+        }
+
+        const lastPage = localStorage.getItem('lastPage');
+        if (lastPage && document.getElementById(lastPage)) {
+          navigateTo(lastPage);
+        } else {
+          navigateTo('pageHome');
+        }
+      } catch (e) {
+        console.error("Restore session failed", e);
+        navigateTo('pageLogin');
+      }
+    } else {
+      navigateTo('pageLogin');
+    }
+
+    window.refreshComponentData = function () {
+      // Tampilkan indikator loading sementara jika dropdown komponen ada
+      const inputEl = document.getElementById('searchKomponen');
+      if (inputEl) inputEl.placeholder = "Memuat data...";
+
+      google.script.run.withSuccessHandler(function (data) {
+        dbKomponen = data;
+        if (inputEl) {
+          inputEl.placeholder = "Cari Komponen...";
+          // Hapus event listener lama agar tidak dobel (optional, tapi aman)
+          inputEl.removeEventListener('input', inputEl._filterHandler);
+          inputEl.removeEventListener('focus', inputEl._filterHandler);
+
+          inputEl._filterHandler = function () { filterComponents(this.value); };
+          inputEl.addEventListener('input', inputEl._filterHandler);
+          inputEl.addEventListener('focus', inputEl._filterHandler);
+        }
+
+        document.addEventListener('click', function (e) {
+          if (!e.target.closest('.search-container')) {
+            document.querySelectorAll('.dropdown-results').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.search-container').forEach(el => el.style.zIndex = "10");
+          }
+        });
+      }).getComponentData(currentDeptCodes[0] || currentDept);
+    };
+
+    // Panggil saat inisialisasi awal
+    window.refreshComponentData();
+
+    google.script.run.withSuccessHandler(function (list) {
+      allDeptList = list;
+      renderDeptPenerimaOptions();
+    }).getDeptPenerimaList();
+
+    google.script.run.withSuccessHandler(function (list) {
+      allPemohonList = list;
+      if (getCurrentDeptList().some(d => {
+        const u = String(d || "").trim().toUpperCase();
+        return u === "ALL" || u === "*";
+      })) {
+        syncDeptPengajuOptions();
+      }
+    }).getDeptPemohonList();
+
+    google.script.run.withSuccessHandler(function (opts) {
+      setupCustomDropdown('newMaterial', 'newMaterialResults', opts.material);
+    }).getNewComponentOptions();
+
+    // Event Listener untuk Scanner GitHub
+    window.addEventListener("message", function (event) {
+      if (event.data && event.data.type === "QR_RESULT_GITHUB") {
+        processScannedData(event.data.data);
+      }
+    });
+  };
+
+  // === FUNGSI NAVIGASI & SIDEBAR ===
+  function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('overlay');
+    sb.classList.toggle('active');
+    ov.style.display = sb.classList.contains('active') ? 'block' : 'none';
+  }
+
+  function navigateTo(pageId) {
+    if (pageId !== 'pageScan') scanContext = null;
+    if (pageId !== 'pageLogin') localStorage.setItem('lastPage', pageId);
+
+    const viewport = document.querySelector('.app-viewport');
+    if (pageId === 'pageDataWR' || pageId === 'pagePrintWR') {
+      viewport.classList.add('wide-mode');
+    } else {
+      viewport.classList.remove('wide-mode');
+    }
+
+    if (document.getElementById('pageScan').classList.contains('active-page')) {
+      // Reset UI Page Scan saat masuk
+      startScanner('reader');
+    }
+
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) targetPage.classList.add('active-page');
+
+    const sb = document.getElementById('sidebar');
+    if (sb.classList.contains('active')) toggleSidebar();
+    window.scrollTo(0, 0);
+
+    if (pageId === 'pageScan') startScanner('reader');
+    if (pageId === 'pageDataWR') loadDataWR();
+    if (pageId === 'pagePrintWR') {
+      loadPrintWRData();
+      const firstTab = document.getElementById('tab-print-pending');
+      if (firstTab && typeof bootstrap !== 'undefined') new bootstrap.Tab(firstTab).show();
+    }
+    if (pageId === 'pageMonitoring') loadMonitoringData();
+    if (pageId === 'pageDataKomponen') {
+      if (typeof loadDataKomponen === 'function') {
+        loadDataKomponen();
+      }
+    }
+    if (pageId === 'pageFormWR') {
+      if (typeof window.refreshComponentData === 'function') {
+        window.refreshComponentData();
+      }
+      const form = document.getElementById('wrForm');
+      if (form) {
+        form.reset();
+        syncDeptPengajuOptions();
+        if (typeof renderDeptPenerimaOptions === 'function') renderDeptPenerimaOptions();
+        const today = new Date();
+        const dateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+        if (document.getElementById('tglOrder')) document.getElementById('tglOrder').value = dateStr;
+
+        document.getElementById('prevImg').style.display = 'none';
+        document.getElementById('prevImg').src = "";
+        document.getElementById('imgText').style.display = 'block';
+        document.getElementById('displayNama').innerText = 'Nama Komponen';
+        document.getElementById('displayKode').innerText = 'XXXXXXXXXXXX';
+        document.getElementById('displayDimensi').innerText = 'P x L x T';
+        document.getElementById('displayRouting').innerText = '-';
+
+        document.getElementById('kodeKomponen').value = '';
+        document.getElementById('selectedComponentIndex').value = '';
+        if (typeof cancelNewComponentMode === 'function') cancelNewComponentMode();
+      }
+    }
+  }
+
+  // === FUNGSI MODAL (TAMPILAN POPUP) ===
+  function showSuccessModal(msg) {
+    document.getElementById('successMessage').innerText = msg;
+    document.getElementById('successModal').style.display = 'flex';
+  }
+  function closeSuccessModal() {
+    document.getElementById('successModal').style.display = 'none';
+    navigateTo('pageHome');
+  }
+  function showResultModal(isSuccess, title, message) {
+    const modal = document.getElementById('resultModal');
+    const iconBg = document.getElementById('resultIconBg');
+    const icon = document.getElementById('resultIcon');
+    const titleEl = document.getElementById('resultTitle');
+    const msgEl = document.getElementById('resultMessage');
+    const btn = document.getElementById('resultBtn');
+
+    if (isSuccess) {
+      iconBg.className = 'success-icon';
+      iconBg.style.background = '#e3fcef';
+      iconBg.style.color = '#00c851';
+      iconBg.style.boxShadow = '0 10px 20px rgba(0, 200, 81, 0.2)';
+      icon.className = 'fas fa-check';
+      titleEl.className = 'fw-bold mb-2 text-success';
+      btn.className = 'btn-orange shadow-sm w-100 py-2 fw-bold';
+      btn.style.background = '#00c851';
+      btn.style.boxShadow = '0 4px 15px rgba(0, 200, 81, 0.3)';
+      btn.innerText = "OK, Mantap!";
+      icon.style.animation = 'none'; icon.offsetHeight; icon.style.animation = 'bounceIcon 2s infinite';
+    } else {
+      iconBg.className = 'danger-icon';
+      iconBg.style.background = '#ffebee';
+      iconBg.style.color = '#e30613';
+      iconBg.style.boxShadow = '0 10px 20px rgba(227, 6, 19, 0.2)';
+      icon.className = 'fas fa-times';
+      titleEl.className = 'fw-bold mb-2 text-danger';
+      btn.className = 'btn-orange shadow-sm w-100 py-2 fw-bold';
+      btn.style.background = '#e30613';
+      btn.style.boxShadow = '0 4px 15px rgba(227, 6, 19, 0.3)';
+      btn.innerText = "Tutup";
+      icon.style.animation = 'none'; icon.offsetHeight; icon.style.animation = 'pulseRed 2s infinite';
+    }
+    titleEl.innerText = title; msgEl.innerHTML = message; modal.style.display = 'flex';
+  }
+  function closeResultModal() { document.getElementById('resultModal').style.display = 'none'; }
+  function showScanNotFoundModal() { document.getElementById('scanNotFoundModal').style.display = 'flex'; }
+  function closeScanNotFoundModal() { document.getElementById('scanNotFoundModal').style.display = 'none'; }
+  function showImageModal(url, kode, nama) {
+    if (!url) return;
+    const img = document.getElementById('previewImage');
+    let src = url;
+    const match = url.match(/\/d\/(.+?)\//);
+    if (match && match[1]) src = "https://lh3.googleusercontent.com/d/" + match[1];
+    else if (url.includes("id=")) src = "https://lh3.googleusercontent.com/d/" + url.split("id=")[1].split("&")[0];
+
+    img.src = src;
+    document.getElementById('modalImgNama').innerText = nama || "Nama Komponen";
+    document.getElementById('modalImgKode').innerText = kode || "-";
+    document.getElementById('imageModal').style.display = 'flex';
+  }
+  function closeImageModal() {
+    document.getElementById('imageModal').style.display = 'none';
+    document.getElementById('previewImage').src = "";
+  }
+
+  // === FUNGSI SCANNER GLOBAL ===
+  function initScanSearch() {
+    scanContext = 'search';
+    document.getElementById('scannerModal').style.display = 'flex';
+    startScanner('modalReader'); // Reset UI Modal
+  }
+
+  function closeScannerModal() {
+    document.getElementById('scannerModal').style.display = 'none';
+  }
+
+  function redirectToNewComponent() {
+    closeScanNotFoundModal();
+    switchToNewComponentMode();
+  }
+
+  // FUNGSI BARU: Buka Scanner Eksternal
+  function openExternalScanner() {
+    window.open(GITHUB_SCANNER_URL, 'Scanner', 'width=600,height=700');
+  }
+
+
+
+  // FUNGSI BARU: Reset UI Scanner (Bukan start kamera live)
+  function startScanner(readerId) {
+    if (readerId === 'reader') {
+      // Reset Page Scan UI
+      document.getElementById('previewPage').src = "https://cdn-icons-png.flaticon.com/512/4406/4406166.png";
+      document.getElementById('previewPage').style.display = 'block';
+      document.getElementById('statusPage').className = 'text-muted small mb-3 fw-bold';
+      document.getElementById('statusPage').innerText = "Klik tombol untuk membuka scanner";
+    } else {
+      // Reset Modal Scan UI
+      document.getElementById('previewModal').style.display = 'none';
+      document.getElementById('statusModal').className = 'text-white-50 small mb-3';
+      document.getElementById('statusModal').innerText = "Klik tombol untuk membuka scanner";
+
+      // Buka Scanner Eksternal
+      openExternalScanner();
+    }
+  }
+
+  // Logika Bisnis (Dipisahkan dari logika kamera)
+  function processScannedData(decodedText) {
+    if (scanContext === 'search') {
+      navigateTo('pageFormWR'); document.getElementById('scannerModal').style.display = 'none';
+      const parts = decodedText.split(',');
+      const qrKode = parts[0] ? parts[0].trim().toUpperCase() : "";
+      const qrNama = parts.length > 1 ? parts.slice(1).join(',').trim().toUpperCase() : "";
+
+      let indexByKode = -1; let indexByNama = -1;
+      if (qrKode) indexByKode = dbKomponen.findIndex(item => String(item.kode).toUpperCase() === qrKode);
+      if (qrNama) indexByNama = dbKomponen.findIndex(item => String(item.nama).toUpperCase() === qrNama);
+
+      let finalIndex = -1; let isConflict = false;
+      if (indexByKode !== -1 && indexByNama !== -1) {
+        if (indexByKode === indexByNama) finalIndex = indexByKode; else isConflict = true;
+      } else if (indexByKode !== -1) finalIndex = indexByKode;
+      else if (indexByNama !== -1) finalIndex = indexByNama;
+
+      if (finalIndex !== -1 && !isConflict) selectComponent(finalIndex);
+      else showScanNotFoundModal();
+    } else if (scanContext === 'process_update') {
+      // --- LOGIKA VALIDASI QR (WR atau MESIN) ---
+      let isMatch = false;
+      const scannedText = decodedText.trim();
+
+      const simpleIdCheck = targetScanWR.replace(/[^a-zA-Z0-9]/g, '');
+      const itemCheck = wrDataMap[simpleIdCheck];
+      const ownerDept = itemCheck ? String(itemCheck.pengaju || "").trim().toUpperCase() : (targetScanWR.split('/')[1] || "").trim().toUpperCase();
+      const isOwner = userHasDept(ownerDept);
+      if (targetScanStatus === 'Menuju Pengaju' && !isOwner) {
+        document.getElementById('scannerModal').style.display = 'none';
+        showResultModal(false, "Barang Sedang Diantar", "Barang ini sudah dalam perjalanan ke Pengaju. Silakan tunggu Pengaju melakukan konfirmasi 'Diterima' di aplikasi mereka.");
+        return;
+      }
+
+      // 1. Cek Exact Match dengan No WR
+      if (scannedText === targetScanWR.trim()) {
+        isMatch = true;
+      }
+      // 2. Cek Match dengan Kode Mesin (Logic Baru)
+      else {
+        let targetDept = "";
+        const rawRouting = targetScanRouting || "";
+        const steps = rawRouting.split('-').map(s => s.trim()).filter(s => s !== "");
+        const curStatus = (targetScanStatus || "").trim();
+
+        // Tentukan Target Departemen berdasarkan Status Saat Ini
+        if (curStatus === '' || curStatus === '-' || curStatus.toLowerCase().includes('antrian') || curStatus.toLowerCase() === 'belum verifikasi') {
+          // Case A: Masih di Antrian -> Target adalah Step Pertama Routing
+          targetDept = steps.length > 0 ? steps[0] : rawRouting;
+        } else if (curStatus.includes('(In)')) {
+          // Case B: Sedang Proses (In) -> Mau Finish (Out). Validasi mesin yang sama.
+          targetDept = curStatus.replace('Proses:', '').replace('(In)', '').trim();
+        } else if (curStatus.includes('(Out)')) {
+          // Case C: Selesai Proses (Out) -> Mau Masuk Next Step (In).
+          let prevStep = curStatus.replace('Proses:', '').replace('(Out)', '').trim();
+          let idx = steps.indexOf(prevStep);
+          if (idx !== -1 && idx < steps.length - 1) {
+            targetDept = steps[idx + 1];
+          }
+        }
+
+        // Lakukan Validasi: Apakah Target Dept mengandung kata kunci Mesin?
+        if (targetDept) {
+          // Ambil kata pertama dari QR Mesin (sebelum tanda /). Contoh: "Sharing/I-06-01" -> "Sharing"
+          const machinePrefix = scannedText.split('/')[0].trim().toLowerCase();
+          const targetDeptClean = targetDept.trim().toLowerCase();
+
+          if (machinePrefix && targetDeptClean.includes(machinePrefix)) {
+            isMatch = true;
+          }
+        }
+      }
+
+      if (isMatch) {
+        // KEMBALI KE LOGIKA STANDARD (LINEAR) - LEBIH STABIL
+        // Cek status berikutnya berdasarkan urutan routing yang baku
+        const nextStatus = targetScanForceNext || calculateNextStatus(targetScanStatus, targetScanRouting);
+
+        if (nextStatus) {
+          document.getElementById('scannerModal').style.display = 'none';
+
+          // AUTO BYPASS: Jika status "Dalam antrian", langsung proses tanpa tanya Qty
+          if (nextStatus === 'Dalam antrian') {
+            processUpdate(targetScanWR, 'barang', nextStatus, "-", "Masuk Antrian");
+            return;
+          }
+
+          // AUTO BYPASS: Jika Proses Pertama (IN) dari Antrian -> Langsung Mulai (Full Qty)
+          const curStatusLower = (targetScanStatus || "").toLowerCase();
+          if ((curStatusLower.includes('antrian') || curStatusLower === 'belum verifikasi' || !targetScanStatus || targetScanStatus === '-') && nextStatus.includes('(In)')) {
+            const simpleId = targetScanWR.replace(/[^a-zA-Z0-9]/g, '');
+            const item = wrDataMap[simpleId];
+            const qtyInfo = (item && item.qty) ? (item.qty + " pcs") : "-";
+            processUpdate(targetScanWR, 'barang', nextStatus, qtyInfo, "Auto-Start Process");
+            return;
+          }
+
+          // --- LOGIKA BARU: Validasi Saldo untuk MH PICKUP ---
+          if (nextStatus.startsWith('MH Pickup:')) {
+            // --- PENGETATAN ATURAN BARU ---
+            // Hanya user dengan akses Gudang (kode 6) yang boleh melakukan proses pickup.
+            // Ini mencegah operator proses selanjutnya "mencuri" pekerjaan Gudang.
+            const isGudangUser = (currentAccessCodes && (currentAccessCodes.includes('6') || currentAccessCodes.includes(6)));
+            if (!isGudangUser) {
+              showResultModal(false, "Akses Ditolak", "Hanya departemen Gudang yang dapat melakukan proses pickup barang.");
+              closeScannerModal();
+              return;
+            }
+            // --- AKHIR PENGETATAN ATURAN ---
+
+            const simpleId = targetScanWR.replace(/[^a-zA-Z0-9]/g, '');
+            const item = wrDataMap[simpleId];
+            const stepName = nextStatus.replace('MH Pickup:', '').trim();
+
+            // Safety Check: Jika item tidak ada di memori, minta refresh
+            if (!item) {
+              showResultModal(false, "Data Tidak Ditemukan", "Data WR belum tersinkronisasi di memori.<br>Silakan tutup scanner dan refresh halaman Task Gudang.");
+              return;
+            }
+
+            // Saldo = Total Qty KELUAR dari mesin - Total Qty yang SUDAH di-pickup - Defect saat pickup
+            const totalOut = calculateTotalProcessedForStatus(item.logs, `Proses: ${stepName} (Out)`);
+            const totalPickedUp = calculateTotalProcessedForStatus(item.logs, nextStatus);
+            const defectPickedUp = calculateTotalProcessedForStatus(item.logs, `Defect > ${nextStatus}`);
+            const availableForPickup = totalOut - totalPickedUp - defectPickedUp;
+
+            if (availableForPickup <= 0) {
+              showResultModal(false, "Barang Belum Siap", `Tidak ada barang yang menunggu pickup dari proses <b>${stepName}</b>.`);
+              return;
+            }
+            // Buka modal dengan saldo yang tersedia
+            pendingScanData = { noWR: targetScanWR, status: nextStatus };
+            openQtyModal(nextStatus, availableForPickup);
+            return; // Hentikan eksekusi lebih lanjut
+          }
+
+          // Default: Buka Modal Input Qty (User bisa input Parsial atau Full disini)
+          pendingScanData = { noWR: targetScanWR, status: nextStatus };
+          openQtyModal(nextStatus);
+
+        } else {
+          document.getElementById('scannerModal').style.display = 'none';
+          showResultModal(false, "Tidak Dapat Lanjut", "Item ini sudah mencapai status akhir atau alur tidak valid.");
+        }
+      } else {
+        document.getElementById('scannerModal').style.display = 'none';
+        showResultModal(false, "QR Code Salah!", `Pastikan Anda men-scan QR Code yang sesuai untuk proses ini.`);
+      }
+    } else {
+      alert("Berhasil Scan: " + decodedText); navigateTo('pageHome');
+    }
+  }
+
+  function openQtyModal(status, overrideAvailableQty = null) {
+    const modal = document.getElementById('qtyInputModal');
+    const label = document.getElementById('qtyModalLabel');
+    const input = document.getElementById('scanQtyInput');
+    const reasonInput = document.getElementById('scanQtyReason');
+
+    let totalQty = 0;
+    let availableQty = 0;
+    let item = null;
+
+    if (targetScanWR) {
+      const simpleId = targetScanWR.replace(/[^a-zA-Z0-9]/g, '');
+      item = wrDataMap[simpleId];
+      if (item && item.qty) totalQty = parseInt(item.qty);
+    }
+
+    if (overrideAvailableQty !== null) {
+      availableQty = overrideAvailableQty;
+    } else if (item && item.logs) {
+      const nextStatus = targetScanForceNext || calculateNextStatus(targetScanStatus, targetScanRouting);
+      const routingRaw = targetScanRouting || (item.routing || "");
+      const steps = routingRaw.split('-').map(s => s.trim()).filter(s => s !== "");
+
+      let totalAllDefects = calculateTotalProcessedForStatus(item.logs, 'Defect');
+      let originalQty = totalQty + totalAllDefects;
+      let maxAllowed = originalQty;
+      let processedQty = 0;
+
+      // 1. Status (In) - Masuk Mesin
+      if (nextStatus.includes('(In)')) {
+        let stepName = nextStatus.replace('Proses:', '').replace('(In)', '').trim();
+        const stepIdx = steps.indexOf(stepName);
+
+        if (stepIdx === 0) {
+          maxAllowed = originalQty;
+        } else if (stepIdx > 0) {
+          const prevStep = steps[stepIdx - 1];
+          maxAllowed = calculateTotalProcessedForStatus(item.logs, `MH Drop: ${prevStep}`);
+          if (maxAllowed === 0) maxAllowed = calculateTotalProcessedForStatus(item.logs, `MH Pickup: ${prevStep}`);
+        }
+        processedQty = calculateTotalProcessedForStatus(item.logs, nextStatus);
+        processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > ${nextStatus}`);
+      }
+
+      // 2. Status (Out) - Keluar Mesin
+      else if (nextStatus.includes('(Out)')) {
+        let stepName = nextStatus.replace('Proses:', '').replace('(Out)', '').trim();
+        // Yang boleh keluar (Out) hanyalah total yang sudah masuk (In)
+        maxAllowed = calculateTotalProcessedForStatus(item.logs, `Proses: ${stepName} (In)`);
+
+        // Jaring pengaman jika sistem lama tidak mencatat (In)
+        if (maxAllowed === 0) maxAllowed = originalQty;
+
+        processedQty = calculateTotalProcessedForStatus(item.logs, nextStatus);
+        processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > ${nextStatus}`);
+      }
+
+      // Status MH Drop
+      else if (nextStatus.startsWith('MH Drop:')) {
+        let stepName = nextStatus.replace('MH Drop:', '').trim();
+        maxAllowed = calculateTotalProcessedForStatus(item.logs, `MH Pickup: ${stepName}`);
+        processedQty = calculateTotalProcessedForStatus(item.logs, nextStatus);
+        processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > ${nextStatus}`);
+      }
+
+      // 3. Status MH Pickup (Gudang ambil dari mesin)
+      else if (nextStatus.startsWith('MH Pickup:')) {
+        let stepName = nextStatus.replace('MH Pickup:', '').trim();
+        // Yang boleh diambil gudang hanyalah total yang sudah keluar (Out) dari mesin
+        maxAllowed = calculateTotalProcessedForStatus(item.logs, `Proses: ${stepName} (Out)`);
+
+        // Jaring pengaman jika sistem lama tidak mencatat (Out) secara presisi
+        if (maxAllowed === 0) {
+          maxAllowed = calculateTotalProcessedForStatus(item.logs, stepName);
+          if (maxAllowed === 0) maxAllowed = originalQty;
+        }
+        processedQty = calculateTotalProcessedForStatus(item.logs, nextStatus);
+        processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > ${nextStatus}`);
+      }
+
+      else if (nextStatus === 'Menuju Pengaju') {
+        maxAllowed = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+        processedQty = calculateTotalProcessedForStatus(item.logs, nextStatus);
+        processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > ${nextStatus}`);
+      }
+
+      // 4. Status Akhir (Siap diambil, Selesai, Sudah diambil)
+      else if (nextStatus === 'Siap diambil' || nextStatus === 'Selesai' || nextStatus === 'Sudah diambil' || (!nextStatus.includes('(In)') && !nextStatus.includes('(Out)'))) {
+        const lastStep = steps[steps.length - 1] || "";
+
+        if (nextStatus === 'Sudah diambil' || nextStatus === 'Selesai') {
+          // MH Pickup Final: Yang boleh diambil hanyalah yang sudah dibawa gudang "Menuju Pengaju"
+          maxAllowed = calculateTotalProcessedForStatus(item.logs, 'Menuju Pengaju');
+          if (maxAllowed === 0) maxAllowed = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+          if (maxAllowed === 0 && lastStep !== "") maxAllowed = calculateTotalProcessedForStatus(item.logs, `Proses: ${lastStep} (Out)`);
+          if (maxAllowed === 0) maxAllowed = originalQty; // Penyelamat jika data lama tanpa log
+          processedQty = calculateTotalProcessedForStatus(item.logs, 'Sudah diambil');
+          processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > Sudah diambil`);
+          processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > Selesai`);
+        } else {
+          // Operator Finish (Siap diambil): Yang boleh "Siap diambil" adalah yang sudah masuk (In) ke proses terakhir
+          if (lastStep !== "") {
+            maxAllowed = calculateTotalProcessedForStatus(item.logs, `Proses: ${lastStep} (In)`);
+            if (maxAllowed === 0) maxAllowed = originalQty;
+          } else {
+            maxAllowed = originalQty;
+          }
+          processedQty = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+          processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > Siap diambil`);
+
+          // Kompensasi bug lama: Jika terlanjur scan Out pada proses terakhir
+          if (processedQty === 0 && lastStep !== "") {
+            processedQty += calculateTotalProcessedForStatus(item.logs, `Proses: ${lastStep} (Out)`);
+            processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > Proses: ${lastStep} (Out)`);
+          }
+        }
+      }
+
+      // 5. Status lainnya
+      else {
+        maxAllowed = originalQty;
+        processedQty = calculateTotalProcessedForStatus(item.logs, nextStatus);
+      }
+
+      availableQty = maxAllowed - processedQty;
+      if (availableQty < 0) availableQty = 0;
+    } else {
+      availableQty = totalQty;
+    }
+
+    if (availableQty < 0) availableQty = 0;
+
+    input.dataset.max = totalQty;
+    input.dataset.remaining = availableQty;
+
+    input.value = availableQty > 0 ? availableQty : "";
+    if (reasonInput) reasonInput.value = "";
+
+    // Reset input Defect
+    const defectInput = document.getElementById('scanDefectQty');
+    if (defectInput) defectInput.value = "";
+
+    const defectReasonInput = document.getElementById('scanDefectReason');
+    if (defectReasonInput) defectReasonInput.value = "";
+
+    if (status.includes('(In)')) label.innerText = `Proses Masuk (${status}).\nSiap Masuk: ${availableQty} pcs`;
+    else if (status.includes('(Out)')) label.innerText = `Proses Selesai (${status}).\nSiap Keluar: ${availableQty} pcs`;
+    else label.innerText = `Masukkan Quantity (Tersedia: ${availableQty} / Total WR: ${totalQty}):`;
+
+    modal.style.display = 'flex';
+    input.focus();
+    input.select();
+  }
+
+  function closeQtyModal() {
+    document.getElementById('qtyInputModal').style.display = 'none';
+    pendingScanData = null;
+  }
+
+  function submitScanQty() {
+    const input = document.getElementById('scanQtyInput');
+    const defectInput = document.getElementById('scanDefectQty');
+    const reasonInput = document.getElementById('scanQtyReason');
+    const defectReasonInput = document.getElementById('scanDefectReason');
+
+    const qty = parseInt(input.value) || 0;
+    const defectQty = defectInput ? (parseInt(defectInput.value) || 0) : 0;
+    const remainingQty = parseInt(input.dataset.remaining || 0);
+
+    if (qty <= 0 && defectQty <= 0) {
+      alert("Harap masukkan Qty proses atau Qty Defect!"); return;
+    }
+
+    // VALIDASI: Total (Proses + Defect) tidak boleh melebihi ketersediaan
+    if (remainingQty > 0 && (qty + defectQty) > remainingQty) {
+      alert(`Total Qty Proses (${qty}) + Qty Defect (${defectQty}) melebihi sisa barang yang tersedia (${remainingQty} pcs)!`);
+      return;
+    }
+
+    const reason = reasonInput ? reasonInput.value.trim() : "";
+    const defectReason = defectReasonInput ? defectReasonInput.value.trim() : "";
+    if (defectQty > 0 && !defectReason) {
+      alert("Alasan Defect wajib diisi jika terdapat barang Koreksi / Defect!");
+      if (defectReasonInput) defectReasonInput.focus();
+      return;
+    }
+
+    if (pendingScanData) {
+      const submitNoWR = pendingScanData.noWR;
+      const submitStatus = pendingScanData.status;
+
+      closeQtyModal();
+
+      const btn = document.getElementById('resultBtn');
+      const icon = document.getElementById('resultIcon');
+      showResultModal(true, "Memproses...", "Sedang menyimpan data...");
+      if (btn) btn.style.display = 'none';
+      if (icon) icon.className = 'fas fa-spinner fa-spin';
+
+      google.script.run.withSuccessHandler(function (res) {
+        if (btn) btn.style.display = 'block';
+        if (res.status === 'success') {
+          showResultModal(true, "Berhasil!", res.message);
+          setTimeout(function () {
+            if (typeof loadDataWR === 'function') loadDataWR();
+            if (typeof loadDataGudang === 'function') loadDataGudang();
+          }, 1500);
+        } else {
+          showResultModal(false, "Gagal", res.message);
+        }
+      }).withFailureHandler(function (err) {
+        if (btn) btn.style.display = 'block';
+        showResultModal(false, "Error Sistem", "Gagal menghubungi server: " + err);
+      }).processDefectAndScan(submitNoWR, submitStatus, qty, defectQty, reason, currentDept, defectReason);
+    }
+  }
+
+  function initScanProcess(noWR, currentStatus, routing, forceNextStatus = null) {
+    targetScanWR = noWR; targetScanStatus = currentStatus; targetScanRouting = routing;
+    targetScanForceNext = forceNextStatus;
+    scanContext = 'process_update'; document.getElementById('scannerModal').style.display = 'flex';
+    const modalTitle = document.querySelector('#scannerModal h5');
+    if (modalTitle) modalTitle.innerHTML = '<i class="fas fa-check-double me-2 text-warning"></i>Verifikasi Proses';
+    const modalDesc = document.querySelector('#scannerModal p');
+    if (modalDesc) modalDesc.innerHTML = `Scan QR Code <b>${noWR}</b> untuk lanjut.`;
+    startScanner('modalReader'); // Reset UI
+  }
+
+  function onScanFailure(error) { /* Hide spam log */ }
+
+  // FUNGSI BARU: Wrapper untuk memanggil backend submitPartialLog
+  function submitPartialLog(noWR, nextStatus, partialQty, reason) {
+    // Tampilkan loading pada tombol atau overlay
+    showResultModal(true, "Mencatat Parsial...", "Sedang menyimpan progres parsial...");
+
+    google.script.run.withSuccessHandler(function (res) {
+      if (res.status === 'success') {
+        showResultModal(true, "Parsial Tercatat!", res.message);
+        // Refresh data dashboard
+        if (typeof loadDataWR === 'function') {
+          loadDataWR();
+        }
+
+      } else {
+        showResultModal(false, "Gagal Parsial", "Error: " + res.message);
+      }
+    }).withFailureHandler(function (err) {
+      showResultModal(false, "Error Sistem", "Gagal menghubungi server: " + err);
+    }).submitPartialLog(noWR, nextStatus, partialQty, reason);
+  }
+
+  /**
+   * Menghitung total qty yang sudah diproses untuk sebuah status (termasuk log parsialnya).
+   * @param {Array} logs - Array objek log dari item WR.
+   * @param {string} targetStatusBase - Nama status dasar, cth: "Proses: Bubut (Out)".
+   * @returns {number} - Total quantity yang terakumulasi.
+   */
+  // Mengganti calculateTotalProcessedForStatus yang lama agar menggunakan Universal Parser
+  function calculateTotalProcessedForStatus(logsArray, statusToCalculate) {
+    // Default menggunakan metode 'includes' (pencocokan parsial) agar lebih fleksibel menangani prefix 'Parsial > '
+    return universalQtyParser(logsArray, statusToCalculate, 'includes');
+  }
+</script>
