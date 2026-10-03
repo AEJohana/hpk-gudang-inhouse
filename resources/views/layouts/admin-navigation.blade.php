@@ -49,12 +49,6 @@
                     <a href="{{ route('warehouse-map.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('warehouse-map.*', 'locations.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
                         Peta Gudang
                     </a>
-                    
-                    @if(Auth::user()->hasRole('admin_gudang'))
-                    <a href="{{ route('admin.dashboard') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition bg-hpk-orange/20 text-amber-300 border border-amber-300/30 hover:bg-hpk-orange/40 ml-2">
-                        <i class="fa-solid fa-gear me-1"></i> Admin Panel
-                    </a>
-                    @endif
                 </div>
             </div>
 

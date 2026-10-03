@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -19,10 +21,13 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'username',
         'password',
         'role',
         'department',
         'phone',
+        'is_active',
+        'last_login_at',
     ];
 
     /**
@@ -47,33 +52,36 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return $this->role === 'admin_gudang' || $this->role === 'supervisor';
+        return $this->hasAnyRole(['admin_gudang', 'supervisor']);
     }
 
     public function isSupervisor(): bool
     {
-        return $this->role === 'supervisor';
+        return $this->hasRole('supervisor');
     }
 
     public function isOperator(): bool
     {
-        return $this->role === 'operator';
+        return $this->hasRole('operator');
     }
 
     public function isEngineering(): bool
     {
-        return in_array($this->role, ['engineering', 'qc', 'supervisor']);
+        return $this->hasAnyRole(['engineering', 'qc', 'supervisor']);
     }
 
     public function getRoleBadgeAttribute(): string
     {
-        return match($this->role) {
+        // Use the first role assigned via Spatie, fallback to old logic if none
+        $roleName = $this->roles->first()->name ?? $this->role ?? 'staff';
+        
+        return match($roleName) {
             'admin_gudang' => 'Admin Gudang',
             'supervisor' => 'Kepala Gudang / SPV',
             'operator' => 'Operator / Picker',
             'engineering' => 'Engineering Karoseri',
             'qc' => 'Quality Control',
-            default => ucfirst($this->role ?? 'Staff'),
+            default => ucfirst($roleName),
         };
     }
 }

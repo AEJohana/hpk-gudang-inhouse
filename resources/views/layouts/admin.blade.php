@@ -66,46 +66,59 @@
 
             <!-- Sidebar Navigation Links -->
             <nav class="space-y-1">
-                <a href="{{ route('dashboard') }}" class="hpk-sidebar-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <a href="{{ route('admin.dashboard') }}" class="hpk-sidebar-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                     <i class="fa-solid fa-gauge-high"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="{{ route('components.index') }}" class="hpk-sidebar-item {{ request()->routeIs('components.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-boxes-stacked"></i>
-                    <span>Master Komponen</span>
-                </a>
-                <a href="{{ route('transactions.index') }}" class="hpk-sidebar-item {{ request()->routeIs('transactions.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-right-left"></i>
-                    <span>Transaksi Barang</span>
-                </a>
-                <a href="{{ route('ecrs.index') }}" class="hpk-sidebar-item {{ request()->routeIs('ecrs.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-file-pen"></i>
-                    <span>ECR Revisi Part</span>
-                </a>
-                <a href="{{ route('disposals.index') }}" class="hpk-sidebar-item {{ request()->routeIs('disposals.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-trash-can"></i>
-                    <span>Pengajuan Disposal</span>
-                </a>
-                <a href="{{ route('qr-requests.index') }}" class="hpk-sidebar-item {{ request()->routeIs('qr-requests.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-qrcode"></i>
-                    <span>Permintaan Label QR</span>
-                </a>
-                <a href="{{ route('cycle-counts.index') }}" class="hpk-sidebar-item {{ request()->routeIs('cycle-counts.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-clipboard-check"></i>
-                    <span>Cycle Count (Opname)</span>
-                </a>
-                <a href="{{ route('warehouse-map.index') }}" class="hpk-sidebar-item {{ request()->routeIs('warehouse-map.*', 'locations.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-map-location-dot"></i>
-                    <span>Peta Denah Gudang</span>
+                    <span>Dashboard Admin</span>
                 </a>
                 
-                @if(Auth::user()->hasRole('admin_gudang'))
-                <div class="my-2 border-t border-white/10"></div>
-                <a href="{{ route('admin.dashboard') }}" class="hpk-sidebar-item text-amber-300 hover:text-amber-100 hover:bg-amber-500/20">
-                    <i class="fa-solid fa-gear"></i>
-                    <span>Admin Panel</span>
+                <div class="px-4 py-2 mt-2 mb-1">
+                    <span class="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest">Sistem & Pengguna</span>
+                </div>
+                
+                <a href="{{ route('admin.users.index') }}" class="hpk-sidebar-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Manajemen User</span>
                 </a>
-                @endif
+                <a href="{{ route('admin.roles.index') }}" class="hpk-sidebar-item {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>Role & Permission</span>
+                </a>
+
+                <div class="px-4 py-2 mt-2 mb-1">
+                    <span class="text-[10px] font-bold text-teal-500/80 uppercase tracking-widest">Master Data</span>
+                </div>
+
+                <a href="{{ route('admin.component-categories.index') }}" class="hpk-sidebar-item {{ request()->routeIs('admin.component-categories.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-tags"></i>
+                    <span>Kategori Komponen</span>
+                </a>
+                <a href="{{ route('admin.uoms.index') }}" class="hpk-sidebar-item {{ request()->routeIs('admin.uoms.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                    <span>Satuan (UoM)</span>
+                </a>
+                <a href="{{ route('admin.locations-master.index') }}" class="hpk-sidebar-item {{ request()->requestIs('admin.locations-master.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                    <span>Gudang & Lokasi</span>
+                </a>
+
+                <div class="px-4 py-2 mt-2 mb-1">
+                    <span class="text-[10px] font-bold text-rose-500/80 uppercase tracking-widest">Konfigurasi</span>
+                </div>
+
+                <a href="{{ route('admin.settings.index') }}" class="hpk-sidebar-item {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-gears"></i>
+                    <span>Pengaturan Sistem</span>
+                </a>
+                <a href="{{ route('admin.audit-logs.index') }}" class="hpk-sidebar-item {{ request()->routeIs('admin.audit-logs.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <span>Audit Log</span>
+                </a>
+
+                <div class="my-4 border-t border-white/10"></div>
+                <a href="{{ route('dashboard') }}" class="hpk-sidebar-item text-teal-300 hover:text-teal-200">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Kembali ke Aplikasi Utama</span>
+                </a>
             </nav>
 
             <!-- Quick Scanner Action -->

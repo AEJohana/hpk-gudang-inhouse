@@ -55,7 +55,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/cycle-counts/{cycleCount}/submit-count', [CycleCountController::class, 'submitCount'])->name('cycle-counts.submit-count');
     Route::post('/cycle-counts/{cycleCount}/reconcile', [CycleCountController::class, 'reconcile'])->name('cycle-counts.reconcile');
 
-    // 8. Peta Gudang 1 Gedung (Warehouse Layout Map)
+    // Peta Gudang 1 Gedung (Warehouse Layout Map)
     Route::get('/warehouse-map', [LocationController::class, 'index'])->name('warehouse-map.index');
     Route::get('/locations/{location}', [LocationController::class, 'show'])->name('locations.show');
 
@@ -63,6 +63,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Admin Panel Routes
+    Route::prefix('admin')->name('admin.')->middleware(['role:admin_gudang'])->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('dashboard');
+        
+        // Manajemen User & Roles
+        Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
+        Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class)->except(['create', 'store', 'destroy', 'show']);
+
+        // Master Data
+        Route::resource('component-categories', \App\Http\Controllers\Admin\ComponentCategoryController::class);
+        Route::resource('uoms', \App\Http\Controllers\Admin\UomController::class);
+        Route::resource('locations-master', \App\Http\Controllers\Admin\LocationMasterController::class);
+
+        // Konfigurasi Sistem
+        Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
+        Route::post('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
+        Route::get('audit-logs', [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
+    });
 });
 
 require __DIR__.'/auth.php';

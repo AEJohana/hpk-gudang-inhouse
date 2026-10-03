@@ -11,6 +11,8 @@ class Location extends Model
     use HasFactory;
 
     protected $fillable = [
+        'warehouse_id',
+        'zone_id',
         'zone_code',
         'zone_name',
         'aisle',
@@ -19,6 +21,16 @@ class Location extends Model
         'description',
         'max_capacity',
     ];
+
+    public function warehouse(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+
+    public function zone(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Zone::class);
+    }
 
     public function components(): HasMany
     {
