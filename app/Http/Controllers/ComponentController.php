@@ -136,13 +136,22 @@ class ComponentController extends Controller
     public function show(Component $component)
     {
         $component->load(['defaultLocation', 'stockBalances.location', 'ecrs.requestedBy']);
-        return view('master_components.show', compact('component'));
+        return view('master_components.show', [
+            'component' => $component,
+            'componentItem' => $component,
+            'masterComponent' => $component,
+        ]);
     }
 
     public function edit(Component $component)
     {
         $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
-        return view('master_components.edit', compact('component', 'locations'));
+        return view('master_components.edit', [
+            'component' => $component,
+            'componentItem' => $component,
+            'masterComponent' => $component,
+            'locations' => $locations,
+        ]);
     }
 
     public function update(Request $request, Component $component)

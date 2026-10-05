@@ -110,6 +110,19 @@ class DashboardController extends Controller
             ->take(3)
             ->get();
 
+        // 4. Machine Center & Work Request Inhouse (WRI) & Supply Metrics
+        $inProductionWriCount = \App\Models\WorkRequest::where('status', 'in_production')->count();
+        $readyForWarehouseWriCount = \App\Models\WorkRequest::where('status', 'ready_for_warehouse')->count();
+        $todaySupplyCount = Transaction::whereDate('transaction_date', now())->whereNotNull('work_station_id')->count();
+        $activeMachines = \App\Models\Machine::withCount(['workRequestSteps as in_progress_count' => function ($q) {
+            $q->where('status', 'in_progress');
+        }])->get();
+        $activeWorkRequests = \App\Models\WorkRequest::with(['component', 'steps.machine'])
+            ->whereIn('status', ['submitted', 'in_production', 'ready_for_warehouse'])
+            ->latest()
+            ->take(4)
+            ->get();
+
         return view('dashboard', compact(
             'totalComponents',
             'lowStockCount',
@@ -120,7 +133,12 @@ class DashboardController extends Controller
             'recentTransactions',
             'pendingEcrs',
             'pendingDisposals',
-            'pendingQrRequests'
+            'pendingQrRequests',
+            'inProductionWriCount',
+            'readyForWarehouseWriCount',
+            'todaySupplyCount',
+            'activeMachines',
+            'activeWorkRequests'
         ));
     }
 }

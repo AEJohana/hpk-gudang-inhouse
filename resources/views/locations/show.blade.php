@@ -59,6 +59,7 @@
                         <tr>
                             <th class="py-3 px-4">Foto & Part Number</th>
                             <th class="py-3 px-4">Nama Komponen</th>
+                            <th class="py-3 px-4">Lokasi Slot</th>
                             <th class="py-3 px-4">Kategori</th>
                             <th class="py-3 px-4">No. Batch / Lot</th>
                             <th class="py-3 px-4 text-center">Stok di Rak</th>
@@ -79,6 +80,17 @@
                                     <a href="{{ route('components.show', $sb->component) }}" class="font-bold text-slate-900 hover:text-blue-600 block">
                                         {{ $sb->component->name }}
                                     </a>
+                                </td>
+
+                                <td class="py-3 px-4">
+                                    <div class="space-y-0.5">
+                                        <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                                            {{ $sb->computed_location_code }}
+                                        </span>
+                                        <span class="text-[10px] text-slate-500 block">
+                                            Lantai {{ preg_replace('/[^0-9]/', '', $sb->shelf_level ?? '1') ?: '1' }}, Slot {{ $sb->slot_number ?: '01' }}
+                                        </span>
+                                    </div>
                                 </td>
 
                                 <td class="py-3 px-4">
@@ -103,7 +115,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="py-8 text-center text-slate-400">
+                                <td colspan="7" class="py-8 text-center text-slate-400">
                                     Tidak ada komponen yang tersimpan di rak ini saat ini.
                                 </td>
                             </tr>

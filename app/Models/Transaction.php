@@ -17,6 +17,9 @@ class Transaction extends Model
         'spk_number', // opsional
         'reference_document',
         'notes',
+        'work_station_id',
+        'work_request_id',
+        'recipient_name',
         'user_id',
         'transaction_date',
         'status',
@@ -29,6 +32,16 @@ class Transaction extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function workStation(): BelongsTo
+    {
+        return $this->belongsTo(WorkStation::class);
+    }
+
+    public function workRequest(): BelongsTo
+    {
+        return $this->belongsTo(WorkRequest::class);
     }
 
     public function items(): HasMany

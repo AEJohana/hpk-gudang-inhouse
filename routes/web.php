@@ -55,9 +55,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/cycle-counts/{cycleCount}/submit-count', [CycleCountController::class, 'submitCount'])->name('cycle-counts.submit-count');
     Route::post('/cycle-counts/{cycleCount}/reconcile', [CycleCountController::class, 'reconcile'])->name('cycle-counts.reconcile');
 
-    // Peta Gudang 1 Gedung (Warehouse Layout Map)
+    // Peta Gudang Multi-Gedung & Denah Interaktif Rak / Pallet
     Route::get('/warehouse-map', [LocationController::class, 'index'])->name('warehouse-map.index');
+    Route::post('/warehouse-map/save-layout', [LocationController::class, 'saveLayout'])->name('warehouse-map.save-layout');
+    Route::post('/warehouse-map/reset-layout', [LocationController::class, 'resetLayout'])->name('warehouse-map.reset-layout');
+    Route::post('/warehouse-map/warehouses/{warehouse}/update-area', [LocationController::class, 'updateWarehouseArea'])->name('warehouse-map.update-area');
+    Route::post('/warehouse-map/create-location', [LocationController::class, 'createLocation'])->name('warehouse-map.create-location');
+    Route::post('/warehouse-map/locations/{location}/update-config', [LocationController::class, 'updateLocationConfig'])->name('warehouse-map.locations.update-config');
+    Route::get('/api/locations/{location}/quick-detail', [LocationController::class, 'quickDetail'])->name('warehouse-map.quick-detail');
     Route::get('/locations/{location}', [LocationController::class, 'show'])->name('locations.show');
+
+    // 8. Work Request Inhouse (Order ke Machine Center & Routing Multi-Mesin)
+    Route::resource('work-requests', \App\Http\Controllers\WorkRequestController::class)->only(['index', 'create', 'store', 'show']);
+    Route::post('/work-requests/{workRequest}/steps/{step}/advance', [\App\Http\Controllers\WorkRequestController::class, 'advanceStep'])->name('work-requests.advance-step');
+    Route::post('/work-requests/{workRequest}/receive', [\App\Http\Controllers\WorkRequestController::class, 'receive'])->name('work-requests.receive');
+
+    // 9. Supply Komponen ke Stasiun Kerja / Lini Perakitan Karoseri
+    Route::get('/work-station-supplies/create', [\App\Http\Controllers\WorkStationSupplyController::class, 'create'])->name('work-station-supplies.create');
+    Route::post('/work-station-supplies', [\App\Http\Controllers\WorkStationSupplyController::class, 'store'])->name('work-station-supplies.store');
 
     // User Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

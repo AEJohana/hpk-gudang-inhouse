@@ -1,12 +1,15 @@
+@php
+    $componentItem = $componentItem ?? $masterComponent ?? ($component ?? null);
+@endphp
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center space-x-3">
-            <a href="{{ route('components.show', $component) }}" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+            <a href="{{ route('components.show', $componentItem) }}" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
             </a>
             <div>
                 <h2 class="font-bold text-xl text-slate-900 leading-tight">
-                    Edit Data Komponen: {{ $component->part_number }}
+                    Edit Data Komponen: {{ $componentItem->part_number }}
                 </h2>
                 <p class="text-xs text-slate-500 mt-0.5">Perbarui spesifikasi teknis, batas stok, atau foto fisik komponen</p>
             </div>
@@ -14,7 +17,7 @@
     </x-slot>
 
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <form method="POST" action="{{ route('components.update', $component) }}" enctype="multipart/form-data" 
+        <form method="POST" action="{{ route('components.update', $componentItem) }}" enctype="multipart/form-data" 
               x-data="cameraCaptureEdit()" 
               class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
             @csrf
@@ -47,7 +50,7 @@
                 <!-- Mode 1: Upload -->
                 <div x-show="mode === 'upload'" class="flex items-center space-x-4">
                     <div class="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
-                        <img :src="imagePreview || '{{ $component->image_url }}'" class="w-full h-full object-cover">
+                        <img :src="imagePreview || '{{ $componentItem->image_url }}'" class="w-full h-full object-cover">
                     </div>
                     <div class="flex-1">
                         <input type="file" 
@@ -98,7 +101,7 @@
                         Part Number (Kode Unik)
                     </label>
                     <input type="text" 
-                           value="{{ $component->part_number }}" 
+                           value="{{ $componentItem->part_number }}" 
                            disabled 
                            class="w-full px-3.5 py-2 text-xs border border-slate-200 bg-slate-100 rounded-xl text-slate-500 font-mono cursor-not-allowed">
                 </div>
@@ -108,12 +111,12 @@
                         Kategori Komponen <span class="text-rose-500">*</span>
                     </label>
                     <select name="category" required class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                        <option value="hydraulic" {{ $component->category == 'hydraulic' ? 'selected' : '' }}>Komponen Hidrolik & Presisi</option>
-                        <option value="raw_material" {{ $component->category == 'raw_material' ? 'selected' : '' }}>Raw Material Baja (Pelat, UNP, WF, Pipa)</option>
-                        <option value="fastener" {{ $component->category == 'fastener' ? 'selected' : '' }}>Hardware & Fastener (Baut, Mur, Ring)</option>
-                        <option value="accessories" {{ $component->category == 'accessories' ? 'selected' : '' }}>Aksesoris Karoseri (Engsel, Twist Lock)</option>
-                        <option value="electrical" {{ $component->category == 'electrical' ? 'selected' : '' }}>Electrical & Lighting (Lampu LED, Harness)</option>
-                        <option value="chemical_paint" {{ $component->category == 'chemical_paint' ? 'selected' : '' }}>Chemical & Cat (Cat PU, Thinner, Dempul)</option>
+                        <option value="hydraulic" {{ $componentItem->category == 'hydraulic' ? 'selected' : '' }}>Komponen Hidrolik & Presisi</option>
+                        <option value="raw_material" {{ $componentItem->category == 'raw_material' ? 'selected' : '' }}>Raw Material Baja (Pelat, UNP, WF, Pipa)</option>
+                        <option value="fastener" {{ $componentItem->category == 'fastener' ? 'selected' : '' }}>Hardware & Fastener (Baut, Mur, Ring)</option>
+                        <option value="accessories" {{ $componentItem->category == 'accessories' ? 'selected' : '' }}>Aksesoris Karoseri (Engsel, Twist Lock)</option>
+                        <option value="electrical" {{ $componentItem->category == 'electrical' ? 'selected' : '' }}>Electrical & Lighting (Lampu LED, Harness)</option>
+                        <option value="chemical_paint" {{ $componentItem->category == 'chemical_paint' ? 'selected' : '' }}>Chemical & Cat (Cat PU, Thinner, Dempul)</option>
                     </select>
                 </div>
             </div>
@@ -124,7 +127,7 @@
                 </label>
                 <input type="text" 
                        name="name" 
-                       value="{{ old('name', $component->name) }}" 
+                       value="{{ old('name', $componentItem->name) }}" 
                        required 
                        class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-semibold">
             </div>
@@ -136,7 +139,7 @@
                     </label>
                     <select name="uom" required class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
                         @foreach(['Pcs', 'Set', 'Batang (6m)', 'Lembar', 'Kg', 'Liter', 'Box'] as $uom)
-                            <option value="{{ $uom }}" {{ $component->uom == $uom ? 'selected' : '' }}>{{ $uom }}</option>
+                            <option value="{{ $uom }}" {{ $componentItem->uom == $uom ? 'selected' : '' }}>{{ $uom }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -147,7 +150,7 @@
                     </label>
                     <input type="number" 
                            name="minimum_stock" 
-                           value="{{ old('minimum_stock', $component->minimum_stock) }}" 
+                           value="{{ old('minimum_stock', $componentItem->minimum_stock) }}" 
                            min="0" 
                            required 
                            class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
@@ -159,7 +162,7 @@
                     </label>
                     <input type="number" 
                            name="maximum_stock" 
-                           value="{{ old('maximum_stock', $component->maximum_stock) }}" 
+                           value="{{ old('maximum_stock', $componentItem->maximum_stock) }}" 
                            min="1" 
                            required 
                            class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
@@ -172,7 +175,7 @@
                 </label>
                 <textarea name="specification" 
                           rows="3" 
-                          class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">{{ old('specification', $component->specification) }}</textarea>
+                          class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">{{ old('specification', $componentItem->specification) }}</textarea>
             </div>
 
             <div>
@@ -181,7 +184,7 @@
                 </label>
                 <select name="default_location_id" required class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     @foreach ($locations as $loc)
-                        <option value="{{ $loc->id }}" {{ $component->default_location_id == $loc->id ? 'selected' : '' }}>
+                        <option value="{{ $loc->id }}" {{ $componentItem->default_location_id == $loc->id ? 'selected' : '' }}>
                             {{ $loc->full_location_code }} ({{ $loc->zone_name }})
                         </option>
                     @endforeach
@@ -189,7 +192,7 @@
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
-                <a href="{{ route('components.show', $component) }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+                <a href="{{ route('components.show', $componentItem) }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
                     Batal
                 </a>
                 <button type="submit" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl shadow transition">

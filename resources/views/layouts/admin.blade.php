@@ -96,7 +96,7 @@
                     <i class="fa-solid fa-scale-balanced"></i>
                     <span>Satuan (UoM)</span>
                 </a>
-                <a href="{{ route('admin.locations-master.index') }}" class="hpk-sidebar-item {{ request()->requestIs('admin.locations-master.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.locations-master.index') }}" class="hpk-sidebar-item {{ request()->routeIs('admin.locations-master.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-boxes-stacked"></i>
                     <span>Gudang & Lokasi</span>
                 </a>
@@ -148,7 +148,7 @@
         </aside>
 
         <!-- Navigation Bar -->
-        @include('layouts.navigation')
+        @include('layouts.admin-navigation')
 
         <!-- Flash Messages -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full">

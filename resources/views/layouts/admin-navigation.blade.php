@@ -2,76 +2,97 @@
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
-            <!-- Left: Sidebar Toggle & Brand Logo -->
+            <!-- Left: Sidebar Toggle, Brand & Desktop Links -->
             <div class="flex items-center space-x-3">
-                <!-- Hamburger Drawer Toggle Button (Visible all screens) -->
+                <!-- Hamburger Drawer Toggle Button -->
                 <button type="button" 
                         @click="sidebarOpen = true" 
                         title="Buka Menu Navigasi"
-                        class="p-2 text-white hover:text-teal-300 rounded-xl hover:bg-white/10 transition flex items-center justify-center focus:outline-none">
+                        class="p-2 text-white hover:text-amber-400 rounded-xl hover:bg-white/10 transition flex items-center justify-center focus:outline-none">
                     <i class="fa-solid fa-bars text-xl"></i>
                 </button>
 
                 <!-- Brand Logo & Title -->
-                <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 group">
+                <a href="{{ route('admin.dashboard') }}" class="flex items-center space-x-3 group">
                     <div class="w-10 h-10 p-1 bg-white rounded-xl shadow-sm border border-slate-700/50 flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
                         <img src="{{ asset('images/logo_hpk.webp') }}" alt="HPK Logo" class="w-full h-full object-contain">
                     </div>
                     <div class="flex flex-col">
-                        <span class="font-extrabold text-sm tracking-wide text-white leading-tight">HYDRAXLE PERKASA</span>
-                        <span class="text-[10px] font-semibold text-teal-400 tracking-wider uppercase">WMS In-House Karoseri</span>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-extrabold text-sm tracking-wide text-white leading-tight">HYDRAXLE PERKASA</span>
+                            <span class="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase">ADMIN</span>
+                        </div>
+                        <span class="text-[10px] font-semibold text-amber-300 tracking-wider uppercase">Pusat Kendali Sistem</span>
                     </div>
                 </a>
 
                 <!-- Desktop Shortcut Navigation Links -->
-                <div class="hidden 2xl:flex items-center space-x-1 ms-6">
-                    <a href="{{ route('dashboard') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('dashboard') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
-                        Dashboard
+                <div class="hidden xl:flex items-center space-x-1 ms-6">
+                    <a href="{{ route('admin.dashboard') }}" 
+                       class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('admin.dashboard') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        <i class="fa-solid fa-gauge-high me-1.5 text-[11px]"></i>Dashboard
                     </a>
-                    <a href="{{ route('components.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('components.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
-                        Komponen
+                    <a href="{{ route('admin.users.index') }}" 
+                       class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('admin.users.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        <i class="fa-solid fa-users me-1.5 text-[11px]"></i>User
                     </a>
-                    <a href="{{ route('transactions.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('transactions.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
-                        Transaksi
+                    <a href="{{ route('admin.roles.index') }}" 
+                       class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('admin.roles.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        <i class="fa-solid fa-user-shield me-1.5 text-[11px]"></i>Role
                     </a>
-                    <a href="{{ route('ecrs.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('ecrs.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
-                        ECR Revisi
+                    
+                    <!-- Master Data Dropdown -->
+                    <x-dropdown align="left" width="48">
+                        <x-slot name="trigger">
+                            <button class="px-3 py-1.5 text-xs font-semibold rounded-lg transition flex items-center {{ request()->routeIs('admin.component-categories.*', 'admin.uoms.*', 'admin.locations-master.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                                <i class="fa-solid fa-database me-1.5 text-[11px]"></i>
+                                <span>Master Data</span>
+                                <i class="fa-solid fa-chevron-down text-[9px] ms-1.5 opacity-70"></i>
+                            </button>
+                        </x-slot>
+                        <x-slot name="content">
+                            <x-dropdown-link :href="route('admin.component-categories.index')" class="text-xs">
+                                <i class="fa-solid fa-tags me-2 text-teal-600"></i> Kategori Komponen
+                            </x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.uoms.index')" class="text-xs">
+                                <i class="fa-solid fa-scale-balanced me-2 text-teal-600"></i> Satuan Ukur (UoM)
+                            </x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.locations-master.index')" class="text-xs">
+                                <i class="fa-solid fa-boxes-stacked me-2 text-teal-600"></i> Gudang & Lokasi Rak
+                            </x-dropdown-link>
+                        </x-slot>
+                    </x-dropdown>
+
+                    <a href="{{ route('admin.settings.index') }}" 
+                       class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('admin.settings.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        <i class="fa-solid fa-gears me-1.5 text-[11px]"></i>Pengaturan
                     </a>
-                    <a href="{{ route('disposals.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('disposals.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
-                        Disposal
-                    </a>
-                    <a href="{{ route('qr-requests.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('qr-requests.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
-                        Label QR
-                    </a>
-                    <a href="{{ route('cycle-counts.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('cycle-counts.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
-                        Cycle Count
-                    </a>
-                    <a href="{{ route('warehouse-map.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('warehouse-map.*', 'locations.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
-                        Peta Gudang
+                    <a href="{{ route('admin.audit-logs.index') }}" 
+                       class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('admin.audit-logs.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        <i class="fa-solid fa-clipboard-list me-1.5 text-[11px]"></i>Audit Log
                     </a>
                 </div>
             </div>
 
-            <!-- Right: Quick Camera Scanner Button & User Glass Pill -->
+            <!-- Right: Return to App & User Glass Pill -->
             <div class="flex items-center space-x-3">
-                <!-- Global QR & Barcode Scanner Button -->
-                <button type="button" 
-                        @click="$dispatch('open-global-scanner')" 
-                        class="inline-flex items-center px-3 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold tracking-wide transition shadow-sm hover:shadow-md">
-                    <i class="fa-solid fa-qrcode me-1.5 text-xs"></i>
-                    <span>Scan Part</span>
-                </button>
+                <!-- Return to Main App Button -->
+                <a href="{{ route('dashboard') }}" 
+                   class="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 hover:text-teal-200 border border-teal-400/30 text-xs font-bold transition shadow-xs">
+                    <i class="fa-solid fa-arrow-left me-1.5 text-xs"></i>
+                    <span class="hidden sm:inline">Aplikasi Utama</span>
+                </a>
 
-                <!-- User Profile Glass Pill (Reference Design) -->
+                <!-- User Profile Glass Pill -->
                 <x-dropdown align="right" width="56">
                     <x-slot name="trigger">
                         <button class="user-glass-pill focus:outline-none">
-                            <div class="w-8 h-8 rounded-full bg-teal-500/30 border border-teal-400/50 text-teal-200 font-extrabold text-xs flex items-center justify-center shadow-xs">
+                            <div class="w-8 h-8 rounded-full bg-amber-500/30 border border-amber-400/50 text-amber-200 font-extrabold text-xs flex items-center justify-center shadow-xs">
                                 {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
                             </div>
                             <div class="flex flex-col text-left leading-tight hidden md:flex">
                                 <span class="font-bold text-xs text-white tracking-wide truncate max-w-[130px]">{{ Auth::user()->name }}</span>
-                                <span class="text-[10px] text-teal-300 font-medium truncate max-w-[130px]">{{ Auth::user()->department ?? Auth::user()->role_badge }}</span>
+                                <span class="text-[10px] text-amber-300 font-medium truncate max-w-[130px]">{{ Auth::user()->role_badge }}</span>
                             </div>
                             <i class="fa-solid fa-chevron-down text-[10px] text-slate-300 ml-0.5"></i>
                         </button>
@@ -89,7 +110,7 @@
                         </x-dropdown-link>
 
                         <x-dropdown-link :href="route('dashboard')" class="text-xs">
-                            <i class="fa-solid fa-gauge-high me-2 text-slate-400"></i> {{ __('Dashboard WMS') }}
+                            <i class="fa-solid fa-boxes-stacked me-2 text-teal-600"></i> {{ __('Aplikasi Gudang WMS') }}
                         </x-dropdown-link>
 
                         <!-- Authentication Sign Out -->

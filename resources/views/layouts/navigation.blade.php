@@ -34,6 +34,9 @@
                     <a href="{{ route('transactions.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('transactions.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
                         Transaksi
                     </a>
+                    <a href="{{ route('work-requests.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('work-requests.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                        <i class="fa-solid fa-gears me-1 text-teal-300"></i> Work Request
+                    </a>
                     <a href="{{ route('ecrs.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('ecrs.*') ? 'bg-white/15 text-amber-300' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
                         ECR Revisi
                     </a>

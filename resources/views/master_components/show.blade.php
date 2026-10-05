@@ -1,3 +1,6 @@
+@php
+    $componentItem = $componentItem ?? $masterComponent ?? ($component ?? null);
+@endphp
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between w-full">
@@ -7,26 +10,26 @@
                 </a>
                 <div>
                     <div class="flex items-center space-x-2">
-                        <span class="font-mono text-xs font-bold text-amber-900 bg-amber-200 px-2 py-0.5 rounded">{{ $component->part_number }}</span>
-                        <span class="text-xs px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-700">{{ $component->category_label }}</span>
+                        <span class="font-mono text-xs font-bold text-amber-900 bg-amber-200 px-2 py-0.5 rounded">{{ $componentItem->part_number }}</span>
+                        <span class="text-xs px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-700">{{ $componentItem->category_label }}</span>
                     </div>
                     <h2 class="font-bold text-xl text-slate-900 leading-tight mt-1">
-                        {{ $component->name }}
+                        {{ $componentItem->name }}
                     </h2>
                 </div>
             </div>
 
             <!-- Action Buttons -->
             <div class="flex items-center space-x-2">
-                <a href="{{ route('components.qr-label', $component) }}" target="_blank" class="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-sm transition flex items-center">
+                <a href="{{ route('components.qr-label', $componentItem) }}" target="_blank" class="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-sm transition flex items-center">
                     <svg class="w-4 h-4 me-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
                     Cetak Label QR
                 </a>
-                <a href="{{ route('transactions.create', ['component_id' => $component->id]) }}" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition flex items-center">
+                <a href="{{ route('transactions.create', ['component_id' => $componentItem->id]) }}" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition flex items-center">
                     <svg class="w-4 h-4 me-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                     Transaksi Barang
                 </a>
-                <a href="{{ route('components.edit', $component) }}" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition">
+                <a href="{{ route('components.edit', $componentItem) }}" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition">
                     Edit Data
                 </a>
             </div>
@@ -43,7 +46,7 @@
                 <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col items-center text-center">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 w-full text-left">Foto Fisik Komponen</h3>
                     <div class="w-full aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center shadow-inner">
-                        <img src="{{ $component->image_url }}" alt="{{ $component->name }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                        <img src="{{ $componentItem->image_url }}" alt="{{ $componentItem->name }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
                     </div>
                     <p class="text-[11px] text-slate-400 mt-2">Diverifikasi untuk lini perakitan karoseri HPK</p>
                 </div>
@@ -53,16 +56,16 @@
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 w-full text-left">Label QR Resmi HPK</h3>
                     <div class="w-44 h-44 p-2 bg-white rounded-xl border-2 border-slate-900 shadow-sm flex items-center justify-center">
                         <div class="w-full h-full">
-                            {!! $component->qr_code_svg !!}
+                            {!! $componentItem->qr_code_svg !!}
                         </div>
                     </div>
-                    <span class="font-mono text-xs font-bold text-slate-900 mt-3">{{ $component->qr_code_payload }}</span>
+                    <span class="font-mono text-xs font-bold text-slate-900 mt-3">{{ $componentItem->qr_code_payload }}</span>
                     <p class="text-[10px] text-slate-400 mt-0.5">Dapat dibaca oleh Scanner Kamera & Barcode Scanner Gun</p>
                     <div class="mt-4 flex space-x-2 w-full">
-                        <a href="{{ route('components.qr-label', $component) }}" target="_blank" class="flex-1 py-2 text-center bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition">
+                        <a href="{{ route('components.qr-label', $componentItem) }}" target="_blank" class="flex-1 py-2 text-center bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition">
                             Print Label
                         </a>
-                        <a href="{{ route('qr-requests.create', ['component_id' => $component->id]) }}" class="flex-1 py-2 text-center bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 font-semibold text-xs rounded-xl transition">
+                        <a href="{{ route('qr-requests.create', ['component_id' => $componentItem->id]) }}" class="flex-1 py-2 text-center bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 font-semibold text-xs rounded-xl transition">
                             Request Batch
                         </a>
                     </div>
@@ -79,26 +82,26 @@
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                         <div>
                             <span class="text-slate-400 text-[11px] block uppercase font-semibold">Part Number</span>
-                            <span class="font-mono font-bold text-slate-900 text-sm mt-0.5 block">{{ $component->part_number }}</span>
+                            <span class="font-mono font-bold text-slate-900 text-sm mt-0.5 block">{{ $componentItem->part_number }}</span>
                         </div>
                         <div>
                             <span class="text-slate-400 text-[11px] block uppercase font-semibold">Satuan (UoM)</span>
-                            <span class="font-bold text-slate-900 mt-0.5 block">{{ $component->uom }}</span>
+                            <span class="font-bold text-slate-900 mt-0.5 block">{{ $componentItem->uom }}</span>
                         </div>
                         <div>
                             <span class="text-slate-400 text-[11px] block uppercase font-semibold">Batas Minimum (Safety)</span>
-                            <span class="font-bold text-rose-600 mt-0.5 block">{{ $component->minimum_stock }} {{ $component->uom }}</span>
+                            <span class="font-bold text-rose-600 mt-0.5 block">{{ $componentItem->minimum_stock }} {{ $componentItem->uom }}</span>
                         </div>
                         <div>
                             <span class="text-slate-400 text-[11px] block uppercase font-semibold">Batas Maksimum</span>
-                            <span class="font-bold text-slate-700 mt-0.5 block">{{ $component->maximum_stock }} {{ $component->uom }}</span>
+                            <span class="font-bold text-slate-700 mt-0.5 block">{{ $componentItem->maximum_stock }} {{ $componentItem->uom }}</span>
                         </div>
                     </div>
 
                     <div class="pt-3 border-t border-slate-100">
                         <span class="text-slate-400 text-[11px] block uppercase font-semibold mb-1">Deskripsi Spesifikasi Teknis:</span>
                         <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono text-slate-700 leading-relaxed whitespace-pre-line">
-                            {{ $component->specification ?: 'Belum ada catatan spesifikasi khusus.' }}
+                            {{ $componentItem->specification ?: 'Belum ada catatan spesifikasi khusus.' }}
                         </div>
                     </div>
 
@@ -106,13 +109,13 @@
                         <div>
                             <span class="text-slate-400 text-[11px] block uppercase font-semibold">Lokasi Penyimpanan Default:</span>
                             <span class="font-mono text-xs font-bold text-blue-900 mt-0.5 block">
-                                {{ $component->defaultLocation ? $component->defaultLocation->full_location_code : 'Belum Ditentukan' }}
+                                {{ $componentItem->defaultLocation ? $componentItem->defaultLocation->full_location_code : 'Belum Ditentukan' }}
                             </span>
                         </div>
                         <div class="text-right">
                             <span class="text-slate-400 text-[11px] block uppercase font-semibold">Total Stok Fisik Tersedia:</span>
-                            <span class="text-xl font-extrabold {{ $component->is_low_stock ? 'text-rose-600' : 'text-emerald-700' }}">
-                                {{ number_format($component->total_stock, 0) }} {{ $component->uom }}
+                            <span class="text-xl font-extrabold {{ $componentItem->is_low_stock ? 'text-rose-600' : 'text-emerald-700' }}">
+                                {{ number_format($componentItem->total_stock, 0) }} {{ $componentItem->uom }}
                             </span>
                         </div>
                     </div>
@@ -122,7 +125,7 @@
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Rincian Stok Fisik Berdasarkan Rak / Zona HPK</h3>
-                        <span class="text-xs text-slate-500">{{ $component->stockBalances->count() }} Lokasi Terdaftar</span>
+                        <span class="text-xs text-slate-500">{{ $componentItem->stockBalances->count() }} Lokasi Terdaftar</span>
                     </div>
 
                     <table class="w-full text-left text-xs text-slate-600">
@@ -135,7 +138,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            @forelse ($component->stockBalances as $sb)
+                            @forelse ($componentItem->stockBalances as $sb)
                                 <tr class="hover:bg-slate-50/60 transition">
                                     <td class="py-3 px-4 font-mono font-bold text-slate-900">
                                         {{ $sb->location->full_location_code }}
@@ -147,7 +150,7 @@
                                         {{ $sb->batch_lot_number ?: '-' }}
                                     </td>
                                     <td class="py-3 px-4 text-right font-bold text-slate-900 text-sm">
-                                        {{ number_format($sb->quantity, 0) }} {{ $component->uom }}
+                                        {{ number_format($sb->quantity, 0) }} {{ $componentItem->uom }}
                                     </td>
                                 </tr>
                             @empty
@@ -168,18 +171,18 @@
                             <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Riwayat Revisi Komponen (ECR)</h3>
                             <p class="text-[11px] text-slate-400">Catatan perubahan desain, spek dan persetujuan teknik karoseri</p>
                         </div>
-                        <a href="{{ route('ecrs.create', ['component_id' => $component->id]) }}" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl transition">
+                        <a href="{{ route('ecrs.create', ['component_id' => $componentItem->id]) }}" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl transition">
                             Ajukan ECR Baru
                         </a>
                     </div>
 
-                    @if ($component->ecrs->isEmpty())
+                    @if ($componentItem->ecrs->isEmpty())
                         <div class="p-6 text-center text-slate-400 text-xs">
                             Belum ada riwayat permohonan revisi komponen (ECR) untuk part ini.
                         </div>
                     @else
                         <div class="divide-y divide-slate-100 text-xs">
-                            @foreach ($component->ecrs as $ecr)
+                            @foreach ($componentItem->ecrs as $ecr)
                                 <div class="p-4 hover:bg-slate-50/60 transition flex items-center justify-between">
                                     <div>
                                         <div class="flex items-center space-x-2">

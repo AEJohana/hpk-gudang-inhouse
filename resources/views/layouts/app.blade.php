@@ -74,9 +74,17 @@
                     <i class="fa-solid fa-boxes-stacked"></i>
                     <span>Master Komponen</span>
                 </a>
-                <a href="{{ route('transactions.index') }}" class="hpk-sidebar-item {{ request()->routeIs('transactions.*') ? 'active' : '' }}">
+                <a href="{{ route('transactions.index') }}" class="hpk-sidebar-item {{ request()->routeIs('transactions.*') && !request()->routeIs('work-station-supplies.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-right-left"></i>
                     <span>Transaksi Barang</span>
+                </a>
+                <a href="{{ route('work-requests.index') }}" class="hpk-sidebar-item {{ request()->routeIs('work-requests.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-industry text-amber-400"></i>
+                    <span>Work Request Mesin</span>
+                </a>
+                <a href="{{ route('work-station-supplies.create') }}" class="hpk-sidebar-item {{ request()->routeIs('work-station-supplies.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-truck-ramp-box text-blue-400"></i>
+                    <span>Supply Stasiun Kerja</span>
                 </a>
                 <a href="{{ route('ecrs.index') }}" class="hpk-sidebar-item {{ request()->routeIs('ecrs.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-file-pen"></i>

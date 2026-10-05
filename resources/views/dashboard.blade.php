@@ -152,6 +152,42 @@
                         <p class="text-xs text-slate-500 leading-relaxed">Scrap potongan plat besi, material rusak/afkir & otorisasi pimpinan</p>
                     </div>
                 </a>
+
+                <!-- 8. Work Request Inhouse (Machine Center) -->
+                <a href="{{ route('work-requests.index') }}" class="dash-card group border-amber-300 bg-amber-50/20">
+                    <i class="fa-solid fa-arrow-right arrow-action"></i>
+                    <i class="fa-solid fa-industry card-icon-bg"></i>
+                    <div class="icon-box text-amber-800 bg-amber-100">
+                        <i class="fa-solid fa-industry"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-amber-800 transition">Work Request Mesin</h4>
+                            @if ($readyForWarehouseWriCount > 0)
+                                <span class="text-[11px] font-black text-slate-950 bg-amber-400 px-2 py-0.5 rounded-full animate-pulse">{{ $readyForWarehouseWriCount }} Siap Gudang</span>
+                            @elseif ($inProductionWriCount > 0)
+                                <span class="text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{{ $inProductionWriCount }} di Mesin</span>
+                            @endif
+                        </div>
+                        <p class="text-xs text-slate-500 leading-relaxed">Order fabrikasi ke Mesin Center (Potong Laser & Bending) & serah terima stok</p>
+                    </div>
+                </a>
+
+                <!-- 9. Supply Stasiun Kerja -->
+                <a href="{{ route('work-station-supplies.create') }}" class="dash-card group border-blue-200 bg-blue-50/20">
+                    <i class="fa-solid fa-arrow-right arrow-action"></i>
+                    <i class="fa-solid fa-truck-ramp-box card-icon-bg"></i>
+                    <div class="icon-box text-blue-600 bg-blue-100">
+                        <i class="fa-solid fa-truck-ramp-box"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-blue-700 transition">Supply Stasiun Kerja</h4>
+                            <span class="text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{{ $todaySupplyCount }} Hari Ini</span>
+                        </div>
+                        <p class="text-xs text-slate-500 leading-relaxed">Pengeluaran komponen rak ke Lini Dump Truck, Tangki, Mixer & Sub-Assembly</p>
+                    </div>
+                </a>
             </div>
         </div>
 
@@ -211,6 +247,81 @@
                 <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shadow-xs">
                     <i class="fa-solid fa-stamp"></i>
                 </div>
+            </div>
+        </div>
+
+        <!-- 3B. MACHINE CENTER LIVE ROUTING TRACKER -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center font-bold text-sm">
+                        <i class="fa-solid fa-industry"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-base text-slate-900">Machine Center &bull; Alur Fabrikasi Komponen In-House</h3>
+                        <p class="text-xs text-slate-500">Pelacakan proses potong laser, bending press brake, hingga masuk rak gudang</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <a href="{{ route('work-requests.create') }}" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition flex items-center">
+                        <i class="fa-solid fa-plus me-1 text-[10px]"></i> Order WRI
+                    </a>
+                    <a href="{{ route('work-requests.index') }}" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition">
+                        Semua WRI &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                @forelse($activeWorkRequests as $activeWri)
+                <div class="p-3.5 rounded-2xl border {{ $activeWri->status === 'ready_for_warehouse' ? 'bg-amber-50/60 border-amber-300 ring-2 ring-amber-300/40' : 'bg-slate-50 border-slate-200' }} flex flex-col justify-between space-y-3">
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono text-[10px] font-bold text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                                {{ $activeWri->wri_number }}
+                            </span>
+                            <span class="px-2 py-0.2 rounded text-[10px] font-bold {{ $activeWri->status_badge['class'] }}">
+                                {{ $activeWri->status_badge['label'] }}
+                            </span>
+                        </div>
+                        <h5 class="font-extrabold text-xs text-slate-900 line-clamp-1 mt-1.5">
+                            {{ $activeWri->component->name }}
+                        </h5>
+                        <span class="font-mono text-[10px] text-slate-500 block">
+                            {{ $activeWri->component->part_number }} &bull; {{ number_format($activeWri->quantity_requested, 0) }} {{ $activeWri->component->uom }}
+                        </span>
+                    </div>
+
+                    <div>
+                        <!-- Stepper dots -->
+                        <div class="space-y-1 mb-2">
+                            @foreach($activeWri->steps as $st)
+                            <div class="flex items-center space-x-1.5 text-[10px]">
+                                <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold {{ $st->status === 'completed' ? 'bg-emerald-500 text-white' : ($st->status === 'in_progress' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500') }}">
+                                    {{ $st->step_number }}
+                                </span>
+                                <span class="truncate text-slate-700 font-semibold">{{ $st->machine->code }}: {{ $st->process_name }}</span>
+                            </div>
+                            @endforeach
+                        </div>
+
+                        @if($activeWri->status === 'ready_for_warehouse')
+                            <a href="{{ route('work-requests.show', $activeWri) }}#putaway-section" class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] rounded-xl text-center block transition shadow-xs">
+                                <i class="fa-solid fa-boxes-packing me-1"></i> Terima di Gudang
+                            </a>
+                        @else
+                            <a href="{{ route('work-requests.show', $activeWri) }}" class="w-full py-1 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-[11px] rounded-xl text-center block border border-slate-200 transition">
+                                Pantau Mesin &rarr;
+                            </a>
+                        @endif
+                    </div>
+                </div>
+                @empty
+                <div class="col-span-full py-6 text-center text-slate-400 text-xs">
+                    Belum ada Work Request aktif di Machine Center saat ini.
+                </div>
+                @endforelse
             </div>
         </div>
 
