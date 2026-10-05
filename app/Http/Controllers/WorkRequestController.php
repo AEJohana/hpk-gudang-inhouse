@@ -49,6 +49,7 @@ class WorkRequestController extends Controller
         $receivedCount = WorkRequest::where('status', 'received')->count();
 
         // Active Machines
+        Machine::ensureDefaultMachinesExist();
         $activeMachines = Machine::withCount(['workRequestSteps as active_steps_count' => function ($q) {
             $q->where('status', 'in_progress');
         }])->get();
@@ -68,6 +69,10 @@ class WorkRequestController extends Controller
      */
     public function create()
     {
+        Machine::ensureDefaultMachinesExist();
+        Warehouse::ensureDefaultWarehouseExists();
+        Location::ensureDefaultLocationExists();
+
         $components = Component::where('is_active', true)->orderBy('name')->get();
         $machines = Machine::orderBy('id')->get();
         $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();

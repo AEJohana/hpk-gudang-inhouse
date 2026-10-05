@@ -17,6 +17,24 @@
         <form method="POST" action="{{ route('transactions.store') }}" @submit="validateSubmit($event)" class="space-y-6">
             @csrf
 
+            @if ($components->isEmpty())
+                <div class="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start space-x-3">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg mt-0.5"></i>
+                    <div class="flex-1">
+                        <h4 class="font-bold text-xs text-amber-900">Belum Ada Master Komponen Terdaftar</h4>
+                        <p class="text-xs text-amber-700 mt-0.5">
+                            Belum ada master komponen di database gudang. Silakan daftarkan komponen terlebih dahulu sebelum melakukan transaksi inbound/outbound.
+                        </p>
+                        <div class="mt-2.5">
+                            <a href="{{ route('components.create') }}" class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold transition shadow-xs">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                                <span>Tambah Komponen Sekarang</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- Section 1: Header Information -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
                 <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">

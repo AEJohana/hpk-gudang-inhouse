@@ -7,6 +7,7 @@ use App\Models\Location;
 use App\Models\StockBalance;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Models\Warehouse;
 use App\Models\WorkStation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,10 @@ class WorkStationSupplyController extends Controller
      */
     public function create(Request $request)
     {
+        WorkStation::ensureDefaultWorkStationsExist();
+        Warehouse::ensureDefaultWarehouseExists();
+        Location::ensureDefaultLocationExists();
+
         $workStations = WorkStation::where('status', 'active')->orderBy('id')->get();
         $components = Component::where('is_active', true)->with(['stockBalances.location'])->orderBy('name')->get();
         $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();

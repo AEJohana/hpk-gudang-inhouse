@@ -46,7 +46,7 @@
              activeWarehouse: {{ Js::from($activeWarehouseJson) }},
              saveUrl: '{{ route('warehouse-map.save-layout') }}',
              resetUrl: '{{ route('warehouse-map.reset-layout') }}',
-             updateAreaUrl: '{{ route('warehouse-map.update-area', ['warehouse' => $activeWarehouse->id]) }}',
+             updateAreaUrl: '{{ $activeWarehouse ? route('warehouse-map.update-area', ['warehouse' => $activeWarehouse->id]) : '#' }}',
              createLocationUrl: '{{ route('warehouse-map.create-location') }}',
              csrfToken: '{{ csrf_token() }}'
          })" 
@@ -299,6 +299,39 @@
                                     </span>
                                 </div>
                             </template>
+                        </template>
+
+                        <!-- Interactive Empty-State Blueprint Card (When Database Has 0 Racks/Pallets) -->
+                        <template x-if="racks.length === 0">
+                            <div class="col-span-full row-span-full z-20 flex flex-col items-center justify-center p-8 bg-white/95 rounded-2xl border-2 border-dashed border-blue-300 shadow-xl text-center my-6 mx-auto max-w-lg backdrop-blur-xs">
+                                <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-3 shadow-inner border border-blue-200">
+                                    <i class="fa-solid fa-compass-drafting"></i>
+                                </div>
+                                <h4 class="font-black text-base text-slate-900">Denah Gedung Baru Siap Didesain</h4>
+                                <p class="text-xs text-slate-500 mt-1 max-w-sm leading-relaxed">
+                                    Gedung ini baru saja disiapkan dan belum memiliki rak bertingkat atau area pallet. Silakan sesuaikan luas gedung terlebih dahulu atau langsung tambahkan rak pertama Anda.
+                                </p>
+                                <div class="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+                                    <button type="button" 
+                                            @click="openAreaModal()" 
+                                            class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
+                                        <i class="fa-solid fa-sliders text-amber-400"></i>
+                                        <span>Atur Luas Gedung</span>
+                                    </button>
+                                    <button type="button" 
+                                            @click="editMode = true; addNewLocation('rack')" 
+                                            class="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
+                                        <i class="fa-solid fa-plus text-xs"></i>
+                                        <span>+ Tambah Rak (1x1)</span>
+                                    </button>
+                                    <button type="button" 
+                                            @click="editMode = true; addNewLocation('pallet')" 
+                                            class="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
+                                        <i class="fa-solid fa-pallet text-xs"></i>
+                                        <span>+ Tambah Pallet (1x1)</span>
+                                    </button>
+                                </div>
+                            </div>
                         </template>
 
                         <!-- DYNAMIC RACK & PALLET LEGO BLOCKS (FLEXIBLE SHAPES: 1x1, 1x2, 2x1, 2x2, 3x1, ETC.) -->
@@ -939,7 +972,7 @@
             </div>
 
             <div class="grid grid-cols-1 gap-6">
-                @foreach ($zones as $code => $zone)
+                @forelse ($zones as $code => $zone)
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" id="zone-section-{{ $code }}">
                         <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div class="flex items-center space-x-3">
@@ -1025,7 +1058,17 @@
                             </div>
                         </div>
                     </div>
-                @endforeach
+                @empty
+                    <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto text-xl mb-3 border border-blue-200 shadow-xs">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                        </div>
+                        <h4 class="font-bold text-sm text-slate-900">Belum Ada Rak / Pallet Terdaftar di Gedung Ini</h4>
+                        <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                            Gunakan tombol <strong>+ Tambah Rak</strong> atau <strong>+ Tambah Pallet</strong> pada denah interaktif di atas untuk mulai menyusun tata letak ruang simpan.
+                        </p>
+                    </div>
+                @endforelse
             </div>
         </div>
 

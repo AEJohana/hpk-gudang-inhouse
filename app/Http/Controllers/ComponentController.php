@@ -51,11 +51,22 @@ class ComponentController extends Controller
     public function create()
     {
         $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
+        if ($locations->isEmpty()) {
+            Location::ensureDefaultLocationExists();
+            $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
+        }
+
         return view('master_components.create', compact('locations'));
     }
 
     public function store(Request $request)
     {
+        if (!$request->filled('default_location_id') || Location::where('id', $request->default_location_id)->doesntExist()) {
+            if (Location::count() === 0) {
+                $defaultLoc = Location::ensureDefaultLocationExists();
+                $request->merge(['default_location_id' => $defaultLoc->id]);
+            }
+        }
 
         $validated = $request->validate([
             'part_number' => 'nullable|string|max:50|unique:components,part_number',

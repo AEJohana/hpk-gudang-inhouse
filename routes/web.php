@@ -57,6 +57,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Peta Gudang Multi-Gedung & Denah Interaktif Rak / Pallet
     Route::get('/warehouse-map', [LocationController::class, 'index'])->name('warehouse-map.index');
+    Route::get('/locations', [LocationController::class, 'index'])->name('locations.index');
     Route::post('/warehouse-map/save-layout', [LocationController::class, 'saveLayout'])->name('warehouse-map.save-layout');
     Route::post('/warehouse-map/reset-layout', [LocationController::class, 'resetLayout'])->name('warehouse-map.reset-layout');
     Route::post('/warehouse-map/warehouses/{warehouse}/update-area', [LocationController::class, 'updateWarehouseArea'])->name('warehouse-map.update-area');

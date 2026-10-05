@@ -52,10 +52,10 @@
 
                             <td class="py-4 px-4">
                                 <div class="flex items-center space-x-3">
-                                    <img src="{{ $qr->component->image_url }}" class="w-10 h-10 rounded-xl object-cover border border-slate-200 bg-white shadow-xs">
+                                    <img src="{{ $qr->component?->image_url ?? asset('images/logo_hpk.webp') }}" class="w-10 h-10 rounded-xl object-cover border border-slate-200 bg-white shadow-xs">
                                     <div>
-                                        <span class="font-mono font-bold text-slate-900 block text-xs">{{ $qr->component->part_number }}</span>
-                                        <span class="text-[11px] text-slate-500 truncate max-w-xs block">{{ $qr->component->name }}</span>
+                                        <span class="font-mono font-bold text-slate-900 block text-xs">{{ $qr->component?->part_number ?? '-' }}</span>
+                                        <span class="text-[11px] text-slate-500 truncate max-w-xs block">{{ $qr->component?->name ?? 'Komponen' }}</span>
                                     </div>
                                 </div>
                             </td>

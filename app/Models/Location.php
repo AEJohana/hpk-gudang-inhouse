@@ -209,4 +209,39 @@ class Location extends Model
 
         return $matrix;
     }
+
+    /**
+     * Ensure at least one storage location exists in the system.
+     */
+    public static function ensureDefaultLocationExists(): self
+    {
+        $location = self::first();
+        if ($location) {
+            return $location;
+        }
+
+        $warehouse = Warehouse::ensureDefaultWarehouseExists();
+        $zone = Zone::where('warehouse_id', $warehouse->id)->first();
+
+        return self::create([
+            'warehouse_id' => $warehouse->id,
+            'zone_id' => $zone?->id,
+            'zone_code' => $zone?->code ?: '1',
+            'zone_name' => $zone?->name ?: 'Area 1',
+            'aisle' => 'Lorong 1',
+            'rack_number' => 'Rak 1',
+            'storage_type' => 'rack',
+            'rack_code' => 'R1',
+            'bin_level' => 'Lantai 1-4',
+            'total_levels' => 4,
+            'slots_per_level' => 6,
+            'description' => 'Rak Penyimpanan Komponen Karoseri Utama 1',
+            'max_capacity' => 48,
+            'grid_x' => 2,
+            'grid_y' => 2,
+            'grid_w' => 1,
+            'grid_h' => 1,
+            'color' => 'blue',
+        ]);
+    }
 }

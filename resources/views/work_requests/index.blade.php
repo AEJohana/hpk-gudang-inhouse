@@ -192,18 +192,23 @@
                             <td class="py-3.5 px-4 align-top max-w-xs">
                                 <div class="flex items-start space-x-2.5">
                                     <div class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                                        <img src="{{ $wri->component->image_url }}" alt="{{ $wri->component->name }}" class="w-full h-full object-cover">
+                                        <img src="{{ $wri->component?->image_url ?? asset('images/logo_hpk.webp') }}" alt="{{ $wri->component?->name ?? 'Komponen' }}" class="w-full h-full object-cover">
                                     </div>
                                     <div>
-                                        <a href="{{ route('components.show', $wri->component) }}" class="font-bold text-slate-900 hover:text-teal-700 block line-clamp-1 leading-snug">
-                                            {{ $wri->component->name }}
-                                        </a>
-                                        <span class="font-mono text-[11px] font-semibold text-amber-900 bg-amber-100/70 px-1.5 py-0.2 rounded mt-0.5 inline-block">
-                                            {{ $wri->component->part_number }}
-                                        </span>
-                                        <p class="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
-                                            {{ $wri->component->specification ?: '-' }}
-                                        </p>
+                                        @if($wri->component)
+                                            <a href="{{ route('components.show', $wri->component) }}" class="font-bold text-slate-900 hover:text-teal-700 block line-clamp-1 leading-snug">
+                                                {{ $wri->component->name }}
+                                            </a>
+                                            <span class="font-mono text-[11px] font-semibold text-amber-900 bg-amber-100/70 px-1.5 py-0.2 rounded mt-0.5 inline-block">
+                                                {{ $wri->component->part_number }}
+                                            </span>
+                                            <p class="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
+                                                {{ $wri->component->specification ?: '-' }}
+                                            </p>
+                                        @else
+                                            <span class="font-bold text-slate-500 block text-xs">Komponen Dihapus</span>
+                                            <span class="font-mono text-[11px] text-slate-400">ID #{{ $wri->component_id }}</span>
+                                        @endif
                                     </div>
                                 </div>
                             </td>

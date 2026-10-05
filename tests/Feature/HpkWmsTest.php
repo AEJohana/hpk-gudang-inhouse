@@ -6,6 +6,10 @@ use App\Models\User;
 use App\Models\Component;
 use App\Models\Location;
 use App\Models\Warehouse;
+use App\Models\Machine;
+use App\Models\WorkStation;
+use App\Models\Setting;
+use App\Models\Zone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -629,5 +633,115 @@ class HpkWmsTest extends TestCase
             'spk_number' => 'SPK-DT-TEST-001',
             'recipient_name' => 'Mandor Supriyadi',
         ]);
+    }
+
+    public function test_fresh_install_empty_state_resilience_and_onboarding(): void
+    {
+        // Simulate a fresh database with ONLY the user account present
+        \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+        \App\Models\StockBalance::truncate();
+        \App\Models\TransactionItem::truncate();
+        \App\Models\Transaction::truncate();
+        \App\Models\WorkRequestStep::truncate();
+        \App\Models\WorkRequest::truncate();
+        \App\Models\Component::truncate();
+        \App\Models\Location::truncate();
+        \App\Models\Zone::truncate();
+        \App\Models\Warehouse::truncate();
+        \App\Models\Machine::truncate();
+        \App\Models\WorkStation::truncate();
+        \App\Models\Setting::truncate();
+        \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+
+        $this->assertEquals(0, Warehouse::count());
+        $this->assertEquals(0, Location::count());
+        $this->assertEquals(0, Component::count());
+        $this->assertEquals(0, Machine::count());
+
+        // 1. Warehouse Map on fresh install should NOT crash with 500 error, but auto-provision and render onboarding card
+        $mapResponse = $this->actingAs($this->user)->get('/warehouse-map');
+        $mapResponse->assertStatus(200);
+        $mapResponse->assertSee('Denah Gedung Baru Siap Didesain');
+        $mapResponse->assertSee('Gedung Utama HPK');
+
+        $this->assertDatabaseHas('warehouses', ['code' => 'GDG-01', 'name' => 'Gedung Utama HPK']);
+        $this->assertDatabaseHas('zones', ['code' => '1']);
+
+        $warehouse = Warehouse::first();
+
+        // 2. Adjust building dimensions from initial onboarding
+        $updateAreaResponse = $this->actingAs($this->user)->postJson("/warehouse-map/warehouses/{$warehouse->id}/update-area", [
+            'name' => 'Gedung Fabrikasi Karoseri A',
+            'grid_columns' => 20,
+            'grid_rows' => 14,
+            'width_meters' => 28.0,
+            'length_meters' => 40.0,
+            'description' => 'Area workshop & gudang assembling karoseri',
+        ]);
+        $updateAreaResponse->assertStatus(200);
+        $updateAreaResponse->assertJsonPath('status', 'success');
+        $this->assertDatabaseHas('warehouses', [
+            'id' => $warehouse->id,
+            'name' => 'Gedung Fabrikasi Karoseri A',
+            'grid_columns' => 20,
+            'grid_rows' => 14,
+        ]);
+
+        // 3. Add first rack on the grid
+        $addRackResponse = $this->actingAs($this->user)->postJson('/warehouse-map/create-location', [
+            'warehouse_id' => $warehouse->id,
+            'storage_type' => 'rack',
+            'grid_x' => 3,
+            'grid_y' => 3,
+            'grid_w' => 1,
+            'grid_h' => 1,
+            'levels' => 4,
+            'slots_per_level' => 6,
+        ]);
+        $addRackResponse->assertStatus(200);
+        $addRackResponse->assertJsonPath('status', 'success');
+        $this->assertDatabaseHas('locations', [
+            'warehouse_id' => $warehouse->id,
+            'storage_type' => 'rack',
+            'rack_number' => 'Rak 1',
+        ]);
+
+        // 4. Add first pallet on the grid
+        $addPalletResponse = $this->actingAs($this->user)->postJson('/warehouse-map/create-location', [
+            'warehouse_id' => $warehouse->id,
+            'storage_type' => 'pallet',
+            'grid_x' => 5,
+            'grid_y' => 5,
+            'grid_w' => 2,
+            'grid_h' => 1,
+        ]);
+        $addPalletResponse->assertStatus(200);
+        $addPalletResponse->assertJsonPath('status', 'success');
+        $this->assertDatabaseHas('locations', [
+            'warehouse_id' => $warehouse->id,
+            'storage_type' => 'pallet',
+            'rack_number' => 'Pallet 1',
+        ]);
+
+        // 5. Open Component creation form
+        $compCreateResponse = $this->withoutExceptionHandling()->actingAs($this->user)->get('/components/create');
+        $compCreateResponse->assertStatus(200);
+        $compCreateResponse->assertSee('Rak 1');
+
+        // 6. Open Work Requests (should auto-provision 5 machines)
+        $wriResponse = $this->actingAs($this->user)->get('/work-requests');
+        $wriResponse->assertStatus(200);
+        $this->assertDatabaseHas('machines', ['code' => 'MC-LC-01']);
+        $this->assertDatabaseHas('machines', ['code' => 'MC-BND-01']);
+
+        // 7. Open Work Station Supply (should auto-provision work stations)
+        $supplyResponse = $this->actingAs($this->user)->get('/work-station-supplies/create');
+        $supplyResponse->assertStatus(200);
+        $this->assertDatabaseHas('work_stations', ['code' => 'WS-DT-01']);
+
+        // 8. Open Admin Settings (should auto-provision settings)
+        $settingsResponse = $this->actingAs($this->user)->get('/admin/settings');
+        $settingsResponse->assertStatus(200);
+        $this->assertDatabaseHas('settings', ['key' => 'app_name']);
     }
 }

@@ -286,10 +286,10 @@
                             </span>
                         </div>
                         <h5 class="font-extrabold text-xs text-slate-900 line-clamp-1 mt-1.5">
-                            {{ $activeWri->component->name }}
+                            {{ $activeWri->component?->name ?? 'Komponen #' . $activeWri->component_id }}
                         </h5>
                         <span class="font-mono text-[10px] text-slate-500 block">
-                            {{ $activeWri->component->part_number }} &bull; {{ number_format($activeWri->quantity_requested, 0) }} {{ $activeWri->component->uom }}
+                            {{ $activeWri->component?->part_number ?? '-' }} &bull; {{ number_format($activeWri->quantity_requested, 0) }} {{ $activeWri->component?->uom ?? 'PCS' }}
                         </span>
                     </div>
 
@@ -458,7 +458,7 @@
                                             <span class="text-[10px] text-slate-500">{{ $ecr->created_at->diffForHumans() }}</span>
                                         </div>
                                         <p class="font-semibold text-slate-800 mt-0.5 truncate group-hover:text-purple-700">{{ $ecr->title }}</p>
-                                        <p class="text-[10px] text-slate-600">Part: {{ $ecr->component->name }}</p>
+                                        <p class="text-[10px] text-slate-600">Part: {{ $ecr->component?->name ?? '-' }}</p>
                                     </a>
                                 @endforeach
                             </div>
@@ -495,8 +495,8 @@
                                 @foreach ($pendingQrRequests as $qr)
                                     <div class="p-2.5 rounded-xl bg-cyan-50/70 border border-cyan-200 flex items-center justify-between text-xs">
                                         <div>
-                                            <span class="font-mono font-bold text-cyan-900">{{ $qr->component->part_number }}</span>
-                                            <p class="text-[11px] text-slate-600 truncate">{{ $qr->component->name }} ({{ $qr->print_qty }} label)</p>
+                                            <span class="font-mono font-bold text-cyan-900">{{ $qr->component?->part_number ?? '-' }}</span>
+                                            <p class="text-[11px] text-slate-600 truncate">{{ $qr->component?->name ?? '-' }} ({{ $qr->print_qty }} label)</p>
                                         </div>
                                         <a href="{{ route('qr-requests.print-thermal', $qr) }}" target="_blank" class="px-2.5 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-[10px] shadow-xs">
                                             <i class="fa-solid fa-print me-1"></i> Cetak

@@ -65,4 +65,39 @@ class Warehouse extends Model
     {
         return $this->hasMany(Location::class);
     }
+
+    /**
+     * Ensure at least one active warehouse and default zone exist in the system.
+     */
+    public static function ensureDefaultWarehouseExists(): self
+    {
+        $warehouse = self::where('is_active', true)->first();
+        if (!$warehouse) {
+            $warehouse = self::first();
+        }
+
+        if (!$warehouse) {
+            $warehouse = self::create([
+                'code' => 'GDG-01',
+                'name' => 'Gedung Utama HPK',
+                'grid_columns' => 16,
+                'grid_rows' => 12,
+                'width_meters' => 32.0,
+                'length_meters' => 24.0,
+                'is_active' => true,
+                'description' => 'Gedung Penyimpanan Utama Komponen Karoseri & Sasis PT Hydraxle Perkasa',
+            ]);
+        }
+
+        if (Zone::where('warehouse_id', $warehouse->id)->count() === 0) {
+            Zone::create([
+                'warehouse_id' => $warehouse->id,
+                'code' => '1',
+                'name' => 'Area 1 (Penyimpanan Utama)',
+                'description' => 'Area penyimpanan standar rak bertingkat dan pallet lantai',
+            ]);
+        }
+
+        return $warehouse;
+    }
 }

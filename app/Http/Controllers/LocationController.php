@@ -17,12 +17,17 @@ class LocationController extends Controller
     public function index(Request $request)
     {
         $warehouses = Warehouse::where('is_active', true)->orderBy('id')->get();
+        if ($warehouses->isEmpty()) {
+            $defaultWarehouse = Warehouse::ensureDefaultWarehouseExists();
+            $warehouses = collect([$defaultWarehouse]);
+        }
         
         $warehouseId = $request->get('warehouse_id');
         $activeWarehouse = $warehouseId ? $warehouses->firstWhere('id', $warehouseId) : $warehouses->first();
         
         if (!$activeWarehouse) {
-            $activeWarehouse = Warehouse::first();
+            $activeWarehouse = Warehouse::ensureDefaultWarehouseExists();
+            $warehouses = Warehouse::where('is_active', true)->orderBy('id')->get();
         }
 
         $query = Location::with(['stockBalances.component.componentCategory', 'zone']);
@@ -222,6 +227,14 @@ class LocationController extends Controller
         }
         if (!$firstZone) {
             $firstZone = Zone::where('warehouse_id', $warehouse->id)->first();
+            if (!$firstZone) {
+                $firstZone = Zone::create([
+                    'warehouse_id' => $warehouse->id,
+                    'code' => '1',
+                    'name' => 'Area 1 (Penyimpanan Utama)',
+                    'description' => 'Area penyimpanan umum rak bertingkat dan pallet lantai',
+                ]);
+            }
         }
 
         $zoneCode = $firstZone?->code ?: '1';

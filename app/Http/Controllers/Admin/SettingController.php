@@ -9,6 +9,7 @@ class SettingController extends Controller
 {
     public function index()
     {
+        \App\Models\Setting::ensureDefaultSettingsExist();
         $settings = \App\Models\Setting::orderBy('group')->get()->groupBy('group');
         return view('admin.settings.index', compact('settings'));
     }

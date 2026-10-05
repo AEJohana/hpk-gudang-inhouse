@@ -40,6 +40,10 @@ class TransactionController extends Controller
     {
         $defaultType = $request->get('type', 'outbound');
         $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
+        if ($locations->isEmpty()) {
+            Location::ensureDefaultLocationExists();
+            $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
+        }
         $components = Component::where('is_active', true)->orderBy('name')->get();
 
         return view('transactions.create', compact('defaultType', 'locations', 'components'));

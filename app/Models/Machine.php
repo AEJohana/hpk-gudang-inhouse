@@ -48,4 +48,71 @@ class Machine extends Model
             default => ucfirst(str_replace('_', ' ', $this->machine_type)),
         };
     }
+
+    /**
+     * Ensure the 5 core fabrication machines exist in the system.
+     */
+    public static function ensureDefaultMachinesExist(): void
+    {
+        if (self::count() > 0) {
+            return;
+        }
+
+        $machines = [
+            [
+                'code' => 'MC-LC-01',
+                'name' => 'Mesin Fiber Laser Cutting 6kW',
+                'machine_type' => 'laser_cutting',
+                'location_workshop' => 'Workshop Fabrikasi Utama (Bay 1)',
+                'status' => 'ready',
+                'hourly_capacity' => 12.5,
+                'operator_default' => 'Joko Sutrisno (Operator Laser)',
+                'description' => 'Pemotongan presisi tinggi pelat baja hitam/bordes s.d. ketebalan 25mm untuk komponen karoseri.',
+            ],
+            [
+                'code' => 'MC-BND-01',
+                'name' => 'Mesin Press Brake Bending 250T CNC',
+                'machine_type' => 'bending',
+                'location_workshop' => 'Workshop Fabrikasi Utama (Bay 2)',
+                'status' => 'ready',
+                'hourly_capacity' => 20.0,
+                'operator_default' => 'Bambang Irawan (Operator Bending CNC)',
+                'description' => 'Penekukan presisi sudut multi-angle untuk bracket mounting sasis dan dinding karoseri dump truck.',
+            ],
+            [
+                'code' => 'MC-BND-02',
+                'name' => 'Mesin Press Brake Bending 120T',
+                'machine_type' => 'bending',
+                'location_workshop' => 'Workshop Fabrikasi Presisi (Bay 3)',
+                'status' => 'ready',
+                'hourly_capacity' => 25.0,
+                'operator_default' => 'Slamet Riyadi',
+                'description' => 'Penekukan pelat tipis dan aksesoris engsel pintu karoseri serta penguat tangki.',
+            ],
+            [
+                'code' => 'MC-SHR-01',
+                'name' => 'Mesin Shearing Cutting Plate 16mm',
+                'machine_type' => 'shearing',
+                'location_workshop' => 'Workshop Raw Material Plate (Bay 1)',
+                'status' => 'ready',
+                'hourly_capacity' => 30.0,
+                'operator_default' => 'Agus Priyono',
+                'description' => 'Pemotongan lembaran pelat baja strip panjang sebelum proses tekuk atau press.',
+            ],
+            [
+                'code' => 'MC-SAW-01',
+                'name' => 'Mesin Bandsaw Cutting UNP & Pipa',
+                'machine_type' => 'machining',
+                'location_workshop' => 'Workshop Profil Baja (Bay 2)',
+                'status' => 'ready',
+                'hourly_capacity' => 15.0,
+                'operator_default' => 'Hendra Setiawan',
+                'description' => 'Pemotongan profil WF, UNP, dan hollow bar sasis trailer.',
+            ],
+        ];
+
+        foreach ($machines as $m) {
+            self::create($m);
+        }
+    }
 }

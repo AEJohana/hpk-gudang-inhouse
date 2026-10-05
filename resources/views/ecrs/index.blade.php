@@ -55,10 +55,10 @@
 
                             <td class="py-4 px-4">
                                 <div class="flex items-center space-x-3">
-                                    <img src="{{ $ecr->component->image_url }}" class="w-10 h-10 rounded-xl object-cover border border-slate-200 bg-white shadow-xs">
+                                    <img src="{{ $ecr->component?->image_url ?? asset('images/logo_hpk.webp') }}" class="w-10 h-10 rounded-xl object-cover border border-slate-200 bg-white shadow-xs">
                                     <div>
-                                        <span class="font-mono font-bold text-slate-900 block text-xs">{{ $ecr->component->part_number }}</span>
-                                        <span class="text-[11px] text-slate-500 truncate max-w-xs block">{{ $ecr->component->name }}</span>
+                                        <span class="font-mono font-bold text-slate-900 block text-xs">{{ $ecr->component?->part_number ?? '-' }}</span>
+                                        <span class="text-[11px] text-slate-500 truncate max-w-xs block">{{ $ecr->component?->name ?? 'Komponen' }}</span>
                                     </div>
                                 </div>
                             </td>
@@ -87,7 +87,7 @@
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold border {{ $ecr->status_badge['class'] }}">
                                     {{ $ecr->status_badge['label'] }}
                                 </span>
-                                <span class="text-[10px] text-slate-400 block mt-0.5">Oleh: {{ $ecr->requestedBy->name }}</span>
+                                <span class="text-[10px] text-slate-400 block mt-0.5">Oleh: {{ $ecr->requestedBy?->name ?? 'User' }}</span>
                             </td>
 
                             <td class="py-4 px-4 text-right whitespace-nowrap">

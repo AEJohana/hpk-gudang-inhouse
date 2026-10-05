@@ -17,6 +17,24 @@
         <form method="POST" action="{{ route('work-requests.store') }}" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
             @csrf
 
+            @if ($components->isEmpty())
+                <div class="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start space-x-3">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg mt-0.5"></i>
+                    <div class="flex-1">
+                        <h4 class="font-bold text-xs text-amber-900">Belum Ada Master Komponen di Gudang</h4>
+                        <p class="text-xs text-amber-700 mt-0.5">
+                            Untuk membuat Work Request Inhouse (pesanan produksi ke mesin center), silakan daftarkan master komponen terlebih dahulu.
+                        </p>
+                        <div class="mt-2.5">
+                            <a href="{{ route('components.create') }}" class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold transition shadow-xs">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                                <span>Tambah Komponen Sekarang</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- Section 1: Informasi Komponen & Kebutuhan Gudang -->
             <div class="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
                 <div class="flex items-center space-x-2 border-b border-slate-200 pb-2">

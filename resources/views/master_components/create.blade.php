@@ -204,9 +204,17 @@
                     <select name="default_location_id" required class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
                         <option value="">-- Pilih Rak Penyimpanan di Gudang HPK --</option>
                         @foreach ($locations as $loc)
-                            <option value="{{ $loc->id }}">{{ $loc->full_location_code }} ({{ $loc->zone_name }})</option>
+                            <option value="{{ $loc->id }}" {{ $locations->count() === 1 || old('default_location_id') == $loc->id ? 'selected' : '' }}>
+                                {{ $loc->full_location_code }} ({{ $loc->zone_name }})
+                            </option>
                         @endforeach
                     </select>
+                    <div class="flex items-center justify-between mt-1 text-[11px] text-slate-500">
+                        <span>Lokasi default penyimpanan komponen.</span>
+                        <a href="{{ route('locations.index') }}" target="_blank" class="text-blue-600 hover:underline font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-map text-[10px]"></i> Buka Denah Gudang
+                        </a>
+                    </div>
                 </div>
 
                 <div>
