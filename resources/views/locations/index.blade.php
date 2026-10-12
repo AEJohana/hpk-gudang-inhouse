@@ -19,19 +19,19 @@
 
             <!-- KPI Pill Bar (Tema Terang) -->
             <div class="flex flex-wrap items-center gap-2">
-                <div class="px-3.5 py-2 bg-white border border-slate-200 rounded-xl shadow-xs text-center">
+                <div class="px-3.5 py-2 bg-white border border-slate-200 rounded-xl shadow-xs text-center flex-1 sm:flex-initial min-w-[100px]">
                     <div class="text-[10px] uppercase font-bold text-slate-400">Rak Bertingkat</div>
                     <div class="text-base font-extrabold text-slate-800">{{ $stats['total_racks'] }} <span class="text-xs font-normal text-slate-500">Unit</span></div>
                 </div>
-                <div class="px-3.5 py-2 bg-white border border-slate-200 rounded-xl shadow-xs text-center">
+                <div class="px-3.5 py-2 bg-white border border-slate-200 rounded-xl shadow-xs text-center flex-1 sm:flex-initial min-w-[100px]">
                     <div class="text-[10px] uppercase font-bold text-amber-600">Area Pallet (Non-Rak)</div>
                     <div class="text-base font-extrabold text-amber-600">{{ $stats['total_pallets'] }} <span class="text-xs font-normal text-slate-500">Spot</span></div>
                 </div>
-                <div class="px-3.5 py-2 bg-white border border-slate-200 rounded-xl shadow-xs text-center">
+                <div class="px-3.5 py-2 bg-white border border-slate-200 rounded-xl shadow-xs text-center flex-1 sm:flex-initial min-w-[100px]">
                     <div class="text-[10px] uppercase font-bold text-slate-400">Total Komponen</div>
                     <div class="text-base font-extrabold text-blue-600">{{ number_format($stats['total_stored'], 0) }} <span class="text-xs font-normal text-slate-500">Item</span></div>
                 </div>
-                <div class="px-3.5 py-2 bg-white border border-slate-200 rounded-xl shadow-xs text-center">
+                <div class="px-3.5 py-2 bg-white border border-slate-200 rounded-xl shadow-xs text-center flex-1 sm:flex-initial min-w-[100px]">
                     <div class="text-[10px] uppercase font-bold text-slate-400">Rata-rata Utilitas</div>
                     <div class="text-base font-extrabold {{ $stats['occupancy_avg'] >= 80 ? 'text-amber-600' : 'text-emerald-600' }}">{{ $stats['occupancy_avg'] }}%</div>
                 </div>
@@ -274,7 +274,10 @@
             </div>
 
             <!-- INTERACTIVE 2D LEGO GRID CONTAINER (DYNAMIC GRID SIZING PER BUILDING) -->
-            <div class="relative w-full overflow-x-auto pb-4 pt-2">
+            <div class="flex items-center justify-between text-xs text-slate-500 lg:hidden mb-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                <span class="flex items-center gap-1.5 text-[11px] font-semibold"><i class="fa-solid fa-arrows-left-right text-amber-500"></i> Geser layar untuk menjelajahi seluruh area denah 2D gudang</span>
+            </div>
+            <div class="relative w-full overflow-x-auto pb-4 pt-1">
                 <div class="min-w-[980px] select-none">
                     
                     <!-- Dynamic Blueprint Grid Container -->

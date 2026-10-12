@@ -4,26 +4,26 @@
         <!-- 1. HERO SECTION WITH CURVED WAVE HEADER (REFERENCE STYLE) -->
         <div class="relative -mt-4 -mx-4 sm:-mx-6 lg:-mx-8 mb-6 overflow-hidden">
             <!-- Curved Wave Header Background -->
-            <div class="wave-header" style="height: 310px;">
+            <div class="wave-header !h-[260px] sm:!h-[310px]">
                 <div class="wave-shape-2"></div>
             </div>
 
             <!-- Content Centered Over Wave Header -->
-            <div class="relative z-10 pt-6 pb-12 text-center px-4">
+            <div class="relative z-10 pt-5 sm:pt-6 pb-10 sm:pb-12 text-center px-4">
                 <!-- Floating Circular Badge with HPK Logo -->
-                <div class="floating-logo-badge mb-3 shadow-xl">
-                    <img src="{{ asset('images/logo_hpk.webp') }}" alt="PT Hydraxle Perkasa Karoseri" class="w-16 h-16 object-contain">
+                <div class="floating-logo-badge mb-2.5 sm:mb-3 shadow-xl">
+                    <img src="{{ asset('images/logo_hpk.webp') }}" alt="PT Hydraxle Perkasa Karoseri" class="w-14 h-14 sm:w-16 sm:h-16 object-contain">
                 </div>
 
                 <!-- Brand & Page Titles -->
-                <div class="font-extrabold text-xs uppercase tracking-widest text-teal-300">PT. HYDRAXLE PERKASA</div>
-                <h1 class="font-black text-2xl sm:text-3xl text-white tracking-wide mt-1">WAREHOUSE MANAGEMENT SYSTEM</h1>
-                <p class="text-xs text-slate-300 mt-1.5 max-w-xl mx-auto">
+                <div class="font-extrabold text-[10px] sm:text-xs uppercase tracking-widest text-teal-300">PT. HYDRAXLE PERKASA</div>
+                <h1 class="font-black text-xl sm:text-3xl text-white tracking-wide mt-1">WAREHOUSE MANAGEMENT SYSTEM</h1>
+                <p class="text-xs text-slate-300 mt-1 sm:mt-1.5 max-w-xl mx-auto px-2">
                     Sistem Pergudangan Karoseri In-House, Fabrikasi & Komponen Hidrolik (1 Gedung Terpadu)
                 </p>
 
                 <!-- Status Pills -->
-                <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
+                <div class="mt-3.5 sm:mt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 backdrop-blur-xs">
                         <span class="w-2 h-2 me-1.5 bg-emerald-400 rounded-full animate-ping"></span>
                         Operasional Aktif
@@ -37,14 +37,14 @@
 
         <!-- 2. QUICK ACTION DASHBOARD CARDS GRID (DASH-CARD FROM REFERENS) -->
         <div>
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <div>
                     <h3 class="font-bold text-slate-900 text-lg">Modul Aplikasi Pergudangan HPK</h3>
                     <p class="text-xs text-slate-500">Pilih menu navigasi untuk input data form atau transaksi barang harian</p>
                 </div>
                 <button type="button" 
                         @click="$dispatch('open-global-scanner')" 
-                        class="hidden sm:inline-flex items-center px-4 py-2 bg-[#0a2342] hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-xl shadow-md border border-white/10 transition">
+                        class="hidden sm:inline-flex items-center px-4 py-2 bg-[#0a2342] hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-xl shadow-md border border-white/10 transition self-start sm:self-auto">
                     <i class="fa-solid fa-qrcode me-2 text-sm"></i>
                     Buka Scanner QR / Barcode
                 </button>
@@ -58,7 +58,7 @@
                     <div class="icon-box text-[#4a9e9e] bg-teal-50">
                         <i class="fa-solid fa-boxes-stacked"></i>
                     </div>
-                    <div>
+                    <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-teal-700 transition">Master Komponen</h4>
                             <span class="text-[11px] font-bold text-teal-700 bg-teal-100/70 px-2 py-0.5 rounded-full">{{ $totalComponents }} SKU</span>
@@ -74,7 +74,7 @@
                     <div class="icon-box text-blue-600 bg-blue-50">
                         <i class="fa-solid fa-right-left"></i>
                     </div>
-                    <div>
+                    <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-blue-700 transition">Transaksi Komponen</h4>
                             <span class="text-[11px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full">{{ $todayTransactionsCount }} Hari Ini</span>
@@ -90,7 +90,7 @@
                     <div class="icon-box text-purple-600 bg-purple-50">
                         <i class="fa-solid fa-file-pen"></i>
                     </div>
-                    <div>
+                    <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-purple-700 transition">ECR Revisi Part</h4>
                             @if ($pendingEcrs->count() > 0)
@@ -108,7 +108,7 @@
                     <div class="icon-box text-amber-600 bg-amber-50">
                         <i class="fa-solid fa-clipboard-check"></i>
                     </div>
-                    <div>
+                    <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-amber-700 transition">Cycle Count</h4>
                             <span class="text-[11px] font-bold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full">Opname Fisik</span>
@@ -124,7 +124,7 @@
                     <div class="icon-box text-cyan-600 bg-cyan-50">
                         <i class="fa-solid fa-qrcode"></i>
                     </div>
-                    <div>
+                    <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-cyan-700 transition">Permintaan Label QR</h4>
                             @if ($pendingQrRequests->count() > 0)
@@ -142,7 +142,7 @@
                     <div class="icon-box text-rose-600 bg-rose-50">
                         <i class="fa-solid fa-trash-can"></i>
                     </div>
-                    <div>
+                    <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-rose-700 transition">Pengajuan Disposal</h4>
                             @if ($pendingDisposals->count() > 0)
@@ -160,7 +160,7 @@
                     <div class="icon-box text-amber-800 bg-amber-100">
                         <i class="fa-solid fa-industry"></i>
                     </div>
-                    <div>
+                    <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-amber-800 transition">Work Request Mesin</h4>
                             @if ($readyForWarehouseWriCount > 0)
@@ -180,7 +180,7 @@
                     <div class="icon-box text-blue-600 bg-blue-100">
                         <i class="fa-solid fa-truck-ramp-box"></i>
                     </div>
-                    <div>
+                    <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-blue-700 transition">Supply Stasiun Kerja</h4>
                             <span class="text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{{ $todaySupplyCount }} Hari Ini</span>
@@ -351,7 +351,7 @@
                     </div>
 
                     <!-- Warehouse Blocks -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                         <!-- ZONA A: Raw Material Baja -->
                         <div class="p-3.5 rounded-lg bg-blue-950/60 border border-blue-600/40 text-blue-100 hover:border-blue-400 transition cursor-pointer">
                             <div class="flex items-center justify-between mb-1">

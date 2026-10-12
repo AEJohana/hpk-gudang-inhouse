@@ -1,16 +1,18 @@
 <x-app-layout>
     <x-slot name="header">
-        <div>
-            <h2 class="font-extrabold text-xl text-slate-900 leading-tight">
-                Master Data Komponen Karoseri
-            </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Katalog material, spesifikasi teknis, batas stok & posisi rak fisik HPK</p>
-        </div>
-        <div class="flex items-center space-x-2">
-            <a href="{{ route('components.create') }}" class="inline-flex items-center px-4 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition">
-                <i class="fa-solid fa-plus me-1.5 text-teal-400"></i>
-                Tambah Komponen Baru
-            </a>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
+            <div>
+                <h2 class="font-extrabold text-xl text-slate-900 leading-tight">
+                    Master Data Komponen Karoseri
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">Katalog material, spesifikasi teknis, batas stok & posisi rak fisik HPK</p>
+            </div>
+            <div class="flex items-center space-x-2 self-start sm:self-auto">
+                <a href="{{ route('components.create') }}" class="inline-flex items-center px-4 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition touch-target">
+                    <i class="fa-solid fa-plus me-1.5 text-teal-400"></i>
+                    Tambah Komponen Baru
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -49,32 +51,95 @@
                 </div>
             </form>
 
-            <!-- Quick Filter Pills (Super Nav Pills) -->
-            <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
-                <div class="super-nav-pills flex-wrap">
-                    <a href="{{ route('components.index') }}" class="super-nav-pill {{ !request('category') && !request('low_stock') ? 'active' : '' }}">
+            <!-- Quick Filter Pills (Smooth Touch Horizontal Scroll) -->
+            <div class="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 w-full sm:w-auto -mx-1 px-1">
+                    <a href="{{ route('components.index') }}" class="super-nav-pill whitespace-nowrap {{ !request('category') && !request('low_stock') ? 'active' : '' }}">
                         Semua Part
                     </a>
-                    <a href="{{ route('components.index', ['low_stock' => 1]) }}" class="super-nav-pill {{ request('low_stock') ? 'active' : '' }} text-rose-600">
+                    <a href="{{ route('components.index', ['low_stock' => 1]) }}" class="super-nav-pill whitespace-nowrap {{ request('low_stock') ? 'active' : '' }} text-rose-600">
                         <i class="fa-solid fa-triangle-exclamation me-1"></i> Stok Kritis
                     </a>
-                    <a href="{{ route('components.index', ['category' => 'hydraulic']) }}" class="super-nav-pill {{ request('category') == 'hydraulic' ? 'active' : '' }}">
+                    <a href="{{ route('components.index', ['category' => 'hydraulic']) }}" class="super-nav-pill whitespace-nowrap {{ request('category') == 'hydraulic' ? 'active' : '' }}">
                         Hidrolik
                     </a>
-                    <a href="{{ route('components.index', ['category' => 'raw_material']) }}" class="super-nav-pill {{ request('category') == 'raw_material' ? 'active' : '' }}">
+                    <a href="{{ route('components.index', ['category' => 'raw_material']) }}" class="super-nav-pill whitespace-nowrap {{ request('category') == 'raw_material' ? 'active' : '' }}">
                         Baja & Pelat
                     </a>
-                    <a href="{{ route('components.index', ['category' => 'fastener']) }}" class="super-nav-pill {{ request('category') == 'fastener' ? 'active' : '' }}">
+                    <a href="{{ route('components.index', ['category' => 'fastener']) }}" class="super-nav-pill whitespace-nowrap {{ request('category') == 'fastener' ? 'active' : '' }}">
                         Fastener
                     </a>
                 </div>
 
-                <span class="text-xs text-slate-400 font-medium">Menampilkan {{ $components->total() }} komponen</span>
+                <span class="text-xs text-slate-400 font-medium whitespace-nowrap">Menampilkan {{ $components->total() }} komponen</span>
             </div>
         </div>
 
-        <!-- Super Table with Floating Separated Rows -->
-        <div class="overflow-x-auto pb-4">
+        <!-- 1. Mobile Card List View (< md screens) -->
+        <div class="block md:hidden space-y-3">
+            @forelse ($components as $component)
+                <div class="mobile-data-card space-y-3">
+                    <div class="flex items-start space-x-3">
+                        <img src="{{ $component->image_url }}" alt="{{ $component->name }}" class="w-16 h-16 rounded-xl object-cover border border-slate-200 bg-slate-50 flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-1 mb-1">
+                                <span class="font-mono font-bold text-[11px] text-amber-900 bg-amber-100 px-2 py-0.5 rounded">{{ $component->part_number }}</span>
+                                <span class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">{{ $component->category_label }}</span>
+                            </div>
+                            <a href="{{ route('components.show', $component) }}" class="font-bold text-slate-900 text-sm block truncate hover:text-teal-700">
+                                {{ $component->name }}
+                            </a>
+                            <p class="text-[11px] text-slate-500 truncate mt-0.5">{{ $component->specification ?: 'Tanpa spesifikasi' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                        <div>
+                            <span class="text-[10px] text-slate-400 block uppercase font-bold">Lokasi Rak:</span>
+                            @if ($component->defaultLocation)
+                                <span class="font-mono font-bold text-slate-800 text-[11px]">{{ $component->defaultLocation->full_location_code }}</span>
+                            @else
+                                <span class="text-slate-400 italic text-[11px]">Belum diatur</span>
+                            @endif
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-slate-400 block uppercase font-bold">Stok Fisik:</span>
+                            <span class="font-black text-sm {{ $component->is_low_stock ? 'text-rose-600' : 'text-slate-900' }}">
+                                {{ number_format($component->total_stock, 0) }} {{ $component->uom }}
+                            </span>
+                            @if ($component->is_low_stock)
+                                <span class="block text-[9px] font-extrabold text-rose-600">
+                                    <i class="fa-solid fa-circle-exclamation me-0.5"></i> Min: {{ $component->minimum_stock }}
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
+                        <a href="{{ route('components.qr-label', $component) }}" target="_blank" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center">
+                            <i class="fa-solid fa-qrcode me-1"></i> QR
+                        </a>
+                        <a href="{{ route('components.edit', $component) }}" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center">
+                            <i class="fa-solid fa-pen me-1"></i> Edit
+                        </a>
+                        <a href="{{ route('components.show', $component) }}" class="px-3 py-1.5 bg-[#0a2342] text-white text-xs font-bold rounded-lg flex items-center">
+                            <i class="fa-solid fa-eye me-1 text-teal-400"></i> Detail
+                        </a>
+                        <a href="{{ route('transactions.create', ['component_id' => $component->id]) }}" class="px-3 py-1.5 bg-amber-500 text-slate-950 text-xs font-bold rounded-lg flex items-center">
+                            <i class="fa-solid fa-plus me-1"></i> Transaksi
+                        </a>
+                    </div>
+                </div>
+            @empty
+                <div class="py-10 text-center text-slate-400 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+                    <i class="fa-solid fa-box-open text-3xl mb-2 text-slate-300 block"></i>
+                    Tidak ada data komponen yang sesuai dengan filter pencarian.
+                </div>
+            @endforelse
+        </div>
+
+        <!-- 2. Desktop & Tablet Super Table (>= md screens) -->
+        <div class="hidden md:block overflow-x-auto pb-4">
             <table class="super-table">
                 <thead>
                     <tr>

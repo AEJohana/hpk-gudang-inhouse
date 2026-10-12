@@ -1,22 +1,22 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between w-full">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
             <div>
                 <h2 class="font-extrabold text-xl text-slate-900 leading-tight">
                     Transaksi Komponen Gudang HPK
                 </h2>
                 <p class="text-xs text-slate-500 mt-0.5">Penerimaan (Inbound), Pengeluaran (Outbound Karoseri), dan Transfer Antar Rak</p>
             </div>
-            <div class="flex flex-wrap gap-2">
-                <a href="{{ route('transactions.create', ['type' => 'inbound']) }}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center">
+            <div class="flex flex-wrap gap-2 self-start sm:self-auto">
+                <a href="{{ route('transactions.create', ['type' => 'inbound']) }}" class="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center">
                     <i class="fa-solid fa-arrow-down me-1.5"></i>
-                    Penerimaan (Inbound)
+                    Inbound
                 </a>
-                <a href="{{ route('transactions.create', ['type' => 'outbound']) }}" class="px-3.5 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center">
+                <a href="{{ route('transactions.create', ['type' => 'outbound']) }}" class="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center">
                     <i class="fa-solid fa-arrow-up me-1.5 text-teal-400"></i>
-                    Pengeluaran (Outbound)
+                    Outbound
                 </a>
-                <a href="{{ route('transactions.create', ['type' => 'transfer']) }}" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition flex items-center">
+                <a href="{{ route('transactions.create', ['type' => 'transfer']) }}" class="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition flex items-center">
                     <i class="fa-solid fa-right-left me-1.5"></i>
                     Transfer Rak
                 </a>
@@ -61,8 +61,60 @@
             </form>
         </div>
 
-        <!-- Super Table with Floating Separated Rows -->
-        <div class="overflow-x-auto pb-4">
+        <!-- 1. Mobile Card List View (< md screens) -->
+        <div class="block md:hidden space-y-3">
+            @forelse ($transactions as $tx)
+                <div class="mobile-data-card space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="font-mono font-bold text-xs text-slate-900 block">{{ $tx->transaction_number }}</span>
+                            <span class="text-[10px] text-slate-400 font-medium">{{ $tx->transaction_date->format('d M Y') }}</span>
+                        </div>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold border {{ $tx->type_badge['class'] }}">
+                            {{ $tx->type_badge['label'] }}
+                        </span>
+                    </div>
+
+                    @if ($tx->spk_number || $tx->reference_document)
+                    <div class="p-2 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+                        <span class="text-[10px] text-slate-400">Referensi:</span>
+                        <span class="font-mono font-bold text-slate-700 text-[11px] truncate max-w-[200px]">
+                            {{ $tx->spk_number ?: ($tx->reference_document ?: 'Internal Memo') }}
+                        </span>
+                    </div>
+                    @endif
+
+                    <div class="text-xs">
+                        <span class="text-[10px] text-slate-400 uppercase font-bold block mb-1">Komponen ({{ $tx->items->count() }} item):</span>
+                        <p class="font-semibold text-slate-800 truncate">
+                            {{ $tx->items->first()?->component?->name }}
+                            <span class="text-slate-500 font-normal">({{ number_format($tx->items->first()?->quantity ?? 0, 0) }} {{ $tx->items->first()?->component?->uom }})</span>
+                        </p>
+                        @if ($tx->items->count() > 1)
+                            <span class="text-[10px] text-amber-600 font-bold block mt-0.5">+{{ $tx->items->count() - 1 }} komponen lainnya</span>
+                        @endif
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                        <div>
+                            <span class="text-[10px] text-slate-400 block">Petugas:</span>
+                            <span class="font-semibold text-slate-700 text-[11px]">{{ $tx->user->name }}</span>
+                        </div>
+                        <a href="{{ route('transactions.show', $tx) }}" class="px-3.5 py-1.5 bg-[#0a2342] text-white text-xs font-bold rounded-lg flex items-center">
+                            Detail Slip <i class="fa-solid fa-arrow-right ms-1 text-[10px]"></i>
+                        </a>
+                    </div>
+                </div>
+            @empty
+                <div class="py-10 text-center text-slate-400 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+                    <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300 block"></i>
+                    Belum ada catatan transaksi yang sesuai dengan filter pencarian.
+                </div>
+            @endforelse
+        </div>
+
+        <!-- 2. Desktop & Tablet Super Table (>= md screens) -->
+        <div class="hidden md:block overflow-x-auto pb-4">
             <table class="super-table">
                 <thead>
                     <tr>

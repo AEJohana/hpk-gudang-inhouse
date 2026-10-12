@@ -3,13 +3,13 @@
 
         <!-- 1. HERO SECTION WITH CURVED WAVE HEADER -->
         <div class="relative -mt-4 -mx-4 sm:-mx-6 lg:-mx-8 mb-6 overflow-hidden">
-            <div class="wave-header" style="height: 270px;">
+            <div class="wave-header !h-[240px] sm:!h-[270px]">
                 <div class="wave-shape-2"></div>
             </div>
 
-            <div class="relative z-10 pt-6 pb-12 px-4 sm:px-6 lg:px-8">
+            <div class="relative z-10 pt-5 sm:pt-6 pb-10 sm:pb-12 px-4 sm:px-6 lg:px-8">
                 <!-- Top Badge Row -->
-                <div class="flex items-center space-x-2.5 mb-3">
+                <div class="flex items-center space-x-2.5 mb-2.5 sm:mb-3">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 uppercase tracking-widest shadow-xs">
                         <i class="fa-solid fa-shield-halved me-1 text-[9px]"></i> SUPER ADMIN
                     </span>
@@ -20,7 +20,7 @@
 
                 <div class="flex flex-col md:flex-row md:items-end md:justify-between">
                     <div>
-                        <h1 class="font-black text-2xl sm:text-3xl text-white tracking-wide">
+                        <h1 class="font-black text-xl sm:text-3xl text-white tracking-wide">
                             Pusat Kendali Administrator
                         </h1>
                         <p class="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
@@ -54,7 +54,7 @@
                     <div class="icon-box text-amber-600 bg-amber-50">
                         <i class="fa-solid fa-users"></i>
                     </div>
-                    <div>
+                    <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-amber-600 transition">Manajemen User</h4>
                             <span class="text-2xl font-black text-slate-900">{{ $usersCount ?? \App\Models\User::count() }}</span>
@@ -70,7 +70,7 @@
                     <div class="icon-box text-blue-600 bg-blue-50">
                         <i class="fa-solid fa-user-shield"></i>
                     </div>
-                    <div>
+                    <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-blue-600 transition">Role & Permission</h4>
                             <span class="text-2xl font-black text-slate-900">{{ $rolesCount ?? \Spatie\Permission\Models\Role::count() }}</span>
@@ -86,7 +86,7 @@
                     <div class="icon-box text-teal-600 bg-teal-50">
                         <i class="fa-solid fa-tags"></i>
                     </div>
-                    <div>
+                    <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-teal-600 transition">Kategori Komponen</h4>
                             <span class="text-2xl font-black text-slate-900">{{ $categoriesCount ?? \App\Models\ComponentCategory::count() }}</span>
@@ -102,7 +102,7 @@
                     <div class="icon-box text-rose-600 bg-rose-50">
                         <i class="fa-solid fa-clipboard-list"></i>
                     </div>
-                    <div>
+                    <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-rose-600 transition">Audit Log Aktivitas</h4>
                             <span class="text-2xl font-black text-slate-900">{{ $logsCount ?? \Spatie\Activitylog\Models\Activity::count() }}</span>

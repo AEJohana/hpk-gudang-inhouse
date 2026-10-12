@@ -185,24 +185,57 @@
         @endif
 
         <!-- Main Content -->
-        <main class="flex-1 pb-12">
+        <main class="flex-1 pb-24 md:pb-12">
             {{ $slot }}
         </main>
 
         <!-- Footer -->
-        <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 mt-auto">
+        <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 mt-auto mb-14 md:mb-0">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between">
                 <span>&copy; {{ date('Y') }} PT Hydraxle Perkasa Karoseri &bull; Warehouse Management System</span>
                 <span class="text-[11px] text-slate-400 mt-1 sm:mt-0">Sistem Pergudangan Karoseri & Komponen Hidrolik In-House</span>
             </div>
         </footer>
 
+        <!-- MOBILE BOTTOM NAVIGATION BAR (< md screens) -->
+        <div class="mobile-bottom-nav md:hidden flex items-center justify-around px-2">
+            <!-- 1. Admin Dashboard -->
+            <a href="{{ route('admin.dashboard') }}" class="mobile-nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                <i class="fa-solid fa-gauge-high"></i>
+                <span>Admin</span>
+            </a>
+
+            <!-- 2. User Management -->
+            <a href="{{ route('admin.users.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-users"></i>
+                <span>User</span>
+            </a>
+
+            <!-- 3. Central Scanner FAB Button -->
+            <button type="button" @click="openScanner()" class="mobile-scanner-fab" title="Scan QR Code / Barcode">
+                <i class="fa-solid fa-qrcode"></i>
+                <span class="text-[8px] font-black tracking-tighter uppercase mt-0.5">SCAN</span>
+            </button>
+
+            <!-- 4. Main WMS App Return -->
+            <a href="{{ route('dashboard') }}" class="mobile-nav-item text-teal-300">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                <span>WMS Utama</span>
+            </a>
+
+            <!-- 5. Menu Drawer Toggle -->
+            <button type="button" @click="sidebarOpen = true" class="mobile-nav-item focus:outline-none">
+                <i class="fa-solid fa-bars"></i>
+                <span>Menu</span>
+            </button>
+        </div>
+
         <!-- GLOBAL CAMERA SCANNER MODAL -->
         <div x-show="scannerOpen" 
              style="display: none;" 
-             class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+             class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
             
-            <div @click.away="closeScanner()" class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 transition-all">
+            <div @click.away="closeScanner()" class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto border border-slate-200 transition-all">
                 <!-- Modal Header -->
                 <div class="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
                     <div class="flex items-center space-x-2">

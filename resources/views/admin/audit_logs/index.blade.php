@@ -3,7 +3,7 @@
 
         <!-- 1. HERO SECTION WITH CURVED WAVE HEADER -->
         <div class="relative -mt-4 -mx-4 sm:-mx-6 lg:-mx-8 mb-6 overflow-hidden">
-            <div class="wave-header" style="height: 240px;">
+            <div class="wave-header !h-[240px] sm:!h-[270px]">
                 <div class="wave-shape-2"></div>
             </div>
 

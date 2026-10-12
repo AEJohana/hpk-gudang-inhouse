@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between w-full">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
             <div class="flex items-center space-x-3">
                 <a href="{{ route('cycle-counts.index') }}" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
@@ -12,7 +12,7 @@
                             {{ $cycleCount->status_badge['label'] }}
                         </span>
                     </div>
-                    <h2 class="font-bold text-xl text-slate-900 leading-tight mt-1">
+                    <h2 class="font-bold text-lg sm:text-xl text-slate-900 leading-tight mt-1">
                         Lembar Penghitungan Fisik - ZONA {{ $cycleCount->zone_target }}
                     </h2>
                 </div>
@@ -20,9 +20,9 @@
 
             <!-- Reconciliation Action for Supervisor -->
             @if ($cycleCount->status === 'pending_review')
-                <form method="POST" action="{{ route('cycle-counts.reconcile', $cycleCount) }}" onsubmit="return confirm('Apakah Anda menyetujui hasil stok opname ini? Seluruh saldo stok fisik di sistem akan disesuaikan secara otomatis!')">
+                <form method="POST" action="{{ route('cycle-counts.reconcile', $cycleCount) }}" onsubmit="return confirm('Apakah Anda menyetujui hasil stok opname ini? Seluruh saldo stok fisik di sistem akan disesuaikan secara otomatis!')" class="w-full sm:w-auto">
                     @csrf
-                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center">
+                    <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center">
                         <svg class="w-4 h-4 me-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         Setujui Rekonsiliasi & Update Saldo Stok
                     </button>
@@ -61,7 +61,7 @@
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-600">
+                    <table class="w-full min-w-[700px] text-left text-xs text-slate-600">
                         <thead class="bg-slate-50/50 text-[10px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-200">
                             <tr>
                                 <th class="py-3 px-4">Foto & Part Number</th>
@@ -76,12 +76,12 @@
                         <tbody class="divide-y divide-slate-100">
                             @foreach ($cycleCount->items as $item)
                                 <tr class="hover:bg-slate-50/60 transition" x-data="{
-                                    sysQty: {{ (float) $item->system_qty }},
-                                    physQty: {{ (float) $item->physical_qty }},
-                                    get variance() {
-                                        return this.physQty - this.sysQty;
-                                    }
-                                }">
+                                     sysQty: {{ (float) $item->system_qty }},
+                                     physQty: {{ (float) $item->physical_qty }},
+                                     get variance() {
+                                         return this.physQty - this.sysQty;
+                                     }
+                                 }">
                                     <!-- Photo & Part Number -->
                                     <td class="py-3 px-4">
                                         <div class="flex items-center space-x-2.5">
@@ -113,6 +113,7 @@
                                         @else
                                             <input type="number" 
                                                    step="0.01" 
+                                                   inputmode="decimal"
                                                    x-model.number="physQty" 
                                                    name="items[{{ $item->id }}][physical_qty]" 
                                                    class="w-24 text-center px-2 py-1.5 text-xs font-bold border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-slate-900">
@@ -146,9 +147,9 @@
                 </div>
 
                 @if ($cycleCount->status !== 'reconciled')
-                    <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-                        <p class="text-xs text-slate-500">Klik "Simpan Hasil Hitung Fisik" untuk mengunci angka fisik dan mengajukan ke Supervisor.</p>
-                        <button type="submit" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow transition">
+                    <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <p class="text-xs text-slate-500 text-center sm:text-left">Klik "Simpan Hasil Hitung Fisik" untuk mengunci angka fisik dan mengajukan ke Supervisor.</p>
+                        <button type="submit" class="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow transition">
                             Simpan Hasil Hitung Fisik
                         </button>
                     </div>

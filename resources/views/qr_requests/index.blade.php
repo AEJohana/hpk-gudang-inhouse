@@ -1,13 +1,13 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between w-full">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
             <div>
                 <h2 class="font-extrabold text-xl text-slate-900 leading-tight">
                     Permintaan & Pencetakan Label QR Komponen
                 </h2>
                 <p class="text-xs text-slate-500 mt-0.5">Generator stiker barcode & QR Code tahan oli/panas untuk penandaan part, box, dan rak gudang HPK</p>
             </div>
-            <a href="{{ route('qr-requests.create') }}" class="px-3.5 py-2 bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center">
+            <a href="{{ route('qr-requests.create') }}" class="px-3.5 py-2 bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center w-full sm:w-auto">
                 <i class="fa-solid fa-plus me-1.5"></i>
                 Buat Permintaan Label
             </a>
@@ -17,20 +17,73 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
         <!-- Status Filter Pills (Super Nav Pills) -->
-        <div class="super-nav-pills flex-wrap">
-            <a href="{{ route('qr-requests.index') }}" class="super-nav-pill {{ !request('status') ? 'active' : '' }}">
+        <div class="super-nav-pills flex-nowrap overflow-x-auto no-scrollbar sm:flex-wrap pb-1">
+            <a href="{{ route('qr-requests.index') }}" class="super-nav-pill {{ !request('status') ? 'active' : '' }} whitespace-nowrap flex-shrink-0">
                 Semua Antrian
             </a>
-            <a href="{{ route('qr-requests.index', ['status' => 'pending']) }}" class="super-nav-pill {{ request('status') == 'pending' ? 'active bg-amber-500 text-slate-950 font-bold' : '' }}">
+            <a href="{{ route('qr-requests.index', ['status' => 'pending']) }}" class="super-nav-pill {{ request('status') == 'pending' ? 'active bg-amber-500 text-slate-950 font-bold' : '' }} whitespace-nowrap flex-shrink-0">
                 <i class="fa-solid fa-clock me-1 text-amber-500"></i> Menunggu Dicetak
             </a>
-            <a href="{{ route('qr-requests.index', ['status' => 'printed']) }}" class="super-nav-pill {{ request('status') == 'printed' ? 'active bg-emerald-600 text-white' : '' }}">
+            <a href="{{ route('qr-requests.index', ['status' => 'printed']) }}" class="super-nav-pill {{ request('status') == 'printed' ? 'active bg-emerald-600 text-white' : '' }} whitespace-nowrap flex-shrink-0">
                 <i class="fa-solid fa-check-circle me-1 text-emerald-500"></i> Selesai Dicetak
             </a>
         </div>
 
-        <!-- Super Table with Floating Separated Rows -->
-        <div class="overflow-x-auto pb-4">
+        <!-- Mobile Card View (< md) -->
+        <div class="block md:hidden space-y-3">
+            @forelse ($qrRequests as $qr)
+                <div class="mobile-data-card">
+                    <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                        <div>
+                            <span class="font-mono font-bold text-cyan-900 text-xs block">{{ $qr->request_number }}</span>
+                            <span class="text-[10px] text-slate-400 font-medium">{{ $qr->created_at->format('d M Y') }}</span>
+                        </div>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold border {{ $qr->status_badge['class'] }}">
+                            {{ $qr->status_badge['label'] }}
+                        </span>
+                    </div>
+
+                    <div class="flex items-center space-x-3 py-1">
+                        <img src="{{ $qr->component?->image_url ?? asset('images/logo_hpk.webp') }}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 bg-white shadow-xs flex-shrink-0">
+                        <div class="min-w-0 flex-1">
+                            <span class="font-mono font-bold text-slate-900 block text-xs truncate">{{ $qr->component?->part_number ?? '-' }}</span>
+                            <span class="text-xs text-slate-600 block line-clamp-1 mt-0.5">{{ $qr->component?->name ?? 'Komponen' }}</span>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700">
+                                    {{ match($qr->label_type) {
+                                        'item' => 'Stiker Part',
+                                        'box' => 'Master Box',
+                                        'rack' => 'Identitas Rak',
+                                        default => $qr->label_type
+                                    } }}
+                                </span>
+                                <span class="font-extrabold text-slate-900 text-xs">{{ $qr->print_qty }} Label</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs gap-2">
+                        <span class="text-[10px] text-slate-400 truncate">Oleh: {{ $qr->requestedBy->name }}</span>
+                        <div class="flex items-center space-x-1.5 flex-shrink-0">
+                            <a href="{{ route('qr-requests.print-thermal', $qr) }}" target="_blank" class="px-2.5 py-1.5 bg-[#0a2342] hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs transition inline-flex items-center">
+                                <i class="fa-solid fa-receipt me-1 text-amber-400 text-[10px]"></i> Thermal
+                            </a>
+                            <a href="{{ route('qr-requests.print-sheet', $qr) }}" target="_blank" class="px-2.5 py-1.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 font-semibold text-xs rounded-xl transition inline-flex items-center">
+                                <i class="fa-solid fa-file-pdf me-1 text-[10px]"></i> A4
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="py-10 text-center text-slate-400 bg-white rounded-2xl border border-slate-200 p-6">
+                    <i class="fa-solid fa-qrcode text-3xl mb-2 text-slate-300 block"></i>
+                    Belum ada permintaan pencetakan label QR.
+                </div>
+            @endforelse
+        </div>
+
+        <!-- Super Table with Floating Separated Rows (Desktop >= md) -->
+        <div class="hidden md:block overflow-x-auto pb-4">
             <table class="super-table">
                 <thead>
                     <tr>

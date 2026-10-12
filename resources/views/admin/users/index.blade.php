@@ -3,7 +3,7 @@
 
         <!-- 1. HERO SECTION WITH CURVED WAVE HEADER -->
         <div class="relative -mt-4 -mx-4 sm:-mx-6 lg:-mx-8 mb-6 overflow-hidden">
-            <div class="wave-header" style="height: 240px;">
+            <div class="wave-header !h-[240px] sm:!h-[270px]">
                 <div class="wave-shape-2"></div>
             </div>
 
@@ -107,8 +107,110 @@
                 </div>
             </form>
 
-            <!-- Table Section -->
-            <div class="overflow-x-auto rounded-xl border border-slate-200/80 shadow-xs">
+            <!-- Mobile Card View (< md) -->
+            <div class="block md:hidden space-y-3">
+                @forelse($users as $user)
+                    @php
+                        $roleSlug = $user->roles->first()->name ?? $user->role;
+                        $avatarBg = match($roleSlug) {
+                            'admin_gudang' => 'bg-amber-500 text-slate-950 font-black',
+                            'supervisor' => 'bg-blue-600 text-white font-black',
+                            'operator' => 'bg-emerald-600 text-white font-black',
+                            'engineering' => 'bg-purple-600 text-white font-black',
+                            'qc' => 'bg-teal-600 text-white font-black',
+                            default => 'bg-slate-700 text-white font-black',
+                        };
+                        $roleBadgeClass = match($roleSlug) {
+                            'admin_gudang' => 'bg-amber-100 text-amber-800 border-amber-300/60',
+                            'supervisor' => 'bg-blue-100 text-blue-800 border-blue-300/60',
+                            'operator' => 'bg-emerald-100 text-emerald-800 border-emerald-300/60',
+                            'engineering' => 'bg-purple-100 text-purple-800 border-purple-300/60',
+                            'qc' => 'bg-teal-100 text-teal-800 border-teal-300/60',
+                            default => 'bg-slate-100 text-slate-800 border-slate-300/60',
+                        };
+                    @endphp
+                    <div class="mobile-data-card">
+                        <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                            <div class="flex items-center space-x-2.5 min-w-0">
+                                <div class="w-9 h-9 rounded-full {{ $avatarBg }} flex items-center justify-center text-xs shadow-xs flex-shrink-0">
+                                    {{ strtoupper(substr($user->name, 0, 2)) }}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-bold text-slate-900 text-xs flex items-center space-x-1 truncate">
+                                        <span class="truncate">{{ $user->name }}</span>
+                                        @if($user->id === auth()->id())
+                                            <span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase flex-shrink-0">Anda</span>
+                                        @endif
+                                    </div>
+                                    <span class="text-[10px] text-slate-400 block truncate font-mono">{{ $user->email }}</span>
+                                </div>
+                            </div>
+                            @if($user->is_active)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 flex-shrink-0">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 me-1 animate-pulse"></span>
+                                    Aktif
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-300 flex-shrink-0">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400 me-1"></span>
+                                    Nonaktif
+                                </span>
+                            @endif
+                        </div>
+
+                        <div class="flex items-center justify-between py-1 text-xs">
+                            <div>
+                                <span class="text-[10px] text-slate-400 block uppercase font-semibold">Departemen</span>
+                                <span class="font-semibold text-slate-700 text-xs">{{ $user->department ?? '-' }}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-400 block uppercase font-semibold mb-0.5">Role Akses</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $roleBadgeClass }}">
+                                    <i class="fa-solid fa-shield-halved me-1 text-[8px]"></i>
+                                    {{ $user->role_badge }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                            <span class="text-[10px] text-slate-400">
+                                <i class="fa-solid fa-phone text-[8px] me-1"></i> {{ $user->phone ?? 'Tidak ada telp' }}
+                            </span>
+                            <div class="inline-flex items-center space-x-1.5">
+                                <a href="{{ route('admin.users.edit', $user) }}" 
+                                   class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs transition shadow-2xs inline-flex items-center">
+                                    <i class="fa-solid fa-pen-to-square me-1 text-[10px]"></i> Edit
+                                </a>
+
+                                @if($user->id !== auth()->id())
+                                <form action="{{ route('admin.users.destroy', $user) }}" 
+                                      method="POST" 
+                                      class="inline-block" 
+                                      onsubmit="return confirm('Apakah Anda yakin ingin menghapus user {{ $user->name }}? Tindakan ini tidak dapat dibatalkan.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" 
+                                            class="p-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 transition shadow-2xs" 
+                                            title="Hapus User">
+                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                    </button>
+                                </form>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="p-8 text-center text-slate-500 bg-white rounded-2xl border border-slate-200">
+                        <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-lg">
+                            <i class="fa-solid fa-user-slash"></i>
+                        </div>
+                        <p class="font-bold text-xs text-slate-700">Tidak ada pengguna yang cocok</p>
+                    </div>
+                @endforelse
+            </div>
+
+            <!-- Table Section (Desktop >= md) -->
+            <div class="hidden md:block overflow-x-auto rounded-xl border border-slate-200/80 shadow-xs">
                 <table class="w-full text-left text-xs whitespace-nowrap">
                     <thead class="bg-slate-50 uppercase tracking-wider text-slate-600 font-extrabold border-b border-slate-200">
                         <tr>

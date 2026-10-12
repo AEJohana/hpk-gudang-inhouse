@@ -118,17 +118,17 @@ body {
    ======================================================= */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 22px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
   position: relative;
   z-index: 2;
 }
 
 .dash-card {
   background: #ffffff;
-  border-radius: 25px;
-  padding: 24px 20px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08), 0 5px 15px rgba(0, 0, 0, 0.03);
+  border-radius: 24px;
+  padding: 22px 20px;
+  box-shadow: 0 10px 30px rgba(10, 35, 66, 0.06), 0 2px 8px rgba(0, 0, 0, 0.02);
   transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
   border: 1px solid rgba(74, 158, 158, 0.15);
   cursor: pointer;
@@ -140,68 +140,76 @@ body {
   min-height: 170px;
 }
 
-.dash-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 25px 50px rgba(10, 35, 66, 0.18);
-  border-color: rgba(74, 158, 158, 0.4);
-}
-
-.dash-card.full-width {
-  grid-column: 1 / -1;
-}
-
+/* Base Icon Box (Kotak Ikon Bujur Sangkar 52x52px) */
 .dash-card .icon-box {
-  width: 58px;
-  height: 58px;
-  background: var(--hpk-light);
-  border-radius: 18px;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
-  color: var(--hpk-teal);
-  box-shadow: 0 8px 18px rgba(74, 158, 158, 0.15);
+  font-size: 1.35rem;
   margin-bottom: 16px;
   z-index: 2;
+  position: relative;
+  flex-shrink: 0;
   transition: transform 0.3s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
 }
 
-.dash-card:hover .icon-box {
-  transform: scale(1.1) rotate(-5deg);
-}
-
+/* Background Watermark Icon (Tilted, Redup di Pojok Kanan Bawah) */
 .dash-card .card-icon-bg {
   position: absolute;
   right: -15px;
   bottom: -15px;
-  font-size: 8.5rem;
+  font-size: 7.5rem;
+  line-height: 1;
   opacity: 0.04;
   transform: rotate(-15deg);
   z-index: 0;
   color: var(--hpk-teal);
   transition: all 0.35s ease;
   pointer-events: none;
+  user-select: none;
 }
 
-.dash-card:hover .card-icon-bg {
-  transform: rotate(0deg) scale(1.15);
-  opacity: 0.08;
-}
-
+/* Action Arrow Icon (Pojok Kanan Atas) */
 .dash-card .arrow-action {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  font-size: 1.1rem;
-  opacity: 0.4;
-  color: var(--hpk-blue);
+  top: 22px;
+  right: 22px;
+  font-size: 0.95rem;
+  color: #94a3b8;
+  opacity: 0.45;
   transition: all 0.3s ease;
+  z-index: 2;
 }
 
-.dash-card:hover .arrow-action {
-  opacity: 1;
-  color: var(--hpk-teal);
-  transform: translateX(4px);
+@media (hover: hover) and (pointer: fine) {
+  .dash-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 45px rgba(10, 35, 66, 0.14);
+    border-color: rgba(74, 158, 158, 0.4);
+  }
+
+  .dash-card:hover .icon-box {
+    transform: scale(1.08) rotate(-4deg);
+  }
+
+  .dash-card:hover .card-icon-bg {
+    transform: rotate(0deg) scale(1.12);
+    opacity: 0.08;
+  }
+
+  .dash-card:hover .arrow-action {
+    opacity: 1;
+    color: var(--hpk-teal);
+    transform: translateX(4px);
+  }
+}
+
+.dash-card:active {
+  transform: scale(0.98);
 }
 
 /* =======================================================
@@ -231,11 +239,13 @@ body {
   border-radius: 18px;
 }
 
-.super-row:hover {
-  transform: translateY(-4px) scale(1.008);
-  box-shadow: 0 15px 30px rgba(10, 35, 66, 0.1);
-  z-index: 10;
-  position: relative;
+@media (hover: hover) and (pointer: fine) {
+  .super-row:hover {
+    transform: translateY(-4px) scale(1.008);
+    box-shadow: 0 15px 30px rgba(10, 35, 66, 0.1);
+    z-index: 10;
+    position: relative;
+  }
 }
 
 .super-row td {
@@ -444,3 +454,104 @@ body {
   margin-bottom: 22px;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* =======================================================
+   RESPONSIVE UTILITIES & MOBILE BOTTOM NAVIGATION BAR
+   ======================================================= */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10, 35, 66, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  z-index: 45;
+  padding-bottom: env(safe-area-inset-bottom, 6px);
+  box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.3);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 8px 2px 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav-item:active {
+  transform: scale(0.92);
+}
+
+.mobile-nav-item.active {
+  color: #f59e0b;
+}
+
+.mobile-nav-item i {
+  font-size: 17px;
+  margin-bottom: 2px;
+}
+
+.mobile-scanner-fab {
+  position: relative;
+  top: -12px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #0a2342;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.45), 0 0 0 4px #0a2342;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-scanner-fab:active {
+  transform: scale(0.9);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3), 0 0 0 3px #0a2342;
+}
+
+.mobile-scanner-fab i {
+  font-size: 20px;
+  margin-bottom: 0;
+}
+
+/* Touch targets and mobile cards */
+.touch-target {
+  min-height: 44px;
+}
+
+.mobile-data-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.mobile-data-card:active {
+  background: #f8fafc;
+  transform: scale(0.99);
+}
+

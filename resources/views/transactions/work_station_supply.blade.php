@@ -156,8 +156,9 @@
                                            required 
                                            step="any" 
                                            min="0.1" 
+                                           inputmode="decimal"
                                            placeholder="Qty" 
-                                           class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold">
+                                           class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold">
                                 </div>
                             </div>
 
@@ -170,7 +171,7 @@
                                     <select :name="'items[' + index + '][from_location_id]'" 
                                             x-model="item.from_location_id" 
                                             required 
-                                            class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                            class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
                                         @foreach($locations as $l)
                                             <option value="{{ $l->id }}">
                                                 {{ $l->full_location_code }} ({{ $l->display_rack_name }} &bull; {{ $l->zone_name }})
@@ -180,11 +181,11 @@
                                 </div>
 
                                 <!-- Remove Button & Notes -->
-                                <div class="flex items-center justify-between sm:justify-end space-x-2 pt-4 sm:pt-0">
+                                <div class="flex items-center justify-between sm:justify-end space-x-2 pt-2 sm:pt-0">
                                     <input type="text" 
                                            :name="'items[' + index + '][notes]'" 
                                            placeholder="Catatan batch/unit..." 
-                                           class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                           class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
                                     <button type="button" 
                                             @click="removeItem(index)" 
                                             x-show="items.length > 1" 
@@ -211,11 +212,11 @@
             </div>
 
             <!-- Submit Buttons -->
-            <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
-                <a href="{{ route('transactions.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+            <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:space-x-3">
+                <a href="{{ route('transactions.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition text-center">
                     Batal
                 </a>
-                <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-md transition flex items-center space-x-2">
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-md transition flex items-center justify-center space-x-2">
                     <i class="fa-solid fa-truck-ramp-box text-sm"></i>
                     <span>Keluarkan & Supply ke Stasiun Kerja</span>
                 </button>

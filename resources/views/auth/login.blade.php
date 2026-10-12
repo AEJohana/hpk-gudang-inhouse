@@ -2,7 +2,7 @@
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    <div class="glass-card text-center p-7 sm:p-9" x-data="{
+    <div class="glass-card text-center p-5 sm:p-8" x-data="{
         fillUser(email) {
             document.getElementById('email').value = email;
             document.getElementById('password').value = 'password';
@@ -85,22 +85,22 @@
         <!-- 1-Click Demo Login Switcher from our previous polish -->
         <div class="mt-6 pt-4 border-t border-slate-200/80 text-left">
             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Akses Cepat Uji Coba (1-Click Fill):</p>
-            <div class="grid grid-cols-2 gap-2 text-xs">
-                <button type="button" @click="fillUser('admin@hydraxle.com')" class="p-2 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <button type="button" @click="fillUser('admin@hydraxle.com')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left">
                     <span class="font-bold text-blue-900 block text-[11px]"><i class="fas fa-user-shield text-[10px] me-1 text-teal-600"></i> Admin Gudang</span>
-                    <span class="text-[10px] text-slate-400">admin@hydraxle.com</span>
+                    <span class="text-[10px] text-slate-400 font-mono">admin@hydraxle.com</span>
                 </button>
-                <button type="button" @click="fillUser('operator@hydraxle.com')" class="p-2 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left">
+                <button type="button" @click="fillUser('operator@hydraxle.com')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left">
                     <span class="font-bold text-blue-900 block text-[11px]"><i class="fas fa-dolly text-[10px] me-1 text-teal-600"></i> Operator Picker</span>
-                    <span class="text-[10px] text-slate-400">operator@hydraxle.com</span>
+                    <span class="text-[10px] text-slate-400 font-mono">operator@hydraxle.com</span>
                 </button>
-                <button type="button" @click="fillUser('spv.gudang@hydraxle.com')" class="p-2 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left">
+                <button type="button" @click="fillUser('spv.gudang@hydraxle.com')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left">
                     <span class="font-bold text-blue-900 block text-[11px]"><i class="fas fa-user-tie text-[10px] me-1 text-teal-600"></i> Kepala Gudang</span>
-                    <span class="text-[10px] text-slate-400">spv.gudang@hydraxle.com</span>
+                    <span class="text-[10px] text-slate-400 font-mono">spv.gudang@hydraxle.com</span>
                 </button>
-                <button type="button" @click="fillUser('engineer@hydraxle.com')" class="p-2 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left">
+                <button type="button" @click="fillUser('engineer@hydraxle.com')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left">
                     <span class="font-bold text-blue-900 block text-[11px]"><i class="fas fa-drafting-compass text-[10px] me-1 text-teal-600"></i> Engineering (ECR)</span>
-                    <span class="text-[10px] text-slate-400">engineer@hydraxle.com</span>
+                    <span class="text-[10px] text-slate-400 font-mono">engineer@hydraxle.com</span>
                 </button>
             </div>
         </div>

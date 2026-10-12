@@ -191,7 +191,8 @@
                                            step="0.01" 
                                            x-model="itemQty" 
                                            min="0.01" 
-                                           class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 font-bold text-slate-900">
+                                           inputmode="decimal"
+                                           class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 font-bold text-slate-900">
                                     <span class="text-xs font-semibold text-slate-500" x-text="selectedComp.uom"></span>
                                 </div>
                             </div>
@@ -221,7 +222,7 @@
 
                             <button type="button" 
                                     @click="addItemToTable()" 
-                                    class="w-full py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg shadow-sm transition">
+                                    class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition touch-target">
                                 + Masukkan ke Daftar
                             </button>
                         </div>
@@ -231,7 +232,7 @@
                 <div x-show="errorMessage" style="display: none;" class="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl" x-text="errorMessage"></div>
             </div>
 
-            <!-- Section 3: Staged Line Items Table -->
+            <!-- Section 3: Staged Line Items Table & Mobile List -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                     <div>
@@ -241,7 +242,41 @@
                     <span class="text-xs font-bold text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full" x-text="items.length + ' Item Terdaftar'"></span>
                 </div>
 
-                <div class="overflow-x-auto">
+                <!-- Mobile Staged Items (< md screens) -->
+                <div class="block md:hidden p-4 space-y-3">
+                    <template x-for="(item, idx) in items" :key="idx">
+                        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center space-x-2.5">
+                                    <img :src="item.image_url" class="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-white">
+                                    <div>
+                                        <span class="font-mono font-bold text-slate-900 text-xs block" x-text="item.part_number"></span>
+                                        <span class="text-xs font-semibold text-slate-800 line-clamp-1" x-text="item.name"></span>
+                                    </div>
+                                </div>
+                                <button type="button" @click="removeItem(idx)" class="text-rose-600 hover:text-rose-800 text-xs font-bold p-1">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs">
+                                <span class="text-slate-500 font-mono text-[10px]">
+                                    <span x-text="item.from_location_name || 'Gudang'"></span> &rarr; <span x-text="item.to_location_name || 'Lini'"></span>
+                                </span>
+                                <span class="font-extrabold text-slate-900 text-sm">
+                                    <span x-text="item.quantity"></span> <span class="text-xs font-normal text-slate-500" x-text="item.uom"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="items.length === 0">
+                        <div class="py-6 text-center text-slate-400 text-xs">
+                            Belum ada komponen di dalam daftar. Scan barcode atau cari komponen di atas untuk menambahkan.
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Desktop Staged Table (>= md screens) -->
+                <div class="hidden md:block overflow-x-auto">
                     <table class="w-full text-left text-xs text-slate-600">
                         <thead class="bg-slate-50/50 text-[11px] uppercase tracking-wider text-slate-400 font-semibold border-b border-slate-200">
                             <tr>
@@ -294,8 +329,8 @@
             </div>
 
             <!-- Submit Section -->
-            <div class="flex items-center justify-end space-x-3 pt-3">
-                <a href="{{ route('transactions.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:space-x-3 pt-3">
+                <a href="{{ route('transactions.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition text-center">
                     Batal
                 </a>
                 <button type="submit" 

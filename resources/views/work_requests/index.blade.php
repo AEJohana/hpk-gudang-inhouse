@@ -16,14 +16,14 @@
                 </p>
             </div>
 
-            <div class="flex items-center space-x-3">
-                <a href="{{ route('work-station-supplies.create') }}" class="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-xl shadow-xs transition flex items-center">
+            <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                <a href="{{ route('work-station-supplies.create') }}" class="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-xl shadow-xs transition flex items-center">
                     <i class="fa-solid fa-truck-ramp-box me-1.5 text-sm"></i>
-                    Supply Stasiun Kerja
+                    Supply Stasiun
                 </a>
-                <a href="{{ route('work-requests.create') }}" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center">
+                <a href="{{ route('work-requests.create') }}" class="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center">
                     <i class="fa-solid fa-plus me-1.5"></i>
-                    Buat Work Request Baru
+                    Order Baru
                 </a>
             </div>
         </div>
@@ -150,9 +150,82 @@
             </form>
         </div>
 
-        <!-- 4. WORK REQUESTS TABLE -->
+        <!-- 4. WORK REQUESTS (DUAL-MODE: MOBILE CARDS & DESKTOP TABLE) -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div class="overflow-x-auto">
+            <!-- Mobile Work Request Cards (< md screens) -->
+            <div class="block md:hidden p-4 space-y-3">
+                @forelse($workRequests as $wri)
+                <div class="mobile-data-card space-y-3 border border-slate-200">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="font-mono font-bold text-xs text-slate-900 block">{{ $wri->wri_number }}</span>
+                            <span class="text-[10px] text-slate-400 font-medium">{{ $wri->created_at->format('d M Y, H:i') }}</span>
+                            @if($wri->spk_reference)
+                                <span class="inline-block mt-0.5 px-2 py-0.2 rounded bg-slate-100 font-mono text-[9px] text-slate-600 font-semibold">
+                                    {{ $wri->spk_reference }}
+                                </span>
+                            @endif
+                        </div>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $wri->status_badge['class'] }}">
+                            {{ $wri->status_badge['label'] }}
+                        </span>
+                    </div>
+
+                    <!-- Component info -->
+                    <div class="flex items-center space-x-3 p-2 bg-slate-50 rounded-xl">
+                        <img src="{{ $wri->component?->image_url ?? asset('images/logo_hpk.webp') }}" class="w-12 h-12 rounded-lg object-cover border border-slate-200 bg-white flex-shrink-0">
+                        <div class="min-w-0 flex-1">
+                            <span class="font-bold text-slate-900 text-xs block truncate">{{ $wri->component?->name ?? 'Komponen' }}</span>
+                            <span class="font-mono text-[10px] font-semibold text-amber-900 bg-amber-100/70 px-1.5 py-0.2 rounded inline-block">
+                                {{ $wri->component?->part_number ?? '-' }}
+                            </span>
+                            <div class="text-[11px] font-extrabold text-slate-900 mt-1">
+                                Qty: {{ number_format($wri->quantity_requested, 0) }} {{ $wri->component?->uom ?? 'PCS' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Routing Progress -->
+                    <div>
+                        <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium mb-1">
+                            <span>Alur Mesin ({{ $wri->steps->count() }} Proses):</span>
+                            <span>{{ $wri->progress_percentage }}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-gradient-to-r from-blue-500 to-emerald-500 h-1.5 rounded-full" style="width: {{ $wri->progress_percentage }}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Target Rack & Actions -->
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                        <div>
+                            <span class="text-[10px] text-slate-400 block uppercase font-bold">Target Rak:</span>
+                            <span class="font-mono font-bold text-blue-900 text-[11px]">
+                                {{ $wri->target_specific_location_code ?: 'Belum ditentukan' }}
+                            </span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            @if($wri->status === 'ready_for_warehouse')
+                                <a href="{{ route('work-requests.show', $wri) }}#putaway-modal" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xs transition">
+                                    <i class="fa-solid fa-boxes-packing me-1"></i> Terima
+                                </a>
+                            @endif
+                            <a href="{{ route('work-requests.show', $wri) }}" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
+                                Detail &rarr;
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                @empty
+                <div class="py-10 text-center text-slate-400">
+                    <i class="fa-solid fa-industry text-3xl mb-2 text-slate-300 block"></i>
+                    Belum ada data Work Request Inhouse.
+                </div>
+                @endforelse
+            </div>
+
+            <!-- Desktop Table (>= md screens) -->
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-left text-xs text-slate-600">
                     <thead class="bg-slate-50/70 text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200">
                         <tr>
