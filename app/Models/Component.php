@@ -19,6 +19,9 @@ class Component extends Model
         'category',
         'component_category_id',
         'uom',
+        'length_mm',
+        'width_or_diameter_mm',
+        'thickness_or_height_mm',
         'uom_id',
         'specification',
         'minimum_stock',
@@ -74,7 +77,34 @@ class Component extends Model
 
     public function getIsLowStockAttribute(): bool
     {
+        if (empty($this->minimum_stock) || $this->minimum_stock <= 0) {
+            return false;
+        }
         return $this->total_stock <= $this->minimum_stock;
+    }
+
+    public function getHasLocationAttribute(): bool
+    {
+        return !empty($this->default_location_id);
+    }
+
+    public function getDimensionFormattedAttribute(): string
+    {
+        $parts = [];
+        if (!is_null($this->length_mm) && trim((string)$this->length_mm) !== '') {
+            $p = trim((string)$this->length_mm);
+            $parts[] = 'P: ' . (is_numeric(str_replace(',', '.', $p)) ? $p . 'mm' : $p);
+        }
+        if (!is_null($this->width_or_diameter_mm) && trim((string)$this->width_or_diameter_mm) !== '') {
+            $ld = trim((string)$this->width_or_diameter_mm);
+            $parts[] = 'L/D: ' . (is_numeric(str_replace(',', '.', $ld)) ? $ld . 'mm' : $ld);
+        }
+        if (!is_null($this->thickness_or_height_mm) && trim((string)$this->thickness_or_height_mm) !== '') {
+            $t = trim((string)$this->thickness_or_height_mm);
+            $parts[] = 'T: ' . (is_numeric(str_replace(',', '.', $t)) ? $t . 'mm' : $t);
+        }
+
+        return !empty($parts) ? implode(' x ', $parts) : '-';
     }
 
     public function getDefaultFullLocationCodeAttribute(): string
@@ -91,14 +121,24 @@ class Component extends Model
 
     public function getCategoryLabelAttribute(): string
     {
+        if (empty($this->category)) {
+            return 'Belum Dikategorikan';
+        }
+
         return match($this->category) {
+            'subframe' => 'Subframe',
+            'assy' => 'Assy',
+            'accessories' => 'Aksesoris',
+            'pto' => 'PTO',
+            'potong_chassis' => 'Potong Chassis',
+            'spo' => 'SPO',
+            // Legacy fallbacks
             'hydraulic' => 'Komponen Hidrolik & Presisi',
             'raw_material' => 'Raw Material Baja',
             'fastener' => 'Hardware & Fastener',
-            'accessories' => 'Aksesoris Karoseri',
             'electrical' => 'Electrical & Lighting',
             'chemical_paint' => 'Chemical & Cat',
-            default => ucfirst(str_replace('_', ' ', $this->category ?? 'Lainnya')),
+            default => ucfirst(str_replace('_', ' ', $this->category)),
         };
     }
 
@@ -116,9 +156,20 @@ class Component extends Model
 
     public function getImageUrlAttribute(): string
     {
-        if ($this->image_path && file_exists(public_path($this->image_path))) {
-            return asset($this->image_path);
+        if ($this->image_path) {
+            if (str_starts_with($this->image_path, 'http://') || str_starts_with($this->image_path, 'https://')) {
+                // If Google Drive link, convert to direct thumbnail URL
+                if (preg_match('/(?:id=|file\/d\/)([a-zA-Z0-9_-]+)/', $this->image_path, $matches)) {
+                    return "https://drive.google.com/thumbnail?id={$matches[1]}&sz=w800";
+                }
+                return $this->image_path;
+            }
+
+            if (file_exists(public_path($this->image_path))) {
+                return asset($this->image_path);
+            }
         }
+
         return asset('images/placeholder_part.svg');
     }
 }

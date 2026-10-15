@@ -244,4 +244,42 @@ class Location extends Model
             'color' => 'blue',
         ]);
     }
+
+    /**
+     * Ensure the special holding location exists for components without assigned racks.
+     */
+    public static function ensureUnassignedLocationExists(): self
+    {
+        $existing = self::where('rack_code', 'HOLDING')
+            ->orWhere('rack_number', 'Belum Ditempatkan ke Rak')
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        $warehouse = Warehouse::ensureDefaultWarehouseExists();
+        $zone = Zone::where('warehouse_id', $warehouse->id)->first();
+
+        return self::create([
+            'warehouse_id' => $warehouse->id,
+            'zone_id' => $zone?->id,
+            'zone_code' => $zone?->code ?: '1',
+            'zone_name' => 'Area Penampungan Awal',
+            'aisle' => 'Holding Area',
+            'rack_number' => 'Belum Ditempatkan ke Rak',
+            'storage_type' => 'pallet',
+            'rack_code' => 'HOLDING',
+            'bin_level' => 'Lantai Transit',
+            'total_levels' => 1,
+            'slots_per_level' => 1,
+            'description' => 'Penampungan Sementara Material Baru - Belum Dialokasikan ke Rak Fisik (Harus Segera Ditempatkan)',
+            'max_capacity' => 9999,
+            'grid_x' => 1,
+            'grid_y' => 1,
+            'grid_w' => 1,
+            'grid_h' => 1,
+            'color' => 'amber',
+        ]);
+    }
 }

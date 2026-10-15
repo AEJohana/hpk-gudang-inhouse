@@ -32,13 +32,13 @@
                     </div>
                     <input id="email" 
                            class="block w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-xs font-medium transition" 
-                           type="email" 
+                           type="text" 
                            name="email" 
-                           value="{{ old('email', 'admin@hydraxle.com') }}" 
+                           value="{{ old('email', 'admin') }}" 
                            required 
                            autofocus 
                            autocomplete="username" 
-                           placeholder="nama@hydraxle.com" />
+                           placeholder="Username atau email" />
                 </div>
                 <x-input-error :messages="$errors->get('email')" class="mt-1" />
             </div>

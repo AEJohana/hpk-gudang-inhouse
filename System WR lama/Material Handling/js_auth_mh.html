@@ -1,0 +1,75 @@
+<script>
+  function handleLogin() {
+    const u = document.getElementById('loginUsername').value;
+    const p = document.getElementById('loginPassword').value;
+    const btn = document.querySelector('.btn-signin');
+
+    if (!u || !p) { showResultModal(false, "Data Belum Lengkap", "Harap isi username dan password terlebih dahulu."); return; }
+    btn.innerText = "Checking..."; btn.disabled = true;
+
+    google.script.run.withSuccessHandler(function (res) {
+      btn.innerText = "Log In"; btn.disabled = false;
+      if (!res) {
+        showResultModal(false, "Koneksi Bermasalah", "Gagal menghubungi server. Silakan coba lagi.");
+        return;
+      }
+
+      if (res.status === 'success') {
+        currentUser = res.username; currentDept = res.dept; currentFoto = res.foto;
+        currentAccess = res.access || []; currentAccessCodes = res.accessCodes || [];
+
+        localStorage.setItem('appSessionMH', JSON.stringify({
+          username: currentUser, dept: currentDept, foto: currentFoto, access: currentAccess, accessCodes: currentAccessCodes
+        }));
+
+        try { updateUserUI(); } catch (e) { console.log("UI Update error: " + e); }
+        navigateTo('pageHome');
+      } else {
+        const loginCard = document.querySelector('.glass-card');
+        if (loginCard) {
+          loginCard.classList.remove('shake-animation');
+          void loginCard.offsetWidth;
+          loginCard.classList.add('shake-animation');
+        }
+        showResultModal(false, "Akses Ditolak!", "Username atau Password salah.<br>Silakan cek kembali.");
+      }
+    }).withFailureHandler(function (err) {
+      btn.innerText = "Log In"; btn.disabled = false;
+      showResultModal(false, "System Error", "Terjadi Kesalahan Sistem:<br>" + err);
+    }).checkLogin(u, p);
+  }
+
+  function updateUserUI() {
+    document.getElementById('sidebarName').innerText = currentUser;
+    document.getElementById('sidebarDept').innerText = currentDept;
+    document.getElementById('sidebarPhoto').src = currentFoto;
+
+    document.querySelectorAll('.display-name').forEach(el => el.innerText = currentUser);
+    document.querySelectorAll('.display-dept').forEach(el => el.innerText = currentDept);
+    document.querySelectorAll('.display-photo').forEach(el => el.src = currentFoto);
+  }
+
+  function confirmSignOut() {
+    const sb = document.getElementById('sidebar');
+    if (sb.classList.contains('active')) toggleSidebar();
+    document.getElementById('signOutModal').style.display = 'flex';
+  }
+  function closeSignOutModal() { document.getElementById('signOutModal').style.display = 'none'; }
+
+  function processSignOut() {
+    closeSignOutModal();
+    currentUser = ""; currentDept = ""; currentFoto = ""; currentAccess = []; currentAccessCodes = [];
+    localStorage.removeItem('appSessionMH'); localStorage.removeItem('lastPageMH');
+
+    const loginCard = document.querySelector('.glass-card');
+    if (loginCard) loginCard.classList.remove('shake-animation');
+    document.getElementById('loginUsername').value = "";
+    document.getElementById('loginPassword').value = "";
+
+    navigateTo('pageLogin');
+
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && sidebar.classList.contains('active')) toggleSidebar();
+  }
+
+</script>

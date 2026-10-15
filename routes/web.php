@@ -31,6 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('components', ComponentController::class);
     Route::get('/components/{component}/qr-label', [ComponentController::class, 'printQrLabel'])->name('components.qr-label');
     Route::get('/api/components/search', [ComponentController::class, 'searchApi'])->name('api.components.search');
+    Route::post('/api/components/quick-store', [ComponentController::class, 'quickStore'])->name('api.components.quick-store');
 
     // 3. Transaksi Komponen (Inbound, Outbound, Transfer, Return)
     Route::resource('transactions', TransactionController::class)->only(['index', 'create', 'store', 'show']);
@@ -67,13 +68,64 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/locations/{location}', [LocationController::class, 'show'])->name('locations.show');
 
     // 8. Work Request Inhouse (Order ke Machine Center & Routing Multi-Mesin)
-    Route::resource('work-requests', \App\Http\Controllers\WorkRequestController::class)->only(['index', 'create', 'store', 'show']);
-    Route::post('/work-requests/{workRequest}/steps/{step}/advance', [\App\Http\Controllers\WorkRequestController::class, 'advanceStep'])->name('work-requests.advance-step');
-    Route::post('/work-requests/{workRequest}/receive', [\App\Http\Controllers\WorkRequestController::class, 'receive'])->name('work-requests.receive');
+    Route::middleware(['can:work-request.view'])->group(function () {
+        // Tab Khusus Safety Stock & Monitoring SLA
+        Route::get('/work-requests/safety-stock', [\App\Http\Controllers\WorkRequestController::class, 'safetyStock'])
+            ->middleware('can:work-request.safety-stock')
+            ->name('work-requests.safety-stock');
+        Route::get('/work-requests/monitoring', [\App\Http\Controllers\WorkRequestController::class, 'monitoring'])
+            ->middleware('can:work-request.monitoring')
+            ->name('work-requests.monitoring');
 
-    // 9. Supply Komponen ke Stasiun Kerja / Lini Perakitan Karoseri
-    Route::get('/work-station-supplies/create', [\App\Http\Controllers\WorkStationSupplyController::class, 'create'])->name('work-station-supplies.create');
-    Route::post('/work-station-supplies', [\App\Http\Controllers\WorkStationSupplyController::class, 'store'])->name('work-station-supplies.store');
+        // CRUD Work Requests
+        Route::get('/work-requests', [\App\Http\Controllers\WorkRequestController::class, 'index'])->name('work-requests.index');
+        Route::get('/work-requests/create', [\App\Http\Controllers\WorkRequestController::class, 'create'])
+            ->middleware('can:work-request.create')
+            ->name('work-requests.create');
+        Route::post('/work-requests', [\App\Http\Controllers\WorkRequestController::class, 'store'])
+            ->middleware('can:work-request.create')
+            ->name('work-requests.store');
+        Route::get('/work-requests/{workRequest}', [\App\Http\Controllers\WorkRequestController::class, 'show'])->name('work-requests.show');
+        Route::get('/work-requests/{workRequest}/print-sheet', [\App\Http\Controllers\WorkRequestController::class, 'printSheet'])
+            ->middleware('can:work-request.print')
+            ->name('work-requests.print-sheet');
+
+        // Approval Workflow Ka. Bagian
+        Route::post('/work-requests/{workRequest}/approve-pengaju', [\App\Http\Controllers\WorkRequestController::class, 'approvePengaju'])
+            ->middleware('can:work-request.approve')
+            ->name('work-requests.approve-pengaju');
+        Route::post('/work-requests/{workRequest}/approve-penerima', [\App\Http\Controllers\WorkRequestController::class, 'approvePenerima'])
+            ->middleware('can:work-request.approve')
+            ->name('work-requests.approve-penerima');
+        Route::post('/work-requests/{workRequest}/reject', [\App\Http\Controllers\WorkRequestController::class, 'reject'])
+            ->middleware('can:work-request.approve')
+            ->name('work-requests.reject');
+
+        // Eksekusi Pengerjaan Mesin & Defect
+        Route::post('/work-requests/{workRequest}/steps/{step}/advance', [\App\Http\Controllers\WorkRequestController::class, 'advanceStep'])
+            ->middleware('can:work-request.process')
+            ->name('work-requests.advance-step');
+        Route::post('/work-requests/{workRequest}/process-action', [\App\Http\Controllers\WorkRequestController::class, 'processAction'])
+            ->middleware('can:work-request.process')
+            ->name('work-requests.process-action');
+        Route::post('/work-requests/{workRequest}/receive', [\App\Http\Controllers\WorkRequestController::class, 'receive'])
+            ->name('work-requests.receive');
+    });
+
+    // 9. Material Handling & Supply Komponen Stasiun Kerja (Pusat Logistik Lapangan)
+    Route::middleware(['can:material-handling.view'])->group(function () {
+        Route::get('/work-station-supplies', [\App\Http\Controllers\WorkStationSupplyController::class, 'index'])->name('work-station-supplies.index');
+        Route::get('/work-station-supplies/scan-lookup', [\App\Http\Controllers\WorkStationSupplyController::class, 'scanLookup'])->name('work-station-supplies.scan-lookup');
+        Route::post('/work-station-supplies/quick-action', [\App\Http\Controllers\WorkStationSupplyController::class, 'quickAction'])
+            ->middleware('can:material-handling.manage')
+            ->name('work-station-supplies.quick-action');
+        Route::get('/work-station-supplies/create', [\App\Http\Controllers\WorkStationSupplyController::class, 'create'])
+            ->middleware('can:material-handling.manage')
+            ->name('work-station-supplies.create');
+        Route::post('/work-station-supplies', [\App\Http\Controllers\WorkStationSupplyController::class, 'store'])
+            ->middleware('can:material-handling.manage')
+            ->name('work-station-supplies.store');
+    });
 
     // User Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

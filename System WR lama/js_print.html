@@ -1,0 +1,165 @@
+<script>
+  function loadPrintWRData() {
+    const loading = document.getElementById('loadingPrint');
+    const empty = document.getElementById('emptyPrint');
+    const containerPending = document.getElementById('containerPending');
+    const containerDone = document.getElementById('containerDone');
+    const tbodyPending = document.getElementById('printTableBodyPending');
+    const tbodyDone = document.getElementById('printTableBodyDone');
+
+    loading.style.display = 'block'; empty.style.display = 'none';
+    containerPending.style.display = 'none'; containerDone.style.display = 'none';
+    tbodyPending.innerHTML = ''; tbodyDone.innerHTML = '';
+
+    google.script.run
+      .withSuccessHandler((data) => {
+        loading.style.display = 'none';
+        printWRList = data || [];
+        filterPrintList();
+      })
+      .withFailureHandler((err) => {
+        loading.style.display = 'none';
+        console.error("Error loading data:", err); alert("Gagal memuat data: " + err);
+      })
+      .getPrintableWRData(getCurrentDeptList());
+  }
+
+  function renderPrintTable(data) {
+    const tbodyPending = document.getElementById('printTableBodyPending');
+    const tbodyDone = document.getElementById('printTableBodyDone');
+    tbodyPending.innerHTML = ''; tbodyDone.innerHTML = '';
+
+    if (data.length === 0) {
+      document.getElementById('emptyPrint').style.display = 'block'; return;
+    } else {
+      document.getElementById('emptyPrint').style.display = 'none';
+      document.getElementById('containerPending').style.display = 'block';
+      document.getElementById('containerDone').style.display = 'block';
+    }
+
+    document.getElementById('totalDocsBadge').innerText = data.length + " Dokumen";
+
+    data.forEach((item, index) => {
+      const isPrinted = item.statusCetak === "Sudah Dicetak";
+      const targetBody = isPrinted ? tbodyDone : tbodyPending;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="text-center"><input class="form-check-input print-checkbox" type="checkbox" data-no-wr="${item.noWR}" onchange="updateBulkPrintButton()"></td>
+        <td><div class="fw-bold text-primary" style="font-size:0.9rem;">${item.noWR}</div><div class="small text-muted"><i class="far fa-calendar-alt me-1"></i>${item.tgl}</div></td>
+        <td><div class="fw-bold text-dark">${item.nama}</div><div class="small text-muted font-monospace bg-light px-2 rounded d-inline-block border">${item.kode}</div></td>
+        <td><div class="small text-muted">Dari: <span class="fw-bold text-dark">${item.pengaju}</span></div><div class="small text-muted">Ke: <span class="fw-bold text-dark">${item.penerima}</span></div></td>
+        <td class="text-end"><button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" onclick="openPrintPreview(${index})"><i class="fas fa-eye me-1"></i> Preview</button></td>
+      `;
+      targetBody.appendChild(tr);
+    });
+  }
+
+  function openPrintPreview(index) {
+    selectedWRToPrint = printWRList[index]; if (!selectedWRToPrint) return;
+    document.getElementById('pdfLoading').style.display = 'block'; document.getElementById('pdfError').style.display = 'none';
+    document.getElementById('pdfFrame').style.display = 'none'; document.getElementById('pdfFrame').src = "";
+    document.getElementById('printPreviewModal').style.display = 'flex';
+
+    google.script.run
+      .withSuccessHandler((res) => {
+        document.getElementById('pdfLoading').style.display = 'none';
+        if (res.status === 'success') { document.getElementById('pdfFrame').src = res.url; document.getElementById('pdfFrame').style.display = 'block'; }
+        else { document.getElementById('pdfError').style.display = 'block'; document.getElementById('pdfErrorMsg').innerText = res.message; }
+      })
+      .withFailureHandler((err) => {
+        document.getElementById('pdfLoading').style.display = 'none'; document.getElementById('pdfError').style.display = 'block'; document.getElementById('pdfErrorMsg').innerText = "Error: " + err;
+      })
+      .getPDFPreviewUrl(selectedWRToPrint.noWR);
+  }
+
+  function closePrintPreviewModal() { document.getElementById('printPreviewModal').style.display = 'none'; }
+
+  function toggleSelectAll(source, tableId) {
+    const checkboxes = document.querySelectorAll(`#${tableId} .print-checkbox`);
+    checkboxes.forEach(cb => cb.checked = source.checked); updateBulkPrintButton();
+  }
+
+  function updateBulkPrintButton() {
+    const count = document.querySelectorAll('.print-checkbox:checked').length;
+    const actionDiv = document.getElementById('bulkPrintAction');
+    const counterSpan = document.getElementById('selectedCount');
+    actionDiv.style.display = count > 0 ? 'block' : 'none'; if (counterSpan) counterSpan.innerText = count;
+  }
+
+  function filterPrintList() {
+    const term = document.getElementById('searchPrint').value.toLowerCase();
+    const dateFilter = document.getElementById('filterPrintDate') ? document.getElementById('filterPrintDate').value : 'all';
+
+    const filtered = printWRList.filter(item => {
+      const matchText = item.noWR.toLowerCase().includes(term) || item.nama.toLowerCase().includes(term);
+      if (!matchText) return false;
+      if (dateFilter === 'all') return true;
+      if (!item.tglRaw) return false;
+
+      const parts = item.tglRaw.split('-'); const itemDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const diffDays = Math.floor((today - itemDate) / (1000 * 60 * 60 * 24));
+
+      if (dateFilter === 'today') return diffDays === 0;
+      else if (dateFilter === 'week') return diffDays >= 0 && diffDays <= 7;
+      else if (dateFilter === 'month') return itemDate.getMonth() === today.getMonth() && itemDate.getFullYear() === today.getFullYear();
+      return true;
+    });
+    renderPrintTable(filtered);
+  }
+
+  function executeBulkPrint() {
+    const selected = document.querySelectorAll('.print-checkbox:checked');
+    const selectedIds = Array.from(selected).map(cb => cb.dataset.noWr);
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Cetak ${selectedIds.length} Work Request TERPILIH menjadi satu file PDF?`)) return;
+
+    const btn = document.querySelector('#bulkPrintAction button');
+    const resetBtn = (origHtml) => { btn.disabled = false; btn.innerHTML = origHtml; };
+    const originalHtml = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
+
+    google.script.run
+      .withSuccessHandler((res) => {
+        resetBtn(originalHtml);
+        if (res.status === 'success') {
+          window.open(res.url, '_blank');
+          document.getElementById('selectAllPending').checked = false; document.getElementById('selectAllDone').checked = false;
+          toggleSelectAll({ checked: false }, 'printTablePending'); toggleSelectAll({ checked: false }, 'printTableDone');
+          setTimeout(loadPrintWRData, 2000);
+        } else { alert("Gagal mencetak: " + res.message); }
+      })
+      .withFailureHandler((err) => { resetBtn(originalHtml); alert("Kesalahan Server: " + err); })
+      .printBulkWR(selectedIds);
+  }
+
+  function executeBulkPreview() {
+    const selected = document.querySelectorAll('.print-checkbox:checked');
+    const selectedIds = Array.from(selected).map(cb => cb.dataset.noWr);
+    if (selectedIds.length === 0) return;
+
+    document.getElementById('pdfLoading').style.display = 'block'; document.getElementById('pdfError').style.display = 'none';
+    document.getElementById('pdfFrame').style.display = 'none'; document.getElementById('pdfFrame').src = "";
+    document.getElementById('printPreviewModal').style.display = 'flex';
+
+    google.script.run
+      .withSuccessHandler((res) => {
+        document.getElementById('pdfLoading').style.display = 'none';
+        if (res.status === 'success') { document.getElementById('pdfFrame').src = res.url; document.getElementById('pdfFrame').style.display = 'block'; }
+        else { document.getElementById('pdfError').style.display = 'block'; document.getElementById('pdfErrorMsg').innerText = res.message; }
+      })
+      .withFailureHandler((err) => { document.getElementById('pdfLoading').style.display = 'none'; document.getElementById('pdfError').style.display = 'block'; document.getElementById('pdfErrorMsg').innerText = "Error: " + err; })
+      .getBulkPDFPreviewUrl(selectedIds);
+  }
+
+  function executePrint() {
+    if (!selectedWRToPrint) return;
+    const btn = document.getElementById('btnPrintConfirm');
+    const resetBtn = (origHtml) => { btn.disabled = false; btn.innerHTML = origHtml; };
+    const originalHtml = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+
+    google.script.run
+      .withSuccessHandler((res) => { resetBtn(originalHtml); if (res.status === 'success') { window.open(res.url, '_blank'); closePrintPreviewModal(); } else alert(res.message); })
+      .withFailureHandler((err) => { resetBtn(originalHtml); alert("Gagal: " + err); })
+      .printWR(selectedWRToPrint.noWR);
+  }
+</script>

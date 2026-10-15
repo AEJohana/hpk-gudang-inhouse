@@ -1,0 +1,465 @@
+<script>
+  function renderDeptPenerimaOptions() {
+    if (typeof allDeptList === 'undefined' || !allDeptList) return; // Safety check jika data belum siap
+    const resultsDiv = document.getElementById('deptResults');
+    const input = document.getElementById('deptPenerima');
+    const btnClear = document.getElementById('btnClearPenerima');
+    resultsDiv.innerHTML = '';
+
+    const deptPengajuEl = document.getElementById('deptPengaju');
+    const selectedPengaju = deptPengajuEl ? deptPengajuEl.value : currentDept;
+    const filteredList = allDeptList.filter(dept => String(dept).trim().toLowerCase() !== String(selectedPengaju).trim().toLowerCase());
+
+    filteredList.forEach(function (dept) {
+      const div = document.createElement('div');
+      div.className = 'result-item'; div.innerText = dept;
+      div.onclick = function (e) { e.stopPropagation(); addRecipient(dept); };
+      resultsDiv.appendChild(div);
+    });
+
+    const closeDiv = document.createElement('div');
+    closeDiv.className = 'result-item text-center text-muted fst-italic small';
+    closeDiv.style.borderTop = "1px solid #eee"; closeDiv.innerText = 'Selesai Memilih (Tutup)';
+    closeDiv.onclick = function () { resultsDiv.style.display = 'none'; };
+    resultsDiv.appendChild(closeDiv);
+
+    input.onclick = function (e) {
+      const compIdx = document.getElementById('selectedComponentIndex').value;
+      if (compIdx === "" && !isNewComponentMode) {
+        alert("Silahkan cari dan pilih Komponen terlebih dahulu sebelum menentukan Penerima.");
+        return;
+      }
+      if (input.classList.contains('locked-auto')) return;
+
+      e.stopPropagation();
+      document.querySelectorAll('.dropdown-results').forEach(el => { if (el.id !== 'deptResults') el.style.display = 'none'; });
+      document.querySelectorAll('.search-container').forEach(el => el.style.zIndex = "10");
+
+      const container = input.closest('.search-container');
+      const isHidden = (resultsDiv.style.display === 'none' || resultsDiv.style.display === '');
+      resultsDiv.style.display = isHidden ? 'block' : 'none';
+      if (container) container.style.zIndex = isHidden ? "100" : "10";
+    };
+  }
+
+  function addRecipient(dept) { selectedRecipients.push(dept); updateRecipientDisplay(); }
+  function updateRecipientDisplay() {
+    const input = document.getElementById('deptPenerima');
+    if (selectedRecipients.length === 0) input.value = "";
+    else {
+      input.value = selectedRecipients.join(" - ");
+      // Hapus notifikasi error jika field sudah diisi
+      input.classList.remove('is-invalid');
+    }
+  }
+  function clearRecipients() {
+    const input = document.getElementById('deptPenerima');
+    selectedRecipients = []; updateRecipientDisplay();
+  }
+
+  function formatDimension(inputId) {
+    const input = document.getElementById(inputId);
+    input.value = input.value.padStart(3, '0');
+  }
+
+  function setupCustomDropdown(inputId, resultsId, items) {
+    const input = document.getElementById(inputId);
+    const results = document.getElementById(resultsId);
+    const container = input.closest('.search-container');
+
+    // Fungsi render list dengan filter
+    const renderList = (filterText = "") => {
+      results.innerHTML = '';
+      const filtered = items.filter(item => item.toLowerCase().includes(filterText.toLowerCase()));
+
+      filtered.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        div.innerHTML = `<span class="fw-bold text-dark" style="font-size:0.9rem;">${item}</span>`;
+        div.onclick = function () { input.value = item; results.style.display = 'none'; };
+        results.appendChild(div);
+      });
+    };
+
+    // Event saat mengetik (Filter)
+    input.oninput = function () {
+      renderList(this.value);
+      results.style.display = 'block';
+      if (container) container.style.zIndex = "100";
+    };
+
+    // Event saat diklik (Tampilkan semua/sesuai isi)
+    input.onclick = function (e) {
+      e.stopPropagation();
+      document.querySelectorAll('.dropdown-results').forEach(el => {
+        if (el.id !== resultsId) {
+          el.style.display = 'none';
+          if (el.closest('.search-container')) el.closest('.search-container').style.zIndex = "10";
+        }
+      });
+
+      renderList(input.value);
+      results.style.display = 'block';
+      if (container) container.style.zIndex = "100";
+    };
+  }
+
+  function filterComponents(keyword) {
+    const resultsDiv = document.getElementById('searchResults');
+
+    // --- Fix Z-Index: Pastikan dropdown komponen muncul paling atas ---
+    const container = document.getElementById('searchKomponen').closest('.search-container');
+    if (container) {
+      document.querySelectorAll('.search-container').forEach(el => el.style.zIndex = "10");
+      container.style.zIndex = "100";
+    }
+
+    resultsDiv.innerHTML = '';
+    let filtered = [];
+    if (dbKomponen && dbKomponen.length > 0) {
+      filtered = dbKomponen.map((item, index) => ({ item, index }))
+        .filter(obj => {
+          const term = keyword.toLowerCase();
+          return obj.item.nama.toLowerCase().includes(term) || String(obj.item.kode).toLowerCase().includes(term);
+        });
+    }
+
+    if (filtered.length > 0 && keyword.trim() !== "") {
+      filtered.forEach(obj => {
+        const div = document.createElement('div');
+        div.className = 'result-item'; div.onclick = () => selectComponent(obj.index);
+        div.innerHTML = `<span class="result-code">${obj.item.kode}</span><span class="result-name">${obj.item.nama}</span>`;
+        resultsDiv.appendChild(div);
+      });
+    }
+
+    const divAdd = document.createElement('div');
+    divAdd.className = 'result-item text-center text-primary fw-bold';
+    divAdd.style.borderTop = "2px dashed #eee";
+    divAdd.innerHTML = '<i class="fas fa-plus me-2"></i> Tambah Komponen Baru';
+    divAdd.onclick = () => switchToNewComponentMode();
+    resultsDiv.appendChild(divAdd);
+    resultsDiv.style.display = 'block';
+  }
+
+  function selectComponent(index) {
+    const item = dbKomponen[index];
+    document.getElementById('selectedComponentIndex').value = index;
+    document.getElementById('searchKomponen').value = item.nama;
+    document.getElementById('searchResults').style.display = 'none';
+    updateFields();
+  }
+
+  function switchToNewComponentMode() {
+    document.getElementById('searchResults').style.display = 'none';
+    document.querySelector('.desc-card').style.display = 'none';
+    document.getElementById('newComponentForm').style.display = 'block';
+    isNewComponentMode = true;
+    document.getElementById('searchKomponen').value = "Input Komponen Baru";
+    document.getElementById('selectedComponentIndex').value = "NEW";
+    document.getElementById('deptPenerima').style.backgroundColor = "white";
+
+    // Pastikan tombol edit di card tersembunyi saat awal buka form
+    const btnEdit = document.getElementById('btnEditNewComponent');
+    if (btnEdit) btnEdit.style.display = 'none';
+  }
+
+  function previewNewComponent() {
+    const nama = document.getElementById('newNamaKomponen').value;
+    const p = document.getElementById('newPanjang').value;
+    const l = document.getElementById('newLebar').value;
+    const t = document.getElementById('newTinggi').value;
+    const fileInput = document.getElementById('newFoto');
+
+    if (!nama) { alert("Nama Komponen wajib diisi!"); return; }
+    if (!p || !l || !t) { alert("Dimensi (P, L, T) wajib diisi!"); return; }
+
+    // Update UI Card (Kartu Deskripsi)
+    document.getElementById('displayNama').innerText = nama;
+    document.getElementById('displayKode').innerText = "KOMPONEN BARU"; // Trigger Observer untuk menampilkan kartu
+    document.getElementById('displayDimensi').innerText = `${p}x${l}x${t}`;
+    document.getElementById('displayRouting').innerText = "Routing Belum Ada";
+
+    // Handle Image Preview
+    const img = document.getElementById('prevImg');
+    const imgText = document.getElementById('imgText');
+
+    if (fileInput.files && fileInput.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        img.src = e.target.result;
+        img.style.display = 'block';
+        imgText.style.display = 'none';
+      }
+      reader.readAsDataURL(fileInput.files[0]);
+    } else {
+      img.style.display = 'none';
+      imgText.style.display = 'block';
+    }
+
+    // --- UPDATE UI: Sembunyikan Form, Tampilkan Card Preview & Tombol Edit ---
+    document.getElementById('newComponentForm').style.display = 'none';
+    document.querySelector('.desc-card').style.display = 'block';
+
+    const btnEdit = document.getElementById('btnEditNewComponent');
+    if (btnEdit) btnEdit.style.display = 'block';
+
+    // Scroll ke kartu agar user melihat previewnya
+    document.querySelector('.desc-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // FUNGSI BARU: Kembali ke Mode Edit (Munculkan Form Lagi)
+  function editNewComponentMode() {
+    document.querySelector('.desc-card').style.display = 'none';
+    document.getElementById('newComponentForm').style.display = 'block';
+    // Scroll balik ke form
+    document.getElementById('newComponentForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function cancelNewComponentMode() {
+    document.getElementById('newComponentForm').style.display = 'none';
+
+    // Reset tampilan kartu deskripsi ke default (Kosong)
+    document.getElementById('displayNama').innerText = "Nama Komponen";
+    document.getElementById('displayKode').innerText = "XXXXXXXXXXXX";
+    document.getElementById('displayDimensi').innerText = "P x L x T";
+    document.getElementById('displayRouting').innerText = "-";
+    document.getElementById('prevImg').style.display = "none";
+    document.getElementById('imgText').style.display = "block";
+
+    // Sembunyikan tombol edit
+    const btnEdit = document.getElementById('btnEditNewComponent');
+    if (btnEdit) btnEdit.style.display = 'none';
+
+    // Biarkan observer di Index.html yang menghandle hide/show desc-card berdasarkan displayKode
+    // Tapi kita set display block dulu agar transisi reset terlihat wajar atau langsung hide via observer
+    document.querySelector('.desc-card').style.display = 'none';
+
+    isNewComponentMode = false;
+    document.getElementById('newNamaKomponen').value = "";
+    document.getElementById('newPanjang').value = "";
+    document.getElementById('newLebar').value = "";
+    document.getElementById('newTinggi').value = "";
+    document.getElementById('newMaterial').value = "";
+    document.getElementById('searchKomponen').value = "";
+    document.getElementById('selectedComponentIndex').value = "";
+    document.getElementById('deptPenerima').style.backgroundColor = "#e9ecef";
+    clearRecipients();
+  }
+
+  function updateFields() {
+    let idx = document.getElementById('selectedComponentIndex').value;
+    if (idx !== "") {
+      let item = dbKomponen[idx];
+      document.getElementById('kodeKomponen').value = item.kode;
+      document.getElementById('routing').value = item.routing;
+      document.getElementById('dimensi').value = item.dimensi;
+      document.getElementById('linkGambar').value = item.gambar;
+
+      document.getElementById('displayNama').innerText = item.nama;
+      document.getElementById('displayKode').innerText = item.kode;
+      document.getElementById('displayDimensi').innerText = item.dimensi;
+      document.getElementById('displayRouting').innerText = item.routing;
+
+      const inputPenerima = document.getElementById('deptPenerima');
+      const btnClear = document.getElementById('btnClearPenerima');
+
+      if (item.dept && item.dept !== "") {
+        selectedRecipients = item.dept.split(/,| - /).map(d => d.trim());
+        updateRecipientDisplay();
+        inputPenerima.classList.remove('locked-auto');
+        inputPenerima.style.backgroundColor = "white";
+        if (btnClear) btnClear.style.display = 'block';
+      } else {
+        selectedRecipients = [];
+        updateRecipientDisplay();
+        inputPenerima.classList.remove('locked-auto');
+        inputPenerima.style.backgroundColor = "white";
+        if (btnClear) btnClear.style.display = 'block';
+      }
+
+      let img = document.getElementById('prevImg');
+      let imgId = item.gambar.split('id=')[1];
+      if (imgId) {
+        img.src = "https://lh3.googleusercontent.com/d/" + imgId;
+        img.style.display = "block";
+        document.getElementById('imgText').style.display = "none";
+      }
+    }
+  }
+
+  document.getElementById('wrForm').onsubmit = function (e) {
+    e.preventDefault();
+
+    // --- VALIDASI BARU DENGAN INLINE FEEDBACK ---
+    let allValid = true;
+    ['searchKomponen', 'deptPenerima', 'qty'].forEach(id => document.getElementById(id).classList.remove('is-invalid'));
+
+    // 1. Validasi Komponen
+    if (document.getElementById('selectedComponentIndex').value === "" && !isNewComponentMode) {
+      alert("Silahkan cari dan pilih komponen terlebih dahulu!");
+      document.getElementById('searchKomponen').classList.add('is-invalid');
+      allValid = false;
+    }
+
+    // 2. Validasi Dept Penerima
+    const deptPenerimaInput = document.getElementById('deptPenerima');
+    if (!deptPenerimaInput.value.trim()) {
+      deptPenerimaInput.classList.add('is-invalid');
+      allValid = false;
+    }
+
+    // 3. Validasi Qty
+    const qtyInput = document.getElementById('qty');
+    if (!qtyInput.value || parseFloat(qtyInput.value) <= 0) {
+      qtyInput.classList.add('is-invalid');
+      allValid = false;
+    }
+
+    if (!allValid) {
+      const firstInvalid = document.querySelector('.is-invalid');
+      if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // Jika semua valid, lanjutkan proses
+    const deptPengaju = document.getElementById('deptPengaju').value;
+    const deptPenerima = deptPenerimaInput.value;
+    const tglOrder = document.getElementById('tglOrder').value;
+    const qty = qtyInput.value;
+    const deskripsi = document.getElementById('deskripsi').value;
+
+    if (isNewComponentMode) {
+      const namaKomponen = document.getElementById('newNamaKomponen').value;
+      const m = document.getElementById('newMaterial').value;
+      const p = document.getElementById('newPanjang').value;
+      const l = document.getElementById('newLebar').value;
+      const t = document.getElementById('newTinggi').value;
+      const fileInput = document.getElementById('newFoto');
+      const file = fileInput.files[0];
+
+      if (!namaKomponen || !p || !l || !t) {
+        alert("Harap lengkapi Nama Komponen dan Dimensi (P, L, T)!"); return;
+      }
+
+      const dimCombined = `${p}x${l}x${t}`;
+      const processSave = (base64Img) => {
+        const newData = {
+          nama: namaKomponen, material: m, panjang: p, lebar: l, tinggi: t, dimensi: dimCombined,
+          foto: base64Img, fotoName: file ? file.name : "foto_komponen.jpg"
+        };
+
+        // PERUBAHAN: Tidak langsung kirim ke server (google.script.run)
+        // Tapi simpan ke cart dengan membawa data newData
+        const dimensiBaru = dimCombined;
+
+        try {
+          // Panggil addToCartAndReset dengan parameter tambahan newData
+          addToCartAndReset("BARU", namaKomponen, deptPenerima, dimensiBaru, base64Img, qty, deskripsi, deptPengaju, deptPenerima, tglOrder, currentName, newData);
+          cancelNewComponentMode();
+        } catch (e) {
+          alert("Gagal menyimpan ke list sementara (Memori Penuh?). Coba kurangi resolusi foto atau refresh halaman.\nError: " + e.message);
+        }
+      };
+
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const img = new Image();
+          img.onload = function () {
+            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+            const MAX_SIZE = 800; let width = img.width; let height = img.height;
+            if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } }
+            else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+            canvas.width = width; canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+            processSave(canvas.toDataURL('image/jpeg', 0.7));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        processSave("");
+      }
+    } else {
+      let finalRouting = document.getElementById('routing').value;
+      if (!finalRouting || finalRouting === '-' || finalRouting === '') finalRouting = deptPenerimaInput.value;
+
+      addToCartAndReset(
+        document.getElementById('kodeKomponen').value, document.getElementById('displayNama').innerText,
+        finalRouting, document.getElementById('dimensi').value, document.getElementById('linkGambar').value, qty,
+        deskripsi, deptPengaju, deptPenerimaInput.value, tglOrder, currentName
+      );
+    }
+  };
+
+  function addToCartAndReset(kode, nama, routing, dimensi, gambar, qty, deskripsi, pengaju, penerima, tgl, opPengaju, newComponentData = null) {
+    cartWR.push({
+      namaKomponen: nama, kodeKomponen: kode, routing: routing, dimensi: dimensi, gambar: gambar,
+      qty: qty, deskripsi: deskripsi, deptPengaju: pengaju, deptPenerima: penerima, tglOrder: tgl,
+      opPengaju: opPengaju,
+      newComponentData: newComponentData // Simpan data komponen baru (jika ada)
+    });
+
+    localStorage.setItem('cartWR', JSON.stringify(cartWR)); renderCart();
+
+    document.getElementById('qty').value = ""; document.getElementById('deskripsi').value = "";
+    document.getElementById('searchKomponen').value = ""; document.getElementById('selectedComponentIndex').value = "";
+    document.getElementById('displayNama').innerText = "Nama Komponen"; document.getElementById('displayKode').innerText = "XXXXXXXXXXXX";
+    document.getElementById('displayDimensi').innerText = "P x L x T"; document.getElementById('displayRouting').innerText = "-";
+    document.getElementById('prevImg').style.display = "none"; document.getElementById('imgText').style.display = "block";
+    document.getElementById('kodeKomponen').value = ""; document.getElementById('routing').value = "";
+    document.getElementById('dimensi').value = ""; document.getElementById('linkGambar').value = "";
+    clearRecipients(); document.getElementById('deptPenerima').style.backgroundColor = "#e9ecef";
+    document.getElementById('cartSection').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function renderCart() {
+    const tbody = document.getElementById('cartTableBody');
+    const countSpan = document.getElementById('cartCount');
+    const section = document.getElementById('cartSection');
+
+    tbody.innerHTML = ""; countSpan.innerText = cartWR.length;
+    if (cartWR.length === 0) { section.style.display = "none"; return; }
+    section.style.display = "block";
+
+    cartWR.forEach((item, index) => {
+      const tr = document.createElement('tr');
+
+      // Tampilkan label "BARU" jika item belum punya kode
+      const displayKode = item.newComponentData ? '<span class="badge bg-success">BARU</span>' : item.kodeKomponen;
+
+      tr.innerHTML = `
+      <td><div class="fw-bold">${item.namaKomponen}</div><div class="text-muted" style="font-size:0.8em">${displayKode}</div></td>
+      <td class="text-center align-middle small">${item.deptPenerima}</td>
+      <td class="text-center align-middle">${item.qty}</td>
+      <td class="text-center align-middle"><button class="btn btn-sm btn-danger" onclick="removeFromCart(${index})"><i class="fas fa-trash"></i></button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function removeFromCart(index) {
+    cartWR.splice(index, 1);
+    localStorage.setItem('cartWR', JSON.stringify(cartWR)); renderCart();
+  }
+
+  function processFinalSubmit() {
+    if (cartWR.length === 0) return;
+    const btn = document.querySelector('#cartSection button.btn-success');
+    const originalText = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        showSuccessModal(res);
+        cartWR = []; localStorage.removeItem('cartWR'); renderCart();
+        btn.disabled = false; btn.innerHTML = originalText; navigateTo('pageHome');
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; btn.innerHTML = originalText;
+        // Tampilkan pesan error yang jelas
+        showResultModal(false, "Gagal Mengirim", "Terjadi kesalahan pada server:<br>" + err.message);
+      })
+      .submitBulkWR(cartWR);
+  }
+</script>

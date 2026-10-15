@@ -1,0 +1,1116 @@
+<script>
+  // === STATUS TRANSITION LOGIC ===
+  function calculateNextStatus(current, routing) {
+    const cur = current ? current.trim() : "";
+    const routeStr = routing ? routing.trim() : "";
+
+    if (cur === 'Sudah diambil') return null;
+    if (cur === 'Menuju Pengaju') return 'Sudah diambil';
+    if (cur === 'Siap diambil' || cur === 'Selesai') return 'Menuju Pengaju';
+
+    if (cur === '' || cur === '-' || cur === 'Belum Verifikasi' || cur.toLowerCase() === 'belum verifikasi') return 'Dalam antrian';
+    if (cur.toLowerCase().includes('antrian')) {
+      if (!routeStr || routeStr === '-' || routeStr === 'undefined') return 'Proses (In)';
+      const steps = routeStr.split('-').map(s => s.trim()).filter(s => s !== "");
+      if (steps.length === 0) return 'Proses (In)';
+      return `Proses: ${steps[0]} (In)`;
+    }
+
+    if (cur === 'Proses' || cur === 'Proses (In)') return 'Proses (Out)';
+    if (cur === 'Proses (Out)') return 'Siap diambil';
+
+    if (cur.startsWith('MH Pickup:')) {
+      const stepName = cur.replace('MH Pickup:', '').trim();
+      if (!routeStr || routeStr === '-') return 'Siap diambil';
+      const steps = routeStr.split('-').map(s => s.trim());
+      const idx = steps.indexOf(stepName);
+      if (idx !== -1 && idx < steps.length - 1) {
+        return `Proses: ${steps[idx + 1]} (In)`;
+      }
+      return 'Siap diambil';
+    }
+
+    if (cur.startsWith('MH Drop:')) {
+      const stepName = cur.replace('MH Drop:', '').trim();
+      if (!routeStr || routeStr === '-') return 'Siap diambil';
+      const steps = routeStr.split('-').map(s => s.trim());
+      const idx = steps.indexOf(stepName);
+      if (idx !== -1 && idx < steps.length - 1) {
+        return `Proses: ${steps[idx + 1]} (In)`;
+      }
+      return 'Siap diambil';
+    }
+
+    if (cur.startsWith('Proses:')) {
+      let stepName = cur.replace('Proses:', '').trim();
+      let isOut = false;
+      if (stepName.endsWith('(Out)')) { isOut = true; stepName = stepName.substring(0, stepName.length - 5).trim(); }
+      else if (stepName.endsWith('(In)')) stepName = stepName.substring(0, stepName.length - 4).trim();
+
+      if (!routeStr || routeStr === '-') return 'Siap diambil';
+      const steps = routeStr.split('-').map(s => s.trim());
+      const idx = steps.indexOf(stepName);
+
+      if (idx === -1) return 'Siap diambil';
+      if (!isOut) {
+        if (idx === steps.length - 1) return 'Siap diambil';
+        return `Proses: ${stepName} (Out)`;
+      } else {
+        if (idx < steps.length - 1) return `MH Pickup: ${stepName}`;
+        else return 'Siap diambil';
+      }
+    }
+    return 'Dalam antrian';
+  }
+
+  // === STATUS DETAIL MODAL ===
+  function openStatusDetailModal(simpleId) {
+    const item = wrDataMap[simpleId]; if (!item) return;
+    const currentStatus = item.status || "Belum Verifikasi";
+    document.getElementById('detailNoWR').innerText = item.noWR;
+    document.getElementById('detailNama').innerText = item.nama;
+    document.getElementById('detailStatusTitle').innerText = currentStatus;
+
+    const heroContainer = document.getElementById('detailHeroIcon');
+    const lowerStatus = currentStatus.toLowerCase();
+    const routingRaw = item.routing || "";
+    const steps = routingRaw.split('-').map(s => s.trim()).filter(s => s !== "");
+
+    let totalInTransit = 0;
+    for (let i = 0; i < steps.length - 1; i++) {
+      let p = calculateTotalProcessedForStatus(item.logs, `MH Pickup: ${steps[i]}`);
+      let n = calculateTotalProcessedForStatus(item.logs, `Proses: ${steps[i + 1]} (In)`) + calculateTotalProcessedForStatus(item.logs, `Defect > Proses: ${steps[i + 1]} (In)`);
+      if (p - n > 0) totalInTransit += (p - n);
+    }
+    let tMenuju = calculateTotalProcessedForStatus(item.logs, 'Menuju Pengaju');
+    let tSudah = calculateTotalProcessedForStatus(item.logs, 'Sudah diambil') + calculateTotalProcessedForStatus(item.logs, 'Defect > Sudah diambil');
+    if (tMenuju - tSudah > 0) totalInTransit += (tMenuju - tSudah);
+
+    let iconHtml = '';
+    if (totalInTransit > 0) {
+      iconHtml = `<div class="hero-anim-icon" style="background: linear-gradient(135deg, #b2ebf2 0%, #00bcd4 100%); color: #00838f; border-color: #e0f7fa;"><i class="fas fa-truck-fast" style="animation: bounce 2s infinite;"></i></div>`;
+    } else if (lowerStatus.includes('siap') || lowerStatus.includes('selesai') || lowerStatus.includes('diterima') || lowerStatus.includes('sudah diambil')) {
+      iconHtml = `<div class="hero-anim-icon hero-theme-success"><i class="fas fa-check-circle" style="animation: bounce 2s infinite;"></i></div>`;
+    } else if (lowerStatus.includes('pickup')) {
+      iconHtml = `<div class="hero-anim-icon" style="background: linear-gradient(135deg, #b2ebf2 0%, #00bcd4 100%); color: #00838f;"><i class="fas fa-truck-loading" style="animation: bounce 2s infinite;"></i></div>`;
+    } else if (lowerStatus.includes('antrian') || lowerStatus.includes('menunggu') || lowerStatus.includes('belum')) {
+      iconHtml = `<div class="hero-anim-icon hero-theme-waiting"><i class="fas fa-clock" style="animation: swing 2s infinite ease-in-out;"></i></div>`;
+    } else {
+      iconHtml = `<div class="hero-anim-icon hero-theme-process"><i class="fas fa-cog" style="animation: spin 4s infinite linear;"></i></div>`;
+    }
+    heroContainer.innerHTML = iconHtml;
+
+    const qrImg = document.getElementById('detailQRCodeImg');
+    if (qrImg) {
+      qrImg.src = item.qrUrl;
+      qrImg.style.cursor = "pointer";
+      qrImg.title = "Klik untuk memperbesar";
+      qrImg.onclick = function () { showImageModal(item.qrUrl, item.noWR, "QR Code WR"); };
+    }
+
+    let desc = "Status saat ini";
+    if (totalInTransit > 0) {
+      desc = `<span class="badge bg-info text-white px-3 py-2 rounded-pill shadow-sm mt-2" style="font-size:0.8rem; border: 1px solid #00bcd4;"><i class="fas fa-truck me-2"></i><b>${totalInTransit} pcs</b> Sedang Diantar Gudang</span>`;
+    } else {
+      if (currentStatus.includes('antrian')) desc = "Menunggu giliran proses";
+      else if (currentStatus.includes('Proses') || currentStatus.includes('progress')) desc = "Sedang dalam pengerjaan";
+      else if (currentStatus.includes('Pickup')) desc = "Sedang diambil / dipindahkan oleh Gudang";
+      else if (currentStatus.includes('Sudah diambil')) desc = "Telah diambil oleh Pengaju";
+      else if (currentStatus.includes('Siap') || currentStatus.includes('Selesai')) desc = "Selesai & Siap diambil";
+      else if (currentStatus.includes('Menuju Pengaju')) desc = "Sedang diantar kembali ke Pengaju";
+    }
+    document.getElementById('detailStatusDesc').innerHTML = desc;
+
+    const container = document.getElementById('detailStepsTimeline'); container.innerHTML = '';
+
+    let activeIndex = -1; let isFinished = false;
+    if (currentStatus === 'Siap diambil' || currentStatus === 'Selesai' || currentStatus === 'Sudah diambil' || currentStatus === 'Menuju Pengaju') { activeIndex = steps.length; isFinished = true; }
+    else if (currentStatus.startsWith('Proses:')) {
+      let stepName = currentStatus.replace('Proses:', '').trim();
+      if (stepName.endsWith('(In)')) stepName = stepName.substring(0, stepName.length - 4).trim();
+      if (stepName.endsWith('(Out)')) stepName = stepName.substring(0, stepName.length - 5).trim();
+      activeIndex = steps.indexOf(stepName);
+    } else if (currentStatus === 'Dalam antrian') { activeIndex = -1; }
+    else if (currentStatus.startsWith('Proses')) { if (steps.length > 0) activeIndex = 0; }
+
+    if (steps.length === 0) {
+      container.innerHTML = '<div class="text-muted small fst-italic">Tidak ada data routing.</div>';
+    } else {
+      let html = '';
+
+      const createBadge = (logItem, type, isPartial) => {
+        if (!logItem) return '';
+        let colorClass = 'bg-secondary-subtle text-secondary border-secondary';
+        let label = type === 'IN' ? 'Masuk' : 'Selesai';
+        let icon = type === 'IN' ? 'fa-arrow-right' : 'fa-check';
+
+        if (type === 'IN') { colorClass = 'bg-primary-subtle text-primary border-primary'; }
+        else if (type === 'OUT') { colorClass = 'bg-success-subtle text-success border-success'; }
+        else if (type === 'PICKUP') { colorClass = 'bg-info-subtle text-info-emphasis border-info'; label = 'Diambil Gudang'; icon = 'fa-truck-loading'; }
+        else if (type === 'RECEIVE') { colorClass = 'bg-success-subtle text-success border-success'; label = 'Diterima Pengaju'; icon = 'fa-box-open'; }
+        else if (type === 'DROP') { colorClass = 'bg-success-subtle text-success border-success'; label = 'Diantar Gudang'; icon = 'fa-map-marker-alt'; }
+        else if (type === 'QUEUE') { colorClass = 'bg-warning-subtle text-warning-emphasis border-warning'; label = 'Antrian Masuk'; icon = 'fa-clock'; }
+
+        if (isPartial && type !== 'PICKUP') { colorClass = 'bg-warning-subtle text-dark border-warning'; label = `Parsial (${label})`; icon = 'fa-chart-pie'; }
+
+        const noteHtml = (logItem.note && logItem.note !== '-' && logItem.note !== '')
+          ? `<div class="mt-3 pt-2 border-top border-opacity-25 text-dark" style="font-size: 0.95rem; font-weight: 600; line-height: 1.4;"><i class="fas fa-sticky-note me-2 opacity-50"></i>${logItem.note}</div>` : '';
+
+        return `
+            <div class="mt-2 p-3 rounded-4 border ${colorClass} shadow-sm" style="position: relative;">
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                   <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width:38px; height:38px; background:rgba(255,255,255,0.8); color:inherit;">
+                      <i class="fas ${icon} fa-lg"></i>
+                   </div>
+                   <span class="fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">${label}</span>
+                </div>
+                <div class="text-end">
+                  <div class="fw-bold text-dark" style="font-size: 1.4rem; line-height: 1;">${logItem.qty}</div>
+                  <div class="text-secondary fw-bold mt-1" style="font-size: 0.8rem;"><i class="far fa-clock me-1"></i>${logItem.time}</div>
+                </div>
+              </div>
+              ${noteHtml}
+            </div>`;
+      };
+
+      steps.forEach((step, index) => {
+        let itemClass = ''; let statusText = 'Menunggu';
+        if (isFinished || index < activeIndex) { itemClass = 'completed'; statusText = 'Selesai'; }
+        else if (index === activeIndex) {
+          itemClass = 'active'; statusText = 'Sedang Diproses';
+          if (currentStatus.includes('(Out)')) { statusText = 'Selesai (Menunggu Next)'; itemClass = 'completed'; }
+        }
+
+        let logHtml = '';
+        const relevantLogs = (item.logs || []).filter(l => {
+          const s = l.status;
+          if (s.includes(`Proses: ${step} (In)`) || s.includes(`Proses: ${step} (Out)`) || s.includes(`MH Pickup: ${step}`) || s.includes(`MH Drop: ${step}`)) return true;
+          return false;
+        });
+
+        relevantLogs.forEach(log => {
+          const isPartial = log.status.includes('Parsial >');
+          let type = 'UNKNOWN';
+          if (log.status.includes('(In)')) type = 'IN';
+          else if (log.status.includes('(Out)')) type = 'OUT';
+          else if (log.status.includes('MH Pickup:')) type = 'PICKUP';
+          else if (log.status.includes('MH Drop:')) type = 'DROP';
+          else if (log.status.includes('Dalam antrian:')) type = 'QUEUE';
+          logHtml += createBadge(log, type, isPartial);
+        });
+
+        if (index === steps.length - 1) {
+          const finalLogs = (item.logs || []).filter(l => l.status === 'Siap diambil' || l.status === 'Parsial > Siap diambil');
+          finalLogs.forEach(log => { logHtml += createBadge(log, 'OUT', log.status.includes('Parsial >')); });
+        }
+
+        if (index > 0) {
+          const prevStep = steps[index - 1];
+          const totalPickedUpPrev = calculateTotalProcessedForStatus(item.logs, `MH Pickup: ${prevStep}`);
+          const totalInCurrent = calculateTotalProcessedForStatus(item.logs, `Proses: ${step} (In)`) + calculateTotalProcessedForStatus(item.logs, `Defect > Proses: ${step} (In)`);
+          const inTransit = totalPickedUpPrev - totalInCurrent;
+
+          if (inTransit > 0) {
+            logHtml += `<div class="mt-2 p-2 rounded-4 border border-info bg-info-subtle d-flex align-items-center gap-3 shadow-sm" style="border-style: dashed !important;">
+                <div class="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm" style="width:30px; height:30px; color:#0dcaf0;">
+                  <i class="fas fa-truck-fast" style="animation: bounce 2s infinite;"></i>
+                </div>
+                <div class="fw-bold text-info-emphasis" style="font-size: 0.8rem;">${inTransit} pcs Dalam Perjalanan (MH)</div>
+              </div>`;
+          }
+        }
+
+        let waitingForPickup = 0;
+        if (index < steps.length - 1) {
+          const totalOut = calculateTotalProcessedForStatus(item.logs, `Proses: ${step} (Out)`);
+          const totalPickedUp = calculateTotalProcessedForStatus(item.logs, `MH Pickup: ${step}`);
+          const defectPickedUp = calculateTotalProcessedForStatus(item.logs, `Defect > MH Pickup: ${step}`);
+          waitingForPickup = totalOut - (totalPickedUp + defectPickedUp);
+        } else {
+          let totalSiap = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+          if (totalSiap === 0) totalSiap = calculateTotalProcessedForStatus(item.logs, `Proses: ${step} (Out)`);
+          const totalMenuju = calculateTotalProcessedForStatus(item.logs, 'Menuju Pengaju');
+          const defectMenuju = calculateTotalProcessedForStatus(item.logs, 'Defect > Menuju Pengaju');
+          waitingForPickup = totalSiap - (totalMenuju + defectMenuju);
+        }
+
+        if (waitingForPickup > 0) {
+          logHtml += `<div class="mt-2 p-2 rounded-4 border border-warning bg-warning-subtle d-flex align-items-center gap-3 shadow-sm">
+              <div class="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm" style="width:30px; height:30px; color:#fd7e14;">
+                <i class="fas fa-hourglass-half"></i>
+              </div>
+              <div class="fw-bold text-warning-emphasis" style="font-size: 0.8rem;">${waitingForPickup} pcs Menunggu Pickup Gudang</div>
+            </div>`;
+        }
+
+        html += `<div class="timeline-item ${itemClass}"><div class="timeline-dot"></div><div class="timeline-content"><div class="timeline-title">${step}</div><div class="timeline-desc">${statusText}</div>${logHtml ? `<div class="mt-2 border-top pt-1">${logHtml}</div>` : ''}</div></div>`;
+      });
+
+      const tSiap = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+      const tMenuju = calculateTotalProcessedForStatus(item.logs, 'Menuju Pengaju');
+      const tSudah = calculateTotalProcessedForStatus(item.logs, 'Sudah diambil');
+      const tDefectSudah = calculateTotalProcessedForStatus(item.logs, 'Defect > Sudah diambil');
+
+      if (tSiap > 0 || tMenuju > 0 || tSudah > 0) {
+        let finalClass = ''; let finalDesc = 'Menunggu Gudang';
+        if ((tSudah + tDefectSudah) >= (parseInt(item.qty) || 1) && tSudah > 0) { finalClass = 'completed'; finalDesc = 'Sudah Diterima'; }
+        else if (tMenuju > 0) { finalClass = 'active'; finalDesc = 'Sedang Diantar'; }
+
+        let deliveryLogsHtml = '';
+        const finalPickupLogs = (item.logs || []).filter(l => l.status === 'Menuju Pengaju' || l.status === 'Parsial > Menuju Pengaju');
+        finalPickupLogs.forEach(log => { deliveryLogsHtml += createBadge(log, 'PICKUP', log.status.includes('Parsial >')); });
+
+        const finalSudahLogs = (item.logs || []).filter(l => l.status === 'Sudah diambil' || l.status === 'Parsial > Sudah diambil');
+        finalSudahLogs.forEach(log => { deliveryLogsHtml += createBadge(log, 'RECEIVE', log.status.includes('Parsial >')); });
+
+        let inTransitFinal = tMenuju - (tSudah + tDefectSudah);
+        if (inTransitFinal > 0) {
+          deliveryLogsHtml += `<div class="mt-2 p-2 rounded-4 border border-info bg-info-subtle d-flex align-items-center gap-3 shadow-sm" style="border-style: dashed !important;">
+              <div class="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm" style="width:30px; height:30px; color:#0dcaf0;">
+                <i class="fas fa-truck-fast" style="animation: bounce 2s infinite;"></i>
+              </div>
+              <div class="fw-bold text-info-emphasis" style="font-size: 0.8rem;">${inTransitFinal} pcs Diantar ke Dept Pengaju</div>
+            </div>`;
+        }
+        const deptPengajuName = (item.noWR || "").split('/')[1] || item.pengaju || 'Pengaju';
+        html += `<div class="timeline-item ${finalClass}"><div class="timeline-dot"></div><div class="timeline-content"><div class="timeline-title">Pengiriman ke ${deptPengajuName}</div><div class="timeline-desc">${finalDesc}</div>${deliveryLogsHtml ? `<div class="mt-2 border-top pt-1">${deliveryLogsHtml}</div>` : ''}</div></div>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    // Logs & Defect
+    const logsContainer = document.getElementById('detailLogsContainer');
+    const logsContent = document.getElementById('detailLogsContent');
+    const reason = item.alasan || "";
+    const totalDefects = calculateTotalProcessedForStatus(item.logs, 'Defect');
+
+    if (reason || totalDefects > 0) {
+      logsContainer.style.display = 'block';
+      let contentHtml = `<div class="p-3 rounded-4 border shadow-sm mt-2" style="background-color: #fcfcfc;">`;
+      if (totalDefects > 0) {
+        const defectLogs = (item.logs || []).filter(l => l.status && l.status.startsWith('Defect >'));
+        let defectNotesHtml = '';
+        if (defectLogs.length > 0) {
+          defectNotesHtml = `<div class="mt-2 pt-2 border-top">`;
+          defectLogs.forEach(dl => {
+            defectNotesHtml += `<div class="small text-muted mb-1"><i class="fas fa-caret-right me-1"></i><b>${dl.qty} pcs</b> (${dl.time}) - ${dl.note}</div>`;
+          });
+          defectNotesHtml += `</div>`;
+        }
+
+        contentHtml += `
+          <div class="d-flex align-items-start gap-3 ${reason ? 'mb-3 pb-3 border-bottom border-secondary-subtle' : ''}">
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-danger-subtle text-danger shadow-sm" style="width: 38px; height: 38px; flex-shrink: 0;">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="w-100">
+              <div class="fw-bold small text-danger" style="text-transform: uppercase; letter-spacing: 0.5px;">Barang Defect / Reject</div>
+              <div class="fw-bold text-dark mt-1" style="font-size: 1.15rem; line-height: 1;">${totalDefects} <span class="small text-muted fw-normal" style="font-size: 0.8rem;">pcs</span></div>
+              ${defectNotesHtml}
+            </div>
+          </div>`;
+      }
+      if (reason) {
+        contentHtml += `
+          <div class="d-flex align-items-start gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning-subtle text-warning shadow-sm" style="width: 38px; height: 38px; flex-shrink: 0;">
+              <i class="fas fa-sticky-note"></i>
+            </div>
+            <div>
+              <div class="fw-bold small text-warning-emphasis" style="text-transform: uppercase; letter-spacing: 0.5px;">Catatan / Alasan</div>
+              <div class="small text-dark mt-1" style="line-height: 1.5; font-weight: 500;">${reason}</div>
+            </div>
+          </div>`;
+      }
+      contentHtml += `</div>`;
+      logsContent.innerHTML = contentHtml;
+    } else {
+      logsContainer.style.display = 'none';
+      logsContent.innerHTML = '';
+    }
+
+    document.getElementById('statusDetailModal').style.display = 'flex';
+  }
+
+  function closeStatusDetailModal() { document.getElementById('statusDetailModal').style.display = 'none'; }
+
+  // === PROCESS UPDATE ===
+  function processUpdate(noWR, type, newStatus, additionalInfo = null, reason = "") {
+    showResultModal(true, "Memproses...", "Sedang memperbarui status...");
+    const btn = document.getElementById('resultBtn');
+    const icon = document.getElementById('resultIcon');
+    if (btn) btn.style.display = 'none';
+    if (icon) icon.className = 'fas fa-spinner fa-spin';
+
+    google.script.run.withSuccessHandler(function (res) {
+      if (btn) btn.style.display = 'block';
+      if (res && res.startsWith("Status berhasil diperbarui")) {
+        showResultModal(true, "Berhasil!", `Status Work Request <b>${noWR}</b> berhasil diperbarui menjadi <b>${newStatus}</b>.`);
+        if (typeof loadDataGudang === 'function') loadDataGudang();
+      } else {
+        showResultModal(false, "Gagal Update", `Sistem menolak perubahan status.<br><br><b>Alasan:</b> ${res}`);
+      }
+    }).withFailureHandler(function (err) {
+      if (btn) btn.style.display = 'block';
+      showResultModal(false, "Terjadi Kesalahan", `Gagal menghubungi server.<br><br><b>Error:</b> ${err}`);
+    }).updateWRStatus(noWR, type, newStatus, additionalInfo, reason);
+  }
+
+  // === HELPER: CHECK GUDANG DATE FILTER ===
+  function checkGudangDateFilter(tglRaw, dateFilterVal) {
+    if (dateFilterVal === 'all') return true;
+    if (!tglRaw) return false;
+
+    const parts = tglRaw.split('-');
+    if (parts.length < 3) return false;
+    const itemDate = new Date(parts[0], parts[1] - 1, parts[2]);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const diffTime = today - itemDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (dateFilterVal === 'today') return diffDays === 0;
+    if (dateFilterVal === 'last3') return diffDays >= 0 && diffDays <= 3;
+    if (dateFilterVal === 'week') return diffDays >= 0 && diffDays <= 7;
+    if (dateFilterVal === 'month') return itemDate.getMonth() === today.getMonth() && itemDate.getFullYear() === today.getFullYear();
+
+    return true;
+  }
+
+  // === TASK GUDANG LOGIC ===
+  let globalGudangTasks = [];
+  let globalGudangTransitTasks = [];
+  let globalGudangFinalTasks = [];
+  let globalGudangHistoryTasks = [];
+  let globalGudangHistoryTransferTasks = [];
+
+  function loadDataGudang() {
+    const tbody = document.getElementById('gudangTableBody');
+    const tbodyTransit = document.getElementById('gudangTableBodyTransit');
+    const tbodyFinal = document.getElementById('gudangTableBodyFinal');
+    const tbodyHistory = document.getElementById('gudangTableBodyHistory');
+    const tbodyHistoryTransfer = document.getElementById('gudangTableBodyHistoryTransfer');
+
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-warning" role="status"></div><div class="mt-2 small text-muted">Mencari barang pickup...</div></td></tr>`;
+    if (tbodyTransit) tbodyTransit.innerHTML = `<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-info" role="status"></div><div class="mt-2 small text-muted">Mencari barang dalam perjalanan...</div></td></tr>`;
+    tbodyFinal.innerHTML = `<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-success" role="status"></div><div class="mt-2 small text-muted">Mencari barang selesai...</div></td></tr>`;
+    if (tbodyHistory) tbodyHistory.innerHTML = `<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-secondary" role="status"></div><div class="mt-2 small text-muted">Memuat riwayat...</div></td></tr>`;
+    if (tbodyHistoryTransfer) tbodyHistoryTransfer.innerHTML = `<tr><td colspan="5"><div class="text-center py-5"><div class="spinner-border text-secondary" role="status"></div><div class="mt-2 small text-muted">Memuat riwayat transfer...</div></div></td></tr>`;
+
+    google.script.run
+      .withFailureHandler(err => {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">Gagal memuat: ${err}</td></tr>`;
+        if (tbodyTransit) tbodyTransit.innerHTML = "";
+        tbodyFinal.innerHTML = "";
+      })
+      .withSuccessHandler(data => {
+        if (!data || !Array.isArray(data)) data = [];
+
+        data.forEach(item => {
+          if (item.noWR) {
+            const simpleId = item.noWR.replace(/[^a-zA-Z0-9]/g, '');
+            wrDataMap[simpleId] = item;
+          }
+        });
+
+        const tasks = [];
+        const transitTasks = [];
+        const finalTasks = [];
+        const finalTransitTasks = [];
+        const historyTasks = [];
+        const historyTransferTasks = [];
+
+        data.forEach(item => {
+          const totalWRQty = parseInt(item.qty) || 0;
+
+          const routingRawComp = item.routing || "";
+          const stepsArrComp = routingRawComp.split('-').map(s => s.trim()).filter(s => s !== "");
+          const lastStep = stepsArrComp.length > 0 ? stepsArrComp[stepsArrComp.length - 1] : "";
+
+          let totalSiap = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+          if (totalSiap === 0 && lastStep !== "") {
+            totalSiap = calculateTotalProcessedForStatus(item.logs, `Proses: ${lastStep} (Out)`);
+          }
+          let totalFinalPickup = calculateTotalProcessedForStatus(item.logs, 'Menuju Pengaju');
+          let defectFinalPickup = calculateTotalProcessedForStatus(item.logs, 'Defect > Menuju Pengaju');
+
+          let totalSudah = calculateTotalProcessedForStatus(item.logs, 'Sudah diambil');
+          let defectSudah = calculateTotalProcessedForStatus(item.logs, 'Defect > Sudah diambil');
+
+          let menungguAmbilFinal = totalSiap - (totalFinalPickup + defectFinalPickup);
+          let sedangDibawaFinal = totalFinalPickup - (totalSudah + defectSudah);
+
+          if (menungguAmbilFinal > 0) {
+            const taskFinal = { ...item };
+            taskFinal.qty = menungguAmbilFinal;
+            finalTasks.push(taskFinal);
+          }
+
+          if (sedangDibawaFinal > 0) {
+            const taskFinalTransit = { ...item };
+            taskFinalTransit.qty = sedangDibawaFinal;
+            taskFinalTransit.currentStatus = 'Menuju Pengaju';
+
+            let pickupTime = "-";
+            if (item.logs && Array.isArray(item.logs)) {
+              for (let i = item.logs.length - 1; i >= 0; i--) {
+                if (item.logs[i].status && item.logs[i].status.includes('Menuju Pengaju')) {
+                  pickupTime = item.logs[i].time;
+                  break;
+                }
+              }
+            }
+            taskFinalTransit.pickupTime = pickupTime;
+            finalTransitTasks.push(taskFinalTransit);
+          }
+
+          if (totalSudah > 0) {
+            const historyFinal = { ...item };
+            historyFinal.qty = totalSudah;
+            historyFinal.status = `Selesai (${totalSudah} pcs)`;
+            historyTasks.push(historyFinal);
+          }
+
+          const routingRaw = item.routing || "";
+          const steps = routingRaw.split('-').map(s => s.trim()).filter(s => s !== "");
+
+          steps.forEach(step => {
+            let totalOut = calculateTotalProcessedForStatus(item.logs, `Proses: ${step} (Out)`);
+            if (totalOut > 0) {
+              let totalPickup = calculateTotalProcessedForStatus(item.logs, `MH Pickup: ${step}`);
+              let defectPickup = calculateTotalProcessedForStatus(item.logs, `Defect > MH Pickup: ${step}`);
+
+              let nextStep = "";
+              let totalNextIn = 0;
+              const stepsArr = (item.routing || "").split('-').map(s => s.trim()).filter(s => s !== "");
+              const currentIdx = stepsArr.indexOf(step);
+
+              // FIX: Proses terakhir tidak boleh masuk Antar Mesin, karena tujuannya langsung Siap Diambil.
+              if (currentIdx === stepsArr.length - 1) return;
+
+              if (currentIdx !== -1 && currentIdx < stepsArr.length - 1) {
+                nextStep = stepsArr[currentIdx + 1];
+                totalNextIn = calculateTotalProcessedForStatus(item.logs, `Proses: ${nextStep} (In)`);
+                totalNextIn += calculateTotalProcessedForStatus(item.logs, `Defect > Proses: ${nextStep} (In)`);
+              } else {
+                totalNextIn = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+              }
+
+              let totalDrop = calculateTotalProcessedForStatus(item.logs, `MH Drop: ${step}`) + calculateTotalProcessedForStatus(item.logs, `Defect > MH Drop: ${step}`);
+              let consumed = totalDrop;
+              if (totalNextIn > consumed) consumed = totalNextIn;
+
+              let menungguAmbil = totalOut - (totalPickup + defectPickup);
+              let sedangDibawa = totalPickup - consumed;
+
+              let tujuan = "-";
+              if (currentIdx !== -1 && currentIdx < stepsArr.length - 1) {
+                tujuan = stepsArr[currentIdx + 1];
+              } else {
+                tujuan = 'Gudang Akhir';
+              }
+
+              // 1. Task Menunggu Ambil
+              if (menungguAmbil > 0) {
+                tasks.push({
+                  noWR: item.noWR, nama: item.nama, kode: item.kode, dimensi: item.dimensi,
+                  lokasi: step, qty: menungguAmbil, routing: item.routing, img: item.gambar,
+                  tgl: item.tgl, tglRaw: item.tglRaw, tujuan: tujuan,
+                  statusText: 'Menunggu Ambil', statusClass: 'danger', taskType: 'PICKUP', currentStatus: `Proses: ${step} (Out)`, actionText: 'Ambil'
+                });
+              }
+
+              // 2. Task Sedang Dibawa (Tanpa aksi)
+              if (sedangDibawa > 0) {
+                // Cari jam pickup terakhir dari history logs
+                let pickupTime = "-";
+                if (item.logs && Array.isArray(item.logs)) {
+                  for (let i = item.logs.length - 1; i >= 0; i--) {
+                    if (item.logs[i].status && item.logs[i].status.includes(`MH Pickup: ${step}`)) {
+                      pickupTime = item.logs[i].time;
+                      break;
+                    }
+                  }
+                }
+                transitTasks.push({
+                  noWR: item.noWR, nama: item.nama, kode: item.kode, dimensi: item.dimensi,
+                  lokasi: step, qty: sedangDibawa, routing: item.routing, img: item.gambar,
+                  tgl: item.tgl, tglRaw: item.tglRaw, tujuan: tujuan,
+                  statusText: 'Sedang Dibawa', statusClass: 'info', taskType: 'INFO', currentStatus: `MH Pickup: ${step}`, actionText: '', pickupTime: pickupTime
+                });
+              }
+
+              // 3. History (Sudah Di-pickup / Ditransfer oleh MH)
+              if (totalPickup > 0) {
+                let statusRiwayat = `Di-pickup MH (${totalPickup} pcs)`;
+                // Jika sudah diterima mesin selanjutnya (consumed), ubah status menjadi Terkirim
+                if (consumed >= totalPickup && totalPickup > 0) {
+                  statusRiwayat = `Terkirim (${totalPickup} pcs)`;
+                } else if (consumed > 0 && consumed < totalPickup) {
+                  statusRiwayat = `Dikirim Parsial (${consumed}/${totalPickup} pcs)`;
+                }
+
+                historyTransferTasks.push({
+                  noWR: item.noWR, nama: item.nama, kode: item.kode, dimensi: item.dimensi,
+                  lokasi: step, qty: totalPickup, routing: item.routing, img: item.gambar,
+                  tgl: item.tgl, tglRaw: item.tglRaw, tujuan: tujuan, status: statusRiwayat
+                });
+              }
+            }
+          });
+        });
+
+        globalGudangTasks = tasks;
+        globalGudangTransitTasks = transitTasks;
+        globalGudangFinalTasks = finalTasks;
+        globalGudangFinalTransitTasks = finalTransitTasks;
+        globalGudangHistoryTasks = historyTasks;
+        globalGudangHistoryTransferTasks = historyTransferTasks;
+
+        populateGudangFilter(tasks);
+        populateGudangFilterTujuan(tasks);
+        populateGudangFinalFilters(finalTasks);
+        applyGudangFilter();
+
+        populateGudangTransitFilter(transitTasks);
+        populateGudangTransitFilterTujuan(transitTasks);
+        applyGudangTransitFilter();
+        applyGudangFinalFilter();
+        applyGudangFinalTransitFilter();
+        applyGudangHistoryFilter();
+        applyGudangHistoryTransferFilter();
+      })
+      .getLogWRData();
+  }
+
+  function populateGudangFilter(tasks) {
+    const select = document.getElementById('filterGudangLokasi');
+    const currentVal = select.value;
+    const locations = [...new Set(tasks.map(t => t.lokasi))].sort();
+    select.innerHTML = '<option value="all">Semua Asal</option>';
+    locations.forEach(loc => {
+      const option = document.createElement('option'); option.value = loc; option.innerText = loc;
+      select.appendChild(option);
+    });
+    if (locations.includes(currentVal)) select.value = currentVal;
+  }
+
+  function populateGudangFilterTujuan(tasks) {
+    const select = document.getElementById('filterGudangTujuan');
+    const currentVal = select.value;
+    const locations = [...new Set(tasks.map(t => t.tujuan))].sort();
+    select.innerHTML = '<option value="all">Semua Tujuan</option>';
+    locations.forEach(loc => {
+      const option = document.createElement('option'); option.value = loc; option.innerText = loc;
+      select.appendChild(option);
+    });
+    if (locations.includes(currentVal)) select.value = currentVal;
+  }
+
+  function applyGudangFilter() {
+    const filterAsal = document.getElementById('filterGudangLokasi').value;
+    const filterTujuan = document.getElementById('filterGudangTujuan').value;
+    const filterDate = document.getElementById('filterGudangDate').value;
+    const filtered = globalGudangTasks.filter(t => {
+      if (!checkGudangDateFilter(t.tglRaw, filterDate)) return false;
+      const asalMatch = (filterAsal === 'all') || (t.lokasi === filterAsal);
+      const tujuanMatch = (filterTujuan === 'all') || (t.tujuan === filterTujuan);
+      return asalMatch && tujuanMatch;
+    });
+    document.getElementById('totalGudangCount').innerText = filtered.length + " Item";
+    renderTabelGudang(filtered);
+  }
+
+  function populateGudangTransitFilter(tasks) {
+    const select = document.getElementById('filterGudangTransitLokasi');
+    if (!select) return;
+    const currentVal = select.value;
+    const locations = [...new Set(tasks.map(t => t.lokasi))].sort();
+    select.innerHTML = '<option value="all">Semua Asal</option>';
+    locations.forEach(loc => {
+      const option = document.createElement('option'); option.value = loc; option.innerText = loc;
+      select.appendChild(option);
+    });
+    if (locations.includes(currentVal)) select.value = currentVal;
+  }
+
+  function populateGudangTransitFilterTujuan(tasks) {
+    const select = document.getElementById('filterGudangTransitTujuan');
+    if (!select) return;
+    const currentVal = select.value;
+    const locations = [...new Set(tasks.map(t => t.tujuan))].sort();
+    select.innerHTML = '<option value="all">Semua Tujuan</option>';
+    locations.forEach(loc => {
+      const option = document.createElement('option'); option.value = loc; option.innerText = loc;
+      select.appendChild(option);
+    });
+    if (locations.includes(currentVal)) select.value = currentVal;
+  }
+
+  function applyGudangTransitFilter() {
+    const filterAsal = document.getElementById('filterGudangTransitLokasi') ? document.getElementById('filterGudangTransitLokasi').value : 'all';
+    const filterTujuan = document.getElementById('filterGudangTransitTujuan') ? document.getElementById('filterGudangTransitTujuan').value : 'all';
+    const filterDate = document.getElementById('filterGudangTransitDate') ? document.getElementById('filterGudangTransitDate').value : 'all';
+    const filtered = globalGudangTransitTasks.filter(t => {
+      if (!checkGudangDateFilter(t.tglRaw, filterDate)) return false;
+      const asalMatch = (filterAsal === 'all') || (t.lokasi === filterAsal);
+      const tujuanMatch = (filterTujuan === 'all') || (t.tujuan === filterTujuan);
+      return asalMatch && tujuanMatch;
+    });
+    const countEl = document.getElementById('totalGudangTransitCount');
+    if (countEl) countEl.innerText = filtered.length + " Item";
+    renderTabelGudangTransit(filtered);
+  }
+
+  function populateGudangFinalFilters(tasks) {
+    const select = document.getElementById('filterGudangFinalLokasi');
+    const currentVal = select.value;
+    const locations = [...new Set(tasks.map(t => {
+      const routingSteps = (t.routing || "").split(' - ').map(s => s.trim()).filter(s => s);
+      return routingSteps.length > 0 ? routingSteps[routingSteps.length - 1] : '-';
+    }))].sort();
+    select.innerHTML = '<option value="all">Semua Lokasi Selesai</option>';
+    locations.forEach(loc => {
+      const option = document.createElement('option'); option.value = loc; option.innerText = loc;
+      select.appendChild(option);
+    });
+    if (locations.includes(currentVal)) select.value = currentVal;
+  }
+
+  function applyGudangFinalFilter() {
+    const search = document.getElementById('filterGudangFinalSearch').value.toLowerCase();
+    const locFilter = document.getElementById('filterGudangFinalLokasi').value;
+    const dateFilter = document.getElementById('filterGudangFinalDate').value;
+    const filtered = globalGudangFinalTasks.filter(t => {
+      if (!checkGudangDateFilter(t.tglRaw, dateFilter)) return false;
+      const routingSteps = (t.routing || "").split(' - ').map(s => s.trim()).filter(s => s);
+      const lastLocation = routingSteps.length > 0 ? routingSteps[routingSteps.length - 1] : '-';
+      if (locFilter !== 'all' && lastLocation !== locFilter) return false;
+      if (search && !t.noWR.toLowerCase().includes(search) && !t.nama.toLowerCase().includes(search)) return false;
+      return true;
+    });
+    document.getElementById('totalGudangFinalCount').innerText = filtered.length + " Item";
+    renderTabelGudangFinal(filtered);
+  }
+
+  function applyGudangFinalTransitFilter() {
+    const search = document.getElementById('filterGudangFinalTransitSearch') ? document.getElementById('filterGudangFinalTransitSearch').value.toLowerCase() : '';
+    const dateFilter = document.getElementById('filterGudangFinalTransitDate') ? document.getElementById('filterGudangFinalTransitDate').value : 'all';
+    const filtered = globalGudangFinalTransitTasks.filter(t => {
+      if (!checkGudangDateFilter(t.tglRaw, dateFilter)) return false;
+      if (search && !t.noWR.toLowerCase().includes(search) && !t.nama.toLowerCase().includes(search)) return false;
+      return true;
+    });
+    const countEl = document.getElementById('totalGudangFinalTransitCount');
+    if (countEl) countEl.innerText = filtered.length + " Item";
+    renderTabelGudangFinalTransit(filtered);
+  }
+
+  function renderTabelGudangFinalTransit(tasks) {
+    const tbody = document.getElementById('gudangTableBodyFinalTransit');
+    if (!tbody) return;
+    if (tasks.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="text-center py-5"><div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;"><i class="fas fa-truck text-info" style="font-size: 2.5rem; opacity: 0.5;"></i></div><h5 class="fw-bold text-muted">Kosong</h5><p class="text-muted small">Tidak ada barang dalam perjalanan ke pengaju.</p></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = tasks.map((t, idx) => {
+      const routingSteps = (t.routing || "").split(' - ').map(s => s.trim()).filter(s => s);
+      const lastLocation = routingSteps.length > 0 ? routingSteps[routingSteps.length - 1] : '-';
+      const wrParts = t.noWR.split('/');
+      const displayWR = wrParts.length >= 4 ? (wrParts.slice(0, 3).join('/') + '/<br><span class="text-info">' + wrParts.slice(3).join('/') + '</span>') : t.noWR;
+
+      return `
+      <tr class="super-row" style="animation-delay: ${idx * 0.1}s;">
+        <td>
+          <div class="fw-bold text-dark" style="font-size: 0.95rem;">${displayWR}</div>
+          <div class="small text-muted"><i class="far fa-calendar-alt me-1"></i>${t.tgl || '-'}</div>
+        </td>
+        <td>
+          <div class="fw-bold text-primary">${t.nama}</div>
+          <div class="small text-muted">Kode: ${t.kode}</div>
+        </td>
+        <td>
+          <div class="fw-bold text-dark"><i class="fas fa-map-marker-alt text-danger me-1"></i> Asal: ${lastLocation}</div>
+          <div class="small text-muted"><i class="fas fa-bullseye text-primary me-1"></i> Tujuan: ${t.penerima || 'Pengaju'}</div>
+        </td>
+        <td>
+          <span class="badge bg-info-subtle text-info-emphasis border border-info fw-bold p-2 mb-1">Perjalanan (Final)</span>
+          <div class="small text-muted fw-bold mt-1">Qty: <b>${t.qty}</b> pcs</div>
+        </td>
+        <td class="text-end">
+          <span class="badge bg-light text-secondary border px-3 py-2 d-inline-flex align-items-center" style="font-size: 0.75rem;">
+            <i class="fas fa-hourglass-half text-warning me-2"></i> Menunggu Pengaju
+          </span>
+        </td>
+      </tr>
+      `;
+    }).join('');
+  }
+
+  function applyGudangHistoryFilter() {
+    const search = document.getElementById('filterGudangHistorySearch').value.toLowerCase();
+    const dateFilter = document.getElementById('filterGudangHistoryDate').value;
+    const filtered = globalGudangHistoryTasks.filter(t => {
+      if (!checkGudangDateFilter(t.tglRaw, dateFilter)) return false;
+      if (search) { return t.noWR.toLowerCase().includes(search) || t.nama.toLowerCase().includes(search); }
+      return true;
+    });
+    document.getElementById('totalGudangHistoryCount').innerText = filtered.length + " Riwayat";
+    renderTabelGudangHistory(filtered);
+  }
+
+  function applyGudangHistoryTransferFilter() {
+    const search = document.getElementById('filterGudangHistoryTransferSearch').value.toLowerCase();
+    const dateFilter = document.getElementById('filterGudangHistoryTransferDate').value;
+    const filtered = globalGudangHistoryTransferTasks.filter(t => {
+      if (!checkGudangDateFilter(t.tglRaw, dateFilter)) return false;
+      if (search) { return t.noWR.toLowerCase().includes(search) || t.nama.toLowerCase().includes(search); }
+      return true;
+    });
+    const el = document.getElementById('totalGudangHistoryTransferCount');
+    if (el) el.innerText = filtered.length + " Riwayat";
+    renderTabelGudangHistoryTransfer(filtered);
+  }
+
+  function renderTabelGudangHistoryTransfer(tasks) {
+    const tbody = document.getElementById('gudangTableBodyHistoryTransfer');
+    if (!tbody) return;
+    if (tasks.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="text-center py-5"><div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;"><i class="fas fa-history text-muted" style="font-size: 2.5rem; opacity: 0.5;"></i></div><h5 class="fw-bold text-muted">Belum ada Riwayat Transfer</h5><p class="text-muted small">Riwayat antar mesin akan muncul di sini.</p></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = tasks.map((t, idx) => {
+      // Memisahkan text No WR di bagian nomor urut
+      const wrParts = t.noWR.split('/');
+      const displayWR = wrParts.length >= 4 ? (wrParts.slice(0, 3).join('/') + '/<br><span class="text-secondary">' + wrParts.slice(3).join('/') + '</span>') : t.noWR;
+
+      return `
+      <tr class="super-row" style="animation-delay: ${idx * 0.1}s;">
+        <td>
+          <div class="fw-bold text-dark" style="font-size: 0.95rem;">${displayWR}</div>
+          <div class="small text-muted"><i class="far fa-calendar-alt me-1"></i>${t.tgl || '-'}</div>
+        </td>
+        <td>
+          <div class="fw-bold text-primary">${t.nama}</div>
+          <div class="small text-muted">Qty: <b>${t.qty}</b> | Dimensi: ${t.dimensi}</div>
+        </td>
+        <td>
+          <div class="fw-bold text-dark"><i class="fas fa-map-marker-alt text-danger me-1"></i> Asal: ${t.lokasi}</div>
+          <div class="small text-muted"><i class="fas fa-bullseye text-primary me-1"></i> Tujuan: ${t.tujuan}</div>
+        </td>
+        <td>
+          <span class="badge bg-success-subtle text-success border border-success fw-bold p-2">${t.status}</span>
+        </td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-light border text-primary shadow-sm rounded-pill fw-bold px-4 py-1 d-inline-flex align-items-center justify-content-center" style="min-width: 110px; height: 32px;" onclick="openStatusDetailModal('${t.noWR.replace(/[^a-zA-Z0-9]/g, '')}')" title="Detail">
+            <i class="fas fa-info-circle me-1"></i> Detail
+          </button>
+        </td>
+      </tr>
+      `;
+    }).join('');
+  }
+
+  function renderTabelGudang(tasks) {
+    const tbody = document.getElementById('gudangTableBody');
+    if (tasks.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="text-center py-5"><div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;"><i class="fas fa-check-circle text-success" style="font-size: 2.5rem; opacity: 0.5;"></i></div><h5 class="fw-bold text-muted">Beres!</h5><p class="text-muted small">Semua barang sudah di-pickup.</p></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = tasks.map((t, idx) => {
+      // Memisahkan text No WR di bagian nomor urut (setelah tanggal)
+      const wrParts = t.noWR.split('/');
+      const displayWR = wrParts.length >= 4 ? (wrParts.slice(0, 3).join('/') + '/<br><span class="text-primary">' + wrParts.slice(3).join('/') + '</span>') : t.noWR;
+
+      return `
+      <tr class="super-row" style="animation-delay: ${idx * 0.1}s;">
+        <td>
+          <div class="fw-bold text-dark" style="font-size: 0.95rem;">${displayWR}</div>
+          <div class="small text-muted"><i class="far fa-calendar-alt me-1"></i>${t.tgl || '-'}</div>
+        </td>
+        <td>
+          <div class="fw-bold text-primary">${t.nama}</div>
+          <div class="small text-muted">Kode: ${t.kode}</div>
+        </td>
+        <td>
+          <div class="fw-bold text-dark"><i class="fas fa-map-marker-alt text-danger me-1"></i> Asal: ${t.lokasi}</div>
+          <div class="small text-muted"><i class="fas fa-bullseye text-primary me-1"></i> Tujuan: ${t.tujuan}</div>
+        </td>
+        <td>
+          <span class="badge bg-${t.statusClass}-subtle text-${t.statusClass}-emphasis border border-${t.statusClass} fw-bold p-2 mb-1">${t.statusText}</span>
+          <div class="small text-muted fw-bold mt-1">Qty: <b>${t.qty}</b> pcs</div>
+        </td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-danger text-white shadow-sm rounded-pill fw-bold px-4 py-1 d-inline-flex align-items-center justify-content-center" style="min-width: 110px; height: 32px;" onclick="openScannerForGudang('${t.noWR}', '${t.currentStatus}', '${t.routing}')">
+            <i class="fas fa-qrcode me-1"></i> ${t.actionText}
+          </button>
+        </td>
+      </tr>
+      `;
+    }).join('');
+  }
+
+  function renderTabelGudangTransit(tasks) {
+    const tbody = document.getElementById('gudangTableBodyTransit');
+    if (!tbody) return;
+    if (tasks.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="text-center py-5"><div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;"><i class="fas fa-truck text-info" style="font-size: 2.5rem; opacity: 0.5;"></i></div><h5 class="fw-bold text-muted">Kosong</h5><p class="text-muted small">Tidak ada barang dalam perjalanan.</p></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = tasks.map((t, idx) => {
+      const wrParts = t.noWR.split('/');
+      const displayWR = wrParts.length >= 4 ? (wrParts.slice(0, 3).join('/') + '/<br><span class="text-primary">' + wrParts.slice(3).join('/') + '</span>') : t.noWR;
+
+      return `
+      <tr class="super-row" style="animation-delay: ${idx * 0.1}s;">
+        <td>
+          <div class="fw-bold text-dark" style="font-size: 0.95rem;">${displayWR}</div>
+          <div class="small text-muted"><i class="far fa-calendar-alt me-1"></i>${t.tgl || '-'}</div>
+        </td>
+        <td>
+          <div class="fw-bold text-primary">${t.nama}</div>
+          <div class="small text-muted">Kode: ${t.kode}</div>
+        </td>
+        <td>
+          <div class="fw-bold text-dark"><i class="fas fa-map-marker-alt text-danger me-1"></i> Asal: ${t.lokasi}</div>
+          <div class="small text-muted"><i class="fas fa-bullseye text-primary me-1"></i> Tujuan: ${t.tujuan}</div>
+        </td>
+        <td>
+          <span class="badge bg-${t.statusClass}-subtle text-${t.statusClass}-emphasis border border-${t.statusClass} fw-bold p-2 mb-1">${t.statusText}</span>
+          <div class="small text-muted fw-bold mt-1">Qty: <b>${t.qty}</b> pcs</div>
+        </td>
+        <td class="text-end">
+          <span class="badge bg-light text-secondary border px-3 py-2"><i class="fas fa-truck me-1"></i> Perjalanan</span>
+          <div class="small text-muted mt-2"><i class="far fa-clock text-warning me-1"></i> Diambil: <b>${t.pickupTime || '-'}</b></div>
+        </td>
+      </tr>
+      `;
+    }).join('');
+  }
+
+  function renderTabelGudangFinal(tasks) {
+    const tbody = document.getElementById('gudangTableBodyFinal');
+    if (tasks.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="text-center py-5"><div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;"><i class="fas fa-check-double text-muted" style="font-size: 2.5rem; opacity: 0.5;"></i></div><h5 class="fw-bold text-muted">Aman!</h5><p class="text-muted small">Tidak ada barang menunggu pengambilan akhir.</p></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = tasks.map((t, idx) => {
+      const routingSteps = (t.routing || "").split(' - ').map(s => s.trim()).filter(s => s);
+      const lastLocation = routingSteps.length > 0 ? routingSteps[routingSteps.length - 1] : '-';
+
+      // Memisahkan text No WR di bagian nomor urut
+      const wrParts = t.noWR.split('/');
+      const displayWR = wrParts.length >= 4 ? (wrParts.slice(0, 3).join('/') + '/<br><span class="text-success">' + wrParts.slice(3).join('/') + '</span>') : t.noWR;
+
+      return `
+      <tr class="super-row" style="animation-delay: ${idx * 0.1}s;">
+        <td>
+          <div class="fw-bold text-dark" style="font-size: 0.95rem;">${displayWR}</div>
+          <div class="small text-muted"><i class="far fa-calendar-alt me-1"></i>${t.tgl || '-'}</div>
+        </td>
+        <td>
+          <div class="fw-bold text-primary">${t.nama}</div>
+          <div class="small text-muted">Kode: ${t.kode}</div>
+        </td>
+        <td>
+          <div class="fw-bold text-dark"><i class="fas fa-map-marker-alt text-success me-1"></i> ${lastLocation}</div>
+        </td>
+        <td>
+          <span class="badge bg-success-subtle text-success border border-success fw-bold p-2 mb-1">Siap Distribusi</span>
+          <div class="small text-muted fw-bold mt-1">Qty: <b>${t.qty}</b> pcs</div>
+        </td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-success text-white shadow-sm rounded-pill fw-bold px-4 py-1 d-inline-flex align-items-center justify-content-center" style="min-width: 110px; height: 32px;" onclick="openScannerForGudangFinal('${t.noWR}', '${t.routing}')">
+            <i class="fas fa-check me-1"></i> Ambil
+          </button>
+        </td>
+      </tr>
+      `;
+    }).join('');
+  }
+
+  function renderTabelGudangHistory(tasks) {
+    const tbody = document.getElementById('gudangTableBodyHistory');
+    if (!tbody) return;
+    if (tasks.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="text-center py-5"><div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;"><i class="fas fa-history text-muted" style="font-size: 2.5rem; opacity: 0.5;"></i></div><h5 class="fw-bold text-muted">Belum ada Riwayat</h5><p class="text-muted small">Riwayat pengambilan barang akan muncul di sini.</p></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = tasks.map((t, idx) => {
+      // Memisahkan text No WR di bagian nomor urut
+      const wrParts = t.noWR.split('/');
+      const displayWR = wrParts.length >= 4 ? (wrParts.slice(0, 3).join('/') + '/<br><span class="text-secondary">' + wrParts.slice(3).join('/') + '</span>') : t.noWR;
+
+      return `
+      <tr class="super-row" style="animation-delay: ${idx * 0.1}s;">
+        <td>
+          <div class="fw-bold text-dark" style="font-size: 0.95rem;">${displayWR}</div>
+          <div class="small text-muted"><i class="far fa-calendar-alt me-1"></i>${t.tgl || '-'}</div>
+        </td>
+        <td>
+          <div class="fw-bold text-primary">${t.nama}</div>
+          <div class="small text-muted">Qty: <b>${t.qty}</b> | Dimensi: ${t.dimensi}</div>
+        </td>
+        <td>
+          <div class="fw-bold text-dark">${t.penerima || '-'}</div>
+        </td>
+        <td>
+          <span class="badge bg-success-subtle text-success border border-success fw-bold p-2">${t.status}</span>
+        </td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-light border text-primary shadow-sm rounded-pill fw-bold px-4 py-1 d-inline-flex align-items-center justify-content-center" style="min-width: 110px; height: 32px;" onclick="openStatusDetailModal('${t.noWR.replace(/[^a-zA-Z0-9]/g, '')}')" title="Detail">
+            <i class="fas fa-info-circle me-1"></i> Detail
+          </button>
+        </td>
+      </tr>
+      `;
+    }).join('');
+  }
+
+  // === EDIT ROUTING ===
+  function openEditRoutingModal(simpleId) {
+    const item = wrDataMap[simpleId]; if (!item) return;
+    document.getElementById('editRoutingNoWR').value = item.noWR;
+    const oldRouting = item.routing || "";
+    const steps = oldRouting.split(' - ').filter(s => s.trim() !== "" && s !== "-");
+
+    currentRoutingChips = steps.map(step => {
+      let isLocked = false;
+      if (item.logs && Array.isArray(item.logs)) {
+        isLocked = item.logs.some(log => {
+          const s = log.status || "";
+          return s.includes(`Proses: ${step} (In)`) || s.includes(`Proses: ${step} (Out)`) || s.includes(`MH Pickup: ${step}`);
+        });
+      }
+      return { label: step, locked: isLocked };
+    });
+
+    renderRoutingChips();
+    document.getElementById('editRoutingVal').value = "";
+    document.getElementById('editRoutingResults').style.display = 'none';
+    document.getElementById('editRoutingReason').value = "";
+    document.getElementById('modalEditRouting').style.display = 'flex';
+  }
+
+  function renderRoutingChips() {
+    const container = document.getElementById('routingChipsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    currentRoutingChips.forEach((chip, index) => {
+      const div = document.createElement('div');
+      if (chip.locked) {
+        div.className = 'chip locked';
+        div.innerHTML = `${chip.label} <i class="fas fa-lock ms-2" title="Proses sudah berjalan/selesai"></i>`;
+      } else {
+        div.className = 'chip';
+        div.innerHTML = `${chip.label} <i class="fas fa-times-circle ms-1" onclick="removeRoutingChip(${index})"></i>`;
+      }
+      container.appendChild(div);
+    });
+  }
+
+  function addRoutingChip(val) {
+    const cleanVal = String(val).trim();
+    const isDuplicate = currentRoutingChips.some(c => c.label === cleanVal);
+    if (cleanVal !== "" && !isDuplicate) {
+      currentRoutingChips.push({ label: cleanVal, locked: false });
+      renderRoutingChips();
+    }
+    const input = document.getElementById('editRoutingVal');
+    if (input) { input.value = ''; input.focus(); }
+  }
+
+  function removeRoutingChip(index) {
+    if (currentRoutingChips[index] && !currentRoutingChips[index].locked) {
+      currentRoutingChips.splice(index, 1); renderRoutingChips();
+    } else { alert("Tahapan ini sudah berjalan/selesai dan tidak dapat dihapus."); }
+  }
+
+  function clearRoutingChips() {
+    currentRoutingChips = currentRoutingChips.filter(c => c.locked);
+    renderRoutingChips();
+    const input = document.getElementById('editRoutingVal');
+    if (input) input.focus();
+  }
+
+  function handleRoutingInputKey(e) {
+    if (e.key === 'Enter') { e.preventDefault(); const val = e.target.value.trim(); if (val) addRoutingChip(val); }
+    if (e.key === 'Backspace' && e.target.value === '' && currentRoutingChips.length > 0) {
+      const lastIdx = currentRoutingChips.length - 1;
+      if (!currentRoutingChips[lastIdx].locked) removeRoutingChip(lastIdx);
+    }
+  }
+
+  function submitEditRouting() {
+    const noWR = document.getElementById('editRoutingNoWR').value;
+    if (currentRoutingChips.length === 0) { alert("Routing belum dipilih! Minimal satu proses."); return; }
+    const newVal = currentRoutingChips.map(c => c.label).join(' - ');
+    const reason = document.getElementById('editRoutingReason').value;
+    const btn = document.getElementById('btnSaveRouting');
+    const newRouting = newVal;
+    const newPenerima = newVal;
+
+    if (!reason || reason.trim() === "") { alert("Alasan wajib diisi!"); return; }
+
+    const originalText = btn.innerText;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...'; btn.disabled = true;
+
+    google.script.run.withSuccessHandler(function (res) {
+      document.getElementById('modalEditRouting').style.display = 'none';
+      btn.innerText = originalText; btn.disabled = false;
+      showSuccessModal(res);
+      if (typeof loadDataGudang === 'function') loadDataGudang();
+    }).withFailureHandler(function (err) {
+      alert("Gagal update: " + err);
+      btn.innerText = originalText; btn.disabled = false;
+    }).updateRoutingWR(noWR, newRouting, newPenerima, reason);
+  }
+
+  function filterEditRoutingDropdown(keyword) {
+    const resultsDiv = document.getElementById('editRoutingResults');
+    const input = document.getElementById('editRoutingVal');
+    if (input.closest('.search-container')) input.closest('.search-container').style.zIndex = "1000";
+
+    let sourceList = (typeof allDeptList !== 'undefined') ? allDeptList : [];
+    const filtered = sourceList.filter(dept => !keyword || dept.toLowerCase().includes(keyword.toLowerCase()));
+
+    resultsDiv.innerHTML = '';
+    if (filtered.length > 0) {
+      filtered.forEach(dept => {
+        const div = document.createElement('div');
+        div.className = 'result-item'; div.innerText = dept;
+        div.style.padding = "8px 12px"; div.style.cursor = "pointer"; div.style.borderBottom = "1px solid #f0f0f0";
+        div.onclick = function (e) { e.stopPropagation(); addRoutingChip(dept); resultsDiv.style.display = 'none'; };
+        resultsDiv.appendChild(div);
+      });
+      resultsDiv.style.display = 'block';
+    } else { resultsDiv.style.display = 'none'; }
+
+    setTimeout(() => {
+      document.addEventListener('click', function (e) {
+        if (!input.contains(e.target) && !resultsDiv.contains(e.target)) {
+          resultsDiv.style.display = 'none';
+          if (input.closest('.search-container')) input.closest('.search-container').style.zIndex = "10";
+        }
+      }, { once: true });
+    }, 100);
+  }
+
+  // FUNGSI BARU: Wrapper untuk membuka scanner dari list MH
+  function openScannerForGudang(noWR, currentStatus, routing) {
+    initScanProcess(noWR, currentStatus, routing);
+  }
+
+  function openScannerForGudangFinal(noWR, routing) {
+    initScanProcess(noWR, 'Siap diambil', routing, 'Menuju Pengaju');
+  }
+</script>

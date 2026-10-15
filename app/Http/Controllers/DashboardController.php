@@ -123,10 +123,13 @@ class DashboardController extends Controller
             ->take(4)
             ->get();
 
+        $unallocatedComponentsCount = Component::whereNull('default_location_id')->count();
+
         return view('dashboard', compact(
             'totalComponents',
             'lowStockCount',
             'lowStockComponents',
+            'unallocatedComponentsCount',
             'todayTransactionsCount',
             'pendingApprovalsCount',
             'zones',

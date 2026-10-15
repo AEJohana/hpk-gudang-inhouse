@@ -61,7 +61,14 @@
                     <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-teal-700 transition">Master Komponen</h4>
-                            <span class="text-[11px] font-bold text-teal-700 bg-teal-100/70 px-2 py-0.5 rounded-full">{{ $totalComponents }} SKU</span>
+                            <div class="flex items-center gap-1.5">
+                                @if(!empty($unallocatedComponentsCount) && $unallocatedComponentsCount > 0)
+                                    <span class="text-[10px] font-extrabold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200" title="{{ $unallocatedComponentsCount }} part butuh alokasi rak">
+                                        ⚠️ {{ $unallocatedComponentsCount }} Perlu Rak
+                                    </span>
+                                @endif
+                                <span class="text-[11px] font-bold text-teal-700 bg-teal-100/70 px-2 py-0.5 rounded-full">{{ $totalComponents }} SKU</span>
+                            </div>
                         </div>
                         <p class="text-xs text-slate-500 leading-relaxed">Katalog part, upload foto fisik, spesifikasi teknis & batas safety stock</p>
                     </div>

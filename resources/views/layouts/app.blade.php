@@ -78,14 +78,18 @@
                     <i class="fa-solid fa-right-left"></i>
                     <span>Transaksi Barang</span>
                 </a>
+                @can('work-request.view')
                 <a href="{{ route('work-requests.index') }}" class="hpk-sidebar-item {{ request()->routeIs('work-requests.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-industry text-amber-400"></i>
-                    <span>Work Request Mesin</span>
+                    <span>Work Request (WRI)</span>
                 </a>
-                <a href="{{ route('work-station-supplies.create') }}" class="hpk-sidebar-item {{ request()->routeIs('work-station-supplies.*') ? 'active' : '' }}">
+                @endcan
+                @can('material-handling.view')
+                <a href="{{ route('work-station-supplies.index') }}" class="hpk-sidebar-item {{ request()->routeIs('work-station-supplies.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-truck-ramp-box text-blue-400"></i>
-                    <span>Supply Stasiun Kerja</span>
+                    <span>Material Handling (MH)</span>
                 </a>
+                @endcan
                 <a href="{{ route('ecrs.index') }}" class="hpk-sidebar-item {{ request()->routeIs('ecrs.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-file-pen"></i>
                     <span>ECR Revisi Part</span>

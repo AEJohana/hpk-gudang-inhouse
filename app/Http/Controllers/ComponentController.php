@@ -28,6 +28,14 @@ class ComponentController extends Controller
             $query->where('category', $request->category);
         }
 
+        if ($request->filled('uncategorized')) {
+            $query->whereNull('category');
+        }
+
+        if ($request->filled('unallocated')) {
+            $query->whereNull('default_location_id');
+        }
+
         if ($request->filled('low_stock')) {
             $components = $query->get()->filter(function ($c) {
                 return $c->is_low_stock;
@@ -36,24 +44,34 @@ class ComponentController extends Controller
             $components = $query->latest()->paginate(15)->withQueryString();
         }
 
+        $unallocatedCount = Component::whereNull('default_location_id')->count();
+        $uncategorizedCount = Component::whereNull('category')->count();
+
         $categories = [
-            'hydraulic' => 'Komponen Hidrolik & Presisi',
-            'raw_material' => 'Raw Material Baja',
-            'fastener' => 'Hardware & Fastener',
-            'accessories' => 'Aksesoris Karoseri',
-            'electrical' => 'Electrical & Lighting',
-            'chemical_paint' => 'Chemical & Cat',
+            'subframe' => 'Subframe',
+            'assy' => 'Assy',
+            'accessories' => 'Aksesoris',
+            'pto' => 'PTO',
+            'potong_chassis' => 'Potong Chassis',
+            'spo' => 'SPO',
         ];
 
-        return view('master_components.index', compact('components', 'categories'));
+        return view('master_components.index', compact('components', 'categories', 'unallocatedCount', 'uncategorizedCount'));
     }
 
     public function create()
     {
-        $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
+        $locations = Location::where('rack_code', '!=', 'HOLDING')
+            ->orderBy('zone_code')
+            ->orderBy('rack_number')
+            ->get();
+
         if ($locations->isEmpty()) {
             Location::ensureDefaultLocationExists();
-            $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
+            $locations = Location::where('rack_code', '!=', 'HOLDING')
+                ->orderBy('zone_code')
+                ->orderBy('rack_number')
+                ->get();
         }
 
         return view('master_components.create', compact('locations'));
@@ -61,41 +79,25 @@ class ComponentController extends Controller
 
     public function store(Request $request)
     {
-        if (!$request->filled('default_location_id') || Location::where('id', $request->default_location_id)->doesntExist()) {
-            if (Location::count() === 0) {
-                $defaultLoc = Location::ensureDefaultLocationExists();
-                $request->merge(['default_location_id' => $defaultLoc->id]);
-            }
-        }
-
         $validated = $request->validate([
-            'part_number' => 'nullable|string|max:50|unique:components,part_number',
+            'part_number' => 'required|string|max:50|unique:components,part_number',
             'name' => 'required|string|max:255',
-            'category' => 'required|string',
+            'category' => 'nullable|string',
             'uom' => 'required|string|max:20',
+            'length_mm' => 'nullable|string|max:100',
+            'width_or_diameter_mm' => 'nullable|string|max:100',
+            'thickness_or_height_mm' => 'nullable|string|max:100',
             'specification' => 'nullable|string',
-            'minimum_stock' => 'required|integer|min:0',
-            'maximum_stock' => 'required|integer|min:1',
-            'default_location_id' => 'required|exists:locations,id',
+            'minimum_stock' => 'nullable|integer|min:0',
+            'default_location_id' => 'nullable|exists:locations,id',
             'initial_stock' => 'nullable|numeric|min:0',
             'image' => 'nullable|image|max:5120', // max 5MB
             'camera_snapshot' => 'nullable|string', // base64 string from camera
+        ], [
+            'part_number.required' => 'Kode Komponen wajib diisi sesuai pengesahan Engineering HPK.',
+            'part_number.unique' => 'Kode Komponen ini sudah terdaftar di sistem.',
+            'name.required' => 'Nama lengkap komponen wajib diisi sesuai standar Engineering.',
         ]);
-
-        // Auto-generate part number if not provided
-        if (empty($validated['part_number'])) {
-            $prefix = match($validated['category']) {
-                'hydraulic' => 'HYD',
-                'raw_material' => 'RAW',
-                'fastener' => 'FST',
-                'accessories' => 'ACC',
-                'electrical' => 'ELC',
-                'chemical_paint' => 'CHM',
-                default => 'PRT',
-            };
-            $randomNum = rand(100, 999);
-            $validated['part_number'] = "{$prefix}-" . strtoupper(Str::random(3)) . "-{$randomNum}";
-        }
 
         // Handle image upload or camera snapshot
         $imagePath = null;
@@ -123,10 +125,13 @@ class ComponentController extends Controller
             'name' => $validated['name'],
             'category' => $validated['category'],
             'uom' => $validated['uom'],
-            'specification' => $validated['specification'],
-            'minimum_stock' => $validated['minimum_stock'],
-            'maximum_stock' => $validated['maximum_stock'],
-            'default_location_id' => $validated['default_location_id'],
+            'length_mm' => $validated['length_mm'] ?? null,
+            'width_or_diameter_mm' => $validated['width_or_diameter_mm'] ?? null,
+            'thickness_or_height_mm' => $validated['thickness_or_height_mm'] ?? null,
+            'specification' => $validated['specification'] ?? null,
+            'minimum_stock' => $validated['minimum_stock'] ?? 0,
+            'maximum_stock' => null,
+            'default_location_id' => !empty($validated['default_location_id']) ? $validated['default_location_id'] : null,
             'image_path' => $imagePath,
             'qr_code_payload' => 'HPK-PART|' . $validated['part_number'],
             'is_active' => true,
@@ -134,12 +139,20 @@ class ComponentController extends Controller
 
         // Create initial stock balance if provided
         $initialStock = (float) ($request->initial_stock ?? 0);
-        StockBalance::create([
-            'component_id' => $component->id,
-            'location_id' => $validated['default_location_id'],
-            'quantity' => $initialStock,
-            'batch_lot_number' => 'LOT-' . date('Ym') . '-INIT',
-        ]);
+        if ($initialStock > 0) {
+            $targetLocationId = $component->default_location_id;
+            if (!$targetLocationId) {
+                $holdingLoc = Location::ensureUnassignedLocationExists();
+                $targetLocationId = $holdingLoc->id;
+            }
+
+            StockBalance::create([
+                'component_id' => $component->id,
+                'location_id' => $targetLocationId,
+                'quantity' => $initialStock,
+                'batch_lot_number' => 'LOT-' . date('Ym') . '-INIT',
+            ]);
+        }
 
         return redirect()->route('components.show', $component)->with('success', "Komponen {$component->name} ({$component->part_number}) berhasil ditambahkan!");
     }
@@ -156,12 +169,26 @@ class ComponentController extends Controller
 
     public function edit(Component $component)
     {
-        $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
+        $locations = Location::where('rack_code', '!=', 'HOLDING')
+            ->orderBy('zone_code')
+            ->orderBy('rack_number')
+            ->get();
+
+        $categories = [
+            'subframe' => 'Subframe',
+            'assy' => 'Assy',
+            'accessories' => 'Aksesoris',
+            'pto' => 'PTO',
+            'potong_chassis' => 'Potong Chassis',
+            'spo' => 'SPO',
+        ];
+
         return view('master_components.edit', [
             'component' => $component,
             'componentItem' => $component,
             'masterComponent' => $component,
             'locations' => $locations,
+            'categories' => $categories,
         ]);
     }
 
@@ -169,14 +196,18 @@ class ComponentController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'category' => 'required|string',
+            'category' => 'nullable|string',
             'uom' => 'required|string|max:20',
+            'length_mm' => 'nullable|string|max:100',
+            'width_or_diameter_mm' => 'nullable|string|max:100',
+            'thickness_or_height_mm' => 'nullable|string|max:100',
             'specification' => 'nullable|string',
-            'minimum_stock' => 'required|integer|min:0',
-            'maximum_stock' => 'required|integer|min:1',
-            'default_location_id' => 'required|exists:locations,id',
+            'minimum_stock' => 'nullable|integer|min:0',
+            'default_location_id' => 'nullable|exists:locations,id',
             'image' => 'nullable|image|max:5120',
             'camera_snapshot' => 'nullable|string',
+        ], [
+            'name.required' => 'Nama lengkap komponen wajib diisi sesuai standar Engineering.',
         ]);
 
         $imagePath = $component->image_path;
@@ -199,16 +230,32 @@ class ComponentController extends Controller
             }
         }
 
+        $oldLocationId = $component->default_location_id;
+        $newLocationId = !empty($validated['default_location_id']) ? $validated['default_location_id'] : null;
+
         $component->update([
             'name' => $validated['name'],
             'category' => $validated['category'],
             'uom' => $validated['uom'],
-            'specification' => $validated['specification'],
-            'minimum_stock' => $validated['minimum_stock'],
-            'maximum_stock' => $validated['maximum_stock'],
-            'default_location_id' => $validated['default_location_id'],
+            'length_mm' => $validated['length_mm'] ?? null,
+            'width_or_diameter_mm' => $validated['width_or_diameter_mm'] ?? null,
+            'thickness_or_height_mm' => $validated['thickness_or_height_mm'] ?? null,
+            'specification' => $validated['specification'] ?? null,
+            'minimum_stock' => $validated['minimum_stock'] ?? 0,
+            'default_location_id' => $newLocationId,
             'image_path' => $imagePath,
         ]);
+
+        // If component was previously unassigned and now has a physical rack,
+        // move any stock from HOLDING location to the newly selected rack
+        if (!$oldLocationId && $newLocationId) {
+            $holdingLoc = Location::where('rack_code', 'HOLDING')->first();
+            if ($holdingLoc) {
+                StockBalance::where('component_id', $component->id)
+                    ->where('location_id', $holdingLoc->id)
+                    ->update(['location_id' => $newLocationId]);
+            }
+        }
 
         return redirect()->route('components.show', $component)->with('success', 'Data komponen berhasil diperbarui!');
     }
@@ -248,6 +295,7 @@ class ComponentController extends Controller
                     'total_stock' => $component->total_stock,
                     'default_location' => $component->defaultLocation ? $component->defaultLocation->full_location_code : 'Belum Ditentukan',
                     'default_location_id' => $component->default_location_id,
+                    'dimension_formatted' => $component->dimension_formatted,
                     'image_url' => $component->image_url,
                     'is_low_stock' => $component->is_low_stock,
                 ]
@@ -275,6 +323,87 @@ class ComponentController extends Controller
             'success' => false,
             'message' => 'Komponen tidak ditemukan secara spesifik',
             'suggestions' => $list
+        ]);
+    }
+
+    /**
+     * Quick register a new component via AJAX (e.g. from Membuat WR modal)
+     */
+    public function quickStore(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'part_number' => 'nullable|string|max:50|unique:components,part_number',
+            'uom' => 'nullable|string|max:20',
+            'length_mm' => 'nullable|string|max:100',
+            'width_or_diameter_mm' => 'nullable|string|max:100',
+            'thickness_or_height_mm' => 'nullable|string|max:100',
+            'specification' => 'nullable|string',
+            'image' => 'nullable|image|max:5120',
+            'camera_snapshot' => 'nullable|string',
+        ]);
+
+        $partNumber = !empty($validated['part_number']) 
+            ? trim($validated['part_number']) 
+            : 'NEW-' . date('Ymd') . '-' . strtoupper(Str::random(4));
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $fileName = 'comp_' . time() . '_' . Str::slug($partNumber) . '.' . $file->getClientOriginalExtension();
+            if (!file_exists(public_path('uploads/components'))) {
+                mkdir(public_path('uploads/components'), 0777, true);
+            }
+            $file->move(public_path('uploads/components'), $fileName);
+            $imagePath = 'uploads/components/' . $fileName;
+        } elseif (!empty($request->camera_snapshot)) {
+            $image_parts = explode(";base64,", $request->camera_snapshot);
+            if (count($image_parts) === 2) {
+                $image_base64 = base64_decode($image_parts[1]);
+                $fileName = 'comp_cam_' . time() . '_' . Str::slug($partNumber) . '.jpg';
+                if (!file_exists(public_path('uploads/components'))) {
+                    mkdir(public_path('uploads/components'), 0777, true);
+                }
+                file_put_contents(public_path('uploads/components/' . $fileName), $image_base64);
+                $imagePath = 'uploads/components/' . $fileName;
+            }
+        }
+
+        $component = Component::create([
+            'part_number' => $partNumber,
+            'name' => $validated['name'],
+            'category' => 'subframe',
+            'uom' => $validated['uom'] ?: 'PCS',
+            'length_mm' => $validated['length_mm'] ?? null,
+            'width_or_diameter_mm' => $validated['width_or_diameter_mm'] ?? null,
+            'thickness_or_height_mm' => $validated['thickness_or_height_mm'] ?? null,
+            'specification' => $validated['specification'] ?? 'Komponen baru didaftarkan via form Work Request',
+            'minimum_stock' => 0,
+            'maximum_stock' => null,
+            'default_location_id' => null,
+            'image_path' => $imagePath,
+            'qr_code_payload' => 'HPK-PART|' . $partNumber,
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Komponen {$component->name} ({$component->part_number}) berhasil didaftarkan!",
+            'component' => [
+                'id' => $component->id,
+                'part_number' => $component->part_number,
+                'name' => $component->name,
+                'uom' => $component->uom,
+                'specification' => $component->specification,
+                'image_url' => $component->image_url,
+                'length_mm' => $component->length_mm,
+                'width_or_diameter_mm' => $component->width_or_diameter_mm,
+                'thickness_or_height_mm' => $component->thickness_or_height_mm,
+                'dimension_formatted' => $component->dimension_formatted,
+                'total_stock' => 0,
+                'minimum_stock' => 0,
+                'rack_code' => 'Belum di Rak',
+            ]
         ]);
     }
 }

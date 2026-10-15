@@ -1,0 +1,19 @@
+,,,
+,Alamat,Tujuan,Sheet
+,No WR,E9,Format WR
+,Kode Komponen,E11,Format WR
+,Nama Komponen,E12,Format WR
+,Routing,D15,Format WR
+,Dimensi,,Format WR
+,Qty,G12,Format WR
+,Dept Pengaju,G13,Format WR
+,Dept Penerima,F15,Format WR
+,Tanggal Order,G11,Format WR
+,OP Pengaju,D21,Format WR
+,Kepala Pengaju,E21,Format WR
+,OP Penerima ,F21,Format WR
+,Kepala Penerima,G21,Format WR
+,TTD OP Pengaju,D18,Format WR
+,TTD Kepala Pengaju,E18,Format WR
+,TTD OP Penerima,F18,Format WR
+,TTD Kepala Penerima,G18,Format WR

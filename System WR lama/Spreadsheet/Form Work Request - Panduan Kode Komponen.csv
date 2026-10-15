@@ -1,0 +1,28 @@
+,,,,,,,,
+,,,,,,,,
+,Level,Kode,,Tipe Sub Assybly,Kode_T,,Tipe Material,Kode_N
+,Assembly,A,,Subframe,SF,,Plat Hitam,P1
+,Sub Assembly,S,,Main Frame,MF,,Plat Stainless,P2
+,Component,C,,Side Panel,SP,,Plat Steel Plate ST52,P3
+,,,,Front Protector,FP,,Plat Hardox,P4
+,,,,Rear Door,RD,,Plat SM490,P5
+,,,,Lodge,LO,,Plat Border,P6
+,,,,Spatbor,SA,,Wear Plates,P7
+,,,,Lamp Holder,LH,,Plat Kuningan,P8
+,,,,Stabilizer,ST,,Plat Strip,PS
+,,,,Side Protector,SR,,Tube Seamless Sch 40,T1
+,,,,Safety Block,SB,,Tube Seamless Sch 80,T2
+,,,,Partisi,PR,,Tube Hitam,T3
+,,,,,,,As ST-41,A1
+,,,,,,,AS ST-60,A2
+,,,,,,,As Beton Polos,A3
+,,,,,,,As Beton Ulir,A4
+,,,,,,,Hollow Bar,HA
+,,,,,,,Hollow Square,HS
+,,,,,,,Hollow Rectangular,HR
+,,,,,,,UNP,UN
+,,,,,,,IWF,IW
+,,,,,,,H-Beam,HE
+,,,,,,,Hexagonal,HX
+,,,,,,,Siku,SI
+,,,,,,,Kayu Campur,KC

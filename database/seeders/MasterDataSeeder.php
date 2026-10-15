@@ -108,34 +108,34 @@ class MasterDataSeeder extends Seeder
         // 3. Component Categories
         $categoriesData = [
             [
-                'code' => 'hydraulic',
-                'name' => 'Komponen Hidrolik & Presisi',
-                'description' => 'Silinder hidrolik telescopic, pompa gear, power take-off (PTO), dan valve control.',
+                'code' => 'subframe',
+                'name' => 'Subframe',
+                'description' => 'Subframe chassis dump truck, crossmember, dan balok struktur utama karoseri.',
             ],
             [
-                'code' => 'raw_material',
-                'name' => 'Raw Material Baja',
-                'description' => 'Pelat baja Hardox/Mild Steel, profil UNP, WF, dan pipa seamless struktur.',
-            ],
-            [
-                'code' => 'fastener',
-                'name' => 'Hardware & Fastener',
-                'description' => 'Baut high tensile Grade 8.8/10.9, mur flens, ring plat, dan rivet karoseri.',
+                'code' => 'assy',
+                'name' => 'Assy',
+                'description' => 'Sub-assembly dan perakitan komponen utuh karoseri.',
             ],
             [
                 'code' => 'accessories',
-                'name' => 'Aksesoris & Mounting Karoseri',
-                'description' => 'Mounting cabin Hino, engsel pintu dump, twist lock kontainer, handle bodi.',
+                'name' => 'Aksesoris',
+                'description' => 'Aksesoris karoseri, engsel pintu dump, twist lock kontainer, handle bodi, mounting.',
             ],
             [
-                'code' => 'electrical',
-                'name' => 'Electrical & Lighting',
-                'description' => 'Lampu belakang LED karoseri 24V, marker lamp, wiring harness, dan relay box.',
+                'code' => 'pto',
+                'name' => 'PTO',
+                'description' => 'Power Take-Off (PTO) transmission, drive shaft, dan kontrol pneumatik PTO.',
             ],
             [
-                'code' => 'chemical_paint',
-                'name' => 'Chemical & Cat',
-                'description' => 'Topcoat polyurethane (PU), primer epoxy anti karat, thinner PU, dan sealant.',
+                'code' => 'potong_chassis',
+                'name' => 'Potong Chassis',
+                'description' => 'Material potongan chassis, penguat sasis, dan bracket modifikasi rangka.',
+            ],
+            [
+                'code' => 'spo',
+                'name' => 'SPO',
+                'description' => 'Komponen SPO (Special Purpose Order) karoseri spesifikasi khusus.',
             ],
         ];
 

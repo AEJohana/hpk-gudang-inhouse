@@ -38,6 +38,44 @@
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
+        @if (!$componentItem->default_location_id)
+            <!-- Urgent Putaway Alert Banner -->
+            <div class="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-xs animate-pulse">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold flex-shrink-0 shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-amber-950 uppercase tracking-wider">Perhatian: Komponen Belum Memiliki Posisi Rak!</h4>
+                        <p class="text-[11px] text-amber-800 mt-0.5">Komponen ini belum dialokasikan ke rak penyimpanan tetap (fisik tercatat di penampungan awal). Segera tentukan posisi rak agar mudah ditemukan oleh tim karoseri.</p>
+                    </div>
+                </div>
+                <a href="{{ route('components.edit', $componentItem) }}" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl whitespace-nowrap shadow transition flex items-center gap-1.5 self-start sm:self-auto">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    Atur Lokasi Rak Sekarang
+                </a>
+            </div>
+        @endif
+
+        @if (!$componentItem->category)
+            <!-- Uncategorized Warning Banner -->
+            <div class="p-4 bg-orange-50 border-2 border-orange-200 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-xs">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold flex-shrink-0 shadow-sm">
+                        <i class="fa-solid fa-tags text-base"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-orange-950 uppercase tracking-wider">Perhatian: Komponen Belum Dikategorikan!</h4>
+                        <p class="text-[11px] text-orange-800 mt-0.5">Komponen ini belum dikelompokkan ke kategori resmi (Subframe, Assy, Aksesoris, PTO, Potong Chassis, atau SPO). Silakan pilih kategori yang sesuai.</p>
+                    </div>
+                </div>
+                <a href="{{ route('components.edit', $componentItem) }}" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl whitespace-nowrap shadow transition flex items-center gap-1.5 self-start sm:self-auto">
+                    <i class="fa-solid fa-pen text-xs"></i>
+                    Pilih Kategori Sekarang
+                </a>
+            </div>
+        @endif
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             <!-- Col 1: Visual Photo & QR Code Card -->
@@ -81,7 +119,7 @@
 
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                         <div>
-                            <span class="text-slate-400 text-[11px] block uppercase font-semibold">Part Number</span>
+                            <span class="text-slate-400 text-[11px] block uppercase font-semibold">Kode Komponen</span>
                             <span class="font-mono font-bold text-slate-900 text-sm mt-0.5 block">{{ $componentItem->part_number }}</span>
                         </div>
                         <div>
@@ -89,28 +127,37 @@
                             <span class="font-bold text-slate-900 mt-0.5 block">{{ $componentItem->uom }}</span>
                         </div>
                         <div>
-                            <span class="text-slate-400 text-[11px] block uppercase font-semibold">Batas Minimum (Safety)</span>
-                            <span class="font-bold text-rose-600 mt-0.5 block">{{ $componentItem->minimum_stock }} {{ $componentItem->uom }}</span>
+                            <span class="text-slate-400 text-[11px] block uppercase font-semibold">Ukuran Dimensi</span>
+                            <span class="font-bold font-mono text-slate-900 mt-0.5 block">{{ $componentItem->dimension_formatted }}</span>
                         </div>
                         <div>
-                            <span class="text-slate-400 text-[11px] block uppercase font-semibold">Batas Maksimum</span>
-                            <span class="font-bold text-slate-700 mt-0.5 block">{{ $componentItem->maximum_stock }} {{ $componentItem->uom }}</span>
+                            <span class="text-slate-400 text-[11px] block uppercase font-semibold">Batas Minimum (Safety)</span>
+                            <span class="font-bold {{ $componentItem->minimum_stock > 0 ? 'text-rose-600' : 'text-slate-500' }} mt-0.5 block">
+                                {{ $componentItem->minimum_stock > 0 ? $componentItem->minimum_stock . ' ' . $componentItem->uom : 'Tidak dibatasi' }}
+                            </span>
                         </div>
                     </div>
 
                     <div class="pt-3 border-t border-slate-100">
-                        <span class="text-slate-400 text-[11px] block uppercase font-semibold mb-1">Deskripsi Spesifikasi Teknis:</span>
+                        <span class="text-slate-400 text-[11px] block uppercase font-semibold mb-1">Keterangan / Catatan Teknis:</span>
                         <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono text-slate-700 leading-relaxed whitespace-pre-line">
-                            {{ $componentItem->specification ?: 'Belum ada catatan spesifikasi khusus.' }}
+                            {{ $componentItem->specification ?: 'Belum ada keterangan atau catatan khusus.' }}
                         </div>
                     </div>
 
                     <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
                         <div>
                             <span class="text-slate-400 text-[11px] block uppercase font-semibold">Lokasi Penyimpanan Default:</span>
-                            <span class="font-mono text-xs font-bold text-blue-900 mt-0.5 block">
-                                {{ $componentItem->defaultLocation ? $componentItem->defaultLocation->full_location_code : 'Belum Ditentukan' }}
-                            </span>
+                            @if ($componentItem->defaultLocation)
+                                <span class="font-mono text-xs font-bold text-blue-900 mt-0.5 block">
+                                    {{ $componentItem->defaultLocation->full_location_code }} ({{ $componentItem->defaultLocation->zone_name }})
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200 mt-1">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    Belum Ditempatkan ke Rak (Segera Alokasikan)
+                                </span>
+                            @endif
                         </div>
                         <div class="text-right">
                             <span class="text-slate-400 text-[11px] block uppercase font-semibold">Total Stok Fisik Tersedia:</span>

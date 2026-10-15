@@ -1,0 +1,530 @@
+<script>
+  // === SEMUA VARIABEL GLOBAL MH ===
+  let currentUser = "";
+  let currentDept = "";
+  let currentFoto = "";
+  let currentAccess = [];
+  let currentAccessCodes = [];
+  let scanContext = null;
+  let wrDataMap = {};
+  let targetScanWR = "";
+  let targetScanStatus = "";
+  let targetScanRouting = "";
+  let targetScanForceNext = null;
+  let allDeptList = [];
+  let pendingScanData = null;
+  let pendingStatusUpdate = null;
+  let currentRoutingChips = [];
+  let globalGudangFinalTransitTasks = [];
+  const GITHUB_SCANNER_URL = "https://rchmnalha18.github.io/scanner-wr/";
+
+  // === THE UNIVERSAL PARSER ===
+  function universalQtyParser(logsArray, statusKeyword, matchType = 'includes') {
+    if (!logsArray || !Array.isArray(logsArray)) return 0;
+
+    let totalAccumulated = 0;
+    const keyword = statusKeyword.toLowerCase();
+
+    logsArray.forEach(log => {
+      if (!log || !log.status) return;
+
+      const logStatus = log.status.toLowerCase();
+      let isMatch = false;
+
+      if (matchType === 'exact') {
+        isMatch = (logStatus === keyword);
+      } else {
+        isMatch = logStatus.includes(keyword);
+      }
+
+      if (isMatch && matchType !== 'exact') {
+        if (!keyword.includes('defect') && logStatus.includes('defect')) {
+          isMatch = false;
+        }
+      }
+
+      if (isMatch) {
+        const qtyString = String(log.qty || "0");
+        const matchNumber = qtyString.match(/\d+/);
+
+        if (matchNumber) {
+          const parsedQty = parseInt(matchNumber[0], 10);
+          if (!isNaN(parsedQty)) {
+            totalAccumulated += parsedQty;
+          }
+        }
+      }
+    });
+
+    return totalAccumulated;
+  }
+
+  function calculateTotalProcessedForStatus(logsArray, statusToCalculate) {
+    return universalQtyParser(logsArray, statusToCalculate, 'includes');
+  }
+
+  // === FUNGSI WINDOW ONLOAD (SAAT WEB DIBUKA) ===
+  window.onload = function () {
+    const inputPass = document.getElementById('loginPassword');
+    const inputUser = document.getElementById('loginUsername');
+
+    if (inputPass) {
+      inputPass.addEventListener("keypress", function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          handleLogin();
+        }
+      });
+    }
+
+    // Jam Digital
+    function updateClock() {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      const el = document.getElementById('homeClock');
+      if (el) el.innerText = h + ':' + m + ':' + s;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    const session = localStorage.getItem('appSessionMH');
+    if (session) {
+      try {
+        const user = JSON.parse(session);
+        currentUser = user.username;
+        currentDept = user.dept;
+        currentFoto = user.foto;
+        currentAccess = user.access || [];
+        currentAccessCodes = user.accessCodes || [];
+        updateUserUI();
+
+        const lastPage = localStorage.getItem('lastPageMH');
+        if (lastPage && document.getElementById(lastPage)) {
+          navigateTo(lastPage);
+        } else {
+          navigateTo('pageHome');
+        }
+      } catch (e) {
+        console.error("Restore session failed", e);
+        navigateTo('pageLogin');
+      }
+    } else {
+      navigateTo('pageLogin');
+    }
+
+    google.script.run.withSuccessHandler(function (list) {
+      allDeptList = list;
+    }).getDeptPenerimaList();
+
+    // Event Listener untuk Scanner GitHub
+    window.addEventListener("message", function (event) {
+      if (event.data && event.data.type === "QR_RESULT_GITHUB") {
+        processScannedData(event.data.data);
+      }
+    });
+  };
+
+  // === FUNGSI NAVIGASI & SIDEBAR ===
+  function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('overlay');
+    sb.classList.toggle('active');
+    ov.style.display = sb.classList.contains('active') ? 'block' : 'none';
+  }
+
+  function navigateTo(pageId) {
+    if (pageId !== 'pageLogin') localStorage.setItem('lastPageMH', pageId);
+
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) targetPage.classList.add('active-page');
+
+    const sb = document.getElementById('sidebar');
+    if (sb.classList.contains('active')) toggleSidebar();
+    window.scrollTo(0, 0);
+
+    if (pageId === 'pageGudang') loadDataGudang();
+  }
+
+  // === FUNGSI MODAL (TAMPILAN POPUP) ===
+  function showSuccessModal(msg) {
+    document.getElementById('successMessage').innerText = msg;
+    document.getElementById('successModal').style.display = 'flex';
+  }
+  function closeSuccessModal() {
+    document.getElementById('successModal').style.display = 'none';
+    navigateTo('pageHome');
+  }
+  function showResultModal(isSuccess, title, message) {
+    const modal = document.getElementById('resultModal');
+    const iconBg = document.getElementById('resultIconBg');
+    const icon = document.getElementById('resultIcon');
+    const titleEl = document.getElementById('resultTitle');
+    const msgEl = document.getElementById('resultMessage');
+    const btn = document.getElementById('resultBtn');
+
+    if (isSuccess) {
+      iconBg.className = 'success-icon';
+      iconBg.style.background = '#e3fcef';
+      iconBg.style.color = '#00c851';
+      iconBg.style.boxShadow = '0 10px 20px rgba(0, 200, 81, 0.2)';
+      icon.className = 'fas fa-check';
+      titleEl.className = 'fw-bold mb-2 text-success';
+      btn.className = 'btn-orange shadow-sm w-100 py-2 fw-bold';
+      btn.style.background = '#00c851';
+      btn.style.boxShadow = '0 4px 15px rgba(0, 200, 81, 0.3)';
+      btn.innerText = "OK, Mantap!";
+      icon.style.animation = 'none'; icon.offsetHeight; icon.style.animation = 'bounceIcon 2s infinite';
+    } else {
+      iconBg.className = 'danger-icon';
+      iconBg.style.background = '#ffebee';
+      iconBg.style.color = '#e30613';
+      iconBg.style.boxShadow = '0 10px 20px rgba(227, 6, 19, 0.2)';
+      icon.className = 'fas fa-times';
+      titleEl.className = 'fw-bold mb-2 text-danger';
+      btn.className = 'btn-orange shadow-sm w-100 py-2 fw-bold';
+      btn.style.background = '#e30613';
+      btn.style.boxShadow = '0 4px 15px rgba(227, 6, 19, 0.3)';
+      btn.innerText = "Tutup";
+      icon.style.animation = 'none'; icon.offsetHeight; icon.style.animation = 'pulseRed 2s infinite';
+    }
+    titleEl.innerText = title; msgEl.innerHTML = message; modal.style.display = 'flex';
+  }
+  function closeResultModal() { document.getElementById('resultModal').style.display = 'none'; }
+  function showImageModal(url, kode, nama) {
+    if (!url) return;
+    const img = document.getElementById('previewImage');
+    let src = url;
+    const match = url.match(/\/d\/(.+?)\//);
+    if (match && match[1]) src = "https://lh3.googleusercontent.com/d/" + match[1];
+    else if (url.includes("id=")) src = "https://lh3.googleusercontent.com/d/" + url.split("id=")[1].split("&")[0];
+
+    img.src = src;
+    document.getElementById('modalImgNama').innerText = nama || "Nama Komponen";
+    document.getElementById('modalImgKode').innerText = kode || "-";
+    document.getElementById('imageModal').style.display = 'flex';
+  }
+  function closeImageModal() {
+    document.getElementById('imageModal').style.display = 'none';
+    document.getElementById('previewImage').src = "";
+  }
+
+  // === FUNGSI SCANNER GLOBAL ===
+  function closeScannerModal() {
+    document.getElementById('scannerModal').style.display = 'none';
+  }
+
+  function openExternalScanner() {
+    window.open(GITHUB_SCANNER_URL, 'Scanner', 'width=600,height=700');
+  }
+
+  function startScanner(readerId) {
+    if (readerId === 'modalReader') {
+      document.getElementById('previewModal').style.display = 'none';
+      document.getElementById('statusModal').className = 'text-white-50 small mb-3';
+      document.getElementById('statusModal').innerText = "Klik tombol untuk membuka scanner";
+      openExternalScanner();
+    }
+  }
+
+  function processScannedData(decodedText) {
+    if (scanContext === 'process_update') {
+      let isMatch = false;
+      const scannedText = decodedText.trim();
+
+      // 1. Cek Exact Match dengan No WR
+      if (scannedText === targetScanWR.trim()) {
+        isMatch = true;
+      }
+      // 2. Cek Match dengan Kode Mesin
+      else {
+        let targetDept = "";
+        const rawRouting = targetScanRouting || "";
+        const steps = rawRouting.split('-').map(s => s.trim()).filter(s => s !== "");
+        const curStatus = (targetScanStatus || "").trim();
+
+        if (curStatus === '' || curStatus === '-' || curStatus.toLowerCase().includes('antrian') || curStatus.toLowerCase() === 'belum verifikasi') {
+          targetDept = steps.length > 0 ? steps[0] : rawRouting;
+        } else if (curStatus.includes('(In)')) {
+          targetDept = curStatus.replace('Proses:', '').replace('(In)', '').trim();
+        } else if (curStatus.includes('(Out)')) {
+          let prevStep = curStatus.replace('Proses:', '').replace('(Out)', '').trim();
+          let idx = steps.indexOf(prevStep);
+          if (idx !== -1 && idx < steps.length - 1) {
+            targetDept = steps[idx + 1];
+          }
+        }
+
+        if (targetDept) {
+          const machinePrefix = scannedText.split('/')[0].trim().toLowerCase();
+          const targetDeptClean = targetDept.trim().toLowerCase();
+          if (machinePrefix && targetDeptClean.includes(machinePrefix)) {
+            isMatch = true;
+          }
+        }
+      }
+
+      if (isMatch) {
+        const nextStatus = targetScanForceNext || calculateNextStatus(targetScanStatus, targetScanRouting);
+
+        if (nextStatus) {
+          document.getElementById('scannerModal').style.display = 'none';
+
+          if (nextStatus === 'Dalam antrian') {
+            processUpdate(targetScanWR, 'barang', nextStatus, "-", "Masuk Antrian");
+            return;
+          }
+
+          const curStatusLower = (targetScanStatus || "").toLowerCase();
+          if ((curStatusLower.includes('antrian') || curStatusLower === 'belum verifikasi' || !targetScanStatus || targetScanStatus === '-') && nextStatus.includes('(In)')) {
+            const simpleId = targetScanWR.replace(/[^a-zA-Z0-9]/g, '');
+            const item = wrDataMap[simpleId];
+            const qtyInfo = (item && item.qty) ? (item.qty + " pcs") : "-";
+            processUpdate(targetScanWR, 'barang', nextStatus, qtyInfo, "Auto-Start Process");
+            return;
+          }
+
+          if (nextStatus.startsWith('MH Pickup:')) {
+            const isGudangUser = (currentAccessCodes && (currentAccessCodes.includes('6') || currentAccessCodes.includes(6)));
+            if (!isGudangUser) {
+              showResultModal(false, "Akses Ditolak", "Hanya departemen Gudang yang dapat melakukan proses pickup barang.");
+              closeScannerModal();
+              return;
+            }
+
+            const simpleId = targetScanWR.replace(/[^a-zA-Z0-9]/g, '');
+            const item = wrDataMap[simpleId];
+            const stepName = nextStatus.replace('MH Pickup:', '').trim();
+
+            if (!item) {
+              showResultModal(false, "Data Tidak Ditemukan", "Data WR belum tersinkronisasi di memori.<br>Silakan tutup scanner dan refresh halaman Task Gudang.");
+              return;
+            }
+
+            const totalOut = calculateTotalProcessedForStatus(item.logs, `Proses: ${stepName} (Out)`);
+            const totalPickedUp = calculateTotalProcessedForStatus(item.logs, nextStatus);
+            const defectPickedUp = calculateTotalProcessedForStatus(item.logs, `Defect > ${nextStatus}`);
+            const availableForPickup = totalOut - totalPickedUp - defectPickedUp;
+
+            if (availableForPickup <= 0) {
+              showResultModal(false, "Barang Belum Siap", `Tidak ada barang yang menunggu pickup dari proses <b>${stepName}</b>.`);
+              return;
+            }
+            pendingScanData = { noWR: targetScanWR, status: nextStatus };
+            openQtyModal(nextStatus, availableForPickup);
+            return;
+          }
+
+          pendingScanData = { noWR: targetScanWR, status: nextStatus };
+          openQtyModal(nextStatus);
+
+        } else {
+          document.getElementById('scannerModal').style.display = 'none';
+          showResultModal(false, "Tidak Dapat Lanjut", "Item ini sudah mencapai status akhir atau alur tidak valid.");
+        }
+      } else {
+        document.getElementById('scannerModal').style.display = 'none';
+        showResultModal(false, "QR Code Salah!", `Pastikan Anda men-scan QR Code yang sesuai untuk proses ini.`);
+      }
+    } else {
+      alert("Berhasil Scan: " + decodedText);
+    }
+  }
+
+  function openQtyModal(status, overrideAvailableQty = null) {
+    const modal = document.getElementById('qtyInputModal');
+    const label = document.getElementById('qtyModalLabel');
+    const input = document.getElementById('scanQtyInput');
+    const reasonInput = document.getElementById('scanQtyReason');
+
+    let totalQty = 0;
+    let availableQty = 0;
+    let item = null;
+
+    if (targetScanWR) {
+      const simpleId = targetScanWR.replace(/[^a-zA-Z0-9]/g, '');
+      item = wrDataMap[simpleId];
+      if (item && item.qty) totalQty = parseInt(item.qty);
+    }
+
+    if (overrideAvailableQty !== null) {
+      availableQty = overrideAvailableQty;
+    } else if (item && item.logs) {
+      const nextStatus = targetScanForceNext || calculateNextStatus(targetScanStatus, targetScanRouting);
+      const routingRaw = targetScanRouting || (item.routing || "");
+      const steps = routingRaw.split('-').map(s => s.trim()).filter(s => s !== "");
+
+      let totalAllDefects = calculateTotalProcessedForStatus(item.logs, 'Defect');
+      let originalQty = totalQty + totalAllDefects;
+      let maxAllowed = originalQty;
+      let processedQty = 0;
+
+      if (nextStatus.includes('(In)')) {
+        let stepName = nextStatus.replace('Proses:', '').replace('(In)', '').trim();
+        const stepIdx = steps.indexOf(stepName);
+        if (stepIdx === 0) {
+          maxAllowed = originalQty;
+        } else if (stepIdx > 0) {
+          const prevStep = steps[stepIdx - 1];
+          maxAllowed = calculateTotalProcessedForStatus(item.logs, `MH Drop: ${prevStep}`);
+          if (maxAllowed === 0) maxAllowed = calculateTotalProcessedForStatus(item.logs, `MH Pickup: ${prevStep}`);
+        }
+        processedQty = calculateTotalProcessedForStatus(item.logs, nextStatus);
+        processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > ${nextStatus}`);
+      }
+      else if (nextStatus.includes('(Out)')) {
+        let stepName = nextStatus.replace('Proses:', '').replace('(Out)', '').trim();
+        maxAllowed = calculateTotalProcessedForStatus(item.logs, `Proses: ${stepName} (In)`);
+        if (maxAllowed === 0) maxAllowed = originalQty;
+        processedQty = calculateTotalProcessedForStatus(item.logs, nextStatus);
+        processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > ${nextStatus}`);
+      }
+      else if (nextStatus.startsWith('MH Drop:')) {
+        let stepName = nextStatus.replace('MH Drop:', '').trim();
+        maxAllowed = calculateTotalProcessedForStatus(item.logs, `MH Pickup: ${stepName}`);
+        processedQty = calculateTotalProcessedForStatus(item.logs, nextStatus);
+        processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > ${nextStatus}`);
+      }
+      else if (nextStatus.startsWith('MH Pickup:')) {
+        let stepName = nextStatus.replace('MH Pickup:', '').trim();
+        maxAllowed = calculateTotalProcessedForStatus(item.logs, `Proses: ${stepName} (Out)`);
+        if (maxAllowed === 0) {
+          maxAllowed = calculateTotalProcessedForStatus(item.logs, stepName);
+          if (maxAllowed === 0) maxAllowed = originalQty;
+        }
+        processedQty = calculateTotalProcessedForStatus(item.logs, nextStatus);
+        processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > ${nextStatus}`);
+      }
+      else if (nextStatus === 'Menuju Pengaju') {
+        maxAllowed = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+        processedQty = calculateTotalProcessedForStatus(item.logs, nextStatus);
+        processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > ${nextStatus}`);
+      }
+      else if (nextStatus === 'Siap diambil' || nextStatus === 'Selesai' || nextStatus === 'Sudah diambil' || (!nextStatus.includes('(In)') && !nextStatus.includes('(Out)'))) {
+        const lastStep = steps[steps.length - 1] || "";
+        if (nextStatus === 'Sudah diambil' || nextStatus === 'Selesai') {
+          maxAllowed = calculateTotalProcessedForStatus(item.logs, 'Menuju Pengaju');
+          if (maxAllowed === 0) maxAllowed = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+          processedQty = calculateTotalProcessedForStatus(item.logs, 'Sudah diambil');
+          processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > Sudah diambil`);
+          processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > Selesai`);
+        } else {
+          if (lastStep !== "") {
+            maxAllowed = calculateTotalProcessedForStatus(item.logs, `Proses: ${lastStep} (In)`);
+            if (maxAllowed === 0) maxAllowed = originalQty;
+          } else {
+            maxAllowed = originalQty;
+          }
+          processedQty = calculateTotalProcessedForStatus(item.logs, 'Siap diambil');
+          processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > Siap diambil`);
+          if (processedQty === 0 && lastStep !== "") {
+            processedQty += calculateTotalProcessedForStatus(item.logs, `Proses: ${lastStep} (Out)`);
+            processedQty += calculateTotalProcessedForStatus(item.logs, `Defect > Proses: ${lastStep} (Out)`);
+          }
+        }
+      }
+      else {
+        maxAllowed = originalQty;
+        processedQty = calculateTotalProcessedForStatus(item.logs, nextStatus);
+      }
+
+      availableQty = maxAllowed - processedQty;
+      if (availableQty < 0) availableQty = 0;
+    } else {
+      availableQty = totalQty;
+    }
+
+    if (availableQty < 0) availableQty = 0;
+
+    input.dataset.max = totalQty;
+    input.dataset.remaining = availableQty;
+
+    input.value = availableQty > 0 ? availableQty : "";
+    if (reasonInput) reasonInput.value = "";
+
+    const defectInput = document.getElementById('scanDefectQty');
+    if (defectInput) defectInput.value = "";
+    const defectReasonInput = document.getElementById('scanDefectReason');
+    if (defectReasonInput) defectReasonInput.value = "";
+
+    if (status.includes('(In)')) label.innerText = `Proses Masuk (${status}).\nSiap Masuk: ${availableQty} pcs`;
+    else if (status.includes('(Out)')) label.innerText = `Proses Selesai (${status}).\nSiap Keluar: ${availableQty} pcs`;
+    else label.innerText = `Masukkan Quantity (Tersedia: ${availableQty} / Total WR: ${totalQty}):`;
+
+    modal.style.display = 'flex';
+    input.focus();
+    input.select();
+  }
+
+  function closeQtyModal() {
+    document.getElementById('qtyInputModal').style.display = 'none';
+    pendingScanData = null;
+  }
+
+  function submitScanQty() {
+    const input = document.getElementById('scanQtyInput');
+    const defectInput = document.getElementById('scanDefectQty');
+    const reasonInput = document.getElementById('scanQtyReason');
+    const defectReasonInput = document.getElementById('scanDefectReason');
+
+    const qty = parseInt(input.value) || 0;
+    const defectQty = defectInput ? (parseInt(defectInput.value) || 0) : 0;
+    const remainingQty = parseInt(input.dataset.remaining || 0);
+
+    if (qty <= 0 && defectQty <= 0) {
+      alert("Harap masukkan Qty proses atau Qty Defect!"); return;
+    }
+
+    if (remainingQty > 0 && (qty + defectQty) > remainingQty) {
+      alert(`Total Qty Proses (${qty}) + Qty Defect (${defectQty}) melebihi sisa barang yang tersedia (${remainingQty} pcs)!`);
+      return;
+    }
+
+    const reason = reasonInput ? reasonInput.value.trim() : "";
+    const defectReason = defectReasonInput ? defectReasonInput.value.trim() : "";
+    if (defectQty > 0 && !defectReason) {
+      alert("Alasan Defect wajib diisi jika terdapat barang Koreksi / Defect!");
+      if (defectReasonInput) defectReasonInput.focus();
+      return;
+    }
+
+    if (pendingScanData) {
+      const submitNoWR = pendingScanData.noWR;
+      const submitStatus = pendingScanData.status;
+
+      closeQtyModal();
+
+      const btn = document.getElementById('resultBtn');
+      const icon = document.getElementById('resultIcon');
+      showResultModal(true, "Memproses...", "Sedang menyimpan data...");
+      if (btn) btn.style.display = 'none';
+      if (icon) icon.className = 'fas fa-spinner fa-spin';
+
+      google.script.run.withSuccessHandler(function (res) {
+        if (btn) btn.style.display = 'block';
+        if (res.status === 'success') {
+          showResultModal(true, "Berhasil!", res.message);
+          if (typeof loadDataGudang === 'function') loadDataGudang();
+        } else {
+          showResultModal(false, "Gagal", res.message);
+        }
+      }).withFailureHandler(function (err) {
+        if (btn) btn.style.display = 'block';
+        showResultModal(false, "Error Sistem", "Gagal menghubungi server: " + err);
+      }).processDefectAndScan(submitNoWR, submitStatus, qty, defectQty, reason, currentDept, defectReason);
+    }
+  }
+
+  function initScanProcess(noWR, currentStatus, routing, forceNextStatus = null) {
+    targetScanWR = noWR; targetScanStatus = currentStatus; targetScanRouting = routing;
+    targetScanForceNext = forceNextStatus;
+    scanContext = 'process_update'; document.getElementById('scannerModal').style.display = 'flex';
+    const modalTitle = document.querySelector('#scannerModal h5');
+    if (modalTitle) modalTitle.innerHTML = '<i class="fas fa-check-double me-2 text-warning"></i>Verifikasi Proses';
+    const modalDesc = document.querySelector('#scannerModal p');
+    if (modalDesc) modalDesc.innerHTML = `Scan QR Code <b>${noWR}</b> untuk lanjut.`;
+    startScanner('modalReader');
+  }
+</script>

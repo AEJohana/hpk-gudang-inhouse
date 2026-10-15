@@ -1,0 +1,2377 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <?!= include('style'); ?>
+  <style>
+    /* --- SUPER UI STYLES FOR DATA WR --- */
+
+    /* 1. Main Tabs (Pengajuan/Penerimaan) - Glassmorphism */
+    .super-nav-pills {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(12px);
+      padding: 8px;
+      border-radius: 20px;
+      border: 1px solid #cbd5e1;
+      /* Border lebih tegas (Slate 300) */
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+
+    .super-nav-pills .nav-link {
+      border-radius: 16px;
+      /* INACTIVE STATE: Abu-abu Solid (Tidak Pucat) */
+      color: #475569;
+      background: #f1f5f9;
+      transition: all 0.3s ease;
+      font-weight: 800;
+      padding: 12px;
+      border: 1px solid transparent;
+    }
+
+    .super-nav-pills .nav-link:hover {
+      background: #e2e8f0;
+      color: var(--hpk-blue);
+    }
+
+    .super-nav-pills .nav-link.active {
+      /* ACTIVE STATE: Biru Solid & Teks Putih (Kontras Tinggi) */
+      background: var(--hpk-blue);
+      color: white;
+      box-shadow: 0 8px 20px rgba(33, 150, 243, 0.2);
+      transform: scale(1.02);
+      border: 1px solid transparent;
+    }
+
+    /* 2. Sub Tabs (Menunggu, Disetujui, dll) - High Elevation */
+    .custom-tabs {
+      background: transparent;
+      padding: 5px;
+      border-radius: 15px;
+      gap: 10px;
+      border: none;
+    }
+
+    .custom-tabs .nav-link {
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      border-radius: 16px;
+      color: #64748b;
+      font-weight: 700;
+      padding: 12px 15px;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+      /* Shadow halus default */
+      position: relative;
+      overflow: hidden;
+    }
+
+    .custom-tabs .nav-link:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+      color: var(--hpk-blue);
+    }
+
+    .custom-tabs .nav-link.active {
+      background: #ffffff;
+      color: var(--hpk-blue);
+      border-color: transparent;
+      /* ELEVASI TEBAL (Sesuai Request) */
+      box-shadow: 0 15px 30px rgba(33, 150, 243, 0.25), 0 5px 10px rgba(33, 150, 243, 0.1);
+      transform: translateY(-4px) scale(1.02);
+      z-index: 1;
+    }
+
+    /* Garis indikator warna di bawah tab aktif */
+    .custom-tabs .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--hpk-blue), var(--hpk-teal));
+    }
+
+    /* 3. Super Table (Floating Rows) */
+    .super-table {
+      border-collapse: separate;
+      border-spacing: 0 15px;
+      width: 100%;
+    }
+
+    .super-table thead th {
+      border: none;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #64748b;
+      padding: 15px 20px;
+      font-weight: 800;
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
+      z-index: 100;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .super-row {
+      background: white;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.02);
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      /* Bouncy transition */
+      opacity: 0;
+      animation: fadeInUp 0.6s ease forwards;
+      border-radius: 20px;
+    }
+
+    .super-row:hover {
+      transform: translateY(-5px) scale(1.01);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12), 0 5px 10px rgba(0, 0, 0, 0.05);
+      /* Shadow hover dramatis */
+      z-index: 10;
+      position: relative;
+    }
+
+    .super-row td {
+      padding: 22px 20px;
+      border: none;
+      vertical-align: middle;
+      background: white;
+      border-top: 1px solid rgba(0, 0, 0, 0.01);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.01);
+    }
+
+    .super-row td:first-child {
+      border-top-left-radius: 20px;
+      border-bottom-left-radius: 20px;
+      border-left: 1px solid rgba(0, 0, 0, 0.01);
+    }
+
+    .super-row td:last-child {
+      border-top-right-radius: 20px;
+      border-bottom-right-radius: 20px;
+      border-right: 1px solid rgba(0, 0, 0, 0.01);
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* --- URGENT WR ALERT STYLES (SLA > 3 HARI) --- */
+    .urgent-banner {
+      background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+      border: 1px solid #f87171;
+      border-left: 5px solid #ef4444;
+      border-radius: 12px;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 6px rgba(239, 68, 68, 0.1);
+      animation: pulse-border 2s infinite;
+    }
+
+    .urgent-card {
+      border: 2px solid #ef4444 !important;
+      background: #fffafa !important;
+    }
+
+    .urgent-badge {
+      background-color: #ef4444;
+      color: white;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      display: inline-block;
+      animation: pulse-bg 1.5s infinite;
+    }
+
+    @keyframes pulse-border {
+      0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+      }
+
+      70% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+      }
+    }
+
+    @keyframes pulse-bg {
+      0% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.8;
+      }
+
+      100% {
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app-viewport">
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <div class="sidebar" id="sidebar">
+      <div class="mb-5" onclick="toggleSidebar()"><i class="fas fa-bars fa-2x"></i></div>
+      <div class="text-center mb-4">
+        <img src="https://iili.io/fbawUge.md.png" style="width: 50px;">
+        <div class="fw-bold mt-2" style="font-size: 0.8rem; color: var(--hpk-blue);">PT. HYDRAXLE PERKASA</div>
+      </div>
+      <!-- NEW SIDEBAR PROFILE CARD -->
+      <div class="sidebar-user-card">
+        <div class="sidebar-user-img-box">
+          <img id="sidebarPhoto" src="" class="sidebar-user-img">
+          <div class="status-indicator"></div>
+        </div>
+        <div id="sidebarName" class="fw-bold text-dark fs-5">Nama User</div>
+        <div id="sidebarDept" class="small text-muted fw-bold text-uppercase"
+          style="font-size: 0.7rem; letter-spacing: 1px;">Departemen</div>
+      </div>
+
+      <div class="sidebar-item" onclick="navigateTo('pageHome')"><i class="fas fa-home"></i> Beranda</div>
+      <div class="sidebar-item menu-item" id="nav-pageDataWR" onclick="navigateTo('pageDataWR')"><i
+          class="fas fa-folder"></i> Data Work Request</div>
+      <div class="sidebar-item menu-item" id="nav-pageFormWR" onclick="navigateTo('pageFormWR')"><i
+          class="fas fa-edit"></i> Membuat Work Request
+      </div>
+      <div class="sidebar-item menu-item" id="nav-pageScan" onclick="navigateTo('pageScan')"><i
+          class="fas fa-qrcode"></i> Scan Proses</div>
+
+      <div class="sidebar-item menu-item" id="nav-pageMonitoring" onclick="navigateTo('pageMonitoring')"><i
+          class="fas fa-chart-pie"></i> Monitoring &
+        Analisis
+      </div>
+      <div class="sidebar-item menu-item" id="nav-pageSafetyStock" onclick="navigateTo('pageSafetyStock')"><i
+          class="fas fa-exclamation-triangle text-warning"></i> Safety Stock
+      </div>
+      <div class="sidebar-item menu-item" id="nav-pageDataKomponen" onclick="navigateTo('pageDataKomponen')"><i
+          class="fas fa-database text-info"></i> Data Komponen
+      </div>
+      <div class="sidebar-item menu-item" id="nav-pagePrintWR" onclick="navigateTo('pagePrintWR')"><i
+          class="fas fa-print"></i> Cetak Work Request
+      </div>
+      <div class="sidebar-item mt-5 text-danger pt-3" style="border-top: 1px solid rgba(0,0,0,0.05);"
+        onclick="confirmSignOut()">
+        <i class="fas fa-sign-out-alt"></i> Sign Out
+      </div>
+    </div>
+
+    <div id="pageLogin" class="page active-page">
+      <!-- Animated Background -->
+      <div class="login-background">
+        <ul class="circles">
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+        </ul>
+      </div>
+
+      <!-- Glassmorphism Card -->
+      <div class="glass-card text-center">
+        <div class="login-illustration">
+          <div class="bg-white p-3 rounded-circle d-inline-block shadow-sm floating-logo"
+            style="width: 100px; height: 100px; display: flex; align-items: center; justify-content: center;">
+            <img src="https://iili.io/fbawUge.md.png" style="width: 70px;">
+          </div>
+        </div>
+
+        <h4 class="fw-bold text-dark mb-1">Welcome Back!</h4>
+        <p class="text-muted small mb-4">Silahkan login untuk melanjutkan</p>
+
+        <div class="text-start">
+          <div class="form-floating-custom">
+            <i class="fas fa-user"></i>
+            <input type="text" id="loginUsername" class="form-control" placeholder="Username">
+          </div>
+
+          <div class="form-floating-custom">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="loginPassword" class="form-control" placeholder="Password">
+          </div>
+
+          <button class="btn-signin shadow-lg" onclick="handleLogin()">
+            Sign In <i class="fas fa-arrow-right ms-2"></i>
+          </button>
+        </div>
+
+        <div class="mt-4 pt-3 border-top">
+          <small class="text-muted fw-bold" style="font-size: 0.7rem;">PT. HYDRAXLE PERKASA &copy; 2026</small>
+        </div>
+      </div>
+    </div>
+
+    <div id="pageHome" class="page">
+      <div class="wave-header">
+        <div class="wave-shape-2"></div>
+      </div>
+      <div class="nav-top on-wave">
+        <i class="fas fa-bars fa-2x" onclick="toggleSidebar()"></i>
+        <div class="user-header user-glass-pill" onclick="toggleSidebar()">
+          <div class="user-info-head">
+            <div class="user-name-head display-name">User</div>
+            <div class="user-dept-head display-dept">Dept</div>
+          </div>
+          <img src="" class="display-photo">
+        </div>
+      </div>
+      <div class="text-center" style="position:relative; z-index:2; margin-top: 10px; margin-bottom: 30px;">
+        <div class="bg-white p-3 rounded-circle shadow-sm d-inline-block mb-2"
+          style="width:100px; height:100px; display:flex; align-items:center; justify-content:center; margin:0 auto;">
+          <img src="https://iili.io/fbawUge.md.png" style="width: 70px;">
+        </div>
+        <div class="brand-title text-white mt-2">PT. HYDRAXLE PERKASA</div>
+        <div class="page-title text-white mb-0">WORK REQUEST</div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Menu 1: Membuat WR (Utama) -->
+        <div class="dash-card full-width menu-item" id="dash-pageFormWR" onclick="navigateTo('pageFormWR')">
+          <i class="fas fa-arrow-right arrow-action"></i>
+          <i class="fas fa-edit card-icon-bg"></i>
+          <div class="icon-box"><i class="fas fa-pen-nib"></i></div>
+          <div>
+            <h5>Buat Work Request</h5>
+            <p>Input pengajuan komponen baru</p>
+          </div>
+        </div>
+
+        <!-- Menu 2: Data WR -->
+        <div class="dash-card menu-item" id="dash-pageDataWR" onclick="navigateTo('pageDataWR')">
+          <i class="fas fa-folder-open card-icon-bg"></i>
+          <div class="icon-box"><i class="fas fa-database"></i></div>
+          <div>
+            <h5>Data WR</h5>
+            <p>Monitoring</p>
+          </div>
+        </div>
+
+        <!-- Menu Baru: Monitoring -->
+        <div class="dash-card menu-item" id="dash-pageMonitoring" onclick="navigateTo('pageMonitoring')">
+          <i class="fas fa-chart-line card-icon-bg"></i>
+          <div class="icon-box"><i class="fas fa-chart-pie"></i></div>
+          <div>
+            <h5>Monitoring</h5>
+            <p>Analisis Data</p>
+          </div>
+        </div>
+
+        <!-- Menu 3: Scan -->
+        <div class="dash-card menu-item" id="dash-pageScan" onclick="navigateTo('pageScan')">
+          <i class="fas fa-qrcode card-icon-bg"></i>
+          <div class="icon-box"><i class="fas fa-expand"></i></div>
+          <div>
+            <h5>Scan QR</h5>
+            <p>Cek Info</p>
+          </div>
+        </div>
+
+
+        <!-- Menu 4: Cetak WR -->
+        <div class="dash-card menu-item" id="dash-pagePrintWR" onclick="navigateTo('pagePrintWR')">
+          <i class="fas fa-print card-icon-bg"></i>
+          <div class="icon-box"><i class="fas fa-print"></i></div>
+          <div>
+            <h5>Cetak WR</h5>
+            <p>Print Dokumen</p>
+          </div>
+        </div>
+
+        <!-- Menu 5: Safety Stock -->
+        <div class="dash-card menu-item" id="dash-pageSafetyStock" onclick="navigateTo('pageSafetyStock')">
+          <i class="fas fa-exclamation-triangle card-icon-bg"></i>
+          <div class="icon-box bg-warning-subtle text-warning"><i class="fas fa-box-open"></i></div>
+          <div>
+            <h5>Safety Stock</h5>
+            <p>Monitoring stok limit</p>
+          </div>
+        </div>
+
+        <!-- Menu 6: Data Komponen -->
+        <div class="dash-card menu-item" id="dash-pageDataKomponen" onclick="navigateTo('pageDataKomponen')">
+          <i class="fas fa-database card-icon-bg"></i>
+          <div class="icon-box bg-info-subtle text-info"><i class="fas fa-microchip"></i></div>
+          <div>
+            <h5>Data Komponen</h5>
+            <p>Database & Saldo</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pageFormWR" class="page">
+      <div class="wave-header" style="height: 320px;">
+        <div class="wave-shape-2"></div>
+      </div>
+      <div class="nav-top on-wave">
+        <div class="d-flex align-items-center gap-3">
+          <i class="fas fa-arrow-left fa-lg" style="cursor:pointer" onclick="navigateTo('pageHome')"></i>
+          <i class="fas fa-bars fa-2x" onclick="toggleSidebar()"></i>
+        </div>
+        <div class="user-header user-glass-pill" onclick="toggleSidebar()">
+          <div class="user-info-head">
+            <div class="user-name-head display-name">User</div>
+            <div class="user-dept-head display-dept">Dept</div>
+          </div>
+          <img src="" class="display-photo">
+        </div>
+      </div>
+
+      <div class="text-center" style="position:relative; z-index:2; margin-bottom: 20px;">
+        <div class="bg-white p-2 rounded-circle shadow-sm d-inline-block mb-2"
+          style="width:60px; height:60px; display:flex; align-items:center; justify-content:center; margin:0 auto;">
+          <img src="https://iili.io/fbawUge.md.png" style="width: 40px;">
+        </div>
+        <div class="brand-title text-white mb-2" style="font-size: 0.8rem;">PT. HYDRAXLE PERKASA</div>
+        <h5 class="fw-bold text-white">FORM PENGISIAN WR</h5>
+        <p class="text-white-50 small">Lengkapi data komponen di bawah ini</p>
+      </div>
+
+      <form id="wrForm" class="form-section">
+        <div class="white-card">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="small fw-bold mb-1 text-muted">Pemohon</label>
+              <select id="deptPengaju" class="form-select input-custom" required
+                onchange="clearRecipients(); renderDeptPenerimaOptions();"></select>
+            </div>
+            <div class="col-6">
+              <label class="small fw-bold mb-1 text-muted">Tanggal Order</label>
+              <input type="date" id="tglOrder" class="form-control input-custom" readonly required>
+            </div>
+          </div>
+
+          <div class="mb-3 search-container" style="z-index: 50;">
+            <label class="small fw-bold mb-1 text-muted">Cari Komponen</label>
+            <div class="input-group">
+              <input type="text" id="searchKomponen" class="form-control input-custom"
+                placeholder="Ketik Kode atau Nama..." style="border-radius: 12px 0 0 12px !important;"
+                autocomplete="off">
+              <button class="btn btn-dark" type="button"
+                style="border-radius: 0 12px 12px 0; background: var(--text-dark); border:none;"
+                onclick="initScanSearch()"><i class="fas fa-qrcode me-1"></i> Scan</button>
+            </div>
+            <input type="hidden" id="selectedComponentIndex">
+            <div id="searchResults" class="dropdown-results"></div>
+          </div>
+
+          <div class="desc-card" style="display:none;">
+            <div class="img-placeholder">
+              <img id="prevImg" src="" style="width:100%; height:100%; object-fit:contain; display:none;">
+              <span id="imgText" class="text-muted small"><i class="fas fa-image fa-2x mb-2 d-block"></i>Foto
+                Barang</span>
+            </div>
+            <div class="text-center fw-bold mt-3 mb-3 text-dark" id="displayNama" style="font-size: 1.1rem;">Nama
+              Komponen</div>
+
+            <div class="d-flex justify-content-between small border-bottom pb-2 mb-2">
+              <span class="text-muted">Kode Komponen</span>
+              <span id="displayKode" class="fw-bold text-primary">XXXXXXXXXXXX</span>
+            </div>
+            <div class="d-flex justify-content-between small border-bottom pb-2 mb-2">
+              <span class="text-muted">Dimensi</span>
+              <span id="displayDimensi" class="fw-bold text-dark">P x L x T</span>
+            </div>
+            <div class="d-flex justify-content-between small pb-1">
+              <span class="text-muted">Routing</span>
+              <span id="displayRouting" class="fw-bold text-dark">-</span>
+            </div>
+
+            <!-- TOMBOL EDIT (Hanya Muncul Saat Input Komponen Baru) -->
+            <div id="btnEditNewComponent" class="mt-3 pt-2 border-top" style="display:none;">
+              <button type="button" class="btn btn-outline-primary w-100 fw-bold rounded-pill shadow-sm"
+                onclick="editNewComponentMode()">
+                <i class="fas fa-pen me-2"></i>Edit Data Komponen
+              </button>
+            </div>
+          </div>
+
+          <!-- FORM INPUT KOMPONEN BARU (Hidden by default) -->
+          <div id="newComponentForm"
+            style="display:none; background: #ffffff; border-radius: 20px; padding: 25px; margin-top: 20px; border: 2px solid var(--hpk-blue); box-shadow: 0 10px 30px rgba(33, 150, 243, 0.1);">
+            <h6 class="fw-bold text-primary mb-4 text-uppercase"
+              style="letter-spacing: 1px; border-bottom: 2px solid #e3f2fd; padding-bottom: 10px;"><i
+                class="fas fa-plus-circle me-2"></i>Input Komponen Baru</h6>
+
+            <div class="mb-3">
+              <label class="small fw-bold text-secondary mb-1"><i class="fas fa-tag me-1 text-primary"></i>Nama
+                Komponen</label>
+              <input type="text" id="newNamaKomponen" class="form-control input-custom shadow-sm"
+                placeholder="Masukkan Nama Komponen...">
+            </div>
+
+            <div class="mb-3 search-container" style="position:relative;">
+              <label class="small fw-bold text-secondary mb-1"><i class="fas fa-flask me-1 text-primary"></i>Tipe
+                Material </label>
+              <input type="text" id="newMaterial" class="form-control input-custom shadow-sm custom-dropdown-toggle"
+                placeholder="Pilih atau Ketik Material...">
+              <div id="newMaterialResults" class="dropdown-results"></div>
+            </div>
+
+            <div class="mb-3">
+              <label class="small fw-bold text-secondary mb-1"><i
+                  class="fas fa-ruler-combined me-1 text-primary"></i>Dimensi</label>
+              <div class="row g-2">
+                <div class="col-4"><input type="number" id="newPanjang"
+                    class="form-control input-custom shadow-sm text-center" placeholder="P (cm)"
+                    onblur="formatDimension('newPanjang')"></div>
+                <div class="col-4"><input type="number" id="newLebar"
+                    class="form-control input-custom shadow-sm text-center" placeholder="L (cm)"
+                    onblur="formatDimension('newLebar')"></div>
+                <div class="col-4"><input type="number" id="newTinggi"
+                    class="form-control input-custom shadow-sm text-center" placeholder="T (mm)"
+                    onblur="formatDimension('newTinggi')"></div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="small fw-bold text-secondary mb-1"><i class="fas fa-camera me-1 text-primary"></i>Foto
+                Komponen</label>
+              <input type="file" id="newFoto" class="form-control input-custom shadow-sm" accept="image/*"
+                capture="environment" style="padding-top: 10px;">
+            </div>
+
+            <button type="button" class="btn btn-info text-white fw-bold w-100 py-2 shadow-sm mb-2"
+              onclick="previewNewComponent()" style="border-radius: 12px;">
+              <i class="fas fa-eye me-2"></i> Tampilkan Preview
+            </button>
+
+            <button type="button" class="btn btn-light text-danger fw-bold w-100 py-2 shadow-sm"
+              onclick="cancelNewComponentMode()"
+              style="border-radius: 12px; border: 1px solid #ffcdd2; transition: 0.2s;">
+              <i class="fas fa-times me-2"></i>Batal / Kembali Cari
+            </button>
+          </div>
+
+          <div class="row g-2 mt-4 mb-3">
+            <div class="col-4">
+              <label class="small fw-bold mb-1 text-muted">Qty</label>
+              <input type="number" id="qty" class="form-control input-custom" placeholder="0">
+              <div class="invalid-feedback">Qty wajib diisi & lebih dari 0.</div>
+            </div>
+            <div class="col-8 search-container" style="z-index: 20;">
+              <label class="small fw-bold mb-1 text-muted">Penerima</label>
+              <div class="input-group">
+                <input type="text" id="deptPenerima" class="form-control input-custom" placeholder="Pilih Dept (Urut)"
+                  readonly style="cursor: pointer; background-color: #e9ecef !important; border-right: 0;">
+                <button class="btn btn-light border border-start-0" type="button" id="btnClearPenerima"
+                  onclick="clearRecipients()"
+                  style="background: white; border-color: #e9ecef !important; border-radius: 0 12px 12px 0;">
+                  <i class="fas fa-times text-danger"></i>
+                </button>
+              </div>
+              <div class="invalid-feedback">Dept. Penerima wajib diisi.</div>
+              <div id="deptResults" class="dropdown-results"></div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="small fw-bold mb-1 text-muted">Deskripsi</label>
+            <input type="text" id="deskripsi" class="form-control input-custom" placeholder="Keterangan tambahan...">
+          </div>
+
+          <input type="hidden" id="kodeKomponen"><input type="hidden" id="routing">
+          <input type="hidden" id="dimensi"><input type="hidden" id="linkGambar">
+
+          <button type="submit" class="btn-orange shadow-sm" id="btnAddToList">
+            <i class="fas fa-plus-circle me-2"></i> Tambah ke List
+          </button>
+        </div>
+      </form>
+
+      <!-- AREA LIST SEMENTARA (CART) -->
+      <div id="cartSection" style="display:none; padding: 0 20px 40px;">
+        <h6 class="fw-bold border-top pt-3">Daftar Item Siap Kirim (<span id="cartCount">0</span>)</h6>
+        <div class="table-responsive mb-3">
+          <table class="table table-bordered table-striped small bg-white">
+            <thead class="table-light">
+              <tr>
+                <th>Komponen</th>
+                <th>Dept Penerima</th>
+                <th>Qty</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="cartTableBody"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-success w-100 fw-bold shadow-sm" onclick="processFinalSubmit()">
+          <i class="fas fa-paper-plane me-2"></i> Kirim Work Request
+        </button>
+      </div>
+    </div>
+
+
+    <div id="pagePrintWR" class="page">
+      <!-- 1. Perbesar Wave Header agar tidak sempit -->
+      <div class="wave-header" style="height: 340px;">
+        <div class="wave-shape-2"></div>
+      </div>
+
+      <!-- 2. Tambahkan User Profile di Header (Konsistensi) -->
+      <div class="nav-top on-wave">
+        <div class="d-flex align-items-center gap-3">
+          <i class="fas fa-arrow-left fa-lg" style="cursor:pointer" onclick="navigateTo('pageHome')"></i>
+          <i class="fas fa-bars fa-2x" onclick="toggleSidebar()"></i>
+        </div>
+        <div class="user-header user-glass-pill" onclick="toggleSidebar()">
+          <div class="user-info-head">
+            <div class="user-name-head display-name">User</div>
+            <div class="user-dept-head display-dept">Dept</div>
+          </div>
+          <img src="" class="display-photo">
+        </div>
+      </div>
+
+      <!-- Judul Halaman di Tengah (Seperti Data WR) -->
+      <div class="text-center" style="position:relative; z-index:2; margin-bottom: 25px;">
+        <div class="bg-white p-2 rounded-circle shadow-sm d-inline-block mb-2"
+          style="width:60px; height:60px; display:flex; align-items:center; justify-content:center; margin:0 auto;">
+          <img src="https://iili.io/fbawUge.md.png" style="width: 40px;">
+        </div>
+        <div class="brand-title text-white mb-1" style="font-size: 0.8rem;">PT. HYDRAXLE PERKASA</div>
+        <h5 class="fw-bold text-white">CETAK DOKUMEN WR</h5>
+      </div>
+
+      <!-- 3. Container Utama dengan Style Floating Card -->
+      <div class="container pb-5" style="position:relative; z-index:2;">
+
+        <!-- Info Card (Stats) -->
+        <div class="glass-card-dark mb-4 d-flex align-items-center justify-content-between p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="icon-circle bg-white text-primary shadow-sm"
+              style="width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+              <i class="fas fa-print"></i>
+            </div>
+            <div class="text-white">
+              <div class="fw-bold">Manajemen Cetak</div>
+              <div class="small opacity-75">Kelola dokumen fisik</div>
+            </div>
+          </div>
+          <span class="badge bg-white text-primary fw-bold px-3 py-2 rounded-pill shadow-sm" id="totalDocsBadge">0
+            Dokumen</span>
+        </div>
+
+        <!-- Main Content Card (White Background with Shadow) -->
+        <div class="bg-white rounded-4 shadow-lg p-3 p-md-4" style="min-height: 400px;">
+
+          <!-- Toolbar (Search & Filter) -->
+          <div class="d-flex flex-column flex-md-row gap-2 mb-4">
+            <div class="input-group shadow-sm" style="border-radius: 12px; overflow: hidden;">
+              <span class="input-group-text bg-light border-0 ps-3"><i class="fas fa-search text-muted"></i></span>
+              <input type="text" id="searchPrint" class="form-control bg-light border-0 fw-bold text-dark py-2"
+                placeholder="Cari No WR / Nama..." onkeyup="filterPrintList()">
+            </div>
+            <select id="filterPrintDate" class="form-select shadow-sm border-0 bg-light fw-bold text-secondary py-2"
+              style="border-radius: 12px; width: auto; min-width: 140px; cursor:pointer;" onchange="filterPrintList()">
+              <option value="today" selected>Hari Ini</option>
+              <option value="week">Minggu Ini</option>
+              <option value="month">Bulan Ini</option>
+              <option value="all">Semua Data</option>
+            </select>
+            <button class="btn btn-light text-primary fw-bold shadow-sm" style="border-radius: 12px;"
+              onclick="loadPrintData()" title="Refresh Data">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+
+          <!-- TABS NAVIGATION (Modern Style) -->
+          <ul class="nav nav-pills nav-fill mb-4 p-1 bg-light rounded-pill border" id="printTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active fw-bold rounded-pill py-2" id="tab-print-pending" data-bs-toggle="pill"
+                data-bs-target="#content-print-pending" type="button" role="tab">
+                <i class="fas fa-file-invoice me-2"></i>Belum Dicetak
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link fw-bold rounded-pill py-2" id="tab-print-done" data-bs-toggle="pill"
+                data-bs-target="#content-print-done" type="button" role="tab">
+                <i class="fas fa-history me-2"></i>Riwayat Cetak
+              </button>
+            </li>
+          </ul>
+
+          <!-- TAB CONTENT -->
+          <div class="tab-content" id="printTabContent">
+            <!-- TAB 1: BELUM DICETAK -->
+            <div class="tab-pane fade show active" id="content-print-pending" role="tabpanel">
+              <div class="print-table-container border-0" id="containerPending" style="display:none;">
+                <div class="table-responsive">
+                  <table class="table print-table table-hover mb-0" id="printTable">
+                    <thead class="bg-light">
+                      <tr>
+                        <th style="width: 50px;" class="text-center rounded-start-3">
+                          <input class="form-check-input" type="checkbox" id="selectAllPending"
+                            onchange="toggleSelectAll(this, 'printTablePending')">
+                        </th>
+                        <th>No WR / Tanggal</th>
+                        <th>Komponen</th>
+                        <th>Dari / Kepada</th>
+                        <th class="text-end rounded-end-3">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="printTableBodyPending"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 2: SUDAH DICETAK -->
+            <div class="tab-pane fade" id="content-print-done" role="tabpanel">
+              <div class="print-table-container border-0" id="containerDone" style="display:none;">
+                <div class="table-responsive">
+                  <table class="table print-table table-hover mb-0" id="printTableDone">
+                    <thead class="bg-light">
+                      <tr>
+                        <th style="width: 50px;" class="text-center rounded-start-3">
+                          <input class="form-check-input" type="checkbox" id="selectAllDone"
+                            onchange="toggleSelectAll(this, 'printTableDone')">
+                        </th>
+                        <th>No WR / Tanggal</th>
+                        <th>Komponen</th>
+                        <th>Dari / Kepada</th>
+                        <th class="text-end rounded-end-3">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="printTableBodyDone"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading & Empty States (Inside Card) -->
+          <div id="loadingPrint" class="text-center py-5" style="display:none;">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted small">Memuat dokumen...</p>
+          </div>
+          <div id="emptyPrint" class="text-center py-5" style="display:none;">
+            <div class="bg-light p-4 rounded-circle d-inline-block shadow-sm mb-3"
+              style="width: 100px; height: 100px; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-folder-open fa-3x text-muted opacity-25"></i>
+            </div>
+            <p class="text-muted fw-bold">Tidak ada dokumen yang sesuai filter.</p>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Floating Action Button for Bulk Print -->
+      <div id="bulkPrintAction" class="fixed-bottom-action glass-action-bar">
+        <div class="d-flex justify-content-between align-items-center w-100">
+          <div class="d-flex align-items-center gap-3">
+            <div class="icon-circle bg-primary text-white" style="width: 45px; height: 45px; font-size: 1.2rem;">
+              <i class="fas fa-print"></i>
+            </div>
+            <div>
+              <div class="fw-bold fs-6 text-dark" id="selectedCount">0</div>
+              <div class="small text-muted">Item Dipilih</div>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-info fw-bold text-white px-4 rounded-pill shadow-sm" onclick="executeBulkPreview()">
+              <i class="fas fa-eye me-2"></i>Preview PDF
+            </button>
+            <button class="btn btn-primary fw-bold px-4 rounded-pill shadow-lg" onclick="executeBulkPrint()">
+              <i class="fas fa-file-pdf me-2"></i>Cetak PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pageDataWR" class="page">
+      <div class="wave-header" style="height: 280px;">
+        <div class="wave-shape-2"></div>
+      </div>
+      <div class="wave-header" style="height: 320px;">
+        <div class="wave-shape-2"></div>
+      </div>
+      <div class="nav-top on-wave">
+        <div class="d-flex align-items-center gap-3">
+          <i class="fas fa-arrow-left fa-lg" style="cursor:pointer" onclick="navigateTo('pageHome')"></i>
+          <i class="fas fa-bars fa-2x" onclick="toggleSidebar()"></i>
+        </div>
+        <div class="user-header user-glass-pill" onclick="toggleSidebar()">
+          <div class="user-info-head">
+            <div class="user-name-head display-name">User</div>
+            <div class="user-dept-head display-dept">Dept</div>
+          </div>
+          <img src="" class="display-photo">
+        </div>
+      </div>
+
+      <div class="text-center" style="position:relative; z-index:2; margin-bottom: 20px;">
+        <div class="bg-white p-2 rounded-circle shadow-sm d-inline-block mb-2"
+          style="width:60px; height:60px; display:flex; align-items:center; justify-content:center; margin:0 auto;">
+          <img src="https://iili.io/fbawUge.md.png" style="width: 40px;">
+        </div>
+        <div class="brand-title text-white mb-2" style="font-size: 0.8rem;">PT. HYDRAXLE PERKASA</div>
+        <h5 class="fw-bold text-white">DATA WORK REQUEST</h5>
+        <p class="text-white-50 small">Monitoring status pengajuan & penerimaan</p>
+      </div>
+
+      <div class="container pb-5" style="position:relative; z-index:2;">
+
+        <!-- Toolbar Navigasi & Refresh -->
+        <div class="floating-nav-panel super-nav-pills mb-4">
+          <ul class="nav nav-pills nav-fill flex-grow-1 gap-2" id="pills-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active fw-bold rounded-3 py-2" id="tab-pengajuan" data-bs-toggle="pill"
+                data-bs-target="#content-pengajuan" type="button" role="tab" style="font-size: 0.9rem;">
+                <i class="fas fa-paper-plane me-2"></i>Pengajuan
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link fw-bold rounded-3 py-2" id="tab-penerimaan" data-bs-toggle="pill"
+                data-bs-target="#content-penerimaan" type="button" role="tab" style="font-size: 0.9rem;">
+                <i class="fas fa-inbox me-2"></i>Penerimaan
+              </button>
+            </li>
+          </ul>
+
+          <div style="width: 1px; height: 25px; background: #e0e0e0;"></div>
+
+          <button class="btn btn-light text-primary fw-bold rounded-3 px-3 py-2" onclick="loadDataWR()"
+            title="Refresh Data" style="white-space: nowrap; background: #f0f8ff;">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+
+        <!-- FILTER SECTION -->
+        <div class="row g-2 mb-4">
+          <div class="col-8">
+            <div class="input-group shadow-sm" style="border-radius: 12px; overflow: hidden;">
+              <span class="input-group-text bg-white border-0 ps-3"><i class="fas fa-search text-muted"></i></span>
+              <input type="text" id="filterSearch" class="form-control border-0 py-2"
+                placeholder="Cari No WR, Nama, atau Kode..." onkeyup="applyFilters()">
+            </div>
+          </div>
+          <div class="col-4">
+            <select id="filterDate" class="form-select shadow-sm border-0 py-2" style="border-radius: 12px;"
+              onchange="applyFilters()">
+              <option value="last3" selected>3 Hari Terakhir</option>
+              <option value="last7" selected>Minggu Ini (7 Hari)</option>
+              <option value="thisMonth">Bulan Ini</option>
+              <option value="all">Semua Data</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="loadingData" class="text-center py-5" style="display:none;">
+          <div class="spinner-border text-primary" role="status"></div>
+          <div class="mt-2 small text-muted">Mengambil data...</div>
+        </div>
+
+        <div class="tab-content" id="wrTabContent">
+          <!-- Tab Pengajuan -->
+          <div class="tab-pane fade show active" id="content-pengajuan" role="tabpanel">
+
+            <!-- MONITORING DASHBOARD (PENGAJU) -->
+            <div class="row g-3 mb-3" id="dashboardPengaju"> <!-- Reduced margin bottom -->
+              <!-- Item 1: Menunggu Verif -->
+              <div class="col-6 col-md-3">
+                <div class="monitoring-card secondary-card">
+                  <div class="icon-circle">
+                    <i class="fas fa-clock"></i>
+                  </div>
+                  <div>
+                    <div class="valua-text" id="countPending">0</div>
+                    <div class="label-text">Menunggu Verifikasi Internal</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Item 2: Verifikasi Penerima -->
+              <div class="col-6 col-md-3">
+                <div class="monitoring-card primary-card">
+                  <div class="icon-circle">
+                    <i class="fas fa-user-check"></i>
+                  </div>
+                  <div>
+                    <div class="valua-text" id="countVerified">0</div>
+                    <div class="label-text">Verifikasi Penerima</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Item 3: Dalam Proses -->
+              <div class="col-6 col-md-3">
+                <div class="monitoring-card warning-card">
+                  <div class="icon-circle">
+                    <i class="fas fa-cogs"></i>
+                  </div>
+                  <div>
+                    <div class="valua-text" id="countProcess">0</div>
+                    <div class="label-text">Sedang Diproses</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Item 4: Siap Diambil -->
+              <div class="col-6 col-md-3">
+                <div class="monitoring-card success-card">
+                  <div class="icon-circle">
+                    <i class="fas fa-box-open"></i>
+                  </div>
+                  <div>
+                    <div class="valua-text" id="countReady">0</div>
+                    <div class="label-text">Sudah Selesai</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUB TABS PENGAJUAN -->
+            <ul class="nav nav-tabs nav-fill mb-3 custom-tabs" id="subTabPengajuan" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active small fw-bold text-muted" id="tab-p-pending" data-bs-toggle="tab"
+                  data-bs-target="#pane-p-pending" type="button" role="tab">
+                  <i class="fas fa-clock text-warning me-1"></i>Menunggu
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link small fw-bold text-muted" id="tab-p-approved" data-bs-toggle="tab"
+                  data-bs-target="#pane-p-approved" type="button" role="tab">
+                  <i class="fas fa-check-circle text-success me-1"></i>Disetujui
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link small fw-bold text-muted" id="tab-p-completed" data-bs-toggle="tab"
+                  data-bs-target="#pane-p-completed" type="button" role="tab">
+                  <i class="fas fa-box-open text-primary me-1"></i>Selesai
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link small fw-bold text-muted" id="tab-p-rejected" data-bs-toggle="tab"
+                  data-bs-target="#pane-p-rejected" type="button" role="tab">
+                  <i class="fas fa-times-circle text-danger me-1"></i>Ditolak
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content" id="contentSubTabPengajuan">
+              <div class="tab-pane fade show active" id="pane-p-pending" role="tabpanel">
+                <div id="listPengajuanPending" class="mb-4"></div>
+              </div>
+              <div class="tab-pane fade" id="pane-p-approved" role="tabpanel">
+                <div id="listPengajuanApproved" class="mb-4"></div>
+              </div>
+              <div class="tab-pane fade" id="pane-p-completed" role="tabpanel">
+                <div id="listPengajuanCompleted" class="mb-4"></div>
+              </div>
+              <div class="tab-pane fade" id="pane-p-rejected" role="tabpanel">
+                <div id="listPengajuanRejected" class="mb-4"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Tab Penerimaan -->
+          <div class="tab-pane fade" id="content-penerimaan" role="tabpanel">
+
+            <!-- MONITORING DASHBOARD (PENERIMA) -->
+            <div class="row g-3 mb-3" id="dashboardPenerima"> <!-- Reduced margin bottom -->
+              <div class="col-6 col-md-3">
+                <div class="monitoring-card secondary-card">
+                  <div class="icon-circle">
+                    <i class="fas fa-inbox"></i>
+                  </div>
+                  <div>
+                    <div class="valua-text" id="countPendingPenerima">0</div>
+                    <div class="label-text">Masuk (Menunggu Pengaju)</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="monitoring-card primary-card">
+                  <div class="icon-circle">
+                    <i class="fas fa-clipboard-check"></i>
+                  </div>
+                  <div>
+                    <div class="valua-text" id="countVerifiedPenerima">0</div>
+                    <div class="label-text">Perlu Verifikasi Anda</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="monitoring-card warning-card">
+                  <div class="icon-circle">
+                    <i class="fas fa-tools"></i>
+                  </div>
+                  <div>
+                    <div class="valua-text" id="countProcessPenerima">0</div>
+                    <div class="label-text">Sedang Dikerjakan</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="monitoring-card success-card">
+                  <div class="icon-circle">
+                    <i class="fas fa-check-double"></i>
+                  </div>
+                  <div>
+                    <div class="valua-text" id="countReadyPenerima">0</div>
+                    <div class="label-text">Sudah Selesai</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUB TABS PENERIMAAN -->
+            <ul class="nav nav-tabs nav-fill mb-3 custom-tabs" id="subTabPenerimaan" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active small fw-bold text-muted" id="tab-r-pending" data-bs-toggle="tab"
+                  data-bs-target="#pane-r-pending" type="button" role="tab">
+                  <i class="fas fa-clock text-warning me-1"></i>Menunggu
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link small fw-bold text-muted" id="tab-r-approved" data-bs-toggle="tab"
+                  data-bs-target="#pane-r-approved" type="button" role="tab">
+                  <i class="fas fa-check-circle text-success me-1"></i>Disetujui
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link small fw-bold text-muted" id="tab-r-completed" data-bs-toggle="tab"
+                  data-bs-target="#pane-r-completed" type="button" role="tab">
+                  <i class="fas fa-box-open text-primary me-1"></i>Selesai
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link small fw-bold text-muted" id="tab-r-rejected" data-bs-toggle="tab"
+                  data-bs-target="#pane-r-rejected" type="button" role="tab">
+                  <i class="fas fa-times-circle text-danger me-1"></i>Ditolak
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content" id="contentSubTabPenerimaan">
+              <div class="tab-pane fade show active" id="pane-r-pending" role="tabpanel">
+                <div id="listPenerimaanPending" class="mb-4"></div>
+              </div>
+              <div class="tab-pane fade" id="pane-r-approved" role="tabpanel">
+                <div id="listPenerimaanApproved" class="mb-4"></div>
+              </div>
+              <div class="tab-pane fade" id="pane-r-completed" role="tabpanel">
+                <div id="listPenerimaanCompleted" class="mb-4"></div>
+              </div>
+              <div class="tab-pane fade" id="pane-r-rejected" role="tabpanel">
+                <div id="listPenerimaanRejected" class="mb-4"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HALAMAN MONITORING & ANALISIS (BARU) -->
+    <div id="pageMonitoring" class="page">
+      <div class="wave-header" style="height: 280px;">
+        <div class="wave-shape-2"></div>
+      </div>
+      <div class="nav-top on-wave">
+        <div class="d-flex align-items-center gap-3">
+          <i class="fas fa-arrow-left fa-lg" style="cursor:pointer" onclick="navigateTo('pageHome')"></i>
+          <i class="fas fa-bars fa-2x" onclick="toggleSidebar()"></i>
+        </div>
+        <div class="user-header user-glass-pill" onclick="toggleSidebar()">
+          <div class="text-white fw-bold">Dashboard Analisis</div>
+        </div>
+      </div>
+
+      <div class="container pb-5" style="position:relative; z-index:2; margin-top: 10px;">
+
+        <!-- Summary Cards Row -->
+        <div class="row g-3 mb-4" style="perspective: 1000px;">
+          <div class="col-6">
+            <div class="monitor-card-3d h-100">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="icon-circle bg-primary-subtle text-primary"
+                  style="width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center;">
+                  <i class="fas fa-layer-group"></i>
+                </div>
+                <span class="badge bg-primary rounded-pill small">Total</span>
+              </div>
+              <div class="small text-muted fw-bold text-uppercase" style="letter-spacing:1px; font-size:0.7rem;">Work
+                Requests</div>
+              <div class="stat-value-3d mt-1" id="monTotalWR">0</div>
+              <div class="small text-success fw-bold mt-2"><i class="fas fa-arrow-trend-up me-1"></i>All Time Data</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="monitor-card-3d h-100">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="icon-circle bg-success-subtle text-success"
+                  style="width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center;">
+                  <i class="fas fa-check-double"></i>
+                </div>
+                <span class="badge bg-success rounded-pill small">Done</span>
+              </div>
+              <div class="small text-muted fw-bold text-uppercase" style="letter-spacing:1px; font-size:0.7rem;">Selesai
+              </div>
+              <div class="stat-value-3d mt-1" id="monTotalDone">0</div>
+              <div class="small text-muted fw-bold mt-2" id="monSuccessRate">0% Rate</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart 1: Status Distribution (Rose Chart) -->
+        <div class="chart-box-3d">
+          <div class="chart-title"><i class="fas fa-chart-pie text-primary"></i>Komposisi Status</div>
+          <div id="chartStatus" style="height: 300px; width: 100%;"></div>
+        </div>
+
+        <!-- Chart 2: Monthly Trend (Area Gradient) -->
+        <div class="chart-box-3d">
+          <div class="chart-title"><i class="fas fa-chart-line text-info"></i>Tren Permintaan (Bulan Ini)</div>
+          <div id="chartTrend" style="height: 280px; width: 100%;"></div>
+        </div>
+
+        <!-- Chart 3: Top Departments (3D Bar) -->
+        <div class="chart-box-3d">
+          <div class="chart-title"><i class="fas fa-building text-warning"></i>Top 5 Dept. Pengaju</div>
+          <div id="chartDept" style="height: 320px; width: 100%;"></div>
+        </div>
+
+        <!-- Insight Box -->
+        <div class="bg-primary text-white p-4 rounded-4 shadow-lg mb-4 position-relative overflow-hidden"
+          style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
+          <i class="fas fa-lightbulb position-absolute"
+            style="font-size: 120px; opacity: 0.15; right: -20px; bottom: -30px; transform: rotate(-15deg);"></i>
+          <h6 class="fw-bold mb-4 border-bottom border-white pb-2"
+            style="border-color: rgba(255,255,255,0.2) !important;">Insight Singkat</h6>
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="small text-white-50 text-uppercase fw-bold" style="font-size: 0.7rem;">Pending Terbanyak</div>
+              <div class="fw-bold fs-4 mt-1" id="insightPendingDept">-</div>
+            </div>
+            <div class="col-6">
+              <div class="small text-white-50 text-uppercase fw-bold" style="font-size: 0.7rem;">Item Favorit</div>
+              <div class="fw-bold fs-4 mt-1" id="insightTopItem">-</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-white text-primary fw-bold w-100 py-3 rounded-4 shadow-sm border"
+          onclick="loadMonitoringData()">
+          <i class="fas fa-sync-alt me-2"></i> Refresh Data Analisis
+        </button>
+      </div>
+    </div>
+
+
+
+
+    <!-- HALAMAN SCANNER (Dark Mode Dashboard) -->
+    <div id="pageScan" class="page">
+      <div class="scan-header">
+        <i class="fas fa-arrow-left fa-lg" style="cursor:pointer" onclick="navigateTo('pageHome')"></i>
+        <div class="fw-bold" style="letter-spacing: 1px;">SCANNER</div>
+        <div class="user-header user-glass-pill dark-mode" onclick="toggleSidebar()">
+          <div class="user-info-head">
+            <div class="user-name-head display-name">User</div>
+            <div class="user-dept-head display-dept">Dept</div>
+          </div>
+          <img src="" class="display-photo">
+        </div>
+      </div>
+
+      <div class="text-center mb-2">
+        <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+          <img src="https://iili.io/fbawUge.md.png" style="width: 30px;">
+          <div class="fw-bold text-dark" style="font-size: 0.8rem;">PT. HYDRAXLE PERKASA</div>
+        </div>
+        <h5 class="fw-bold mb-0">Scan QR Code</h5>
+        <small class="text-muted">Arahkan kamera ke barcode komponen</small>
+      </div>
+
+      <div class="scan-area"
+        style="flex-direction: column; background: white; border: none; box-shadow: none; padding: 20px;">
+        <!-- Preview Image -->
+        <img id="previewPage" src="https://cdn-icons-png.flaticon.com/512/4406/4406166.png"
+          style="width: 120px; margin-bottom: 20px; opacity: 0.5; display:block;">
+
+        <!-- Status Text -->
+        <div id="statusPage" class="text-muted small mb-3 fw-bold">Klik tombol untuk membuka scanner</div>
+
+        <!-- Button Trigger -->
+        <button class="btn btn-primary rounded-pill px-4 py-3 fw-bold shadow-sm w-100" onclick="openExternalScanner()">
+          <i class="fas fa-qrcode me-2"></i> Buka Scanner
+        </button>
+        <div id="reader-hidden-page" style="display:none;"></div>
+      </div>
+      <div style="height: 20px;"></div>
+    </div>
+
+    <!-- SUCCESS MODAL POPUP -->
+    <div id="successModal" class="custom-modal">
+      <div class="modal-content">
+        <div class="success-icon"><i class="fas fa-check"></i></div>
+        <h4 class="fw-bold mb-2">Berhasil!</h4>
+        <p id="successMessage" class="text-muted mb-4 small">Data Work Request telah berhasil dikirim.</p>
+        <button class="btn-orange" onclick="closeSuccessModal()">OK, Mantap!</button>
+      </div>
+    </div>
+
+    <!-- SCANNER MODAL POPUP (SEARCH) -->
+    <div id="scannerModal" class="custom-modal" style="z-index: 3000;">
+      <div class="modal-content"
+        style="background: rgba(20,20,20,0.95); color: white; border: 1px solid #444; max-width: 400px; padding: 25px;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="fw-bold mb-0 text-white"><i class="fas fa-qrcode me-2 text-warning"></i>Scan Komponen</h5>
+          <button class="btn btn-sm btn-dark rounded-circle border-0" onclick="closeScannerModal()"
+            style="background: #333;"><i class="fas fa-times text-white"></i></button>
+        </div>
+        <p class="text-white-50 small mb-3">Arahkan kamera ke QR Code pada fisik komponen untuk mengisi data otomatis.
+        </p>
+
+        <div
+          style="position: relative; border-radius: 15px; overflow: hidden; border: 2px dashed #555; padding: 20px; text-align: center;">
+          <!-- Preview -->
+          <img id="previewModal" src=""
+            style="max-width: 100%; max-height: 200px; display: none; margin: 0 auto 15px; border-radius: 10px;">
+
+          <!-- Status & Button -->
+          <div id="statusModal" class="text-white-50 small mb-3">Klik tombol untuk membuka scanner</div>
+          <button class="btn btn-warning fw-bold w-100 rounded-pill" onclick="openExternalScanner()"><i
+              class="fas fa-qrcode me-2"></i> Buka Scanner</button>
+          <div id="reader-hidden-modal" style="display:none;"></div>
+        </div>
+        <div class="mt-3 small text-white-50"><i class="fas fa-lightbulb me-1 text-warning"></i> Tips: Pastikan cahaya
+          cukup terang</div>
+      </div>
+    </div>
+
+    <!-- SIGN OUT CONFIRMATION MODAL -->
+    <div id="signOutModal" class="custom-modal">
+      <div class="modal-content">
+        <div class="danger-icon">
+          <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <h4 class="fw-bold mb-2">Sign Out?</h4>
+        <p class="text-muted mb-4 small">Apakah Anda yakin ingin keluar dari aplikasi?</p>
+        <div class="d-flex gap-2 justify-content-center">
+          <button class="btn btn-light fw-bold flex-grow-1" onclick="closeSignOutModal()"
+            style="border-radius:15px; border:1px solid #eee;">Batal</button>
+          <button class="btn btn-danger fw-bold flex-grow-1" onclick="processSignOut()"
+            style="border-radius:15px; background: var(--hpk-red); border:none;">Keluar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMAGE PREVIEW MODAL -->
+    <div id="imageModal" class="custom-modal" style="z-index: 3000;">
+      <div class="modal-content"
+        style="padding: 0; width: auto; max-width: 95%; min-width: 350px; border-radius: 25px; overflow: hidden; background: white; box-shadow: 0 25px 50px rgba(0,0,0,0.3); animation: popIn 0.4s;">
+
+        <!-- Header Dasi Biru -->
+        <div
+          style="background: linear-gradient(135deg, #42a5f5, #1976d2); padding: 15px; position: relative; text-align: right; height: 60px;">
+          <button onclick="closeImageModal()" class="btn btn-sm btn-light text-danger rounded-circle shadow-sm"
+            style="width: 32px; height: 32px; padding: 0; position: absolute; top: 15px; right: 15px; z-index: 10;"><i
+              class="fas fa-times"></i></button>
+        </div>
+
+        <div class="p-4 text-center"
+          style="margin-top: -30px; background: white; border-radius: 25px 25px 0 0; position: relative;">
+          <!-- Gambar -->
+          <div class="mb-3 shadow-sm"
+            style="display: inline-block; padding: 5px; border: 1px solid #f0f0f0; border-radius: 15px; background: #fff;">
+            <img id="previewImage" src=""
+              style="max-width: 100%; max-height: 75vh; border-radius: 10px; object-fit: contain;">
+          </div>
+
+          <!-- Nama & Kode -->
+          <h5 id="modalImgNama" class="fw-bold text-dark mb-2" style="font-size: 1.1rem;">Nama Komponen</h5>
+          <div id="modalImgKode" class="badge bg-light text-primary border border-primary rounded-pill px-4 py-2"
+            style="font-size: 0.85rem; letter-spacing: 0.5px;">Kode Komponen</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCAN NOT FOUND MODAL -->
+    <div id="scanNotFoundModal" class="custom-modal">
+      <div class="modal-content">
+        <div class="danger-icon"
+          style="background: #fff3cd; color: #ff9800; box-shadow: 0 10px 20px rgba(255, 152, 0, 0.2);">
+          <i class="fas fa-search-minus"></i>
+        </div>
+        <h4 class="fw-bold mb-2">Komponen Tidak Dikenal</h4>
+        <p class="text-muted mb-4 small">QR Code tidak sesuai dengan database.<br>Ingin input sebagai komponen baru?</p>
+        <div class="d-flex gap-2 justify-content-center">
+          <button class="btn btn-light fw-bold flex-grow-1" onclick="closeScanNotFoundModal()"
+            style="border-radius:15px; border:1px solid #eee;">Keluar</button>
+          <button class="btn btn-primary fw-bold flex-grow-1" onclick="redirectToNewComponent()"
+            style="border-radius:15px; border:none;">+ Input Baru</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULT MODAL (Success/Error) -->
+    <div id="resultModal" class="custom-modal" style="z-index: 3100;">
+      <div class="modal-content"
+        style="max-width: 380px; border-radius: 30px; backdrop-filter: blur(10px); background: rgba(255,255,255,0.98);">
+        <div id="resultIconBg" class="success-icon">
+          <i id="resultIcon" class="fas fa-check"></i>
+        </div>
+        <h4 id="resultTitle" class="fw-bold mb-2">Berhasil!</h4>
+        <p id="resultMessage" class="text-muted mb-4 small" style="line-height: 1.5;">Pesan informasi disini.</p>
+        <button id="resultBtn" class="btn-orange shadow-sm" onclick="closeResultModal()"
+          style="border-radius: 15px;">OK, Mengerti</button>
+      </div>
+    </div>
+
+    <!-- STATUS CONFIRMATION MODAL (GENERIC) -->
+    <div id="statusConfirmModal" class="custom-modal">
+      <div class="modal-content">
+        <div id="confirmIconBg" class="success-icon" style="transition: all 0.3s;">
+          <i id="confirmIcon" class="fas fa-question"></i>
+        </div>
+        <h4 id="confirmTitle" class="fw-bold mb-2">Konfirmasi</h4>
+        <p id="confirmMessage" class="text-muted mb-4 small">Apakah Anda yakin ingin mengubah status?</p>
+        <div class="d-flex gap-2 justify-content-center">
+          <button class="btn btn-light fw-bold flex-grow-1" onclick="closeStatusConfirmModal()"
+            style="border-radius:15px; border:1px solid #eee;">Batal</button>
+          <button id="btnConfirmAction" class="btn btn-primary fw-bold flex-grow-1" onclick="executeStatusUpdate()"
+            style="border-radius:15px; border:none;">Ya, Ubah</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL EDIT ROUTING (KHUSUS KOMPONEN BARU) -->
+    <div id="modalEditRouting" class="custom-modal" style="z-index: 3200;">
+      <div class="modal-content"
+        style="max-width: 450px; text-align: left; overflow: visible; display: flex; flex-direction: column;">
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+          <h5 class="fw-bold mb-0 text-primary"><i class="fas fa-edit me-2"></i>Revisi Routing</h5>
+          <button class="btn btn-sm btn-light rounded-circle shadow-sm"
+            onclick="document.getElementById('modalEditRouting').style.display='none'"><i
+              class="fas fa-times"></i></button>
+        </div>
+
+        <div class="mb-3">
+          <label class="small fw-bold text-muted mb-1">No Work Request</label>
+          <input type="text" id="editRoutingNoWR" class="form-control input-custom bg-light" readonly>
+        </div>
+
+        <div class="mb-3">
+          <label class="small fw-bold text-muted mb-1">Routing / Penerima Baru <span
+              class="text-danger">*</span></label>
+          <div class="input-group search-container">
+            <!-- Container Chips & Input -->
+            <div class="form-control input-custom d-flex flex-wrap align-items-center gap-2"
+              style="min-height: 45px; padding: 6px 12px; cursor: text;"
+              onclick="document.getElementById('editRoutingVal').focus()">
+              <div id="routingChipsContainer" class="d-flex flex-wrap gap-2"></div>
+              <input type="text" id="editRoutingVal" class="border-0 bg-transparent p-0"
+                style="outline: none; flex: 1; min-width: 100px;" placeholder="Ketik & Pilih..." autocomplete="off"
+                oninput="filterEditRoutingDropdown(this.value)" onfocus="filterEditRoutingDropdown(this.value)"
+                onclick="filterEditRoutingDropdown(this.value)" onkeydown="handleRoutingInputKey(event)">
+            </div>
+            <button class="btn btn-light border border-start-0" type="button" onclick="clearRoutingChips()"
+              title="Hapus Semua">
+              <i class="fas fa-times text-danger"></i>
+            </button>
+            <div id="editRoutingResults" class="dropdown-results" style="max-height: 200px; overflow-y: auto;"></div>
+          </div>
+          <div class="form-text small text-muted"><i class="fas fa-info-circle me-1"></i>Urutan routing sesuai urutan
+            input.</div>
+        </div>
+
+        <div class="mb-4">
+          <label class="small fw-bold text-muted mb-1">Alasan Revisi <span class="text-danger">*</span></label>
+          <textarea id="editRoutingReason" class="form-control input-custom" rows="2"
+            placeholder="Wajib diisi..."></textarea>
+        </div>
+
+        <button id="btnSaveRouting" class="btn btn-primary w-100 fw-bold py-2 rounded-3 shadow-sm"
+          onclick="submitEditRouting()">Simpan Perubahan</button>
+      </div>
+    </div>
+
+    <!-- STATUS BARANG MODAL -->
+    <div id="statusBarangModal" class="custom-modal">
+      <div class="modal-content"
+        style="max-width: 400px; width: 95%; padding: 0; overflow: hidden; background: #f8f9fa; border-radius: 30px;">
+
+        <!-- Header Close -->
+        <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
+          <button class="btn btn-sm btn-light rounded-circle shadow-sm" style="width:35px; height:35px;"
+            onclick="closeBarangStatusModal()"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- Top Hero Section (Animation) -->
+        <div id="statusHero" class="p-5 text-center"
+          style="background: white; border-radius: 0 0 40px 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); position: relative; z-index: 2; transition: background 0.3s;">
+          <div id="heroIcon" class="hero-anim-box mx-auto mb-3"></div>
+          <h4 id="heroTitle" class="fw-bold mb-1">Status</h4>
+          <p id="heroDesc" class="text-muted small mb-0 fw-bold">Keterangan status</p>
+        </div>
+
+        <!-- Bottom Selector Section -->
+        <div class="p-4">
+          <h6 class="fw-bold text-muted small mb-3 text-start ps-2" style="letter-spacing: 1px;">PILIH STATUS BARU</h6>
+          <div class="row g-2">
+
+            <div class="col-4">
+              <div class="status-select-item flex-column justify-content-center text-center h-100 p-2"
+                onclick="selectStatusPreview('Dalam antrian')" data-status="Dalam antrian" style="margin-bottom: 0;">
+                <div
+                  class="icon-small bg-warning-subtle text-warning rounded-circle p-2 d-flex align-items-center justify-content-center mb-2"
+                  style="width:40px; height:40px;"><i class="fas fa-clock"></i></div>
+                <div class="fw-bold text-dark small mb-2" style="line-height:1.1;">Dalam Antrian</div>
+                <div class="check-indicator" style="width: 20px; height: 20px;"><i class="fas fa-check"
+                    style="font-size: 0.6rem;"></i></div>
+              </div>
+            </div>
+
+            <div class="col-4">
+              <div class="status-select-item flex-column justify-content-center text-center h-100 p-2"
+                onclick="selectStatusPreview('On progress')" data-status="On progress" style="margin-bottom: 0;">
+                <div
+                  class="icon-small bg-primary-subtle text-primary rounded-circle p-2 d-flex align-items-center justify-content-center mb-2"
+                  style="width:40px; height:40px;"><i class="fas fa-cog"></i></div>
+                <div class="fw-bold text-dark small mb-2" style="line-height:1.1;">On Progress</div>
+                <div class="check-indicator" style="width: 20px; height: 20px;"><i class="fas fa-check"
+                    style="font-size: 0.6rem;"></i></div>
+              </div>
+            </div>
+
+            <div class="col-4">
+              <div class="status-select-item flex-column justify-content-center text-center h-100 p-2"
+                onclick="selectStatusPreview('Siap diambil')" data-status="Siap diambil" style="margin-bottom: 0;">
+                <div
+                  class="icon-small bg-success-subtle text-success rounded-circle p-2 d-flex align-items-center justify-content-center mb-2"
+                  style="width:40px; height:40px;"><i class="fas fa-check-circle"></i></div>
+                <div class="fw-bold text-dark small mb-2" style="line-height:1.1;">Siap Diambil</div>
+                <div class="check-indicator" style="width: 20px; height: 20px;"><i class="fas fa-check"
+                    style="font-size: 0.6rem;"></i></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Routing Steps Container (Hidden by default) -->
+          <div id="routingStepContainer" class="mt-3 p-3 bg-white rounded border" style="display:none;">
+            <h6 class="small fw-bold text-primary mb-2"><i class="fas fa-list-ol me-2"></i>Pilih Tahapan Proses:</h6>
+            <div id="routingStepOptions" class="d-flex flex-wrap gap-2"></div>
+          </div>
+
+          <button id="btnSaveStatus" class="btn btn-primary w-100 py-3 mt-4 fw-bold shadow-sm"
+            style="border-radius: 15px; font-size: 1rem;" onclick="commitBarangStatus()">
+            Update Status
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATUS DETAIL MODAL (POPUP KETERANGAN) -->
+    <div id="statusDetailModal" class="custom-modal">
+      <div class="modal-content"
+        style="max-width: 450px; width: 95%; padding: 0; border-radius: 30px; overflow: hidden; background: #f8f9fa;">
+
+        <!-- Hero Section (Modern Header) -->
+        <div class="position-relative p-4 text-center bg-white"
+          style="border-radius: 0 0 40px 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); z-index: 2;">
+          <button class="btn btn-sm btn-light rounded-circle shadow-sm position-absolute top-0 end-0 m-3"
+            onclick="closeStatusDetailModal()"><i class="fas fa-times"></i></button>
+
+          <!-- GANTI IMG DENGAN CONTAINER ICON ANIMASI -->
+          <div id="detailHeroIcon"></div>
+
+          <h5 class="fw-bold mb-1" id="detailStatusTitle">Status</h5>
+          <p class="text-muted small mb-0" id="detailStatusDesc">Keterangan</p>
+        </div>
+
+        <!-- Info & Timeline -->
+        <div class="p-4" style="max-height: 60vh; overflow-y: auto;">
+          <!-- Info Card -->
+          <div class="bg-white p-3 rounded-4 shadow-sm mb-4 border">
+            <!-- ACTION BUTTON CONTAINER (INJECTED VIA JS) -->
+            <div id="detailActionContainer" class="mb-3" style="display:none;"></div>
+
+            <div class="d-flex align-items-center gap-3">
+              <!-- QR Code Section (Left) -->
+              <div class="bg-light p-2 rounded border d-flex align-items-center justify-content-center shadow-sm"
+                style="width: 150px; height: 150px; flex-shrink: 0;">
+                <img id="detailQRCodeImg" src="" style="width: 100%; height: 100%; object-fit: contain;">
+              </div>
+
+              <!-- Details Section (Right) -->
+              <div class="flex-grow-1 overflow-hidden">
+                <div class="mb-2 border-bottom pb-2">
+                  <div class="small text-muted fw-bold" style="font-size: 0.7rem; text-transform: uppercase;">No Work
+                    Request</div>
+                  <div class="fw-bold text-primary text-break" id="detailNoWR"
+                    style="font-size: 0.85rem; line-height: 1.2;">-</div>
+                </div>
+                <div>
+                  <div class="small text-muted fw-bold" style="font-size: 0.7rem; text-transform: uppercase;">Komponen
+                  </div>
+                  <div class="fw-bold text-dark text-truncate" id="detailNama" style="font-size: 1rem;">-</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- VERIFIKATOR UTAMA (SUMMARY CARD) -->
+            <div id="detailVerifikatorContainer" class="mt-3 pt-3 border-top" style="display:none;">
+              <div class="small text-muted fw-bold" style="font-size: 0.7rem; text-transform: uppercase;"><i
+                  class="fas fa-user-check me-1 text-primary"></i>Verifikator Utama</div>
+              <div class="fw-bold text-dark mt-1" id="detailVerifikator" style="font-size: 0.9rem;">-</div>
+            </div>
+          </div>
+
+          <h6 class="fw-bold text-secondary small mb-3 ps-2" style="letter-spacing: 1px;">TRACKING PROSES</h6>
+          <div id="detailStepsTimeline" class="timeline-modern">
+            <!-- Timeline Items -->
+          </div>
+
+          <!-- NEW: Riwayat Revisi Container -->
+          <div id="detailRevisiContainer" class="mt-3 pt-3 border-top" style="display:none;">
+            <h6 class="fw-bold text-info small mb-2 ps-2"><i class="fas fa-history me-2"></i>RIWAYAT REVISI</h6>
+            <div id="detailRevisiContent" class="bg-light p-3 rounded-3 border"></div>
+          </div>
+
+          <!-- NEW: Log Riwayat Qty Container -->
+          <div id="detailLogsContainer" class="mt-3 pt-3 border-top" style="display:none;">
+            <div id="detailLogsContent"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QTY INPUT MODAL (NEW) -->
+    <div id="qtyInputModal" class="custom-modal" style="z-index: 3200;">
+      <div class="modal-content" style="max-width: 350px;">
+        <div class="success-icon" style="background: #e3f2fd; color: var(--hpk-blue); display:flex !important;">
+          <i class="fas fa-calculator"></i>
+        </div>
+        <h4 class="fw-bold mb-2">Input Quantity</h4>
+        <p id="qtyModalLabel" class="text-muted mb-3 small">Masukkan jumlah barang:</p>
+
+        <input type="number" id="scanQtyInput" class="form-control input-custom text-center fw-bold fs-4 mb-3"
+          placeholder="0">
+
+        <!-- TAMBAHAN INPUT DEFECT -->
+        <label class="small fw-bold text-danger mb-1 text-start w-100"><i
+            class="fas fa-exclamation-triangle me-1"></i>Koreksi / Defect Qty (Opsional):</label>
+        <input type="number" id="scanDefectQty" class="form-control input-custom text-center fw-bold mb-2 border-danger"
+          style="color: #dc3545;" placeholder="0">
+
+        <label class="small fw-bold text-danger mb-1 text-start w-100">Alasan Defect (Opsional):</label>
+        <textarea id="scanDefectReason" class="form-control input-custom mb-3 border-danger" rows="2"
+          placeholder="Contoh: Barang reject..."></textarea>
+
+        <label class="small fw-bold text-muted mb-1 text-start w-100">Alasan Proses (Opsional):</label>
+        <textarea id="scanQtyReason" class="form-control input-custom mb-4" rows="2"
+          placeholder="Contoh: Proses selesai..."></textarea>
+
+        <div class="d-flex gap-2">
+          <button class="btn btn-light flex-grow-1 fw-bold rounded-3" onclick="closeQtyModal()">Batal</button>
+          <button class="btn btn-primary flex-grow-1 fw-bold rounded-3" onclick="submitScanQty()">Simpan</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRINT PREVIEW MODAL -->
+    <div id="printPreviewModal" class="custom-modal">
+      <div class="modal-content" style="max-width: 900px; width: 95%; text-align: left;">
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+          <h5 class="fw-bold mb-0"><i class="fas fa-print text-primary me-2"></i>Konfirmasi Cetak</h5>
+          <button class="btn btn-sm btn-light rounded-circle" onclick="closePrintPreviewModal()"><i
+              class="fas fa-times"></i></button>
+        </div>
+
+        <!-- PDF PREVIEW CONTAINER -->
+        <div class="pdf-preview-container">
+          <div id="pdfLoading" class="text-center">
+            <div class="spinner-border text-primary mb-2" role="status"></div>
+            <div class="small text-muted">Memuat Preview PDF...</div>
+          </div>
+          <div id="pdfError" class="text-center text-danger p-3" style="display:none;">
+            <i class="fas fa-exclamation-circle fa-2x mb-2"></i><br>
+            <span id="pdfErrorMsg">File PDF tidak ditemukan.</span>
+          </div>
+          <iframe id="pdfFrame" class="pdf-preview-frame" src="" style="display:none;"></iframe>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button class="btn btn-light flex-grow-1 fw-bold" onclick="closePrintPreviewModal()"
+            style="border-radius:12px;">Batal</button>
+          <button id="btnPrintConfirm" class="btn btn-danger flex-grow-1 fw-bold shadow-sm" onclick="executePrint()"
+            style="border-radius:12px;">
+            <i class="fas fa-print me-2"></i>Cetak PDF
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HALAMAN SAFETY STOCK -->
+    <div id="pageSafetyStock" class="page">
+      <div class="wave-header" style="height: 280px;">
+        <div class="wave-shape-2"></div>
+      </div>
+      <div class="nav-top on-wave">
+        <div class="d-flex align-items-center gap-3">
+          <i class="fas fa-arrow-left fa-lg" style="cursor:pointer" onclick="navigateTo('pageHome')"></i>
+          <i class="fas fa-bars fa-2x" onclick="toggleSidebar()"></i>
+        </div>
+        <div class="user-header user-glass-pill" onclick="toggleSidebar()">
+          <div class="text-white fw-bold">Safety Stock</div>
+        </div>
+      </div>
+
+      <div class="container pb-5" style="position:relative; z-index:2; margin-top: 10px;">
+        <!-- Modern Control Panel -->
+        <div class="bg-white rounded-4 shadow-lg p-4 mb-4" style="border: 1px solid rgba(0,0,0,0.03);">
+          <div class="row align-items-center">
+            <div class="col-md-7 mb-3 mb-md-0">
+              <div class="d-flex align-items-center gap-3">
+                <div class="icon-circle bg-warning-subtle text-warning shadow-sm"
+                  style="width: 65px; height: 65px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">
+                  <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                  <h5 class="fw-bolder text-dark mb-1" style="letter-spacing: -0.5px;">Safety Stock Alert</h5>
+                  <div class="text-muted fw-bold" style="font-size: 0.75rem;" id="lastSyncTime"><i
+                      class="fas fa-clock me-1 opacity-50"></i>
+                    Terakhir Ditarik: -</div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="col-md-5 text-md-end d-flex justify-content-md-end align-items-center gap-3 flex-wrap flex-md-nowrap">
+              <div class="ss-stat-box shadow-sm">
+                <div class="text-start">
+                  <div class="small text-danger fw-bold text-uppercase"
+                    style="font-size: 0.65rem; letter-spacing: 0.5px;">Item Defisit</div>
+                  <div class="fw-bolder text-danger fs-5" style="line-height: 1;" id="ssTotalData">0</div>
+                </div>
+                <i class="fas fa-boxes text-danger opacity-25 fs-2"></i>
+              </div>
+              <button class="btn-sync-modern" onclick="syncSafetyStockFromWeb()" id="btnSyncSS">
+                <i class="fas fa-sync-alt me-2"></i> Tarik Data
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="bg-white rounded-4 shadow-lg p-3 p-md-4" style="border: 1px solid rgba(0,0,0,0.03);">
+          <!-- Search Bar Safety Stock -->
+          <div class="mb-3">
+            <div class="input-group shadow-sm" style="border-radius: 12px; overflow: hidden; border: 1px solid #eee;">
+              <span class="input-group-text bg-light border-0 ps-3"><i class="fas fa-search text-muted"></i></span>
+              <input type="text" id="searchSafetyStock" class="form-control bg-light border-0 py-2 fw-bold text-dark"
+                placeholder="Cari Kode atau Nama Komponen..." onkeyup="filterSafetyStock()">
+            </div>
+          </div>
+          <div class="table-responsive" style="border-radius: 15px; max-height: 450px; overflow-y: auto;">
+            <table class="table table-hover align-middle mb-0 super-table" style="border-spacing: 0;">
+              <thead class="bg-light">
+                <tr>
+                  <th class="text-center rounded-start-3" style="width: 40px;">
+                    <input type="checkbox" class="form-check-input border-secondary" id="selectAllSS"
+                      onchange="toggleAllSS(this.checked)">
+                  </th>
+                  <th class="text-center" style="width: 80px; font-size: 0.7rem;">Visual</th>
+                  <th style="font-size: 0.7rem;">Komponen</th>
+                  <th class="text-center" style="font-size: 0.7rem;">Saldo</th>
+                  <th class="text-center" style="font-size: 0.7rem;">Batas Min.</th>
+                  <th style="font-size: 0.7rem;">Dimensi & Lokasi Rak</th>
+                  <th class="text-center rounded-end-3" style="font-size: 0.7rem;">Status Pengajuan</th>
+                </tr>
+              </thead>
+              <tbody id="ssTableBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- DRAFT WR SECTION -->
+        <div id="draftSSSection" class="bg-white rounded-4 shadow-lg p-3 p-md-4 mt-4"
+          style="border: 2px solid var(--hpk-teal); display: none;">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bolder text-dark mb-0"><i class="fas fa-shopping-cart text-primary me-2"></i>Draft Work
+              Request</h5>
+            <span class="badge bg-primary rounded-pill px-3 py-2" id="draftSSCount">0 Item</span>
+          </div>
+          <div class="table-responsive" style="border-radius: 10px; border: 1px solid #eee;">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="bg-light text-secondary" style="font-size: 0.75rem;">
+                <tr>
+                  <th>Komponen</th>
+                  <th style="width: 100px;">Qty</th>
+                  <th style="width: 180px;">Penerima</th>
+                  <th>Keterangan</th>
+                  <th class="text-center" style="width: 50px;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="draftSSTableBody"></tbody>
+            </table>
+          </div>
+          <div class="d-flex justify-content-end gap-2 mt-3">
+            <button class="btn btn-light fw-bold rounded-3 px-4" onclick="clearDraftSS()">Batal</button>
+            <button class="btn btn-primary fw-bold px-4 shadow-sm rounded-3" id="btnSubmitDraftSS"
+              onclick="submitDraftSS()"><i class="fas fa-paper-plane me-2"></i>Kirim Work Request</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASSIGN OP MODAL (NEW) -->
+    <div id="assignOpModal" class="custom-modal" style="z-index: 3200;">
+      <div class="modal-content" style="max-width: 350px;">
+        <div class="success-icon" style="background: #e3f2fd; color: #1976d2; display: flex !important;"><i
+            class="fas fa-user-tag"></i></div>
+        <h4 class="fw-bold mb-2 text-dark">Pilih Operator</h4>
+        <p class="text-muted mb-3 small">Siapa operator yang ditugaskan untuk mengerjakan Work Request ini?</p>
+
+        <select id="assignOpSelect" class="form-select input-custom mb-4"
+          style="padding-top: 12px; padding-bottom: 12px; font-size: 1rem; font-weight: bold;">
+          <option value="">Memuat operator...</option>
+        </select>
+
+        <div class="d-flex gap-2 justify-content-center">
+          <button class="btn btn-light fw-bold flex-grow-1" onclick="closeAssignOpModal()"
+            style="border-radius:15px; border:1px solid #eee;">Batal</button>
+          <button class="btn btn-primary fw-bold flex-grow-1" onclick="executeAssignOp()"
+            style="border-radius:15px; border:none;">Simpan & Terima</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== PAGE: DATA KOMPONEN ===================== -->
+    <div id="pageDataKomponen" class="page">
+      <div class="wave-header" style="height: 280px;">
+        <div class="wave-shape-2"></div>
+      </div>
+      <div class="nav-top on-wave">
+        <div class="d-flex align-items-center gap-3">
+          <i class="fas fa-bars fa-2x" onclick="toggleSidebar()" style="cursor:pointer"></i>
+        </div>
+        <div class="user-header user-glass-pill" onclick="toggleSidebar()">
+          <div class="user-info-head">
+            <div class="user-name-head display-name">User</div>
+            <div class="user-dept-head display-dept">Dept</div>
+          </div>
+          <img src="" class="display-photo">
+        </div>
+      </div>
+
+      <div class="text-center" style="position:relative; z-index:2; margin-bottom: 25px;">
+        <div class="bg-white p-2 rounded-circle shadow-sm d-inline-block mb-2"
+          style="width:60px; height:60px; display:flex; align-items:center; justify-content:center; margin:0 auto;">
+          <img src="https://iili.io/fbawUge.md.png" style="width: 40px;">
+        </div>
+        <div class="brand-title text-white mb-2" style="font-size: 0.8rem;">PT. HYDRAXLE PERKASA</div>
+        <h5 class="fw-bold text-white">DATABASE KOMPONEN</h5>
+        <p class="text-white-50 small">Monitoring Stok dan Status Komponen</p>
+      </div>
+
+      <div class="container pb-5" style="position:relative; z-index:2;">
+        <div class="bg-white rounded-4 shadow-lg p-3 p-md-4">
+          <div class="d-flex flex-column flex-md-row gap-2 mb-4">
+            <div class="input-group shadow-sm" style="border-radius: 12px; overflow: hidden;">
+              <span class="input-group-text bg-light border-0 ps-3"><i class="fas fa-search text-muted"></i></span>
+              <input type="text" id="searchKomponenList" class="form-control bg-light border-0 fw-bold text-dark py-2"
+                placeholder="Cari Kode / Nama Komponen..." onkeyup="filterKomponenList()">
+            </div>
+            <button class="btn btn-light text-primary fw-bold shadow-sm" style="border-radius: 12px;"
+              onclick="loadDataKomponen()">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table super-table" id="tableKomponen">
+              <thead>
+                <tr>
+                  <th>Item Komponen</th>
+                  <th class="text-center">Kode Rak</th>
+                  <th class="text-center">Saldo</th>
+                  <th class="text-center">Saldo Minimum</th>
+                  <th class="text-center">Status</th>
+                  <th class="text-center">Detail</th>
+                </tr>
+              </thead>
+              <tbody id="komponenTableBody">
+                <!-- Data dimuat via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Detail Komponen (Reference UI) -->
+    <div id="modalDetailKomponen" class="custom-modal" style="z-index: 3000;">
+      <div class="modal-content border-0"
+        style="width: calc(100% - 40px); max-width: 800px; margin: 20px auto; padding: 0; max-height: calc(100vh - 40px); overflow-y: auto; overflow-x: hidden; background-color: #f2f2f5; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); animation: popIn 0.4s;">
+
+        <!-- Header Area -->
+        <div style="padding: 20px 24px 10px 24px;">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+              <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
+                style="width: 24px; height: 24px; background-color: rgba(99, 102, 241, 0.1);">
+                <i class="fas fa-info" style="color: #4f46e5; font-size: 10px;"></i>
+              </div>
+              <h5 class="mb-0 fw-bold" style="color: #1e1e2f; font-size: 1.15rem;">Detail Item</h5>
+            </div>
+            <button type="button" class="btn-close"
+              onclick="document.getElementById('modalDetailKomponen').style.display='none'" aria-label="Close"
+              style="opacity: 0.5; font-size: 0.8rem;"></button>
+          </div>
+        </div>
+
+        <!-- Body Area -->
+        <div class="modal-body pt-0" style="padding: 0 24px 24px 24px;">
+
+          <!-- Image Container -->
+          <div class="bg-white mx-auto shadow-sm"
+            style="width: 100%; border-radius: 16px; padding: 0; overflow: hidden; margin-bottom: 10px; position: relative; z-index: 5;">
+            <img id="detailKomponenGambar" src=""
+              style="width: 100%; height: 320px; object-fit: cover; display: block;">
+          </div>
+
+          <!-- Nama Card -->
+          <div class="card border-0 shadow-sm mb-3" style="border-radius: 14px;">
+            <div class="card-body px-4 py-3 d-flex justify-content-between align-items-center">
+              <span class="text-secondary fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">NAMA</span>
+              <span id="detailKomponenNama" class="fw-bold text-dark text-end"
+                style="font-size: 0.95rem; max-width: 75%;">HANDLE</span>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <!-- Kode Item Card -->
+            <div class="col-12 col-sm-7">
+              <div class="card shadow-sm h-100"
+                style="border-radius: 14px; background-color: #f5f7ff; border: 1px solid #ebf0ff;">
+                <div class="card-body px-3 py-3">
+                  <div class="fw-bold mb-1" style="color: #8b93ff; font-size: 0.65rem; letter-spacing: 0.5px;">KODE
+                    ITEM</div>
+                  <div id="detailKomponenKode" class="fw-bold"
+                    style="color: #3b42cf; font-size: 0.95rem; word-break: break-all;">CSBA30100360000</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dimensi Card -->
+            <div class="col-12 col-sm-5">
+              <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
+                <div class="card-body px-3 py-3">
+                  <div class="text-secondary fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">DIMENSI
+                    (MM)</div>
+                  <div id="detailKomponenDimensi" class="fw-bold text-dark" style="font-size: 0.95rem;">358 x 12</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-4">
+            <!-- Rak Card -->
+            <div class="col-4">
+              <div class="card border-0 shadow-sm h-100 text-center" style="border-radius: 14px;">
+                <div class="card-body px-1 py-3">
+                  <div class="text-secondary fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">RAK
+                  </div>
+                  <div id="detailKomponenRak" class="fw-bold text-dark" style="font-size: 0.9rem;">1-R8-L1-06</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Saldo Card -->
+            <div class="col-4">
+              <div class="card border-0 shadow-sm h-100 text-center" style="border-radius: 14px;">
+                <div class="card-body px-1 py-3">
+                  <div class="text-secondary fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">SALDO
+                  </div>
+                  <div id="detailKomponenSaldo" class="fw-bold" style="color: #5a67d8; font-size: 1.15rem;">47</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Min Saldo Card -->
+            <div class="col-4">
+              <div class="card border-0 shadow-sm h-100 text-center" style="border-radius: 14px;">
+                <div class="card-body px-1 py-3">
+                  <div class="text-secondary fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">MIN.
+                    SALDO</div>
+                  <div id="detailKomponenSaldoMin" class="fw-bold" style="color: #f56565; font-size: 1.15rem;">40
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tutup Panel Button -->
+          <div class="d-flex justify-content-end">
+            <button type="button" class="btn bg-white fw-bold shadow-sm"
+              style="border-radius: 12px; color: #334155; padding: 10px 24px; font-size: 0.9rem; border: 1px solid #edf2f7;"
+              onclick="document.getElementById('modalDetailKomponen').style.display='none'">
+              Tutup Panel
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- WATERMARK -->
+    <div class="watermark-fixed">
+      <img src="https://iili.io/fbawUge.md.png" style="width: 20px; opacity: 0.8;">
+      <span>PT. HYDRAXLE PERKASA</span>
+    </div>
+  </div>
+
+  <?!= include('js_global'); ?>
+  <?!= include('js_auth'); ?>
+  <?!= include('js_form_wr'); ?>
+  <?!= include('js_dashboard'); ?>
+  <?!= include('js_print'); ?>
+  <?!= include('js_safety_stock'); ?>
+  <?!= include('js_komponen'); ?>
+
+  <script>
+    /* --- LOGOUT LOGIC FIX --- */
+    function confirmSignOut() {
+      document.getElementById('signOutModal').style.display = 'flex';
+    }
+
+    function closeSignOutModal() {
+      document.getElementById('signOutModal').style.display = 'none';
+    }
+
+    function processSignOut() {
+      closeSignOutModal();
+
+      // Hapus efek shake (jika ada) agar tampilan login bersih/tenang saat logout
+      const loginCard = document.querySelector('.glass-card');
+      if (loginCard) loginCard.classList.remove('shake-animation');
+
+      // HAPUS CACHE AGAR NAMA LAMA HILANG SAAT LOGIN ULANG
+      localStorage.clear();
+      currentUser = "";
+      currentDept = "";
+      currentDepts = [];
+      currentDeptCodes = [];
+      currentAccess = [];
+      currentAccessCodes = [];
+      currentName = "";
+
+      document.getElementById('loginUsername').value = "";
+      document.getElementById('loginPassword').value = "";
+      navigateTo('pageLogin');
+
+      // Tutup sidebar jika masih terbuka
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar && sidebar.classList.contains('active')) {
+        toggleSidebar();
+      }
+    }
+
+    /* --- LOGIC: AUTO SHOW/HIDE COMPONENT CARD --- */
+    document.addEventListener("DOMContentLoaded", function () {
+      const descCard = document.querySelector('.desc-card');
+      const displayKode = document.getElementById('displayKode');
+
+      if (descCard && displayKode) {
+        const observer = new MutationObserver(() => {
+          const code = displayKode.innerText.trim();
+          // Tampilkan kartu hanya jika kode valid (bukan default/kosong)
+          if (code && code !== 'XXXXXXXXXXXX' && code !== '-') {
+            descCard.style.display = 'block';
+            descCard.style.animation = 'fadeInUp 0.5s ease forwards';
+          } else {
+            descCard.style.display = 'none';
+          }
+        });
+        observer.observe(displayKode, { childList: true, subtree: true, characterData: true });
+      }
+    });
+
+    /* --- PATCH: PRINT WR LOGIC (Refresh & Auto-Move) --- */
+
+    let globalPrintData = [];
+    // Variabel untuk tracking mode preview (single atau bulk)
+    let currentPreviewMode = 'single';
+    let currentPreviewIds = [];
+
+    // OVERRIDE: Pastikan fungsi ini yang dipanggil saat halaman dibuka (dari js_global)
+    window.loadPrintWRData = function () {
+      loadPrintData();
+    };
+
+    function loadPrintData() {
+      const loading = document.getElementById('loadingPrint');
+      const containerPending = document.getElementById('containerPending');
+      const containerDone = document.getElementById('containerDone');
+      const empty = document.getElementById('emptyPrint');
+
+      if (loading) loading.style.display = 'block';
+      if (containerPending) containerPending.style.display = 'none';
+      if (containerDone) containerDone.style.display = 'none';
+      if (empty) empty.style.display = 'none';
+
+      const userDept = (typeof getCurrentDeptList === 'function') ? getCurrentDeptList() : currentDept;
+
+      google.script.run.withSuccessHandler(function (data) {
+        globalPrintData = data;
+        filterPrintList(); // Panggil filter dulu agar data ter-render sesuai filter
+        if (loading) loading.style.display = 'none';
+      }).getPrintableWRData(userDept);
+    }
+
+    function renderPrintTables(data) {
+      const pending = data.filter(x => x.statusCetak !== 'Sudah Dicetak');
+      const done = data.filter(x => x.statusCetak === 'Sudah Dicetak');
+
+      const tbodyPending = document.getElementById('printTableBodyPending');
+      const tbodyDone = document.getElementById('printTableBodyDone');
+
+      if (tbodyPending) {
+        tbodyPending.innerHTML = pending.map(item => createPrintRowHTML(item)).join('');
+        document.getElementById('containerPending').style.display = pending.length ? 'block' : 'none';
+      }
+
+      if (tbodyDone) {
+        tbodyDone.innerHTML = done.map(item => createPrintRowHTML(item)).join('');
+        document.getElementById('containerDone').style.display = done.length ? 'block' : 'none';
+      }
+
+      const badge = document.getElementById('totalDocsBadge');
+      if (badge) badge.innerText = data.length + " Dokumen";
+
+      const empty = document.getElementById('emptyPrint');
+      if (empty) empty.style.display = (data.length === 0) ? 'block' : 'none';
+
+      updateBulkCount();
+    }
+
+    function createPrintRowHTML(item) {
+      return `
+        <tr>
+          <td class="text-center align-middle">
+            <input class="form-check-input print-checkbox" type="checkbox" value="${item.noWR}" onchange="updateBulkCount()">
+          </td>
+          <td class="align-middle">
+            <div class="fw-bold text-dark" style="font-size:0.9rem;">${item.noWR}</div>
+            <div class="small text-muted"><i class="far fa-calendar-alt me-1"></i>${item.tgl}</div>
+          </td>
+          <td class="align-middle">
+            <div class="fw-bold text-primary" style="font-size:0.9rem;">${item.nama}</div>
+            <div class="badge bg-light text-secondary border rounded-pill">${item.kode}</div>
+          </td>
+          <td class="align-middle">
+            <div class="small fw-bold text-dark">${item.pengaju}</div>
+            <div class="small text-muted"><i class="fas fa-arrow-down my-1"></i></div>
+            <div class="small fw-bold text-dark">${item.penerima}</div>
+          </td>
+          <td class="text-end align-middle">
+             <button class="btn btn-sm btn-light text-info shadow-sm rounded-circle me-1" style="width:32px; height:32px;" onclick="previewSingleWR('${item.noWR}')" title="Preview PDF">
+               <i class="fas fa-eye"></i>
+             </button>
+             <button class="btn btn-sm btn-light text-primary shadow-sm rounded-circle" style="width:32px; height:32px;" onclick="printSingleWR('${item.noWR}')" title="Cetak PDF">
+               <i class="fas fa-print"></i>
+             </button>
+          </td>
+        </tr>
+      `;
+    }
+
+    function updateBulkCount() {
+      const count = document.querySelectorAll('.print-checkbox:checked').length;
+      const el = document.getElementById('selectedCount');
+      if (el) el.innerText = count;
+
+      const actionBar = document.getElementById('bulkPrintAction');
+      if (actionBar) {
+        if (count > 0) {
+          actionBar.style.display = 'block'; // Paksa tampil
+          actionBar.classList.add('active');
+        } else {
+          actionBar.style.display = 'none'; // Sembunyikan
+          actionBar.classList.remove('active');
+        }
+      }
+    }
+
+    function executeBulkPrint() {
+      const checkboxes = document.querySelectorAll('.print-checkbox:checked');
+      const ids = Array.from(checkboxes).map(cb => cb.value);
+
+      if (ids.length === 0) return;
+
+      const btn = event.currentTarget;
+      const oldHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Proses...';
+      btn.disabled = true;
+
+      google.script.run.withSuccessHandler(function (result) {
+        btn.innerHTML = oldHtml;
+        btn.disabled = false;
+
+        if (result.status === 'success') {
+          window.open(result.url, '_blank');
+          setTimeout(loadPrintData, 1500); // Auto Refresh setelah 1.5 detik
+          document.querySelectorAll('.print-checkbox').forEach(cb => cb.checked = false);
+          updateBulkCount();
+        } else {
+          alert("Gagal: " + result.message);
+        }
+      }).printBulkWR(ids);
+    }
+
+    // OVERRIDE executePrint untuk modal preview agar mendukung Single dan Bulk
+    window.executePrint = function () {
+      if (!currentPreviewIds || currentPreviewIds.length === 0) return;
+
+      const btn = document.getElementById('btnPrintConfirm');
+      const oldHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Proses...';
+      btn.disabled = true;
+
+      const onSuccess = function (result) {
+        btn.innerHTML = oldHtml;
+        btn.disabled = false;
+        if (result.status === 'success') {
+          window.open(result.url, '_blank');
+          if (typeof closePrintPreviewModal === 'function') closePrintPreviewModal();
+          setTimeout(loadPrintData, 1500);
+          if (currentPreviewMode === 'bulk') {
+            document.querySelectorAll('.print-checkbox').forEach(cb => cb.checked = false);
+            updateBulkCount();
+          }
+        } else {
+          alert("Gagal: " + result.message);
+        }
+      };
+
+      const onFailure = function (err) {
+        btn.innerHTML = oldHtml;
+        btn.disabled = false;
+        alert("Error: " + err);
+      };
+
+      if (currentPreviewMode === 'bulk') {
+        google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).printBulkWR(currentPreviewIds);
+      } else {
+        google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).printWR(currentPreviewIds[0]);
+      }
+    };
+
+    function printSingleWR(noWR) {
+      const btn = event.currentTarget;
+      const oldHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      btn.disabled = true;
+
+      google.script.run.withSuccessHandler(function (result) {
+        btn.innerHTML = oldHtml;
+        btn.disabled = false;
+        if (result.status === 'success') {
+          window.open(result.url, '_blank');
+          setTimeout(loadPrintData, 1500); // Auto Refresh setelah 1.5 detik
+        } else {
+          alert(result.message);
+        }
+      }).printWR(noWR);
+    }
+
+    function previewSingleWR(noWR) {
+      // Set selected item for modal actions (agar tombol cetak di modal berfungsi)
+      selectedWRToPrint = globalPrintData.find(x => x.noWR === noWR);
+      currentPreviewMode = 'single';
+      currentPreviewIds = [noWR];
+
+      document.getElementById('pdfLoading').style.display = 'block';
+      document.getElementById('pdfError').style.display = 'none';
+      document.getElementById('pdfFrame').style.display = 'none';
+      document.getElementById('pdfFrame').src = "";
+      document.getElementById('printPreviewModal').style.display = 'flex';
+
+      google.script.run.withSuccessHandler(function (res) {
+        document.getElementById('pdfLoading').style.display = 'none';
+        if (res.status === 'success') {
+          document.getElementById('pdfFrame').src = res.url;
+          document.getElementById('pdfFrame').style.display = 'block';
+        } else {
+          document.getElementById('pdfError').style.display = 'block';
+          document.getElementById('pdfErrorMsg').innerText = res.message;
+        }
+      }).withFailureHandler(function (err) {
+        document.getElementById('pdfLoading').style.display = 'none';
+        document.getElementById('pdfError').style.display = 'block';
+        document.getElementById('pdfErrorMsg').innerText = "Error: " + err;
+      }).getPDFPreviewUrl(noWR);
+    }
+
+    function executeBulkPreview() {
+      const checkboxes = document.querySelectorAll('.print-checkbox:checked');
+      // PERBAIKAN: Menggunakan .value karena di HTML kita pakai value="${item.noWR}"
+      const ids = Array.from(checkboxes).map(cb => cb.value);
+
+      if (ids.length === 0) return;
+
+      currentPreviewMode = 'bulk';
+      currentPreviewIds = ids;
+
+      document.getElementById('pdfLoading').style.display = 'block';
+      document.getElementById('pdfError').style.display = 'none';
+      document.getElementById('pdfFrame').style.display = 'none';
+      document.getElementById('pdfFrame').src = "";
+      document.getElementById('printPreviewModal').style.display = 'flex';
+
+      google.script.run.withSuccessHandler(function (res) {
+        document.getElementById('pdfLoading').style.display = 'none';
+        if (res.status === 'success') {
+          document.getElementById('pdfFrame').src = res.url;
+          document.getElementById('pdfFrame').style.display = 'block';
+        } else {
+          document.getElementById('pdfError').style.display = 'block';
+          document.getElementById('pdfErrorMsg').innerText = res.message;
+        }
+      }).withFailureHandler(function (err) {
+        document.getElementById('pdfLoading').style.display = 'none';
+        document.getElementById('pdfError').style.display = 'block';
+        document.getElementById('pdfErrorMsg').innerText = "Error: " + err;
+      }).getBulkPDFPreviewUrl(ids);
+    }
+
+    function filterPrintList() {
+      const search = document.getElementById('searchPrint').value.toLowerCase();
+      const dateFilter = document.getElementById('filterPrintDate').value;
+
+      const filtered = globalPrintData.filter(item => {
+        // 1. Filter Text
+        const textMatch = (item.noWR && item.noWR.toLowerCase().includes(search)) ||
+          (item.nama && item.nama.toLowerCase().includes(search));
+        if (!textMatch) return false;
+
+        // 2. Filter Date
+        if (dateFilter === 'all') return true;
+        if (!item.tglRaw) return false;
+
+        const parts = item.tglRaw.split('-');
+        const itemDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const diffTime = today - itemDate;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (dateFilter === 'today') return diffDays === 0;
+        if (dateFilter === 'week') return diffDays >= 0 && diffDays <= 7;
+        if (dateFilter === 'month') return itemDate.getMonth() === today.getMonth() && itemDate.getFullYear() === today.getFullYear();
+
+        return true;
+      });
+
+      renderPrintTables(filtered);
+    }
+
+    function toggleSelectAll(source, tableId) {
+      const checkboxes = document.querySelectorAll(`#${tableId} .print-checkbox`);
+      checkboxes.forEach(cb => {
+        if (cb.closest('tr').style.display !== 'none') cb.checked = source.checked;
+      });
+      updateBulkCount();
+    }
+
+    /* --- LOGIC BARU: VALIDASI QR MESIN VS ROUTING --- */
+    /**
+     * Memvalidasi apakah QR Mesin sesuai dengan Departemen Routing saat ini.
+     * 
+     * @param {string} qrMesin - String hasil scan (contoh: "Sharing/I-06-01" atau "Bubut")
+     * @param {string} deptRouting - Nama departemen dari database (contoh: "Dept Sharing")
+     * @returns {boolean} - True jika cocok, False jika tidak.
+     */
+    function validateMachineMatch(qrMesin, deptRouting) {
+      // 1. Validasi awal: Pastikan kedua parameter ada isinya
+      if (!qrMesin || !deptRouting) {
+        console.warn("Validasi Gagal: Data QR atau Dept kosong.");
+        return false;
+      }
+
+      // 2. Ambil teks sebelum tanda '/'
+      // Jika format "Sharing/I-06-01" -> ambil "Sharing"
+      // Jika format "Bubut" (tanpa /) -> ambil "Bubut" (karena index 0 tetap string utuh)
+      let machineName = qrMesin.split('/')[0];
+
+      // 3. Sanitasi Data (Trim spasi & Lowercase)
+      // Agar " Sharing " cocok dengan "sharing" atau "SHARING"
+      let cleanMachine = machineName.trim().toLowerCase();
+      let cleanDept = deptRouting.trim().toLowerCase();
+
+      // 4. Cek Kecocokan (Includes)
+      // Apakah "dept sharing" mengandung kata "sharing"?
+      // Logika ini memungkinkan fleksibilitas nama (partial match).
+      const isMatch = cleanDept.includes(cleanMachine);
+
+      console.log(`Cek Validasi Mesin: QR="${cleanMachine}" vs Dept="${cleanDept}" -> Hasil: ${isMatch}`);
+
+      return isMatch;
+    }
+
+    /* --- LOGIKA PENCARIAN (FILTER) SAFETY STOCK --- */
+    function filterSafetyStock() {
+      const searchInput = document.getElementById('searchSafetyStock').value.toLowerCase();
+      const tableBody = document.getElementById('ssTableBody');
+      if (!tableBody) return;
+
+      const rows = tableBody.getElementsByTagName('tr');
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const cols = row.getElementsByTagName('td');
+
+        // Kolom "Komponen" berada di indeks ke-2 (ketiga dari kiri)
+        // Jika struktur berubah, ia akan otomatis fallback mengecek semua teks di baris itu
+        let textToSearch = "";
+        if (cols.length > 2) {
+          textToSearch = cols[2].innerText || cols[2].textContent;
+        } else {
+          textToSearch = row.innerText || row.textContent;
+        }
+
+        row.style.display = textToSearch.toLowerCase().includes(searchInput) ? '' : 'none';
+      }
+    }
+  </script>
+</body>
+
+</html>

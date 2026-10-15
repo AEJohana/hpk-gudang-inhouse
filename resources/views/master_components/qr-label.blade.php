@@ -130,7 +130,7 @@
             <div class="info-box">
                 <div class="part-num">{{ $component->part_number }}</div>
                 <div class="part-name">{{ $component->name }}</div>
-                <div><strong>Rak:</strong> {{ $component->defaultLocation ? $component->defaultLocation->full_location_code : 'ZONA UTAMA' }}</div>
+                <div><strong>Rak:</strong> {{ $component->defaultLocation ? $component->defaultLocation->full_location_code : 'HOLDING (BELUM ADA RAK)' }}</div>
                 <div><strong>UoM:</strong> {{ $component->uom }}</div>
             </div>
         </div>

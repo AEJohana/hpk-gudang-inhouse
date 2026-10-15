@@ -54,21 +54,23 @@
             <!-- Quick Filter Pills (Smooth Touch Horizontal Scroll) -->
             <div class="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 w-full sm:w-auto -mx-1 px-1">
-                    <a href="{{ route('components.index') }}" class="super-nav-pill whitespace-nowrap {{ !request('category') && !request('low_stock') ? 'active' : '' }}">
+                    <a href="{{ route('components.index') }}" class="super-nav-pill whitespace-nowrap {{ !request('category') && !request('low_stock') && !request('unallocated') && !request('uncategorized') ? 'active' : '' }}">
                         Semua Part
+                    </a>
+                    <a href="{{ route('components.index', ['uncategorized' => 1]) }}" class="super-nav-pill whitespace-nowrap {{ request('uncategorized') ? 'active' : '' }} text-amber-700">
+                        <i class="fa-solid fa-tags me-1"></i> Perlu Kategori ({{ $uncategorizedCount }})
+                    </a>
+                    <a href="{{ route('components.index', ['unallocated' => 1]) }}" class="super-nav-pill whitespace-nowrap {{ request('unallocated') ? 'active' : '' }} text-amber-700">
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i> Perlu Alokasi Rak ({{ $unallocatedCount }})
                     </a>
                     <a href="{{ route('components.index', ['low_stock' => 1]) }}" class="super-nav-pill whitespace-nowrap {{ request('low_stock') ? 'active' : '' }} text-rose-600">
                         <i class="fa-solid fa-triangle-exclamation me-1"></i> Stok Kritis
                     </a>
-                    <a href="{{ route('components.index', ['category' => 'hydraulic']) }}" class="super-nav-pill whitespace-nowrap {{ request('category') == 'hydraulic' ? 'active' : '' }}">
-                        Hidrolik
-                    </a>
-                    <a href="{{ route('components.index', ['category' => 'raw_material']) }}" class="super-nav-pill whitespace-nowrap {{ request('category') == 'raw_material' ? 'active' : '' }}">
-                        Baja & Pelat
-                    </a>
-                    <a href="{{ route('components.index', ['category' => 'fastener']) }}" class="super-nav-pill whitespace-nowrap {{ request('category') == 'fastener' ? 'active' : '' }}">
-                        Fastener
-                    </a>
+                    @foreach($categories as $catKey => $catLabel)
+                        <a href="{{ route('components.index', ['category' => $catKey]) }}" class="super-nav-pill whitespace-nowrap {{ request('category') == $catKey ? 'active' : '' }}">
+                            {{ $catLabel }}
+                        </a>
+                    @endforeach
                 </div>
 
                 <span class="text-xs text-slate-400 font-medium whitespace-nowrap">Menampilkan {{ $components->total() }} komponen</span>
@@ -84,12 +86,21 @@
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-1 mb-1">
                                 <span class="font-mono font-bold text-[11px] text-amber-900 bg-amber-100 px-2 py-0.5 rounded">{{ $component->part_number }}</span>
-                                <span class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">{{ $component->category_label }}</span>
+                                @if(!$component->category)
+                                    <span class="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded">⚠️ Belum Dikategorikan</span>
+                                @else
+                                    <span class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">{{ $component->category_label }}</span>
+                                @endif
                             </div>
                             <a href="{{ route('components.show', $component) }}" class="font-bold text-slate-900 text-sm block truncate hover:text-teal-700">
                                 {{ $component->name }}
                             </a>
-                            <p class="text-[11px] text-slate-500 truncate mt-0.5">{{ $component->specification ?: 'Tanpa spesifikasi' }}</p>
+                            @if($component->dimension_formatted !== '-')
+                                <span class="inline-flex items-center gap-1 text-[10px] font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded mt-0.5">
+                                    <i class="fa-solid fa-ruler text-[8px] text-slate-400"></i> {{ $component->dimension_formatted }}
+                                </span>
+                            @endif
+                            <p class="text-[11px] text-slate-500 truncate mt-0.5">{{ $component->specification ?: 'Tanpa keterangan' }}</p>
                         </div>
                     </div>
 
@@ -99,7 +110,14 @@
                             @if ($component->defaultLocation)
                                 <span class="font-mono font-bold text-slate-800 text-[11px]">{{ $component->defaultLocation->full_location_code }}</span>
                             @else
-                                <span class="text-slate-400 italic text-[11px]">Belum diatur</span>
+                                <div class="mt-0.5 space-y-0.5">
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                        <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Belum Ditempatkan
+                                    </span>
+                                    <a href="{{ route('components.edit', $component) }}" class="block text-[10px] font-bold text-blue-600 hover:underline">
+                                        + Tentukan Rak
+                                    </a>
+                                </div>
                             @endif
                         </div>
                         <div class="text-right">
@@ -143,8 +161,8 @@
             <table class="super-table">
                 <thead>
                     <tr>
-                        <th class="py-3 px-4">Foto & Part Number</th>
-                        <th class="py-3 px-4">Nama & Spesifikasi</th>
+                        <th class="py-3 px-4">Foto & Kode Komponen</th>
+                        <th class="py-3 px-4">Nama & Keterangan</th>
                         <th class="py-3 px-4">Kategori</th>
                         <th class="py-3 px-4">Lokasi Rak</th>
                         <th class="py-3 px-4 text-center">Stok Fisik</th>
@@ -170,14 +188,32 @@
                                 <a href="{{ route('components.show', $component) }}" class="font-bold text-slate-900 hover:text-teal-700 block line-clamp-1 transition">
                                     {{ $component->name }}
                                 </a>
-                                <p class="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{{ $component->specification ?: '-' }}</p>
+                                <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                    @if($component->dimension_formatted !== '-')
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded font-mono font-semibold">
+                                            <i class="fa-solid fa-ruler-combined text-[9px] text-slate-400"></i> {{ $component->dimension_formatted }}
+                                        </span>
+                                    @endif
+                                    <span class="text-[11px] text-slate-500 line-clamp-1">{{ $component->specification ?: '-' }}</span>
+                                </div>
                             </td>
 
                             <!-- Category -->
                             <td class="py-4 px-4">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-700">
-                                    {{ $component->category_label }}
-                                </span>
+                                @if(!$component->category)
+                                    <div class="space-y-0.5">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 whitespace-nowrap">
+                                            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Belum Dikategorikan
+                                        </span>
+                                        <a href="{{ route('components.edit', $component) }}" class="block text-[10px] font-bold text-blue-600 hover:underline">
+                                            + Pilih Kategori
+                                        </a>
+                                    </div>
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-700">
+                                        {{ $component->category_label }}
+                                    </span>
+                                @endif
                             </td>
 
                             <!-- Location -->
@@ -188,7 +224,14 @@
                                     </span>
                                     <span class="text-[10px] text-teal-700 font-medium">{{ $component->defaultLocation->zone_name }}</span>
                                 @else
-                                    <span class="text-slate-400 italic text-xs">Belum diatur</span>
+                                    <div class="inline-flex flex-col items-start gap-1">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Belum Ditempatkan
+                                        </span>
+                                        <a href="{{ route('components.edit', $component) }}" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1">
+                                            <i class="fa-solid fa-location-dot text-[9px]"></i> Tentukan Rak
+                                        </a>
+                                    </div>
                                 @endif
                             </td>
 

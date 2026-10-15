@@ -34,9 +34,11 @@
                     <a href="{{ route('transactions.index') }}" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('transactions.*') && !request()->routeIs('work-station-supplies.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
                         Transaksi
                     </a>
+                    @can('work-request.view')
                     <a href="{{ route('work-requests.index') }}" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('work-requests.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
-                        <i class="fa-solid fa-industry me-1 text-teal-300 text-[10px]"></i> Mesin Center
+                        <i class="fa-solid fa-industry me-1 text-teal-300 text-[10px]"></i> Work Request (WRI)
                     </a>
+                    @endcan
                     <a href="{{ route('warehouse-map.index') }}" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('warehouse-map.*', 'locations.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
                         Peta Gudang
                     </a>
@@ -62,9 +64,11 @@
                             <x-dropdown-link :href="route('cycle-counts.index')" class="text-xs">
                                 <i class="fa-solid fa-clipboard-check me-2 text-amber-600"></i> Cycle Count Opname
                             </x-dropdown-link>
-                            <x-dropdown-link :href="route('work-station-supplies.create')" class="text-xs border-t border-slate-100">
-                                <i class="fa-solid fa-truck-ramp-box me-2 text-blue-600"></i> Supply Stasiun Kerja
+                            @can('material-handling.view')
+                            <x-dropdown-link :href="route('work-station-supplies.index')" class="text-xs border-t border-slate-100">
+                                <i class="fa-solid fa-truck-ramp-box me-2 text-blue-600"></i> Material Handling Center
                             </x-dropdown-link>
+                            @endcan
                         </x-slot>
                     </x-dropdown>
                     

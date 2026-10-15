@@ -34,11 +34,7 @@
                     </a>
                     <a href="{{ route('admin.users.index') }}" 
                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('admin.users.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
-                        <i class="fa-solid fa-users me-1.5 text-[11px]"></i>User
-                    </a>
-                    <a href="{{ route('admin.roles.index') }}" 
-                       class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('admin.roles.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
-                        <i class="fa-solid fa-user-shield me-1.5 text-[11px]"></i>Role
+                        <i class="fa-solid fa-users-gear me-1.5 text-[11px]"></i>User & Hak Akses
                     </a>
                     
                     <!-- Master Data Dropdown -->

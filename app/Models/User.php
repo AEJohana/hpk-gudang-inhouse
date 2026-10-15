@@ -24,7 +24,11 @@ class User extends Authenticatable
         'username',
         'password',
         'role',
+        'work_area',
         'department',
+        'department_id',
+        'can_access_all_departments',
+        'signature_path',
         'phone',
         'is_active',
         'last_login_at',
@@ -48,11 +52,65 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'can_access_all_departments' => 'boolean',
+        'is_active' => 'boolean',
     ];
+
+    public function departmentRel()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function canAccessAllDepartments(): bool
+    {
+        return (bool) ($this->can_access_all_departments || $this->hasRole('admin_gudang'));
+    }
+
+    public function getEffectiveDepartmentNameAttribute(): string
+    {
+        return $this->departmentRel?->name ?? $this->department ?? 'Dept Gudang';
+    }
+
+    public function canApproveWri(WorkRequest $wri): bool
+    {
+        // Must have permission
+        if (!$this->can('work-request.approve') && !$this->hasRole('admin_gudang')) {
+            return false;
+        }
+
+        // Global admin can approve anything
+        if ($this->canAccessAllDepartments()) {
+            return true;
+        }
+
+        $myDept = strtolower(trim($this->effective_department_name));
+        $cleanMyDept = preg_replace('/[^a-z0-9]/', '', $myDept);
+
+        // Check matching Pengaju or Penerima
+        $pengaju = strtolower(trim($wri->dept_pengaju ?? ''));
+        $cleanPengaju = preg_replace('/[^a-z0-9]/', '', $pengaju);
+
+        $penerima = strtolower(trim($wri->dept_penerima ?? ''));
+        $cleanPenerima = preg_replace('/[^a-z0-9]/', '', $penerima);
+
+        return (str_contains($cleanPengaju, $cleanMyDept) || str_contains($cleanMyDept, $cleanPengaju))
+            || (str_contains($cleanPenerima, $cleanMyDept) || str_contains($cleanMyDept, $cleanPenerima));
+    }
+
+    public function getWorkAreaLabelAttribute(): string
+    {
+        return match($this->work_area) {
+            'mesin_center' => 'Mesin Center',
+            'material_handling' => 'Material Handling',
+            'semua', 'global' => 'Seluruh Area',
+            'gudang' => 'Gudang',
+            default => 'Gudang',
+        };
+    }
 
     public function isAdmin(): bool
     {
-        return $this->hasAnyRole(['admin_gudang', 'supervisor']);
+        return $this->hasAnyRole(['admin_gudang', 'admin', 'supervisor']);
     }
 
     public function isSupervisor(): bool
@@ -60,9 +118,14 @@ class User extends Authenticatable
         return $this->hasRole('supervisor');
     }
 
+    public function isStaff(): bool
+    {
+        return $this->hasAnyRole(['staff', 'engineering', 'qc']);
+    }
+
     public function isOperator(): bool
     {
-        return $this->hasRole('operator');
+        return $this->hasAnyRole(['operator', 'operator_mesin', 'operator_mh']);
     }
 
     public function isEngineering(): bool
@@ -72,16 +135,18 @@ class User extends Authenticatable
 
     public function getRoleBadgeAttribute(): string
     {
-        // Use the first role assigned via Spatie, fallback to old logic if none
         $roleName = $this->roles->first()->name ?? $this->role ?? 'staff';
         
         return match($roleName) {
-            'admin_gudang' => 'Admin Gudang',
-            'supervisor' => 'Kepala Gudang / SPV',
-            'operator' => 'Operator / Picker',
-            'engineering' => 'Engineering Karoseri',
-            'qc' => 'Quality Control',
-            default => ucfirst($roleName),
+            'admin_gudang', 'admin' => 'Admin',
+            'supervisor' => 'Supervisor',
+            'staff' => 'Staff ' . ($this->work_area === 'mesin_center' ? 'Mesin' : ($this->work_area === 'material_handling' ? 'MH' : 'Gudang')),
+            'operator' => 'Operator ' . ($this->work_area === 'mesin_center' ? 'Mesin' : ($this->work_area === 'material_handling' ? 'MH' : 'Gudang')),
+            'operator_mesin' => 'Operator Mesin',
+            'operator_mh' => 'Operator Material Handling',
+            'engineering' => 'Staff Engineering',
+            'qc' => 'Staff QC',
+            default => ucfirst(str_replace('_', ' ', $roleName)),
         };
     }
 }

@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            DepartmentSeeder::class,
             AdminSeeder::class,
             UserSeeder::class,
             MasterDataSeeder::class,
@@ -20,5 +21,10 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,
             MachineCenterSeeder::class,
         ]);
+
+        if (file_exists(base_path('Data acuan/Form Work Request - Data komponen.csv'))) {
+            $this->command?->info('Mengimpor 613 master komponen dari file acuan...');
+            \Illuminate\Support\Facades\Artisan::call('import:csv-komponen');
+        }
     }
 }

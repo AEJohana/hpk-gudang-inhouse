@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-// use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -21,6 +21,12 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Pimpinan / Admin Gudang memiliki otorisasi penuh di seluruh modul sistem
+        Gate::before(function ($user, $ability) {
+            if ($user->hasRole('admin_gudang') || $user->hasRole('supervisor') || !empty($user->can_access_all_departments)) {
+                return true;
+            }
+            return null;
+        });
     }
 }

@@ -98,25 +98,31 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                        Part Number (Kode Unik)
+                        Kode Komponen
                     </label>
                     <input type="text" 
                            value="{{ $componentItem->part_number }}" 
                            disabled 
-                           class="w-full px-3.5 py-2 text-xs border border-slate-200 bg-slate-100 rounded-xl text-slate-500 font-mono cursor-not-allowed">
+                           class="w-full px-3.5 py-2 text-xs border border-slate-200 bg-slate-100 rounded-xl text-slate-700 font-mono font-bold cursor-not-allowed">
+                    <p class="text-[11px] text-slate-400 mt-1">Kode komponen adalah identifikasi permanen yang telah disahkan.</p>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                        Kategori Komponen <span class="text-rose-500">*</span>
+                        Kategori Komponen <span class="text-slate-400 font-normal">(Opsional / Perlu Diisi)</span>
                     </label>
-                    <select name="category" required class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                        <option value="hydraulic" {{ $componentItem->category == 'hydraulic' ? 'selected' : '' }}>Komponen Hidrolik & Presisi</option>
-                        <option value="raw_material" {{ $componentItem->category == 'raw_material' ? 'selected' : '' }}>Raw Material Baja (Pelat, UNP, WF, Pipa)</option>
-                        <option value="fastener" {{ $componentItem->category == 'fastener' ? 'selected' : '' }}>Hardware & Fastener (Baut, Mur, Ring)</option>
-                        <option value="accessories" {{ $componentItem->category == 'accessories' ? 'selected' : '' }}>Aksesoris Karoseri (Engsel, Twist Lock)</option>
-                        <option value="electrical" {{ $componentItem->category == 'electrical' ? 'selected' : '' }}>Electrical & Lighting (Lampu LED, Harness)</option>
-                        <option value="chemical_paint" {{ $componentItem->category == 'chemical_paint' ? 'selected' : '' }}>Chemical & Cat (Cat PU, Thinner, Dempul)</option>
+                    <select name="category" class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-medium">
+                        <option value="">-- Pilih Kategori Resmi --</option>
+                        @foreach ($categories as $catKey => $catLabel)
+                            <option value="{{ $catKey }}" {{ old('category', $componentItem->category) == $catKey ? 'selected' : '' }}>
+                                {{ $catLabel }}
+                            </option>
+                        @endforeach
+                        @if (!empty($componentItem->category) && !array_key_exists($componentItem->category, $categories))
+                            <option value="{{ $componentItem->category }}" selected>
+                                {{ $componentItem->category_label }} (Kategori Sebelumnya)
+                            </option>
+                        @endif
                     </select>
                 </div>
             </div>
@@ -130,65 +136,121 @@
                        value="{{ old('name', $componentItem->name) }}" 
                        required 
                        class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-semibold">
+                <p class="text-[11px] text-amber-700 mt-1 flex items-center gap-1.5 font-medium">
+                    <i class="fa-solid fa-circle-info text-amber-600"></i>
+                    Nama harus disesuaikan dengan standarisasi Engineering HPK.
+                </p>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- Section: Physical Dimensions (Satuan mm) -->
+            <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200 space-y-2">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                        Ukuran Fisik Komponen (Satuan mm)
+                    </label>
+                    <span class="text-[11px] text-slate-400 font-medium">Opsional - Isi angka, simbol ⌀, atau teks (seperti PEJAL)</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Panjang (mm)</label>
+                        <div class="relative">
+                            <input type="text" 
+                                   name="length_mm" 
+                                   value="{{ old('length_mm', $componentItem->length_mm) }}" 
+                                   placeholder="Contoh: 6000 atau 845" 
+                                   class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none pr-10 font-mono">
+                            <span class="absolute right-3 top-2 text-[10px] text-slate-400 font-bold">mm</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-[11px] font-semibold text-slate-600">Diameter / Lebar (mm)</label>
+                            <button type="button" onclick="const f = this.closest('div').parentElement.querySelector('input'); f.value = (f.value ? '⌀ ' + f.value : '⌀ '); f.focus();" class="text-[10px] font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-1.5 py-0.5 rounded transition">
+                                + ⌀
+                            </button>
+                        </div>
+                        <div class="relative">
+                            <input type="text" 
+                                   name="width_or_diameter_mm" 
+                                   value="{{ old('width_or_diameter_mm', $componentItem->width_or_diameter_mm) }}" 
+                                   placeholder="Contoh: 1500, ⌀ 25, 34,72" 
+                                   class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none pr-10 font-mono">
+                            <span class="absolute right-3 top-2 text-[10px] text-slate-400 font-bold">mm</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-[11px] font-semibold text-slate-600">Tebal / Tinggi (mm)</label>
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="const f = this.closest('div').parentElement.parentElement.querySelector('input'); f.value = (f.value ? '⌀ ' + f.value : '⌀ '); f.focus();" class="text-[10px] font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-1.5 py-0.5 rounded transition">
+                                    + ⌀
+                                </button>
+                                <button type="button" onclick="const f = this.closest('div').parentElement.parentElement.querySelector('input'); f.value = 'PEJAL'; f.focus();" class="text-[10px] font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-1.5 py-0.5 rounded transition">
+                                    PEJAL
+                                </button>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <input type="text" 
+                                   name="thickness_or_height_mm" 
+                                   value="{{ old('thickness_or_height_mm', $componentItem->thickness_or_height_mm) }}" 
+                                   placeholder="Contoh: 6.5, PEJAL, 3/4&quot;" 
+                                   class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none pr-10 font-mono">
+                            <span class="absolute right-3 top-2 text-[10px] text-slate-400 font-bold">mm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                         Satuan (UoM) <span class="text-rose-500">*</span>
                     </label>
                     <select name="uom" required class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                        @foreach(['Pcs', 'Set', 'Batang (6m)', 'Lembar', 'Kg', 'Liter', 'Box'] as $uom)
-                            <option value="{{ $uom }}" {{ $componentItem->uom == $uom ? 'selected' : '' }}>{{ $uom }}</option>
+                        @foreach(['Pcs', 'Set', 'Batang (6m)', 'Lembar', 'Kg', 'Liter', 'Box', 'Meter'] as $uom)
+                            <option value="{{ $uom }}" {{ old('uom', $componentItem->uom) == $uom ? 'selected' : '' }}>{{ $uom }}</option>
                         @endforeach
                     </select>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                        Safety Stock (Batas Minimum) <span class="text-rose-500">*</span>
+                        Safety Stock (Batas Minimum)
                     </label>
                     <input type="number" 
                            name="minimum_stock" 
-                           value="{{ old('minimum_stock', $componentItem->minimum_stock) }}" 
+                           value="{{ old('minimum_stock', $componentItem->minimum_stock ?: '') }}" 
                            min="0" 
-                           required 
-                           class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                        Maximum Stock <span class="text-rose-500">*</span>
-                    </label>
-                    <input type="number" 
-                           name="maximum_stock" 
-                           value="{{ old('maximum_stock', $componentItem->maximum_stock) }}" 
-                           min="1" 
-                           required 
-                           class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                           placeholder="0 (Biarkan kosong jika tidak dibatasi)"
+                           class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
+                    <p class="text-[11px] text-slate-400 mt-1">Opsional - Batas minimum untuk alarm peringatan stok kritis.</p>
                 </div>
             </div>
 
             <div>
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Spesifikasi Teknis & Dimensi
+                    Keterangan / Catatan Tambahan (Opsional)
                 </label>
                 <textarea name="specification" 
                           rows="3" 
+                          placeholder="Catatan fabrikasi, standar material, instruksi assembling karoseri, dsb."
                           class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">{{ old('specification', $componentItem->specification) }}</textarea>
             </div>
 
             <div>
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Posisi Rak / Lokasi Default <span class="text-rose-500">*</span>
+                    Posisi Rak / Lokasi Default (Opsional)
                 </label>
-                <select name="default_location_id" required class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                <select name="default_location_id" class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <option value="">-- Belum Ditempatkan ke Rak (Segera Alokasikan) --</option>
                     @foreach ($locations as $loc)
-                        <option value="{{ $loc->id }}" {{ $componentItem->default_location_id == $loc->id ? 'selected' : '' }}>
+                        <option value="{{ $loc->id }}" {{ old('default_location_id', $componentItem->default_location_id) == $loc->id ? 'selected' : '' }}>
                             {{ $loc->full_location_code }} ({{ $loc->zone_name }})
                         </option>
                     @endforeach
                 </select>
+                <p class="text-[11px] text-slate-400 mt-1">Jika belum dialokasikan ke rak fisik, pilih opsi 'Belum Ditempatkan ke Rak'.</p>
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">

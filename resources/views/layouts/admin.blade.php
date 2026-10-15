@@ -76,12 +76,8 @@
                 </div>
                 
                 <a href="{{ route('admin.users.index') }}" class="hpk-sidebar-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-users"></i>
-                    <span>Manajemen User</span>
-                </a>
-                <a href="{{ route('admin.roles.index') }}" class="hpk-sidebar-item {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-user-shield"></i>
-                    <span>Role & Permission</span>
+                    <i class="fa-solid fa-users-gear"></i>
+                    <span>Manajemen User & Akses</span>
                 </a>
 
                 <div class="px-4 py-2 mt-2 mb-1">

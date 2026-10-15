@@ -3,28 +3,61 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Department;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    /**
+     * Define the 4 standard display roles and their system role names.
+     */
+    protected array $standardRoles = [
+        'supervisor' => 'Supervisor',
+        'admin_gudang' => 'Admin',
+        'staff' => 'Staff',
+        'operator' => 'Operator',
+    ];
+
+    /**
+     * Define the 3 operational work areas.
+     */
+    protected array $workAreas = [
+        'gudang' => 'Gudang',
+        'mesin_center' => 'Mesin Center',
+        'material_handling' => 'Material Handling',
+    ];
+
     public function index(Request $request)
     {
-        $query = User::with('roles');
+        $query = User::with(['roles', 'permissions', 'departmentRel']);
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('username', 'like', "%{$search}%");
+                  ->orWhere('username', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
         if ($request->filled('role')) {
-            $query->role($request->role);
+            $roleFilter = $request->role === 'admin' ? 'admin_gudang' : $request->role;
+            $query->role($roleFilter);
         }
-        
+
+        if ($request->filled('work_area')) {
+            $query->where('work_area', $request->work_area);
+        }
+
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->department_id);
+        }
+
         if ($request->filled('status')) {
             if ($request->status === 'active') {
                 $query->where('is_active', true);
@@ -34,84 +67,229 @@ class UserController extends Controller
         }
 
         $users = $query->latest()->paginate(15)->withQueryString();
-        $roles = \Spatie\Permission\Models\Role::all();
+        $roles = $this->standardRoles;
+        $workAreas = $this->workAreas;
+        $departments = Department::active()->orderBy('id')->get();
 
-        return view('admin.users.index', compact('users', 'roles'));
+        return view('admin.users.index', compact('users', 'roles', 'workAreas', 'departments'));
     }
 
     public function create()
     {
-        $roles = \Spatie\Permission\Models\Role::all();
-        return view('admin.users.create', compact('roles'));
+        $roles = $this->standardRoles;
+        $workAreas = $this->workAreas;
+        $departments = Department::active()->orderBy('id')->get();
+        $gudangDept = Department::where('code', '11')->orWhere('name', 'like', '%Gudang%')->first();
+        $machineDepartments = Department::active()
+            ->where('code', '!=', '11')
+            ->where('name', 'not like', '%Gudang%')
+            ->orderBy('id')
+            ->get();
+
+        $permissions = Permission::all()->groupBy(function($perm) {
+            return explode('.', $perm->name)[0] ?? 'lainnya';
+        });
+
+        $presets = $this->getPermissionPresets();
+
+        return view('admin.users.create', compact('roles', 'workAreas', 'departments', 'gudangDept', 'machineDepartments', 'permissions', 'presets'));
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $isGlobalRole = in_array($request->role, ['supervisor', 'admin_gudang', 'admin']);
+
+        $rules = [
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'username' => 'nullable|string|max:255|unique:users',
+            'username' => 'required|string|max:255|unique:users,username',
+            'email' => 'nullable|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|exists:roles,name',
-            'department' => 'nullable|string|max:255',
+            'role' => 'required|string|in:supervisor,admin_gudang,admin,staff,operator',
+            'can_access_all_departments' => 'nullable|boolean',
+            'signature_file' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'phone' => 'nullable|string|max:20',
             'is_active' => 'boolean',
-        ]);
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string|exists:permissions,name',
+        ];
+
+        if ($isGlobalRole) {
+            $rules['work_area'] = 'nullable|string';
+            $rules['department_id'] = 'nullable';
+        } else {
+            $rules['work_area'] = 'required|string|in:gudang,mesin_center,material_handling';
+            if ($request->work_area === 'mesin_center') {
+                $rules['department_id'] = 'required|exists:departments,id';
+            } else {
+                $rules['department_id'] = 'nullable';
+            }
+        }
+
+        $validated = $request->validate($rules);
+
+        $roleName = $validated['role'] === 'admin' ? 'admin_gudang' : $validated['role'];
+        $gudangDept = Department::where('code', '11')->orWhere('name', 'like', '%Gudang%')->first();
+
+        if ($isGlobalRole) {
+            $finalWorkArea = 'semua';
+            $finalDeptId = $gudangDept?->id;
+            $deptName = 'Seluruh Departemen';
+            $canAccessAll = true;
+        } else {
+            $finalWorkArea = $validated['work_area'];
+            if ($finalWorkArea === 'mesin_center') {
+                $finalDeptId = $validated['department_id'];
+                $deptModel = Department::find($finalDeptId);
+                $deptName = $deptModel?->name ?? 'Dept Mesin Center';
+                $canAccessAll = $request->boolean('can_access_all_departments');
+            } else {
+                $finalDeptId = $gudangDept?->id;
+                $deptName = $gudangDept?->name ?? 'Dept Gudang';
+                $canAccessAll = $request->boolean('can_access_all_departments');
+            }
+        }
+
+        $signaturePath = null;
+        if ($request->hasFile('signature_file')) {
+            $signaturePath = $request->file('signature_file')->store('signatures', 'public');
+        }
 
         $user = User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
             'username' => $validated['username'],
+            'email' => $validated['email'] ?? null,
             'password' => bcrypt($validated['password']),
-            'department' => $validated['department'],
-            'phone' => $validated['phone'],
+            'work_area' => $finalWorkArea,
+            'department_id' => $finalDeptId,
+            'department' => $deptName,
+            'can_access_all_departments' => $canAccessAll,
+            'signature_path' => $signaturePath,
+            'phone' => $validated['phone'] ?? null,
             'is_active' => $request->has('is_active'),
         ]);
 
-        $user->assignRole($validated['role']);
+        // Sync Spatie role
+        $user->syncRoles([$roleName]);
 
-        return redirect()->route('admin.users.index')->with('success', 'User berhasil dibuat.');
+        // Sync Direct Permissions selected in checklist
+        $user->syncPermissions($request->permissions ?? []);
+
+        return redirect()->route('admin.users.index')->with('success', 'User dan hak akses otorisasi berhasil dibuat.');
     }
 
     public function edit(User $user)
     {
-        $roles = \Spatie\Permission\Models\Role::all();
-        return view('admin.users.edit', compact('user', 'roles'));
+        $roles = $this->standardRoles;
+        $workAreas = $this->workAreas;
+        $departments = Department::active()->orderBy('id')->get();
+        $gudangDept = Department::where('code', '11')->orWhere('name', 'like', '%Gudang%')->first();
+        $machineDepartments = Department::active()
+            ->where('code', '!=', '11')
+            ->where('name', 'not like', '%Gudang%')
+            ->orderBy('id')
+            ->get();
+
+        $permissions = Permission::all()->groupBy(function($perm) {
+            return explode('.', $perm->name)[0] ?? 'lainnya';
+        });
+
+        // Current assigned permissions (direct + inherited)
+        $userPermissions = $user->getAllPermissions()->pluck('name')->toArray();
+        $presets = $this->getPermissionPresets();
+
+        return view('admin.users.edit', compact('user', 'roles', 'workAreas', 'departments', 'gudangDept', 'machineDepartments', 'permissions', 'userPermissions', 'presets'));
     }
 
     public function update(Request $request, User $user)
     {
-        $validated = $request->validate([
+        $isGlobalRole = in_array($request->role, ['supervisor', 'admin_gudang', 'admin']);
+
+        $rules = [
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,'.$user->id,
-            'username' => 'nullable|string|max:255|unique:users,username,'.$user->id,
+            'username' => 'required|string|max:255|unique:users,username,'.$user->id,
+            'email' => 'nullable|string|email|max:255|unique:users,email,'.$user->id,
             'password' => 'nullable|string|min:8|confirmed',
-            'role' => 'required|exists:roles,name',
-            'department' => 'nullable|string|max:255',
+            'role' => 'required|string|in:supervisor,admin_gudang,admin,staff,operator',
+            'can_access_all_departments' => 'nullable|boolean',
+            'signature_file' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'phone' => 'nullable|string|max:20',
             'is_active' => 'boolean',
-        ]);
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string|exists:permissions,name',
+        ];
+
+        if ($isGlobalRole) {
+            $rules['work_area'] = 'nullable|string';
+            $rules['department_id'] = 'nullable';
+        } else {
+            $rules['work_area'] = 'required|string|in:gudang,mesin_center,material_handling';
+            if ($request->work_area === 'mesin_center') {
+                $rules['department_id'] = 'required|exists:departments,id';
+            } else {
+                $rules['department_id'] = 'nullable';
+            }
+        }
+
+        $validated = $request->validate($rules);
 
         if ($user->id === auth()->id() && !$request->has('is_active')) {
             return back()->with('error', 'Anda tidak dapat menonaktifkan akun Anda sendiri.');
         }
 
-        $user->update([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'username' => $validated['username'],
-            'department' => $validated['department'],
-            'phone' => $validated['phone'],
-            'is_active' => $request->has('is_active'),
-        ]);
+        $roleName = $validated['role'] === 'admin' ? 'admin_gudang' : $validated['role'];
+        $gudangDept = Department::where('code', '11')->orWhere('name', 'like', '%Gudang%')->first();
 
-        if (!empty($validated['password'])) {
-            $user->update(['password' => bcrypt($validated['password'])]);
+        if ($isGlobalRole) {
+            $finalWorkArea = 'semua';
+            $finalDeptId = $gudangDept?->id;
+            $deptName = 'Seluruh Departemen';
+            $canAccessAll = true;
+        } else {
+            $finalWorkArea = $validated['work_area'];
+            if ($finalWorkArea === 'mesin_center') {
+                $finalDeptId = $validated['department_id'];
+                $deptModel = Department::find($finalDeptId);
+                $deptName = $deptModel?->name ?? 'Dept Mesin Center';
+                $canAccessAll = $request->boolean('can_access_all_departments');
+            } else {
+                $finalDeptId = $gudangDept?->id;
+                $deptName = $gudangDept?->name ?? 'Dept Gudang';
+                $canAccessAll = $request->boolean('can_access_all_departments');
+            }
         }
 
-        $user->syncRoles([$validated['role']]);
+        $updateData = [
+            'name' => $validated['name'],
+            'username' => $validated['username'],
+            'email' => $validated['email'] ?? null,
+            'work_area' => $finalWorkArea,
+            'department_id' => $finalDeptId,
+            'department' => $deptName,
+            'can_access_all_departments' => $canAccessAll,
+            'phone' => $validated['phone'] ?? null,
+            'is_active' => $request->has('is_active'),
+        ];
 
-        return redirect()->route('admin.users.index')->with('success', 'User berhasil diperbarui.');
+        if ($request->hasFile('signature_file')) {
+            if ($user->signature_path) {
+                Storage::disk('public')->delete($user->signature_path);
+            }
+            $updateData['signature_path'] = $request->file('signature_file')->store('signatures', 'public');
+        }
+
+        if (!empty($validated['password'])) {
+            $updateData['password'] = bcrypt($validated['password']);
+        }
+
+        $user->update($updateData);
+
+        // Sync Spatie role
+        $user->syncRoles([$roleName]);
+
+        // Sync Direct Permissions selected in checklist
+        $user->syncPermissions($request->permissions ?? []);
+
+        return redirect()->route('admin.users.index')->with('success', 'User dan hak akses otorisasi berhasil diperbarui.');
     }
 
     public function destroy(User $user)
@@ -119,7 +297,7 @@ class UserController extends Controller
         if ($user->id === auth()->id()) {
             return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
         }
-        
+
         // Prevent deleting the last admin_gudang
         if ($user->hasRole('admin_gudang') && User::role('admin_gudang')->count() <= 1) {
             return back()->with('error', 'Tidak dapat menghapus satu-satunya Admin Gudang.');
@@ -129,4 +307,65 @@ class UserController extends Controller
 
         return redirect()->route('admin.users.index')->with('success', 'User berhasil dihapus.');
     }
+
+    /**
+     * Returns preset permission lists mapped to role + work_area.
+     */
+    protected function getPermissionPresets(): array
+    {
+        $allPermissions = Permission::pluck('name')->toArray();
+
+        return [
+            'all' => $allPermissions,
+            'supervisor' => $allPermissions,
+            'admin_gudang' => $allPermissions,
+            'staff' => [
+                'gudang' => array_values(array_filter($allPermissions, function($p) {
+                    return str_starts_with($p, 'master-komponen.') ||
+                           str_starts_with($p, 'transaksi-komponen.') ||
+                           str_starts_with($p, 'peta-gudang.') ||
+                           str_starts_with($p, 'cycle-count.') ||
+                           str_starts_with($p, 'label-qr.') ||
+                           str_starts_with($p, 'laporan.') ||
+                           $p === 'material-handling.view' ||
+                           in_array($p, ['work-request.view', 'work-request.create', 'work-request.print', 'work-request.monitoring', 'work-request.safety-stock']);
+                })),
+                'mesin_center' => [
+                    'work-request.view', 'work-request.process', 'work-request.print', 'work-request.monitoring', 'work-request.safety-stock',
+                    'master-komponen.view',
+                    'peta-gudang.view',
+                    'laporan.view', 'laporan.export',
+                ],
+                'material_handling' => [
+                    'material-handling.view', 'material-handling.manage',
+                    'work-request.view', 'work-request.print',
+                    'peta-gudang.view',
+                    'master-komponen.view',
+                    'laporan.view',
+                ],
+            ],
+            'operator' => [
+                'gudang' => [
+                    'peta-gudang.view',
+                    'master-komponen.view',
+                    'transaksi-komponen.view', 'transaksi-komponen.create',
+                    'cycle-count.view', 'cycle-count.create',
+                    'label-qr.view', 'label-qr.create',
+                    'work-request.view', 'work-request.create', 'work-request.print',
+                ],
+                'mesin_center' => [
+                    'work-request.view', 'work-request.process', 'work-request.print',
+                    'master-komponen.view',
+                    'peta-gudang.view',
+                ],
+                'material_handling' => [
+                    'material-handling.view', 'material-handling.manage',
+                    'work-request.view', 'work-request.print',
+                    'peta-gudang.view',
+                    'master-komponen.view',
+                ],
+            ],
+        ];
+    }
 }
+

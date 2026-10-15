@@ -63,19 +63,19 @@
                     </div>
                 </a>
 
-                <!-- 2. Role & Akses -->
-                <a href="{{ route('admin.roles.index') }}" class="dash-card group">
+                <!-- 2. Otorisasi & Hak Akses -->
+                <a href="{{ route('admin.users.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
-                    <i class="fa-solid fa-user-shield card-icon-bg"></i>
+                    <i class="fa-solid fa-shield-halved card-icon-bg"></i>
                     <div class="icon-box text-blue-600 bg-blue-50">
-                        <i class="fa-solid fa-user-shield"></i>
+                        <i class="fa-solid fa-shield-halved"></i>
                     </div>
                     <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-blue-600 transition">Role & Permission</h4>
-                            <span class="text-2xl font-black text-slate-900">{{ $rolesCount ?? \Spatie\Permission\Models\Role::count() }}</span>
+                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-blue-600 transition">Otorisasi & Izin</h4>
+                            <span class="text-2xl font-black text-slate-900">{{ \Spatie\Permission\Models\Permission::count() }}</span>
                         </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Matriks kewenangan 5 divisi & 54 izin sistem</p>
+                        <p class="text-xs text-slate-500 leading-relaxed">64 izin modul, 4 role & 3 bagian kerja terpusat</p>
                     </div>
                 </a>
 

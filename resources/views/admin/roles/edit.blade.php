@@ -66,6 +66,8 @@
                 @foreach($permissions as $group => $perms)
                     @php
                         $moduleIcon = match($group) {
+                            'work-request' => 'fa-industry text-amber-500',
+                            'material-handling' => 'fa-truck-ramp-box text-blue-500',
                             'peta-gudang' => 'fa-map-location-dot text-emerald-600',
                             'master-komponen' => 'fa-boxes-stacked text-teal-600',
                             'transaksi-komponen' => 'fa-right-left text-blue-600',
@@ -78,7 +80,7 @@
                             default => 'fa-folder text-slate-600',
                         };
                     @endphp
-                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 flex flex-col justify-between module-card">
+                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 flex flex-col justify-between module-card {{ $group === 'work-request' ? 'ring-2 ring-amber-400/50 bg-amber-50/10' : '' }}">
                         <div>
                             <!-- Module Header -->
                             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3.5">
@@ -99,14 +101,32 @@
                             <div class="space-y-2">
                                 @foreach($perms as $perm)
                                     @php
-                                        $actionName = explode('.', $perm->name)[1] ?? $perm->name;
-                                        $actionBadge = match($actionName) {
+                                        $actionRaw = explode('.', $perm->name)[1] ?? $perm->name;
+                                        $friendlyTitle = match($perm->name) {
+                                            'work-request.view' => 'Akses Menu WRI (Parent)',
+                                            'work-request.create' => 'Sub: Buat Tiket WRI Baru',
+                                            'work-request.process' => 'Sub: Eksekusi Pengerjaan Mesin',
+                                            'work-request.approve' => 'Sub: Approval Ka. Bagian',
+                                            'work-request.print' => 'Sub: Cetak Lembar WRI & QR',
+                                            'work-request.monitoring' => 'Sub: Monitoring SLA & Durasi',
+                                            'work-request.safety-stock' => 'Sub: Pantau Safety Stock',
+                                            'work-request.view-all' => 'Sub Khusus: Semua 15 Dept (*)',
+                                            'material-handling.view' => 'Lihat Logistik MH',
+                                            'material-handling.manage' => 'Kelola Pickup & Drop MH',
+                                            default => ucfirst($actionRaw),
+                                        };
+                                        $actionBadge = match($actionRaw) {
                                             'view' => 'text-slate-700 bg-slate-100',
                                             'create' => 'text-emerald-700 bg-emerald-50',
                                             'edit' => 'text-blue-700 bg-blue-50',
                                             'delete' => 'text-rose-700 bg-rose-50',
                                             'approve' => 'text-purple-700 bg-purple-50',
                                             'export' => 'text-amber-700 bg-amber-50',
+                                            'process' => 'text-indigo-700 bg-indigo-50',
+                                            'print' => 'text-amber-700 bg-amber-50',
+                                            'monitoring' => 'text-cyan-700 bg-cyan-50',
+                                            'safety-stock' => 'text-rose-700 bg-rose-50',
+                                            'view-all' => 'text-teal-700 bg-teal-50',
                                             default => 'text-slate-700 bg-slate-100',
                                         };
                                     @endphp
@@ -117,7 +137,7 @@
                                                {{ in_array($perm->name, $rolePermissions) ? 'checked' : '' }} 
                                                class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 border-slate-300 permission-checkbox">
                                         <div class="ms-3 flex-1 flex items-center justify-between">
-                                            <span class="text-xs font-bold text-slate-800">{{ ucfirst($actionName) }}</span>
+                                            <span class="text-xs font-bold text-slate-800">{{ $friendlyTitle }}</span>
                                             <span class="text-[9px] font-mono px-1.5 py-0.5 rounded font-semibold {{ $actionBadge }}">
                                                 {{ $perm->name }}
                                             </span>
