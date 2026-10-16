@@ -83,6 +83,76 @@
                     </div>
                 </div>
 
+                <!-- STATUS OTORISASI & VERIFIKASI DEPARTEMEN -->
+                <div class="space-y-2.5">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-stamp text-amber-500"></i>
+                            <h4 class="font-bold text-xs uppercase tracking-wider text-slate-800">Status Otorisasi & Verifikasi Alur</h4>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Kartu 1: Verifikasi Departemen Pengaju -->
+                        <div class="p-3.5 rounded-2xl border" 
+                             :class="detailData.approvalPengajuStatus === 'Diterima' ? 'bg-emerald-50/60 border-emerald-200' : (detailData.approvalPengajuStatus === 'Ditolak' ? 'bg-rose-50 border-rose-200' : 'bg-amber-50/60 border-amber-200')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">1. Otorisasi Pengaju</span>
+                                <span class="text-[10px] font-black px-2 py-0.5 rounded-full uppercase"
+                                      :class="detailData.approvalPengajuStatus === 'Diterima' ? 'bg-emerald-100 text-emerald-800' : (detailData.approvalPengajuStatus === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900 animate-pulse')"
+                                      x-text="detailData.approvalPengajuStatus === 'Diterima' ? 'Disetujui' : (detailData.approvalPengajuStatus === 'Ditolak' ? 'Ditolak' : 'Menunggu Ka. Pengaju')"></span>
+                            </div>
+                            <div class="space-y-1.5 text-[11px]">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500">Departemen:</span>
+                                    <strong class="text-slate-800 font-bold" x-text="detailData.deptPengaju"></strong>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500">Pemohon / Dibuat:</span>
+                                    <strong class="text-slate-800" x-text="detailData.requestedByName"></strong>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500">Diverifikasi Ka.:</span>
+                                    <strong class="text-emerald-700 font-bold" x-text="detailData.approvalPengajuBy"></strong>
+                                </div>
+                                <div class="flex justify-between items-center text-[10px] text-slate-400 pt-1.5 border-t border-slate-200/60">
+                                    <span>Waktu Otorisasi:</span>
+                                    <span class="font-mono" x-text="detailData.approvalPengajuAt"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kartu 2: Verifikasi Departemen Penerima (Mesin) -->
+                        <div class="p-3.5 rounded-2xl border" 
+                             :class="detailData.approvalPenerimaStatus === 'Diterima' ? 'bg-blue-50/60 border-blue-200' : (detailData.approvalPenerimaStatus === 'Ditolak' ? 'bg-rose-50 border-rose-200' : 'bg-amber-50/60 border-amber-200')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">2. Otorisasi Penerima</span>
+                                <span class="text-[10px] font-black px-2 py-0.5 rounded-full uppercase"
+                                      :class="detailData.approvalPenerimaStatus === 'Diterima' ? 'bg-blue-100 text-blue-800' : (detailData.approvalPenerimaStatus === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900 animate-pulse')"
+                                      x-text="detailData.approvalPenerimaStatus === 'Diterima' ? 'Disetujui & Siap' : (detailData.approvalPenerimaStatus === 'Ditolak' ? 'Ditolak' : 'Menunggu Ka. ' + detailData.deptPenerima)"></span>
+                            </div>
+                            <div class="space-y-1.5 text-[11px]">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500">Departemen:</span>
+                                    <strong class="text-slate-800 font-bold" x-text="detailData.deptPenerima"></strong>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500">Diverifikasi Ka.:</span>
+                                    <strong class="text-blue-800 font-bold" x-text="detailData.approvalPenerimaBy"></strong>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500">Operator Pelaksana:</span>
+                                    <strong class="text-indigo-900 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 font-bold" x-text="detailData.assignedOperator"></strong>
+                                </div>
+                                <div class="flex justify-between items-center text-[10px] text-slate-400 pt-1.5 border-t border-slate-200/60">
+                                    <span>Waktu Otorisasi:</span>
+                                    <span class="font-mono" x-text="detailData.approvalPenerimaAt"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- TRACKING PROSES FABRIKASI & LOGISTIK MH -->
                 <div class="space-y-3">
                     <div class="flex items-center justify-between border-b border-slate-200 pb-2">

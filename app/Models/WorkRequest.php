@@ -160,7 +160,6 @@ class WorkRequest extends Model
         $user = $user ?? auth()->user();
         if (!$user) return false;
         if ($this->approval_pengaju !== 'Menunggu') return false;
-        if ($user->canAccessAllDepartments()) return true;
 
         $userDept = strtolower(trim($user->effective_department_name));
         $pengajuDept = strtolower(trim($this->dept_pengaju ?? ''));
@@ -179,7 +178,6 @@ class WorkRequest extends Model
         $user = $user ?? auth()->user();
         if (!$user) return false;
         if ($this->approval_pengaju !== 'Diterima' || $this->approval_penerima !== 'Menunggu') return false;
-        if ($user->canAccessAllDepartments()) return true;
 
         $userDept = strtolower(trim($user->effective_department_name));
         $penerimaDept = strtolower(trim($this->dept_penerima ?? ''));
@@ -198,7 +196,7 @@ class WorkRequest extends Model
         $user = $user ?? auth()->user();
         if (!$user) return false;
 
-        if ($this->is_final || stripos($this->status, 'Sudah Diambil') !== false) {
+        if ($this->is_final) {
             return false;
         }
 
@@ -207,9 +205,7 @@ class WorkRequest extends Model
             return false;
         }
 
-        if ($user->canAccessAllDepartments()) return true;
-
-        $next = $nextStatus ?? $this->getNextStatusLabel();
+        $next = $nextStatus ?? $this->getNextStatusLabel($user);
         $userDept = strtolower(trim($user->effective_department_name));
         $cleanUser = preg_replace('/[^a-z0-9]/', '', $userDept);
 
@@ -230,9 +226,29 @@ class WorkRequest extends Model
         $cleanPenerima = preg_replace('/[^a-z0-9]/', '', $penerimaDept);
         $isMachineDept = str_contains($cleanUser, $cleanPenerima) || str_contains($cleanPenerima, $cleanUser);
 
-        $isAssignedOperator = !empty($this->assigned_operator_name) && (stripos($user->name, $this->assigned_operator_name) !== false || stripos($this->assigned_operator_name, $user->name) !== false);
+        $isAssignedOperator = !empty($this->assigned_operator_name) && (
+            stripos($user->name, $this->assigned_operator_name) !== false || 
+            stripos($this->assigned_operator_name, $user->name) !== false ||
+            stripos($user->username, $this->assigned_operator_name) !== false
+        );
 
         return ($isMachineDept || $isAssignedOperator);
+    }
+
+    public function getApprovalPengajuLogAttribute(): ?WorkRequestLog
+    {
+        return $this->logs->first(function ($l) {
+            return $l->status_label === 'Disetujui Ka. Pengaju' || 
+                   ($l->action_type === 'approval' && stripos($l->status_label, 'Pengaju') !== false);
+        });
+    }
+
+    public function getApprovalPenerimaLogAttribute(): ?WorkRequestLog
+    {
+        return $this->logs->first(function ($l) {
+            return $l->status_label === 'Disetujui Ka. Penerima' || 
+                   ($l->action_type === 'approval' && stripos($l->status_label, 'Penerima') !== false);
+        });
     }
 
     /**
@@ -293,10 +309,191 @@ class WorkRequest extends Model
     }
 
     /**
-     * Determine next status based on legacy workflow state machine
+     * Get accumulated quantity completed for a specific status keyword (ignoring defect logs)
      */
-    public function getNextStatusLabel(): string
+    public function getTotalProcessedForStatus(string $targetStatus): float
     {
+        $cleanTarget = strtolower(trim(preg_replace('/^Parsial\s*>\s*/i', '', $targetStatus)));
+        return (float) $this->logs()
+            ->where(function ($q) use ($cleanTarget) {
+                $q->whereRaw('LOWER(status_label) LIKE ?', ["%{$cleanTarget}%"])
+                  ->orWhereRaw('LOWER(notes) LIKE ?', ["%{$cleanTarget}%"]);
+            })
+            ->where('action_type', '!=', 'defect')
+            ->where('status_label', 'not like', 'Defect >%')
+            ->sum('quantity');
+    }
+
+    /**
+     * Helper: Menghitung saldo kuantitas per tahapan mesin (In, Out, Pickup, Remaining)
+     */
+    public function getStepBalance(string $stepName, int $stepIndex = 0): array
+    {
+        $steps = $this->getRoutingStepsList();
+        $totalReq = (float) $this->quantity_requested;
+        $isLastStep = ($stepIndex === count($steps) - 1);
+
+        $totalIn = $this->getTotalProcessedForStatus("Proses: {$stepName} (In)");
+        $totalOut = $isLastStep
+            ? ($this->getTotalProcessedForStatus('Siap diambil') ?: $this->getTotalProcessedForStatus("Proses: {$stepName} (Out)"))
+            : $this->getTotalProcessedForStatus("Proses: {$stepName} (Out)");
+
+        $totalPickup = $this->getTotalProcessedForStatus("MH Pickup: {$stepName}");
+
+        $totalSupply = ($stepIndex === 0)
+            ? $totalReq
+            : $this->getTotalProcessedForStatus("MH Pickup: " . ($steps[$stepIndex - 1] ?? ''));
+
+        $saldoIn = max(0, $totalSupply - $totalIn);
+        $saldoOut = max(0, $totalIn - $totalOut);
+        $waitingPickup = max(0, $totalOut - $totalPickup);
+
+        return [
+            'step_name' => $stepName,
+            'step_index' => $stepIndex,
+            'is_last_step' => $isLastStep,
+            'total_in' => $totalIn,
+            'total_out' => $totalOut,
+            'total_pickup' => $totalPickup,
+            'saldo_in' => $saldoIn,
+            'saldo_out' => $saldoOut,
+            'waiting_pickup' => $waitingPickup,
+        ];
+    }
+
+    /**
+     * Get available operational actions for the specified user based on department balances (Legacy js_dashboard logic)
+     */
+    public function getAvailableActionsForUser(?User $user = null): array
+    {
+        $user = $user ?? auth()->user();
+        if (!$user) return [];
+        if ($this->is_final) {
+            return [];
+        }
+        if ($this->approval_pengaju !== 'Diterima' || $this->approval_penerima !== 'Diterima') {
+            return [];
+        }
+
+        $actions = [];
+        $userDept = strtolower(trim($user->effective_department_name));
+        $cleanUser = preg_replace('/[^a-z0-9]/', '', $userDept);
+        $steps = $this->getRoutingStepsList();
+
+        $penerimaDept = strtolower(trim($this->dept_penerima ?? ''));
+        $cleanPenerima = preg_replace('/[^a-z0-9]/', '', $penerimaDept);
+        $isMachineUser = str_contains($cleanUser, $cleanPenerima) || str_contains($cleanPenerima, $cleanUser);
+
+        $isAssignedOperator = !empty($this->assigned_operator_name) && (
+            stripos($user->name, $this->assigned_operator_name) !== false || 
+            stripos($this->assigned_operator_name, $user->name) !== false ||
+            stripos($user->username, $this->assigned_operator_name) !== false
+        );
+
+        // 1. Cek aksi pengerjaan mesin (In & Out)
+        foreach ($steps as $idx => $step) {
+            $cleanStep = preg_replace('/[^a-z0-9]/', '', strtolower($step));
+            $matchesStep = str_contains($cleanUser, $cleanStep) || str_contains($cleanStep, $cleanUser);
+
+            if ($matchesStep || ($isMachineUser && $idx === 0) || $isAssignedOperator) {
+                $bal = $this->getStepBalance($step, $idx);
+
+                if ($bal['saldo_in'] > 0) {
+                    $actions[] = [
+                        'type' => 'in',
+                        'target_status' => "Proses: {$step} (In)",
+                        'label' => "Mulai: Proses: {$step} (In)",
+                        'quantity' => $bal['saldo_in'],
+                        'color' => 'teal',
+                        'icon' => 'fa-play',
+                    ];
+                }
+
+                if ($bal['saldo_out'] > 0) {
+                    $outTarget = $bal['is_last_step'] ? 'Siap Diambil' : "Proses: {$step} (Out)";
+                    $actions[] = [
+                        'type' => 'out',
+                        'target_status' => $outTarget,
+                        'label' => "Selesai: {$outTarget}",
+                        'quantity' => $bal['saldo_out'],
+                        'color' => $bal['is_last_step'] ? 'emerald' : 'indigo',
+                        'icon' => $bal['is_last_step'] ? 'fa-box-check' : 'fa-check',
+                    ];
+                }
+            }
+        }
+
+        // 2. Cek aksi Material Handling
+        if ($user->work_area === 'material_handling' || $user->hasRole('operator_mh') || $user->can('material-handling.process') || $user->can('material-handling.manage')) {
+            foreach ($steps as $idx => $step) {
+                $bal = $this->getStepBalance($step, $idx);
+                if (!$bal['is_last_step']) {
+                    if ($bal['waiting_pickup'] > 0) {
+                        $actions[] = [
+                            'type' => 'pickup',
+                            'target_status' => "MH Pickup: {$step}",
+                            'label' => "MH Pickup: {$step}",
+                            'quantity' => $bal['waiting_pickup'],
+                            'color' => 'amber',
+                            'icon' => 'fa-truck-ramp-box',
+                        ];
+                    }
+                } else {
+                    $totalMenuju = $this->getTotalProcessedForStatus('Menuju Pengaju');
+                    $waitingFinal = max(0, $bal['total_out'] - $totalMenuju);
+                    if ($waitingFinal > 0) {
+                        $actions[] = [
+                            'type' => 'pickup_final',
+                            'target_status' => "Menuju Pengaju",
+                            'label' => "Kirim ke Pengaju (MH)",
+                            'quantity' => $waitingFinal,
+                            'color' => 'blue',
+                            'icon' => 'fa-truck-fast',
+                        ];
+                    }
+                }
+            }
+        }
+
+        // 3. Cek aksi Penerimaan Gudang / Pengaju (Sudah Diambil)
+        $pengajuDept = strtolower(trim($this->dept_pengaju ?? ''));
+        $cleanPengaju = preg_replace('/[^a-z0-9]/', '', $pengajuDept);
+        $isPengajuUser = str_contains($cleanUser, $cleanPengaju) || str_contains($cleanPengaju, $cleanUser) || $user->work_area === 'gudang';
+
+        if ($isPengajuUser) {
+            $totalMenuju = $this->getTotalProcessedForStatus('Menuju Pengaju');
+            $totalSiap = $this->getTotalProcessedForStatus('Siap diambil');
+            $totalSudah = (float) $this->quantity_received ?: $this->getTotalProcessedForStatus('Sudah diambil');
+
+            $saldoTerima = max(0, ($totalMenuju > 0 ? $totalMenuju : $totalSiap) - $totalSudah);
+            if ($saldoTerima > 0) {
+                $actions[] = [
+                    'type' => 'receive',
+                    'target_status' => "Sudah Diambil",
+                    'label' => "Terima di Gudang",
+                    'quantity' => $saldoTerima,
+                    'color' => 'emerald',
+                    'icon' => 'fa-warehouse',
+                ];
+            }
+        }
+
+        return $actions;
+    }
+
+    /**
+     * Determine next status based on legacy workflow state machine & optional user context
+     */
+    public function getNextStatusLabel(?User $user = null): string
+    {
+        $user = $user ?? auth()->user();
+        if ($user) {
+            $userActions = $this->getAvailableActionsForUser($user);
+            if (!empty($userActions)) {
+                return $userActions[0]['target_status'];
+            }
+        }
+
         $curr = $this->status ?: 'Dalam antrian';
         $clean = trim(preg_replace('/^Parsial\s*>\s*/i', '', $curr));
         $steps = $this->getRoutingStepsList();
@@ -339,21 +536,6 @@ class WorkRequest extends Model
         }
 
         return "Selesai";
-    }
-
-    /**
-     * Get accumulated quantity completed for a specific status keyword
-     */
-    public function getTotalProcessedForStatus(string $targetStatus): float
-    {
-        $cleanTarget = strtolower(trim(preg_replace('/^Parsial\s*>\s*/i', '', $targetStatus)));
-        return (float) $this->logs()
-            ->where(function ($q) use ($cleanTarget) {
-                $q->whereRaw('LOWER(status_label) LIKE ?', ["%{$cleanTarget}%"])
-                  ->orWhereRaw('LOWER(notes) LIKE ?', ["%{$cleanTarget}%"]);
-            })
-            ->where('action_type', '!=', 'defect')
-            ->sum('quantity');
     }
 
     public function getStatusBadgeAttribute(): array

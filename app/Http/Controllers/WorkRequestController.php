@@ -387,12 +387,13 @@ class WorkRequestController extends Controller
         ]);
 
         $user = auth()->user();
-        $canApprove = $user->canApproveWri($workRequest);
-        $canProcess = $user->can('work-request.process') || $user->hasRole('admin_gudang');
+        $nextStatus = $workRequest->getNextStatusLabel($user);
+        $canApprovePengaju = $workRequest->canUserApprovePengaju($user);
+        $canApprovePenerima = $workRequest->canUserApprovePenerima($user);
+        $canProcess = $workRequest->canUserProcessAction($user, $nextStatus);
         $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
-        $nextStatus = $workRequest->getNextStatusLabel();
 
-        return view('work_requests.show', compact('workRequest', 'locations', 'nextStatus', 'canApprove', 'canProcess'));
+        return view('work_requests.show', compact('workRequest', 'locations', 'nextStatus', 'canApprovePengaju', 'canApprovePenerima', 'canProcess'));
     }
 
     /**
@@ -401,7 +402,7 @@ class WorkRequestController extends Controller
     public function approvePengaju(WorkRequest $workRequest)
     {
         $user = auth()->user();
-        if (!$workRequest->canUserApprovePengaju($user) && !$user->canApproveWri($workRequest)) {
+        if (!$workRequest->canUserApprovePengaju($user)) {
             return back()->with('error', 'Anda tidak memiliki hak otorisasi untuk menyetujui tiket pengaju ini.');
         }
 
@@ -426,7 +427,7 @@ class WorkRequestController extends Controller
     public function approvePenerima(Request $request, WorkRequest $workRequest)
     {
         $user = auth()->user();
-        if (!$workRequest->canUserApprovePenerima($user) && !$user->canApproveWri($workRequest)) {
+        if (!$workRequest->canUserApprovePenerima($user)) {
             return back()->with('error', 'Anda tidak memiliki hak otorisasi untuk memverifikasi departemen penerima ini.');
         }
 
@@ -456,7 +457,7 @@ class WorkRequestController extends Controller
             'status_label' => 'Disetujui Ka. Penerima',
             'quantity' => $workRequest->quantity_requested,
             'quantity_accumulated' => 0,
-            'operator_name' => $operatorName,
+            'operator_name' => $user->name,
             'notes' => $notes . " (Ditugaskan ke Operator: {$operatorName})",
         ]);
 
@@ -577,7 +578,7 @@ class WorkRequestController extends Controller
         ]);
 
         $user = auth()->user();
-        $targetStatus = !empty($validated['target_status']) ? $validated['target_status'] : $workRequest->getNextStatusLabel();
+        $targetStatus = !empty($validated['target_status']) ? $validated['target_status'] : $workRequest->getNextStatusLabel($user);
 
         // 1. Validasi Otorisasi Ketat Berbasis Departemen & Peran
         if (!$workRequest->canUserProcessAction($user, $targetStatus)) {
@@ -687,9 +688,10 @@ class WorkRequestController extends Controller
                 ]);
             } elseif (preg_match('/^Proses:\s*(.+?)\s*\(Out\)$/i', $cleanTarget, $matches)) {
                 $stepName = trim($matches[1]);
-                $workRequest->steps()->where('process_name', 'like', "%{$stepName}%")->where('status', '!=', 'completed')->first()?->update([
-                    'status' => 'completed',
-                    'completed_at' => now(),
+                $stepStatus = $isPartial ? 'in_progress' : 'completed';
+                $workRequest->steps()->where('process_name', 'like', "%{$stepName}%")->first()?->update([
+                    'status' => $stepStatus,
+                    'completed_at' => $isPartial ? null : now(),
                     'operator_name' => $operator,
                 ]);
             }
@@ -707,8 +709,11 @@ class WorkRequestController extends Controller
             // SCENARIO 3: IF REACHED "Sudah Diambil", INCREMENT PHYSICAL WAREHOUSE STOCK (BR-08)
             if (stripos($cleanTarget, 'Sudah Diambil') !== false) {
                 $newReceivedTotal = $accumReceived + $processQty;
+                $isFinalDelivery = ($newReceivedTotal >= $totalReq);
+
                 $workRequest->update([
                     'quantity_received' => $newReceivedTotal,
+                    'is_final' => $isFinalDelivery,
                     'received_at' => now(),
                     'received_by_user_id' => auth()->id(),
                 ]);

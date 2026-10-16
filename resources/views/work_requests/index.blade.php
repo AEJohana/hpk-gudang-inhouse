@@ -254,12 +254,16 @@
             <div class="block md:hidden p-4 space-y-3">
                 @forelse($workRequests as $wri)
                 @php
-                    $nextStatus = $wri->getNextStatusLabel();
+                    $userActions = $wri->getAvailableActionsForUser(auth()->user());
+                    $hasUserAction = !empty($userActions);
+                    $primaryAction = $hasUserAction ? $userActions[0] : null;
+
+                    $nextStatus = $primaryAction ? $primaryAction['target_status'] : $wri->getNextStatusLabel(auth()->user());
                     $accumReceived = (float) $wri->quantity_received;
-                    $remainingQty = max(0, (float) $wri->quantity_requested - $accumReceived);
+                    $remainingQty = $primaryAction ? $primaryAction['quantity'] : max(0, (float) $wri->quantity_requested - $accumReceived);
 
                     $isLaserIn = stripos($nextStatus, '(In)') !== false;
-                    $isLaserOut = stripos($nextStatus, '(Out)') !== false;
+                    $isLaserOut = stripos($nextStatus, '(Out)') !== false || ($primaryAction && $primaryAction['type'] === 'out');
                     $isPickup = stripos($nextStatus, 'Pickup') !== false;
                     $isMenuju = stripos($nextStatus, 'Menuju Pengaju') !== false;
                     $isSudah = stripos($nextStatus, 'Sudah Diambil') !== false;
@@ -269,12 +273,12 @@
                              ($isPickup ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-black' : 
                              ($isLaserOut ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-teal-600 hover:bg-teal-700 text-white')));
 
-                    $btnIcon = $isSudah ? 'fa-warehouse' : ($isMenuju ? 'fa-truck-fast' : ($isPickup ? 'fa-truck-ramp-box' : ($isLaserOut ? 'fa-check' : 'fa-play')));
-                    $shortLabel = $isSudah ? 'Terima di Gudang' : ($isMenuju ? 'Kirim ke Pengaju' : ($isPickup ? 'MH Pickup' : ($isLaserOut ? 'Selesai: ' . $nextStatus : 'Mulai: ' . $nextStatus)));
+                    $btnIcon = $primaryAction ? $primaryAction['icon'] : ($isSudah ? 'fa-warehouse' : ($isMenuju ? 'fa-truck-fast' : ($isPickup ? 'fa-truck-ramp-box' : ($isLaserOut ? 'fa-check' : 'fa-play'))));
+                    $shortLabel = $primaryAction ? $primaryAction['label'] : ($isSudah ? 'Terima di Gudang' : ($isMenuju ? 'Kirim ke Pengaju' : ($isPickup ? 'MH Pickup' : ($isLaserOut ? 'Selesai: ' . $nextStatus : 'Mulai: ' . $nextStatus))));
 
                     $canApprovePengaju = $wri->canUserApprovePengaju(auth()->user());
                     $canApprovePenerima = $wri->canUserApprovePenerima(auth()->user());
-                    $canProcessAction = $wri->canUserProcessAction(auth()->user(), $nextStatus);
+                    $canProcessAction = $hasUserAction ? true : $wri->canUserProcessAction(auth()->user(), $nextStatus);
 
                     $assignPayload = [
                         'id' => $wri->id,
@@ -306,6 +310,20 @@
                         'actionUrl' => route('work-requests.process-action', $wri),
                     ];
 
+                    $appPengajuLog = $wri->approval_pengaju_log;
+                    $appPenerimaLog = $wri->approval_penerima_log;
+
+                    $approvalPengajuStatus = $wri->approval_pengaju ?: 'Menunggu';
+                    $approvalPengajuBy = $appPengajuLog?->operator_name 
+                        ?? ($wri->approval_pengaju === 'Diterima' ? ($wri->requestedBy?->name ?? 'Ka. ' . ($wri->dept_pengaju ?: 'Pengaju')) : 'Menunggu');
+                    $approvalPengajuAt = $appPengajuLog?->created_at?->format('d/m/Y H:i') 
+                        ?? ($wri->approval_pengaju === 'Diterima' ? $wri->created_at->format('d/m/Y H:i') : '-');
+
+                    $approvalPenerimaStatus = $wri->approval_penerima ?: 'Menunggu';
+                    $approvalPenerimaBy = $appPenerimaLog?->operator_name 
+                        ?? ($wri->approval_penerima === 'Diterima' ? 'Ka. ' . ($wri->dept_penerima ?: 'Mesin') : 'Menunggu');
+                    $approvalPenerimaAt = $appPenerimaLog?->created_at?->format('d/m/Y H:i') ?? '-';
+
                     $detailPayload = [
                         'id' => $wri->id,
                         'wriNumber' => $wri->wri_number,
@@ -327,7 +345,14 @@
                         'defectQty' => (float) $wri->quantity_defect,
                         'progressPercentage' => $wri->progress_percentage,
                         'routingText' => $wri->routing_text,
-                        'assignedOperator' => $wri->assigned_operator_name ?: '-',
+                        'requestedByName' => $wri->requestedBy?->name ?? 'Pemohon Gudang',
+                        'approvalPengajuStatus' => $approvalPengajuStatus,
+                        'approvalPengajuBy' => $approvalPengajuBy,
+                        'approvalPengajuAt' => $approvalPengajuAt,
+                        'approvalPenerimaStatus' => $approvalPenerimaStatus,
+                        'approvalPenerimaBy' => $approvalPenerimaBy,
+                        'approvalPenerimaAt' => $approvalPenerimaAt,
+                        'assignedOperator' => $wri->assigned_operator_name ?: 'Belum ditentukan',
                         'steps' => $wri->steps->map(fn($s) => [
                             'step' => $s->step_number,
                             'name' => $s->process_name,
@@ -423,7 +448,7 @@
                                         </form>
                                     @else
                                         <span class="flex-1 py-1.5 text-center bg-amber-50 text-amber-800 border border-amber-300 rounded-xl text-[11px] font-bold">
-                                            <i class="fa-solid fa-clock text-amber-500 me-1"></i> Menunggu Ka. Pengaju
+                                            <i class="fa-solid fa-clock text-amber-500 me-1"></i> Menunggu Verifikasi Ka. {{ $wri->dept_pengaju ?: 'Pengaju' }}
                                         </span>
                                     @endif
                                 @elseif($wri->approval_penerima === 'Menunggu')
@@ -436,7 +461,7 @@
                                         </button>
                                     @else
                                         <span class="flex-1 py-1.5 text-center bg-blue-50 text-blue-800 border border-blue-300 rounded-xl text-[11px] font-bold">
-                                            <i class="fa-solid fa-clock text-blue-500 me-1"></i> Menunggu Ka. Penerima
+                                            <i class="fa-solid fa-clock text-blue-500 me-1"></i> Menunggu Verifikasi Ka. {{ $wri->dept_penerima ?: 'Penerima' }}
                                         </span>
                                     @endif
                                 @else
@@ -448,15 +473,28 @@
                                             <span>{{ $shortLabel }}</span>
                                         </button>
                                     @else
-                                        <span class="flex-1 py-1.5 text-center bg-slate-100 text-slate-500 border border-slate-200 rounded-xl text-[10px] font-bold truncate px-2"
-                                              title="Menunggu departemen berwenang: {{ $nextStatus }}">
-                                            <i class="fa-solid fa-lock text-slate-400 me-1"></i> {{ $shortLabel }}
-                                        </span>
+                                        @if($isSudah)
+                                            <span class="flex-1 py-1.5 text-center bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-[10px] font-bold truncate px-2">
+                                                <i class="fa-solid fa-warehouse text-emerald-600 me-1"></i> Menunggu Penerimaan {{ $wri->dept_pengaju ?: 'Gudang' }}
+                                            </span>
+                                        @elseif($isMenuju)
+                                            <span class="flex-1 py-1.5 text-center bg-purple-50 text-purple-800 border border-purple-300 rounded-xl text-[10px] font-bold truncate px-2">
+                                                <i class="fa-solid fa-truck-fast text-purple-600 me-1"></i> Sedang Diantar ke {{ $wri->dept_pengaju ?: 'Pengaju' }}
+                                            </span>
+                                        @elseif($isPickup || stripos($wri->status, 'Siap Diambil') !== false)
+                                            <span class="flex-1 py-1.5 text-center bg-amber-50 text-amber-900 border border-amber-300 rounded-xl text-[10px] font-bold truncate px-2">
+                                                <i class="fa-solid fa-dolly text-amber-600 me-1"></i> Siap Dijemput Material Handling
+                                            </span>
+                                        @else
+                                            <span class="flex-1 py-1.5 text-center bg-indigo-50 text-indigo-900 border border-indigo-200 rounded-xl text-[10px] font-bold truncate px-2">
+                                                <i class="fa-solid fa-gear fa-spin text-indigo-500 me-1"></i> Sedang dlm proses di Line {{ $wri->dept_penerima ?: 'Penerima' }}
+                                            </span>
+                                        @endif
                                     @endif
                                 @endif
                             @else
                                 <span class="flex-1 py-1.5 text-center bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold">
-                                    <i class="fa-solid fa-circle-check text-emerald-600 me-1"></i> Selesai
+                                    <i class="fa-solid fa-circle-check text-emerald-600 me-1"></i> Selesai Diterima {{ $wri->dept_pengaju ?: 'Gudang' }}
                                 </span>
                             @endif
 
@@ -494,12 +532,16 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse($workRequests as $wri)
                         @php
-                            $nextStatus = $wri->getNextStatusLabel();
+                            $userActions = $wri->getAvailableActionsForUser(auth()->user());
+                            $hasUserAction = !empty($userActions);
+                            $primaryAction = $hasUserAction ? $userActions[0] : null;
+
+                            $nextStatus = $primaryAction ? $primaryAction['target_status'] : $wri->getNextStatusLabel(auth()->user());
                             $accumReceived = (float) $wri->quantity_received;
-                            $remainingQty = max(0, (float) $wri->quantity_requested - $accumReceived);
+                            $remainingQty = $primaryAction ? $primaryAction['quantity'] : max(0, (float) $wri->quantity_requested - $accumReceived);
 
                             $isLaserIn = stripos($nextStatus, '(In)') !== false;
-                            $isLaserOut = stripos($nextStatus, '(Out)') !== false;
+                            $isLaserOut = stripos($nextStatus, '(Out)') !== false || ($primaryAction && $primaryAction['type'] === 'out');
                             $isPickup = stripos($nextStatus, 'Pickup') !== false;
                             $isMenuju = stripos($nextStatus, 'Menuju Pengaju') !== false;
                             $isSudah = stripos($nextStatus, 'Sudah Diambil') !== false;
@@ -509,12 +551,12 @@
                                      ($isPickup ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-black' : 
                                      ($isLaserOut ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-teal-600 hover:bg-teal-700 text-white')));
 
-                            $btnIcon = $isSudah ? 'fa-warehouse' : ($isMenuju ? 'fa-truck-fast' : ($isPickup ? 'fa-truck-ramp-box' : ($isLaserOut ? 'fa-check' : 'fa-play')));
-                            $shortLabel = $isSudah ? 'Terima di Gudang' : ($isMenuju ? 'Kirim ke Pengaju' : ($isPickup ? 'MH Pickup' : ($isLaserOut ? 'Selesai: ' . $nextStatus : 'Mulai: ' . $nextStatus)));
+                            $btnIcon = $primaryAction ? $primaryAction['icon'] : ($isSudah ? 'fa-warehouse' : ($isMenuju ? 'fa-truck-fast' : ($isPickup ? 'fa-truck-ramp-box' : ($isLaserOut ? 'fa-check' : 'fa-play'))));
+                            $shortLabel = $primaryAction ? $primaryAction['label'] : ($isSudah ? 'Terima di Gudang' : ($isMenuju ? 'Kirim ke Pengaju' : ($isPickup ? 'MH Pickup' : ($isLaserOut ? 'Selesai: ' . $nextStatus : 'Mulai: ' . $nextStatus))));
 
                             $canApprovePengaju = $wri->canUserApprovePengaju(auth()->user());
                             $canApprovePenerima = $wri->canUserApprovePenerima(auth()->user());
-                            $canProcessAction = $wri->canUserProcessAction(auth()->user(), $nextStatus);
+                            $canProcessAction = $hasUserAction ? true : $wri->canUserProcessAction(auth()->user(), $nextStatus);
 
                             $assignPayload = [
                                 'id' => $wri->id,
@@ -546,6 +588,20 @@
                                 'actionUrl' => route('work-requests.process-action', $wri),
                             ];
 
+                            $appPengajuLog = $wri->approval_pengaju_log;
+                            $appPenerimaLog = $wri->approval_penerima_log;
+
+                            $approvalPengajuStatus = $wri->approval_pengaju ?: 'Menunggu';
+                            $approvalPengajuBy = $appPengajuLog?->operator_name 
+                                ?? ($wri->approval_pengaju === 'Diterima' ? ($wri->requestedBy?->name ?? 'Ka. ' . ($wri->dept_pengaju ?: 'Pengaju')) : 'Menunggu');
+                            $approvalPengajuAt = $appPengajuLog?->created_at?->format('d/m/Y H:i') 
+                                ?? ($wri->approval_pengaju === 'Diterima' ? $wri->created_at->format('d/m/Y H:i') : '-');
+
+                            $approvalPenerimaStatus = $wri->approval_penerima ?: 'Menunggu';
+                            $approvalPenerimaBy = $appPenerimaLog?->operator_name 
+                                ?? ($wri->approval_penerima === 'Diterima' ? 'Ka. ' . ($wri->dept_penerima ?: 'Mesin') : 'Menunggu');
+                            $approvalPenerimaAt = $appPenerimaLog?->created_at?->format('d/m/Y H:i') ?? '-';
+
                             $detailPayload = [
                                 'id' => $wri->id,
                                 'wriNumber' => $wri->wri_number,
@@ -567,7 +623,14 @@
                                 'defectQty' => (float) $wri->quantity_defect,
                                 'progressPercentage' => $wri->progress_percentage,
                                 'routingText' => $wri->routing_text,
-                                'assignedOperator' => $wri->assigned_operator_name ?: '-',
+                                'requestedByName' => $wri->requestedBy?->name ?? 'Pemohon Gudang',
+                                'approvalPengajuStatus' => $approvalPengajuStatus,
+                                'approvalPengajuBy' => $approvalPengajuBy,
+                                'approvalPengajuAt' => $approvalPengajuAt,
+                                'approvalPenerimaStatus' => $approvalPenerimaStatus,
+                                'approvalPenerimaBy' => $approvalPenerimaBy,
+                                'approvalPenerimaAt' => $approvalPenerimaAt,
+                                'assignedOperator' => $wri->assigned_operator_name ?: 'Belum ditentukan',
                                 'steps' => $wri->steps->map(fn($s) => [
                                     'step' => $s->step_number,
                                     'name' => $s->process_name,
@@ -722,7 +785,7 @@
                                                 </form>
                                             @else
                                                 <span class="inline-flex items-center px-2.5 py-1 text-amber-800 bg-amber-50 border border-amber-200 rounded-xl text-xs font-bold">
-                                                    <i class="fa-solid fa-clock text-amber-500 me-1 text-[10px]"></i> Menunggu Ka. Pengaju
+                                                    <i class="fa-solid fa-clock text-amber-500 me-1 text-[10px]"></i> Menunggu Verifikasi Ka. {{ $wri->dept_pengaju ?: 'Pengaju' }}
                                                 </span>
                                             @endif
                                         @elseif($wri->approval_penerima === 'Menunggu')
@@ -735,7 +798,7 @@
                                                 </button>
                                             @else
                                                 <span class="inline-flex items-center px-2.5 py-1 text-blue-800 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold">
-                                                    <i class="fa-solid fa-clock text-blue-500 me-1 text-[10px]"></i> Menunggu Ka. Penerima
+                                                    <i class="fa-solid fa-clock text-blue-500 me-1 text-[10px]"></i> Menunggu Verifikasi Ka. {{ $wri->dept_penerima ?: 'Penerima' }}
                                                 </span>
                                             @endif
                                         @else
@@ -747,15 +810,28 @@
                                                     <span>{{ $shortLabel }}</span>
                                                 </button>
                                             @else
-                                                <span class="inline-flex items-center px-2.5 py-1 text-slate-500 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold"
-                                                      title="Menunggu departemen/peran berwenang: {{ $nextStatus }}">
-                                                    <i class="fa-solid fa-lock text-slate-400 me-1 text-[10px]"></i> {{ $shortLabel }}
-                                                </span>
+                                                @if($isSudah)
+                                                    <span class="inline-flex items-center px-2.5 py-1 text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold">
+                                                        <i class="fa-solid fa-warehouse text-emerald-600 me-1 text-[10px]"></i> Menunggu Penerimaan {{ $wri->dept_pengaju ?: 'Gudang' }}
+                                                    </span>
+                                                @elseif($isMenuju)
+                                                    <span class="inline-flex items-center px-2.5 py-1 text-purple-800 bg-purple-50 border border-purple-200 rounded-xl text-xs font-bold">
+                                                        <i class="fa-solid fa-truck-fast text-purple-600 me-1 text-[10px]"></i> Sedang Diantar ke {{ $wri->dept_pengaju ?: 'Pengaju' }}
+                                                    </span>
+                                                @elseif($isPickup || stripos($wri->status, 'Siap Diambil') !== false)
+                                                    <span class="inline-flex items-center px-2.5 py-1 text-amber-900 bg-amber-50 border border-amber-300 rounded-xl text-xs font-bold">
+                                                        <i class="fa-solid fa-dolly text-amber-600 me-1 text-[10px]"></i> Siap Dijemput Material Handling
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center px-2.5 py-1 text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold">
+                                                        <i class="fa-solid fa-gear fa-spin text-indigo-500 me-1.5 text-[10px]"></i> Sedang dalam proses di Line {{ $wri->dept_penerima ?: 'Penerima' }}
+                                                    </span>
+                                                @endif
                                             @endif
                                         @endif
                                     @else
                                         <span class="inline-flex items-center px-2.5 py-1 text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold">
-                                            <i class="fa-solid fa-circle-check text-emerald-600 me-1"></i> Selesai
+                                            <i class="fa-solid fa-circle-check text-emerald-600 me-1 text-[10px]"></i> Selesai Diterima {{ $wri->dept_pengaju ?: 'Gudang' }}
                                         </span>
                                     @endif
 
@@ -860,6 +936,13 @@
                     defectQty: 0,
                     progressPercentage: 0,
                     routingText: '',
+                    requestedByName: '',
+                    approvalPengajuStatus: '',
+                    approvalPengajuBy: '',
+                    approvalPengajuAt: '',
+                    approvalPenerimaStatus: '',
+                    approvalPenerimaBy: '',
+                    approvalPenerimaAt: '',
                     assignedOperator: '',
                     steps: [],
                     logs: [],

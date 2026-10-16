@@ -92,21 +92,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Approval Workflow Ka. Bagian
         Route::post('/work-requests/{workRequest}/approve-pengaju', [\App\Http\Controllers\WorkRequestController::class, 'approvePengaju'])
-            ->middleware('can:work-request.approve')
             ->name('work-requests.approve-pengaju');
         Route::post('/work-requests/{workRequest}/approve-penerima', [\App\Http\Controllers\WorkRequestController::class, 'approvePenerima'])
-            ->middleware('can:work-request.approve')
             ->name('work-requests.approve-penerima');
         Route::post('/work-requests/{workRequest}/reject', [\App\Http\Controllers\WorkRequestController::class, 'reject'])
-            ->middleware('can:work-request.approve')
             ->name('work-requests.reject');
 
         // Eksekusi Pengerjaan Mesin & Defect
         Route::post('/work-requests/{workRequest}/steps/{step}/advance', [\App\Http\Controllers\WorkRequestController::class, 'advanceStep'])
-            ->middleware('can:work-request.process')
             ->name('work-requests.advance-step');
         Route::post('/work-requests/{workRequest}/process-action', [\App\Http\Controllers\WorkRequestController::class, 'processAction'])
-            ->middleware('can:work-request.process')
             ->name('work-requests.process-action');
         Route::post('/work-requests/{workRequest}/receive', [\App\Http\Controllers\WorkRequestController::class, 'receive'])
             ->name('work-requests.receive');

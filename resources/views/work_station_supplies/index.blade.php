@@ -3,16 +3,23 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <div class="flex items-center space-x-2">
-                    <span class="px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-md bg-blue-100 text-blue-900 border border-blue-300">
-                        Material Handling &bull; Logistik Antar Stasiun
+                    <span class="px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-md bg-teal-100 text-teal-900 border border-teal-300">
+                        Task Gudang &bull; Logistik Antar Stasiun
                     </span>
-                    <span class="text-xs text-slate-500 font-medium">PT Hydraxle Perkasa Karoseri</span>
+                    <span class="text-xs text-slate-500 font-medium">PT. Hydraxle Perkasa</span>
                 </div>
-                <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight mt-1">
-                    Material Handling Command Center
-                </h2>
+                <div class="flex items-center space-x-3 mt-1">
+                    <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight">
+                        Material Handling
+                    </h2>
+                    <!-- Jam Digital Ringan Kotak (Sesuai Desain Legacy) -->
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/80 shadow-xs text-xs font-bold text-slate-600 font-mono" x-data="{ time: new Date().toLocaleTimeString('id-ID') }" x-init="setInterval(() => time = new Date().toLocaleTimeString('id-ID'), 1000)">
+                        <i class="fa-regular fa-clock text-slate-400 text-[11px]"></i>
+                        <span x-text="time">--:--:--</span>
+                    </div>
+                </div>
                 <p class="text-xs text-slate-500 mt-0.5">
-                    Pusat komando logistik lapangan: Penjemputan antar mesin fabrikasi, transit komponen, serah terima pengaju, dan auto-update saldo stok fisik
+                    Proses pengambilan & pengiriman barang antar mesin dan ke gudang
                 </p>
             </div>
 
@@ -36,447 +43,662 @@
     </x-slot>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6" 
-         x-data="materialHandlingCenter()" 
+         x-data="taskGudangHandler()" 
          @open-mh-scanner.window="openMhScanner()">
 
-        <!-- 1. KPI LOGISTICS SUMMARY CARDS -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- 1. Pickup -->
-            <div @click="activeTab = 'pickup'" 
-                 class="cursor-pointer bg-white rounded-2xl p-4 border transition-all shadow-xs"
-                 :class="activeTab === 'pickup' ? 'border-indigo-500 ring-2 ring-indigo-200 bg-indigo-50/20' : 'border-slate-200 hover:border-slate-300'">
-                <div class="flex items-center justify-between">
-                    <div class="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center text-lg font-bold">
-                        <i class="fa-solid fa-truck-pickup"></i>
-                    </div>
-                    <span class="text-xs font-bold text-indigo-700 bg-indigo-100/70 px-2 py-0.5 rounded-full">Tab 1</span>
-                </div>
-                <div class="mt-3">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Antrian Pickup Mesin</span>
-                    <h3 class="text-2xl font-black text-slate-900 mt-0.5">{{ $pickupCount }}</h3>
-                    <span class="text-[10px] text-slate-500">Selesai proses, tunggu MH</span>
-                </div>
+        <!-- 1. FLOATING NAVIGATION PANEL (2 TAB UTAMA PERSIS SISTEM LAMA) -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <button type="button" 
+                        @click="mainTab = 'transfer'" 
+                        class="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-xs"
+                        :class="mainTab === 'transfer' ? 'bg-[#0f172a] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+                    <i class="fa-solid fa-right-left"></i>
+                    <span>Antar Mesin</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black"
+                          :class="mainTab === 'transfer' ? 'bg-amber-400 text-slate-950' : 'bg-slate-200 text-slate-700'">
+                        {{ count($transferWaiting) }}
+                    </span>
+                </button>
+
+                <button type="button" 
+                        @click="mainTab = 'final'" 
+                        class="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-xs"
+                        :class="mainTab === 'final' ? 'bg-[#0f172a] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+                    <i class="fa-solid fa-box-open"></i>
+                    <span>Siap Diambil</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black"
+                          :class="mainTab === 'final' ? 'bg-emerald-400 text-slate-950' : 'bg-slate-200 text-slate-700'">
+                        {{ count($finalWaiting) }}
+                    </span>
+                </button>
             </div>
 
-            <!-- 2. Transit -->
-            <div @click="activeTab = 'transit'" 
-                 class="cursor-pointer bg-white rounded-2xl p-4 border transition-all shadow-xs"
-                 :class="activeTab === 'transit' ? 'border-amber-500 ring-2 ring-amber-200 bg-amber-50/20' : 'border-slate-200 hover:border-slate-300'">
-                <div class="flex items-center justify-between">
-                    <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center text-lg font-bold">
-                        <i class="fa-solid fa-truck-fast"></i>
-                    </div>
-                    <span class="text-xs font-bold text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded-full">Tab 2</span>
-                </div>
-                <div class="mt-3">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Transit Antar Mesin</span>
-                    <h3 class="text-2xl font-black text-slate-900 mt-0.5">{{ $transitCount }}</h3>
-                    <span class="text-[10px] text-slate-500">Sedang diangkut MH</span>
-                </div>
+            <div class="flex items-center gap-2 self-end sm:self-auto">
+                <button type="button" 
+                        onclick="window.location.reload()" 
+                        title="Segarkan Data"
+                        class="px-3.5 py-2.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 font-bold text-xs transition flex items-center gap-1.5 shadow-xs">
+                    <i class="fa-solid fa-rotate"></i>
+                    <span class="hidden md:inline">Refresh Data</span>
+                </button>
             </div>
+        </div>
 
-            <!-- 3. Siap Distribusi -->
-            <div @click="activeTab = 'distribution'" 
-                 class="cursor-pointer bg-white rounded-2xl p-4 border transition-all shadow-xs"
-                 :class="activeTab === 'distribution' ? 'border-cyan-500 ring-2 ring-cyan-200 bg-cyan-50/20' : 'border-slate-200 hover:border-slate-300'">
-                <div class="flex items-center justify-between">
-                    <div class="w-11 h-11 rounded-xl bg-cyan-50 text-cyan-800 flex items-center justify-center text-lg font-bold">
-                        <i class="fa-solid fa-dolly"></i>
-                    </div>
-                    <span class="text-xs font-bold text-cyan-800 bg-cyan-100/70 px-2 py-0.5 rounded-full">Tab 3</span>
-                </div>
-                <div class="mt-3">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Siap Distribusi</span>
-                    <h3 class="text-2xl font-black text-slate-900 mt-0.5">{{ $distributionCount }}</h3>
-                    <span class="text-[10px] text-slate-500">Menuju Gudang / Pengaju</span>
-                </div>
-            </div>
+        <!-- ======================================================== -->
+        <!-- TAB 1: ANTAR MESIN (TRANSFER ANTAR STASIUN)              -->
+        <!-- ======================================================== -->
+        <div x-show="mainTab === 'transfer'" class="space-y-4">
+            <!-- Sub-tab Navigation (3 Sub-Tab) -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div class="border-b border-slate-200 px-4 pt-3 bg-slate-50/60 flex items-center space-x-2 overflow-x-auto">
+                    <button type="button" 
+                            @click="transferSubTab = 'waiting'" 
+                            class="pb-3 px-3 text-xs font-bold transition border-b-2 flex items-center space-x-2 whitespace-nowrap"
+                            :class="transferSubTab === 'waiting' ? 'border-amber-500 text-amber-800' : 'border-transparent text-slate-500 hover:text-slate-800'">
+                        <i class="fa-solid fa-list-check text-amber-500"></i>
+                        <span>Menunggu Ambil</span>
+                        <span class="px-2 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-900 font-extrabold">{{ count($transferWaiting) }}</span>
+                    </button>
 
-            <!-- 4. Riwayat / Selesai -->
-            <div @click="activeTab = 'history'" 
-                 class="cursor-pointer bg-white rounded-2xl p-4 border transition-all shadow-xs"
-                 :class="activeTab === 'history' ? 'border-emerald-500 ring-2 ring-emerald-200 bg-emerald-50/20' : 'border-slate-200 hover:border-slate-300'">
-                <div class="flex items-center justify-between">
-                    <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-lg font-bold">
-                        <i class="fa-solid fa-circle-check"></i>
-                    </div>
-                    <span class="text-xs font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full">Tab 4</span>
+                    <button type="button" 
+                            @click="transferSubTab = 'transit'" 
+                            class="pb-3 px-3 text-xs font-bold transition border-b-2 flex items-center space-x-2 whitespace-nowrap"
+                            :class="transferSubTab === 'transit' ? 'border-sky-500 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'">
+                        <i class="fa-solid fa-truck-fast text-sky-500"></i>
+                        <span>Dalam Perjalanan</span>
+                        <span class="px-2 py-0.2 rounded-full text-[10px] bg-sky-100 text-sky-900 font-extrabold">{{ count($transferTransit) }}</span>
+                    </button>
+
+                    <button type="button" 
+                            @click="transferSubTab = 'history'" 
+                            class="pb-3 px-3 text-xs font-bold transition border-b-2 flex items-center space-x-2 whitespace-nowrap"
+                            :class="transferSubTab === 'history' ? 'border-slate-500 text-slate-800' : 'border-transparent text-slate-500 hover:text-slate-800'">
+                        <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
+                        <span>Riwayat Transfer</span>
+                        <span class="px-2 py-0.2 rounded-full text-[10px] bg-slate-100 text-slate-700 font-extrabold">{{ count($transferHistory) }}</span>
+                    </button>
                 </div>
-                <div class="mt-3">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Riwayat Serah Terima</span>
-                    <h3 class="text-2xl font-black text-slate-900 mt-0.5">{{ $historyCount }}</h3>
-                    <span class="text-[10px] text-slate-500">Closed & Stok Terupdate</span>
+
+                <!-- Filter Panel Antar Mesin -->
+                <div class="p-4 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                    <span class="px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full text-xs font-bold">
+                        <span x-text="transferSubTab === 'waiting' ? '{{ count($transferWaiting) }} Item Menunggu Ambil' : (transferSubTab === 'transit' ? '{{ count($transferTransit) }} Item Dalam Perjalanan' : '{{ count($transferHistory) }} Riwayat')"></span>
+                    </span>
+
+                    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                        <select x-model="filterDate" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
+                            <option value="all">Semua Tgl</option>
+                            <option value="today">Hari Ini</option>
+                            <option value="last3">3 Hari</option>
+                            <option value="week">Minggu Ini</option>
+                        </select>
+
+                        <select x-model="filterOrigin" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
+                            <option value="all">Semua Asal</option>
+                            @foreach($filterOrigins as $orig)
+                            <option value="{{ $orig }}">{{ $orig }}</option>
+                            @endforeach
+                        </select>
+
+                        <select x-model="filterDestination" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
+                            <option value="all">Semua Tujuan</option>
+                            @foreach($filterDestinations as $dest)
+                            <option value="{{ $dest }}">{{ $dest }}</option>
+                            @endforeach
+                        </select>
+
+                        <input type="text" 
+                               x-model="searchQuery" 
+                               placeholder="Cari No WR / Komponen..." 
+                               class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 px-3 w-full sm:w-48">
+                    </div>
+                </div>
+
+                <!-- SUB-TAB 1: MENUNGGU AMBIL (ANTAR MESIN) -->
+                <div x-show="transferSubTab === 'waiting'" class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-4">No WR / Tanggal</th>
+                                <th class="py-3 px-4">Komponen & Dimensi</th>
+                                <th class="py-3 px-4">Tujuan Mesin</th>
+                                <th class="py-3 px-4">Status & Qty</th>
+                                <th class="py-3 px-4 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($transferWaiting as $t)
+                            <tr class="hover:bg-slate-50/80 transition"
+                                x-show="matchesFilter('{{ $t['tgl_raw'] }}', '{{ $t['origin'] }}', '{{ $t['destination'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                                <td class="py-3.5 px-4">
+                                    <div class="font-mono font-black text-slate-900 text-xs">{{ $t['wri_number'] }}</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
+                                    <div class="text-[10px] text-slate-400 font-mono">Kode: {{ $t['part_number'] }} | Dim: {{ $t['dimension'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-slate-800"><i class="fa-solid fa-location-dot text-rose-500 me-1"></i> Asal: {{ $t['origin'] }}</div>
+                                    <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-bullseye text-blue-500 me-1"></i> Tujuan: {{ $t['destination'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                        Menunggu Ambil
+                                    </span>
+                                    <div class="text-xs font-black text-slate-900 mt-1">Qty: <b>{{ $t['qty'] }}</b> pcs</div>
+                                </td>
+                                <td class="py-3.5 px-4 text-right">
+                                    <button type="button" 
+                                            @click="openActionModal({{ json_encode($t) }})"
+                                            class="inline-flex items-center justify-center px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-full shadow-xs transition">
+                                        <i class="fa-solid fa-qrcode me-1.5 text-[10px]"></i> Ambil
+                                    </button>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="py-12 text-center text-slate-400 italic">
+                                    <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                        <i class="fa-solid fa-check"></i>
+                                    </div>
+                                    <p class="font-bold text-slate-700 text-xs">Beres! Semua komponen antar stasiun sudah di-pickup.</p>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- SUB-TAB 2: DALAM PERJALANAN (ANTAR MESIN) -->
+                <div x-show="transferSubTab === 'transit'" class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-4">No WR / Tanggal</th>
+                                <th class="py-3 px-4">Komponen & Dimensi</th>
+                                <th class="py-3 px-4">Rute Transfer</th>
+                                <th class="py-3 px-4">Status & Qty</th>
+                                <th class="py-3 px-4 text-right">Info Logistik</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($transferTransit as $t)
+                            <tr class="hover:bg-slate-50/80 transition"
+                                x-show="matchesFilter('{{ $t['tgl_raw'] }}', '{{ $t['origin'] }}', '{{ $t['destination'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                                <td class="py-3.5 px-4">
+                                    <div class="font-mono font-black text-slate-900 text-xs">{{ $t['wri_number'] }}</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
+                                    <div class="text-[10px] text-slate-400 font-mono">Kode: {{ $t['part_number'] }} | Dim: {{ $t['dimension'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-slate-800"><i class="fa-solid fa-location-dot text-rose-500 me-1"></i> Asal: {{ $t['origin'] }}</div>
+                                    <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-bullseye text-blue-500 me-1"></i> Tujuan: {{ $t['destination'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-900 border border-sky-300">
+                                        Sedang Dibawa MH
+                                    </span>
+                                    <div class="text-xs font-black text-slate-900 mt-1">Qty: <b>{{ $t['qty'] }}</b> pcs</div>
+                                </td>
+                                <td class="py-3.5 px-4 text-right">
+                                    <span class="inline-flex items-center px-3 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">
+                                        <i class="fa-solid fa-truck-fast text-sky-600 me-1"></i> Perjalanan
+                                    </span>
+                                    <div class="text-[10px] text-slate-400 mt-1"><i class="fa-regular fa-clock me-1"></i> Diambil: <b>{{ $t['pickup_time'] }}</b></div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="py-12 text-center text-slate-400 italic">
+                                    <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                        <i class="fa-solid fa-truck"></i>
+                                    </div>
+                                    <p class="font-bold text-slate-600 text-xs">Kosong. Tidak ada barang dalam perjalanan antar mesin.</p>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- SUB-TAB 3: RIWAYAT TRANSFER (ANTAR MESIN) -->
+                <div x-show="transferSubTab === 'history'" class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-4">No WR / Tanggal</th>
+                                <th class="py-3 px-4">Komponen & Dimensi</th>
+                                <th class="py-3 px-4">Rute Transfer</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($transferHistory as $t)
+                            <tr class="hover:bg-slate-50/80 transition"
+                                x-show="matchesFilter('{{ $t['tgl_raw'] }}', '{{ $t['origin'] }}', '{{ $t['destination'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                                <td class="py-3.5 px-4">
+                                    <div class="font-mono font-bold text-slate-800 text-xs">{{ $t['wri_number'] }}</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
+                                    <div class="text-[10px] text-slate-400 font-mono">Qty: <b>{{ $t['qty'] }}</b> | Dim: {{ $t['dimension'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-medium text-slate-700"><i class="fa-solid fa-location-dot text-rose-500 me-1"></i> Asal: {{ $t['origin'] }}</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-solid fa-bullseye text-blue-500 me-1"></i> Tujuan: {{ $t['destination'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        {{ $t['status'] }}
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-right">
+                                    <button type="button" 
+                                            @click="openDetailModal({{ json_encode($t) }})"
+                                            class="inline-flex items-center px-3 py-1 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs shadow-xs transition">
+                                        <i class="fa-solid fa-circle-info me-1 text-blue-500"></i> Detail
+                                    </button>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="py-12 text-center text-slate-400 italic">
+                                    <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                    </div>
+                                    <p class="font-bold text-slate-600 text-xs">Belum ada riwayat transfer antar mesin yang tercatat.</p>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- 2. TAB NAVIGASI UTAMA -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div class="border-b border-slate-200 px-4 pt-3 bg-slate-50/60 flex items-center space-x-2 overflow-x-auto">
-                <button type="button" 
-                        @click="activeTab = 'pickup'" 
-                        class="pb-3 px-3 text-xs font-bold transition border-b-2 flex items-center space-x-2 whitespace-nowrap"
-                        :class="activeTab === 'pickup' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500 hover:text-slate-800'">
-                    <i class="fa-solid fa-truck-pickup"></i>
-                    <span>1. Antrian Pickup Mesin</span>
-                    <span class="px-2 py-0.2 rounded-full text-[10px] bg-indigo-100 text-indigo-800">{{ $pickupCount }}</span>
-                </button>
+        <!-- ======================================================== -->
+        <!-- TAB 2: SIAP DIAMBIL (DISTRIBUSI KE PENGAJU / GUDANG)     -->
+        <!-- ======================================================== -->
+        <div x-show="mainTab === 'final'" class="space-y-4">
+            <!-- Sub-tab Navigation (3 Sub-Tab) -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div class="border-b border-slate-200 px-4 pt-3 bg-slate-50/60 flex items-center space-x-2 overflow-x-auto">
+                    <button type="button" 
+                            @click="finalSubTab = 'waiting'" 
+                            class="pb-3 px-3 text-xs font-bold transition border-b-2 flex items-center space-x-2 whitespace-nowrap"
+                            :class="finalSubTab === 'waiting' ? 'border-emerald-600 text-emerald-800' : 'border-transparent text-slate-500 hover:text-slate-800'">
+                        <i class="fa-solid fa-box-open text-emerald-600"></i>
+                        <span>Siap Diambil</span>
+                        <span class="px-2 py-0.2 rounded-full text-[10px] bg-emerald-100 text-emerald-900 font-extrabold">{{ count($finalWaiting) }}</span>
+                    </button>
 
-                <button type="button" 
-                        @click="activeTab = 'transit'" 
-                        class="pb-3 px-3 text-xs font-bold transition border-b-2 flex items-center space-x-2 whitespace-nowrap"
-                        :class="activeTab === 'transit' ? 'border-amber-500 text-amber-800' : 'border-transparent text-slate-500 hover:text-slate-800'">
-                    <i class="fa-solid fa-truck-fast"></i>
-                    <span>2. Transit Antar Mesin</span>
-                    <span class="px-2 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800">{{ $transitCount }}</span>
-                </button>
+                    <button type="button" 
+                            @click="finalSubTab = 'transit'" 
+                            class="pb-3 px-3 text-xs font-bold transition border-b-2 flex items-center space-x-2 whitespace-nowrap"
+                            :class="finalSubTab === 'transit' ? 'border-sky-500 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'">
+                        <i class="fa-solid fa-truck-fast text-sky-500"></i>
+                        <span>Dalam Perjalanan</span>
+                        <span class="px-2 py-0.2 rounded-full text-[10px] bg-sky-100 text-sky-900 font-extrabold">{{ count($finalTransit) }}</span>
+                    </button>
 
-                <button type="button" 
-                        @click="activeTab = 'distribution'" 
-                        class="pb-3 px-3 text-xs font-bold transition border-b-2 flex items-center space-x-2 whitespace-nowrap"
-                        :class="activeTab === 'distribution' ? 'border-cyan-600 text-cyan-800' : 'border-transparent text-slate-500 hover:text-slate-800'">
-                    <i class="fa-solid fa-dolly"></i>
-                    <span>3. Siap Distribusi ke Pengaju</span>
-                    <span class="px-2 py-0.2 rounded-full text-[10px] bg-cyan-100 text-cyan-800">{{ $distributionCount }}</span>
-                </button>
+                    <button type="button" 
+                            @click="finalSubTab = 'history'" 
+                            class="pb-3 px-3 text-xs font-bold transition border-b-2 flex items-center space-x-2 whitespace-nowrap"
+                            :class="finalSubTab === 'history' ? 'border-slate-500 text-slate-800' : 'border-transparent text-slate-500 hover:text-slate-800'">
+                        <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
+                        <span>Riwayat Selesai</span>
+                        <span class="px-2 py-0.2 rounded-full text-[10px] bg-slate-100 text-slate-700 font-extrabold">{{ count($finalHistory) }}</span>
+                    </button>
+                </div>
 
-                <button type="button" 
-                        @click="activeTab = 'history'" 
-                        class="pb-3 px-3 text-xs font-bold transition border-b-2 flex items-center space-x-2 whitespace-nowrap"
-                        :class="activeTab === 'history' ? 'border-emerald-600 text-emerald-800' : 'border-transparent text-slate-500 hover:text-slate-800'">
-                    <i class="fa-solid fa-clock-rotate-left"></i>
-                    <span>4. Riwayat & Log Aktivitas</span>
-                    <span class="px-2 py-0.2 rounded-full text-[10px] bg-emerald-100 text-emerald-800">{{ $historyCount }}</span>
-                </button>
-            </div>
+                <!-- Filter Panel Siap Diambil -->
+                <div class="p-4 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                    <span class="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold">
+                        <span x-text="finalSubTab === 'waiting' ? '{{ count($finalWaiting) }} Item Siap Diambil' : (finalSubTab === 'transit' ? '{{ count($finalTransit) }} Item Dalam Perjalanan ke Pengaju' : '{{ count($finalHistory) }} Riwayat Selesai')"></span>
+                    </span>
 
-            <!-- TAB 1: ANTRIAN PICKUP MESIN -->
-            <div x-show="activeTab === 'pickup'" class="p-5 space-y-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h4 class="font-extrabold text-sm text-slate-900">Daftar Komponen Selesai Proses Mesin &bull; Menunggu Pickup Material Handling</h4>
-                        <p class="text-xs text-slate-500 mt-0.5">Barang dengan status <code>(Out)</code> siap diangkut ke stasiun kerja berikutnya atau ke pengaju.</p>
+                    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                        <select x-model="filterDate" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
+                            <option value="all">Semua Tgl</option>
+                            <option value="today">Hari Ini</option>
+                            <option value="last3">3 Hari</option>
+                            <option value="week">Minggu Ini</option>
+                        </select>
+
+                        <select x-model="filterFinalLocation" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
+                            <option value="all">Semua Lokasi Selesai</option>
+                            @foreach($filterFinalLocations as $floc)
+                            <option value="{{ $floc }}">{{ $floc }}</option>
+                            @endforeach
+                        </select>
+
+                        <input type="text" 
+                               x-model="searchQuery" 
+                               placeholder="Cari No WR / Komponen..." 
+                               class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 px-3 w-full sm:w-48">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    @forelse($tasksPickup as $task)
-                    <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3 hover:border-indigo-300 transition">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <span class="font-mono text-xs font-bold text-slate-900 block">{{ $task->wri_number }}</span>
-                                <span class="text-[10px] text-slate-400 font-medium">{{ $task->created_at->format('d M, H:i') }}</span>
+                <!-- SUB-TAB 1: SIAP DIAMBIL (FINAL) -->
+                <div x-show="finalSubTab === 'waiting'" class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-4">No WR / Tanggal</th>
+                                <th class="py-3 px-4">Komponen & Dimensi</th>
+                                <th class="py-3 px-4">Lokasi Selesai</th>
+                                <th class="py-3 px-4">Status & Qty</th>
+                                <th class="py-3 px-4 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($finalWaiting as $t)
+                            <tr class="hover:bg-slate-50/80 transition"
+                                x-show="matchesFilterFinal('{{ $t['tgl_raw'] }}', '{{ $t['location'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                                <td class="py-3.5 px-4">
+                                    <div class="font-mono font-black text-slate-900 text-xs">{{ $t['wri_number'] }}</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
+                                    <div class="text-[10px] text-slate-400 font-mono">Kode: {{ $t['part_number'] }} | Dim: {{ $t['dimension'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-slate-800"><i class="fa-solid fa-map-pin text-emerald-600 me-1"></i> Selesai di: {{ $t['location'] }}</div>
+                                    <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-warehouse text-teal-600 me-1"></i> Tujuan: {{ $t['destination'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                        Siap Distribusi
+                                    </span>
+                                    <div class="text-xs font-black text-slate-900 mt-1">Qty: <b>{{ $t['qty'] }}</b> pcs</div>
+                                </td>
+                                <td class="py-3.5 px-4 text-right">
+                                    <button type="button" 
+                                            @click="openActionModal({{ json_encode($t) }})"
+                                            class="inline-flex items-center justify-center px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-full shadow-xs transition">
+                                        <i class="fa-solid fa-truck-fast me-1.5 text-[10px]"></i> Ambil
+                                    </button>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="py-12 text-center text-slate-400 italic">
+                                    <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                        <i class="fa-solid fa-check-double"></i>
+                                    </div>
+                                    <p class="font-bold text-slate-600 text-xs">Aman! Tidak ada barang menunggu pengambilan akhir ke gudang.</p>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- SUB-TAB 2: DALAM PERJALANAN (FINAL KE PENGAJU) -->
+                <div x-show="finalSubTab === 'transit'" class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-4">No WR / Tanggal</th>
+                                <th class="py-3 px-4">Komponen & Dimensi</th>
+                                <th class="py-3 px-4">Lokasi & Tujuan</th>
+                                <th class="py-3 px-4">Status & Qty</th>
+                                <th class="py-3 px-4 text-right">Status Penyerahan</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($finalTransit as $t)
+                            <tr class="hover:bg-slate-50/80 transition"
+                                x-show="matchesFilterFinal('{{ $t['tgl_raw'] }}', '{{ $t['location'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                                <td class="py-3.5 px-4">
+                                    <div class="font-mono font-black text-slate-900 text-xs">{{ $t['wri_number'] }}</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
+                                    <div class="text-[10px] text-slate-400 font-mono">Kode: {{ $t['part_number'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-slate-800"><i class="fa-solid fa-location-dot text-rose-500 me-1"></i> Dari: {{ $t['location'] }}</div>
+                                    <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-bullseye text-blue-500 me-1"></i> Menuju: {{ $t['destination'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-900 border border-sky-300">
+                                        Perjalanan (Final)
+                                    </span>
+                                    <div class="text-xs font-black text-slate-900 mt-1">Qty: <b>{{ $t['qty'] }}</b> pcs</div>
+                                </td>
+                                <td class="py-3.5 px-4 text-right">
+                                    <span class="inline-flex items-center px-3 py-1 bg-amber-50 text-amber-800 border border-amber-300 rounded-full text-[10px] font-bold">
+                                        <i class="fa-solid fa-hourglass-half text-amber-500 me-1.5"></i> Menunggu Penerimaan {{ $t['destination'] }}
+                                    </span>
+                                    <div class="text-[10px] text-slate-400 mt-1"><i class="fa-regular fa-clock me-1"></i> Diambil: <b>{{ $t['pickup_time'] }}</b></div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="py-12 text-center text-slate-400 italic">
+                                    <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                        <i class="fa-solid fa-truck"></i>
+                                    </div>
+                                    <p class="font-bold text-slate-600 text-xs">Kosong. Tidak ada barang dalam perjalanan ke pengaju/gudang.</p>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- SUB-TAB 3: RIWAYAT SELESAI (FINAL) -->
+                <div x-show="finalSubTab === 'history'" class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-4">No WR / Tanggal</th>
+                                <th class="py-3 px-4">Komponen & Dimensi</th>
+                                <th class="py-3 px-4">Penerima Akhir</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($finalHistory as $t)
+                            <tr class="hover:bg-slate-50/80 transition"
+                                x-show="matchesFilterFinal('{{ $t['tgl_raw'] }}', '{{ $t['location'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                                <td class="py-3.5 px-4">
+                                    <div class="font-mono font-bold text-slate-800 text-xs">{{ $t['wri_number'] }}</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
+                                    <div class="text-[10px] text-slate-400 font-mono">Qty: <b>{{ $t['qty'] }}</b> | Dim: {{ $t['dimension'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-slate-800"><i class="fa-solid fa-warehouse text-emerald-600 me-1"></i> {{ $t['destination'] }}</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5">Diterima: {{ $t['received_time'] }}</div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        {{ $t['status'] }}
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-right">
+                                    <button type="button" 
+                                            @click="openDetailModal({{ json_encode($t) }})"
+                                            class="inline-flex items-center px-3 py-1 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs shadow-xs transition">
+                                        <i class="fa-solid fa-circle-info me-1 text-emerald-600"></i> Detail
+                                    </button>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="py-12 text-center text-slate-400 italic">
+                                    <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                        <i class="fa-solid fa-circle-check"></i>
+                                    </div>
+                                    <p class="font-bold text-slate-600 text-xs">Belum ada riwayat serah terima yang tercatat.</p>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- MODAL: KONFIRMASI AMBIL MATERIAL (PICKUP ACTION)         -->
+        <!-- ======================================================== -->
+        <div x-show="actionModalOpen" 
+             style="display: none;" 
+             class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+            <div @click.away="closeActionModal()" class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 transition-all">
+                <form method="POST" action="{{ route('work-station-supplies.quick-action') }}">
+                    @csrf
+                    <input type="hidden" name="work_request_id" :value="activeItem?.id">
+                    <input type="hidden" name="action_type" value="process">
+                    <input type="hidden" name="target_status" :value="activeItem?.target_status">
+
+                    <div class="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="p-2 bg-amber-400 text-slate-950 rounded-xl font-bold">
+                                <i class="fa-solid fa-truck-ramp-box text-lg"></i>
                             </div>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border {{ $task->status_badge['class'] }}">
-                                {{ $task->status_badge['label'] }}
+                            <div>
+                                <h3 class="text-sm font-extrabold text-white">Konfirmasi Pickup Material Handling</h3>
+                                <p class="text-[11px] text-slate-400">Ambil komponen untuk dipindahkan ke stasiun tujuan</p>
+                            </div>
+                        </div>
+                        <button type="button" @click="closeActionModal()" class="text-slate-400 hover:text-white p-1 rounded-xl">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="p-5 space-y-4">
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="font-mono text-xs font-black text-slate-900" x-text="activeItem?.wri_number"></span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800" x-text="activeItem?.target_status"></span>
+                            </div>
+                            <div class="text-xs font-bold text-slate-800" x-text="activeItem?.component_name"></div>
+                            <div class="text-[11px] text-slate-500 font-medium">
+                                Rute: <span class="font-semibold text-slate-800" x-text="(activeItem?.origin || activeItem?.location || '-') + ' &rarr; ' + (activeItem?.destination || '-')"></span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                Jumlah Komponen yang Diambil:
+                            </label>
+                            <div class="relative">
+                                <input type="number" 
+                                       name="process_qty" 
+                                       x-model="pickupQty" 
+                                       step="1" 
+                                       min="1" 
+                                       :max="activeItem?.qty" 
+                                       class="w-full px-3.5 py-2.5 text-sm font-black border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">PCS</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500 mt-1 block">
+                                Sedia untuk diambil: <b x-text="activeItem?.qty"></b> pcs. Anda bisa mengambil sebagian (parsial).
                             </span>
                         </div>
 
-                        <div class="flex items-center space-x-3 p-2.5 bg-slate-50 rounded-xl">
-                            <img src="{{ $task->component?->image_url ?? asset('images/logo_hpk.webp') }}" class="w-12 h-12 rounded-lg object-cover border border-slate-200 bg-white flex-shrink-0">
-                            <div class="min-w-0 flex-1">
-                                <span class="font-bold text-slate-900 text-xs block truncate">{{ $task->component?->name }}</span>
-                                <span class="font-mono text-[10px] font-semibold text-amber-900 bg-amber-100/70 px-1.5 py-0.2 rounded inline-block">
-                                    {{ $task->component?->part_number }}
-                                </span>
-                                <div class="text-[11px] font-black text-slate-900 mt-1">
-                                    Qty: {{ number_format($task->quantity_requested, 0) }} {{ $task->component?->uom }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="text-xs text-slate-600 bg-indigo-50/50 p-2 rounded-xl border border-indigo-100">
-                            <span class="text-slate-400 text-[10px] uppercase font-bold block">Alur Proses:</span>
-                            <span class="font-semibold text-indigo-950">{{ $task->routing_text ?: 'Mesin Fabrikasi' }}</span>
-                        </div>
-
-                        <!-- Action Button Pickup MH -->
-                        <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
-                            <a href="{{ route('work-requests.show', $task) }}" class="text-xs text-slate-500 hover:text-slate-800 font-medium">
-                                Detail Tiket
-                            </a>
-                            <form method="POST" action="{{ route('work-station-supplies.quick-action') }}">
-                                @csrf
-                                <input type="hidden" name="work_request_id" value="{{ $task->id }}">
-                                <input type="hidden" name="action_type" value="process">
-                                <input type="hidden" name="target_status" value="{{ $task->getNextStatusLabel() }}">
-                                <input type="hidden" name="process_qty" value="{{ $task->quantity_requested }}">
-                                <button type="submit" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5">
-                                    <i class="fa-solid fa-truck-pickup text-[11px]"></i>
-                                    <span>Pickup MH</span>
-                                </button>
-                            </form>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                Catatan Kurir Logistik (Opsional):
+                            </label>
+                            <textarea name="notes" rows="2" placeholder="Catatan nomor pallet / troli..." class="w-full text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 p-2.5"></textarea>
                         </div>
                     </div>
-                    @empty
-                    <div class="col-span-full py-12 text-center text-slate-400">
-                        <i class="fa-solid fa-truck-pickup text-3xl mb-2 text-slate-300 block"></i>
-                        Tidak ada antrian komponen yang menunggu pickup dari mesin saat ini.
+
+                    <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end space-x-2">
+                        <button type="button" @click="closeActionModal()" class="px-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-100 transition">
+                            Batal
+                        </button>
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-check text-xs"></i>
+                            <span>Konfirmasi Ambil Material</span>
+                        </button>
                     </div>
-                    @endforelse
-                </div>
+                </form>
             </div>
+        </div>
 
-            <!-- TAB 2: TRANSIT ANTAR MESIN -->
-            <div x-show="activeTab === 'transit'" class="p-5 space-y-4">
-                <div class="flex items-center justify-between">
+        <!-- ======================================================== -->
+        <!-- MODAL: DETAIL STATUS & TIMELINE ALUR (PERSIS LEGACY)     -->
+        <!-- ======================================================== -->
+        <div x-show="detailModalOpen" 
+             style="display: none;" 
+             class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+            <div @click.away="closeDetailModal()" class="bg-white rounded-3xl shadow-2xl max-w-xl w-full max-h-[92vh] overflow-y-auto border border-slate-200 transition-all">
+                <div class="px-5 py-4 bg-slate-900 text-white flex items-center justify-between rounded-t-3xl">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="p-2 bg-teal-400 text-slate-950 rounded-xl font-bold">
+                            <i class="fa-solid fa-timeline text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-extrabold text-white">Detail Alur & Histori Logistik Tiket</h3>
+                            <p class="text-[11px] text-slate-400" x-text="detailItem?.wri_number"></p>
+                        </div>
+                    </div>
+                    <button type="button" @click="closeDetailModal()" class="text-slate-400 hover:text-white p-1 rounded-xl">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <div class="p-5 space-y-4">
+                    <!-- Hero Status Box -->
+                    <div class="p-4 rounded-2xl bg-gradient-to-r from-teal-50 to-blue-50 border border-teal-100 flex items-center space-x-3.5">
+                        <div class="w-12 h-12 rounded-2xl bg-teal-600 text-white flex items-center justify-center text-xl font-bold flex-shrink-0 shadow-sm">
+                            <i class="fa-solid fa-truck-ramp-box"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span class="text-[10px] font-bold text-teal-800 uppercase tracking-wider block">Status Saat Ini:</span>
+                            <h4 class="font-black text-slate-900 text-sm" x-text="detailItem?.current_status || detailItem?.status"></h4>
+                            <p class="text-xs text-slate-600 mt-0.5 truncate" x-text="detailItem?.component_name + ' &bull; ' + (detailItem?.routing || '')"></p>
+                        </div>
+                    </div>
+
+                    <!-- Routing Steps Timeline -->
                     <div>
-                        <h4 class="font-extrabold text-sm text-slate-900">Daftar Komponen Dalam Angkutan Material Handling (Transit Lapangan)</h4>
-                        <p class="text-xs text-slate-500 mt-0.5">Barang dengan status <code>MH Pickup</code> sedang dibawa menuju stasiun kerja / mesin berikutnya.</p>
+                        <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Tahapan Routing & Lokasi:</h5>
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl font-mono text-xs font-bold text-indigo-900" x-text="detailItem?.routing"></div>
                     </div>
-                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    @forelse($tasksTransit as $task)
-                    <div class="bg-white rounded-2xl p-4 border border-amber-300 bg-amber-50/20 shadow-xs space-y-3 hover:border-amber-400 transition">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <span class="font-mono text-xs font-bold text-slate-900 block">{{ $task->wri_number }}</span>
-                                <span class="text-[10px] text-slate-400 font-medium">{{ $task->created_at->format('d M, H:i') }}</span>
-                            </div>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border {{ $task->status_badge['class'] }}">
-                                {{ $task->status_badge['label'] }}
-                            </span>
-                        </div>
-
-                        <div class="flex items-center space-x-3 p-2.5 bg-white rounded-xl border border-amber-200">
-                            <img src="{{ $task->component?->image_url ?? asset('images/logo_hpk.webp') }}" class="w-12 h-12 rounded-lg object-cover border border-slate-200 bg-white flex-shrink-0">
-                            <div class="min-w-0 flex-1">
-                                <span class="font-bold text-slate-900 text-xs block truncate">{{ $task->component?->name }}</span>
-                                <span class="font-mono text-[10px] font-semibold text-amber-900 bg-amber-100/70 px-1.5 py-0.2 rounded inline-block">
-                                    {{ $task->component?->part_number }}
-                                </span>
-                                <div class="text-[11px] font-black text-slate-900 mt-1">
-                                    Qty: {{ number_format($task->quantity_requested, 0) }} {{ $task->component?->uom }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="text-xs text-slate-600 bg-white p-2.5 rounded-xl border border-amber-200">
-                            <span class="text-amber-800 text-[10px] uppercase font-bold block">Tujuan Berikutnya:</span>
-                            <span class="font-extrabold text-amber-950">{{ $task->getNextStatusLabel() }}</span>
-                        </div>
-
-                        <!-- Action Button Drop di Mesin Berikutnya -->
-                        <div class="pt-2 border-t border-amber-200/60 flex items-center justify-between">
-                            <a href="{{ route('work-requests.show', $task) }}" class="text-xs text-slate-500 hover:text-slate-800 font-medium">
-                                Detail Tiket
-                            </a>
-                            <form method="POST" action="{{ route('work-station-supplies.quick-action') }}">
-                                @csrf
-                                <input type="hidden" name="work_request_id" value="{{ $task->id }}">
-                                <input type="hidden" name="action_type" value="process">
-                                <input type="hidden" name="target_status" value="{{ $task->getNextStatusLabel() }}">
-                                <input type="hidden" name="process_qty" value="{{ $task->quantity_requested }}">
-                                <button type="submit" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5">
-                                    <i class="fa-solid fa-location-dot text-[11px]"></i>
-                                    <span>Drop di Stasiun Berikutnya</span>
-                                </button>
-                            </form>
-                        </div>
+                    <!-- Target Location in Warehouse -->
+                    <div class="p-3 bg-white border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+                        <span class="text-slate-500 font-semibold">Target Rak Penyimpanan Gudang:</span>
+                        <span class="font-mono font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-lg" x-text="detailItem?.target_location || '-'"></span>
                     </div>
-                    @empty
-                    <div class="col-span-full py-12 text-center text-slate-400">
-                        <i class="fa-solid fa-truck-fast text-3xl mb-2 text-slate-300 block"></i>
-                        Tidak ada barang yang sedang transit antar mesin.
-                    </div>
-                    @endforelse
-                </div>
-            </div>
 
-            <!-- TAB 3: SIAP DISTRIBUSI KE PENGAJU / GUDANG -->
-            <div x-show="activeTab === 'distribution'" class="p-5 space-y-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h4 class="font-extrabold text-sm text-slate-900">Daftar Komponen Selesai Fabrikasi &bull; Siap Diantar / Serah Terima ke Pengaju</h4>
-                        <p class="text-xs text-slate-500 mt-0.5">Komponen siap didistribusikan ke Gudang atau Lini Perakitan. Konfirmasi akhir akan otomatis menambah stok.</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    @forelse($tasksDistribution as $task)
-                    <div class="bg-white rounded-2xl p-4 border border-cyan-300 bg-cyan-50/20 shadow-xs space-y-3 hover:border-cyan-400 transition">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <span class="font-mono text-xs font-bold text-slate-900 block">{{ $task->wri_number }}</span>
-                                <div class="text-[10px] text-slate-500 mt-0.5">
-                                    {{ $task->dept_pengaju ?: 'Gudang' }} &bull; Slot: <span class="font-mono font-bold text-blue-900">{{ $task->target_specific_location_code }}</span>
-                                </div>
-                            </div>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border {{ $task->status_badge['class'] }}">
-                                {{ $task->status_badge['label'] }}
-                            </span>
-                        </div>
-
-                        <div class="flex items-center space-x-3 p-2.5 bg-white rounded-xl border border-cyan-200">
-                            <img src="{{ $task->component?->image_url ?? asset('images/logo_hpk.webp') }}" class="w-12 h-12 rounded-lg object-cover border border-slate-200 bg-white flex-shrink-0">
-                            <div class="min-w-0 flex-1">
-                                <span class="font-bold text-slate-900 text-xs block truncate">{{ $task->component?->name }}</span>
-                                <span class="font-mono text-[10px] font-semibold text-amber-900 bg-amber-100/70 px-1.5 py-0.2 rounded inline-block">
-                                    {{ $task->component?->part_number }}
-                                </span>
-                                <div class="text-[11px] font-black text-slate-900 mt-1">
-                                    Qty: {{ number_format($task->quantity_requested, 0) }} {{ $task->component?->uom }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Action Button Berdasarkan Status (Siap Diambil vs Menuju Pengaju) -->
-                        <div class="pt-2 border-t border-cyan-200/60 flex items-center justify-between">
-                            <a href="{{ route('work-requests.show', $task) }}" class="text-xs text-slate-500 hover:text-slate-800 font-medium">
-                                Detail Tiket
-                            </a>
-                            <form method="POST" action="{{ route('work-station-supplies.quick-action') }}">
-                                @csrf
-                                <input type="hidden" name="work_request_id" value="{{ $task->id }}">
-                                <input type="hidden" name="action_type" value="process">
-                                <input type="hidden" name="target_status" value="{{ $task->getNextStatusLabel() }}">
-                                <input type="hidden" name="process_qty" value="{{ $task->quantity_requested }}">
-
-                                @if(stripos($task->status, 'Menuju Pengaju') !== false)
-                                <button type="submit" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5">
-                                    <i class="fa-solid fa-circle-check text-[11px]"></i>
-                                    <span>Konfirmasi Diterima & Masuk Stok</span>
-                                </button>
-                                @else
-                                <button type="submit" class="px-3.5 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5">
-                                    <i class="fa-solid fa-dolly text-[11px]"></i>
-                                    <span>Antar ke Pengaju</span>
-                                </button>
-                                @endif
-                            </form>
-                        </div>
-                    </div>
-                    @empty
-                    <div class="col-span-full py-12 text-center text-slate-400">
-                        <i class="fa-solid fa-dolly text-3xl mb-2 text-slate-300 block"></i>
-                        Tidak ada barang yang menunggu distribusi atau serah terima.
-                    </div>
-                    @endforelse
-                </div>
-            </div>
-
-            <!-- TAB 4: RIWAYAT & LOG AKTIVITAS -->
-            <div x-show="activeTab === 'history'" class="p-5 space-y-6">
-                <!-- Selesai Hari Ini -->
-                <div>
-                    <h4 class="font-extrabold text-sm text-slate-900 mb-3">Tiket Selesai & Diterima di Gudang (Closed)</h4>
-                    <div class="overflow-x-auto border border-slate-200 rounded-2xl">
-                        <table class="w-full text-left text-xs text-slate-600">
-                            <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
-                                <tr>
-                                    <th class="py-2.5 px-3">No. WRI</th>
-                                    <th class="py-2.5 px-3">Komponen</th>
-                                    <th class="py-2.5 px-3 text-center">Jumlah Diterima</th>
-                                    <th class="py-2.5 px-3">Target Slot Rak</th>
-                                    <th class="py-2.5 px-3">Waktu Penerimaan</th>
-                                    <th class="py-2.5 px-3">Penerima</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                @forelse($tasksHistory as $hist)
-                                <tr class="hover:bg-slate-50/70 transition">
-                                    <td class="py-2.5 px-3 font-mono font-bold text-slate-900">
-                                        <a href="{{ route('work-requests.show', $hist) }}" class="hover:text-blue-600">
-                                            {{ $hist->wri_number }}
-                                        </a>
-                                    </td>
-                                    <td class="py-2.5 px-3">
-                                        <span class="font-bold text-slate-800 block truncate max-w-xs">{{ $hist->component?->name }}</span>
-                                        <span class="font-mono text-[10px] text-amber-800">{{ $hist->component?->part_number }}</span>
-                                    </td>
-                                    <td class="py-2.5 px-3 text-center font-extrabold text-emerald-700">
-                                        +{{ number_format($hist->quantity_received ?: $hist->quantity_requested, 0) }} {{ $hist->component?->uom }}
-                                    </td>
-                                    <td class="py-2.5 px-3 font-mono font-semibold text-blue-900">
-                                        {{ $hist->target_specific_location_code }}
-                                    </td>
-                                    <td class="py-2.5 px-3 text-slate-500">
-                                        {{ $hist->received_at ? $hist->received_at->format('d M Y, H:i') : $hist->updated_at->format('d M Y, H:i') }}
-                                    </td>
-                                    <td class="py-2.5 px-3 font-medium text-slate-700">
-                                        {{ $hist->receivedBy?->name ?? 'Gudang' }}
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="6" class="py-8 text-center text-slate-400 italic">
-                                        Belum ada riwayat serah terima yang tercatat.
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Log Aktivitas Lapangan Terkini -->
-                <div>
-                    <h4 class="font-extrabold text-sm text-slate-900 mb-3">Audit Trail & Log Pergerakan Material Handling</h4>
-                    <div class="overflow-x-auto border border-slate-200 rounded-2xl">
-                        <table class="w-full text-left text-xs text-slate-600">
-                            <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
-                                <tr>
-                                    <th class="py-2.5 px-3">Waktu</th>
-                                    <th class="py-2.5 px-3">Tiket & Komponen</th>
-                                    <th class="py-2.5 px-3">Status / Pergerakan</th>
-                                    <th class="py-2.5 px-3 text-center">Qty</th>
-                                    <th class="py-2.5 px-3">Operator</th>
-                                    <th class="py-2.5 px-3">Catatan</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                @forelse($recentLogs as $log)
-                                <tr class="hover:bg-slate-50/70 transition {{ $log->action_type === 'defect' ? 'bg-rose-50/60' : '' }}">
-                                    <td class="py-2.5 px-3 font-mono text-[10px] text-slate-400">
-                                        {{ $log->created_at->format('d/m H:i') }}
-                                    </td>
-                                    <td class="py-2.5 px-3">
-                                        <a href="{{ route('work-requests.show', $log->workRequest) }}" class="font-mono font-bold text-slate-900 hover:text-blue-600 block">
-                                            {{ $log->workRequest?->wri_number }}
-                                        </a>
-                                        <span class="text-[11px] text-slate-500 truncate block max-w-xs">{{ $log->workRequest?->component?->name }}</span>
-                                    </td>
-                                    <td class="py-2.5 px-3">
-                                        @if($log->action_type === 'defect')
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
-                                                <i class="fa-solid fa-triangle-exclamation me-1"></i> {{ $log->status_label }}
-                                            </span>
-                                        @else
-                                            <span class="font-semibold text-slate-800">{{ $log->status_label }}</span>
-                                        @endif
-                                    </td>
-                                    <td class="py-2.5 px-3 text-center font-extrabold {{ $log->action_type === 'defect' ? 'text-rose-600' : 'text-slate-900' }}">
-                                        {{ number_format($log->quantity, 0) }}
-                                    </td>
-                                    <td class="py-2.5 px-3 font-medium text-slate-700">
-                                        {{ $log->operator_name ?: '-' }}
-                                    </td>
-                                    <td class="py-2.5 px-3 text-[11px] text-slate-500">
-                                        {{ $log->notes ?: '-' }}
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="6" class="py-6 text-center text-slate-400 italic">
-                                        Belum ada aktivitas baru.
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                    <!-- Direct link to full show view -->
+                    <div class="pt-2 text-center">
+                        <a :href="'/work-requests/' + (detailItem?.id || '')" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1">
+                            <span>Buka Halaman Lengkap Tiket WRI</span>
+                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 3. SCANNER QR & BARCODE MODAL KHUSUS MATERIAL HANDLING -->
+        <!-- ======================================================== -->
+        <!-- MODAL: CAMERA SCANNER (QR & BARCODE)                     -->
+        <!-- ======================================================== -->
         <div x-show="mhScannerOpen" 
              style="display: none;" 
              class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-            
             <div @click.away="closeMhScanner()" class="bg-white rounded-3xl shadow-2xl max-w-xl w-full max-h-[92vh] overflow-y-auto border border-slate-200 transition-all">
-                <!-- Modal Header -->
                 <div class="px-5 py-4 bg-slate-900 text-white flex items-center justify-between rounded-t-3xl">
                     <div class="flex items-center space-x-2.5">
                         <div class="p-2 bg-amber-400 text-slate-950 rounded-xl font-bold">
@@ -484,7 +706,7 @@
                         </div>
                         <div>
                             <h3 class="text-sm font-extrabold text-white">Scanner Tiket WRI Lapangan</h3>
-                            <p class="text-[11px] text-slate-400">Scan QR Code tiket pada pallet / part untuk eksekusi cepat MH</p>
+                            <p class="text-[11px] text-slate-400">Scan QR Code tiket untuk eksekusi cepat Material Handling</p>
                         </div>
                     </div>
                     <button type="button" @click="closeMhScanner()" class="text-slate-400 hover:text-white p-1 rounded-xl">
@@ -492,15 +714,12 @@
                     </button>
                 </div>
 
-                <!-- Modal Body -->
                 <div class="p-5 space-y-4">
-                    <!-- Camera Viewport -->
                     <div class="relative bg-slate-950 rounded-2xl overflow-hidden min-h-[220px] flex items-center justify-center border border-slate-800">
                         <div id="mh-scanner-reader" class="w-full"></div>
                         <div x-show="isScanningMh" class="absolute inset-x-8 top-1/2 -translate-y-1/2 h-1 bg-amber-400 shadow-[0_0_8px_#fbbf24] animate-pulse pointer-events-none"></div>
                     </div>
 
-                    <!-- Manual Input / Barcode Scanner Gun -->
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                             Ketik / Gun Barcode Scanner:
@@ -519,10 +738,8 @@
                         </div>
                     </div>
 
-                    <!-- Scan Error -->
                     <div x-show="scanErrorMessage" style="display: none;" class="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl font-bold" x-text="scanErrorMessage"></div>
 
-                    <!-- Scan Result Card & Fast Action Form -->
                     <div x-show="scannedTicket" style="display: none;" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                         <div class="flex items-start justify-between">
                             <div>
@@ -547,7 +764,6 @@
                             </div>
                         </div>
 
-                        <!-- Fast Execute Button -->
                         <form method="POST" action="{{ route('work-station-supplies.quick-action') }}" class="pt-2">
                             @csrf
                             <input type="hidden" name="work_request_id" :value="scannedTicket?.id">
@@ -573,15 +789,84 @@
     </div>
 
     <script>
-        function materialHandlingCenter() {
+        function taskGudangHandler() {
             return {
-                activeTab: 'pickup',
+                mainTab: 'transfer',
+                transferSubTab: 'waiting',
+                finalSubTab: 'waiting',
+
+                filterDate: 'all',
+                filterOrigin: 'all',
+                filterDestination: 'all',
+                filterFinalLocation: 'all',
+                searchQuery: '',
+
+                actionModalOpen: false,
+                activeItem: null,
+                pickupQty: 1,
+
+                detailModalOpen: false,
+                detailItem: null,
+
                 mhScannerOpen: false,
                 isScanningMh: false,
                 scanQuery: '',
                 scannedTicket: null,
                 scanErrorMessage: null,
                 html5QrMh: null,
+
+                matchesFilter(tglRaw, origin, destination, textSearch) {
+                    if (!this.checkDate(tglRaw)) return false;
+                    if (this.filterOrigin !== 'all' && origin !== this.filterOrigin) return false;
+                    if (this.filterDestination !== 'all' && destination !== this.filterDestination) return false;
+                    if (this.searchQuery && !textSearch.includes(this.searchQuery.toLowerCase())) return false;
+                    return true;
+                },
+
+                matchesFilterFinal(tglRaw, location, textSearch) {
+                    if (!this.checkDate(tglRaw)) return false;
+                    if (this.filterFinalLocation !== 'all' && location !== this.filterFinalLocation) return false;
+                    if (this.searchQuery && !textSearch.includes(this.searchQuery.toLowerCase())) return false;
+                    return true;
+                },
+
+                checkDate(tglRaw) {
+                    if (this.filterDate === 'all' || !tglRaw) return true;
+                    const parts = tglRaw.split('-');
+                    if (parts.length < 3) return false;
+                    const itemDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
+                    const diffTime = today - itemDate;
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (this.filterDate === 'today') return diffDays === 0;
+                    if (this.filterDate === 'last3') return diffDays >= 0 && diffDays <= 3;
+                    if (this.filterDate === 'week') return diffDays >= 0 && diffDays <= 7;
+                    return true;
+                },
+
+                openActionModal(item) {
+                    this.activeItem = item;
+                    this.pickupQty = item.qty;
+                    this.actionModalOpen = true;
+                },
+
+                closeActionModal() {
+                    this.actionModalOpen = false;
+                    this.activeItem = null;
+                },
+
+                openDetailModal(item) {
+                    this.detailItem = item;
+                    this.detailModalOpen = true;
+                },
+
+                closeDetailModal() {
+                    this.detailModalOpen = false;
+                    this.detailItem = null;
+                },
 
                 openMhScanner() {
                     this.mhScannerOpen = true;

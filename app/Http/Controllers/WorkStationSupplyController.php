@@ -18,68 +18,219 @@ use Illuminate\Support\Str;
 class WorkStationSupplyController extends Controller
 {
     /**
-     * Material Handling Command Center (4 Tab Logistik Lapangan).
+     * Material Handling - Task Gudang (Struktur 2 Tab Sesuai Sistem Legacy).
      */
     public function index(Request $request)
     {
-        // 1. Tugas Pickup Mesin: WR yang selesai proses mesin dan menunggu diambil MH
-        $tasksPickup = WorkRequest::with(['component', 'steps.machine', 'requestedBy'])
-            ->where(function ($q) {
-                $q->where('status', 'like', '%(Out)%');
-            })
+        // Ambil semua tiket WRI aktif yang sudah disetujui (siap diproses logistik)
+        $workRequests = WorkRequest::with(['component.defaultLocation', 'targetLocation', 'steps.machine', 'requestedBy', 'logs'])
+            ->where('approval_pengaju', 'Diterima')
+            ->where('approval_penerima', 'Diterima')
             ->latest('updated_at')
             ->get();
 
-        // 2. Transit Antar Mesin: WR yang sedang diangkut MH menuju mesin/stasiun berikutnya
-        $tasksTransit = WorkRequest::with(['component', 'steps.machine', 'requestedBy'])
-            ->where('status', 'like', '%MH Pickup%')
-            ->latest('updated_at')
-            ->get();
+        $transferWaiting = [];
+        $transferTransit = [];
+        $transferHistory = [];
 
-        // 3. Siap Distribusi ke Pengaju / Gudang: WR yang siap diantar atau sedang menuju pengaju
-        $tasksDistribution = WorkRequest::with(['component', 'targetLocation', 'requestedBy'])
-            ->where(function ($q) {
-                $q->where('status', 'like', '%Siap Diambil%')
-                  ->orWhere('status', 'like', '%Menuju Pengaju%')
-                  ->orWhere('status', 'ready_for_warehouse');
-            })
-            ->latest('updated_at')
-            ->get();
+        $finalWaiting = [];
+        $finalTransit = [];
+        $finalHistory = [];
 
-        // 4. Riwayat Serah Terima & Selesai
-        $tasksHistory = WorkRequest::with(['component', 'targetLocation', 'receivedBy'])
-            ->where(function ($q) {
-                $q->where('status', 'like', '%Sudah Diambil%')
-                  ->orWhere('status', 'received')
-                  ->orWhere('is_final', true);
-            })
-            ->latest('received_at')
-            ->latest('updated_at')
-            ->take(20)
-            ->get();
+        foreach ($workRequests as $item) {
+            $steps = $item->getRoutingStepsList();
+            $lastStep = !empty($steps) ? $steps[count($steps) - 1] : '';
 
-        // Logs aktivitas MH terbaru
-        $recentLogs = WorkRequestLog::with(['workRequest.component'])
-            ->whereIn('action_type', ['process', 'defect', 'final_receive'])
-            ->latest('id')
-            ->take(15)
-            ->get();
+            // ==========================================
+            // TAB 2: SIAP DIAMBIL (DISTRIBUSI KE PENGAJU)
+            // ==========================================
+            $totalSiap = $item->getTotalProcessedForStatus('Siap diambil');
+            if ($totalSiap == 0 && $lastStep !== '') {
+                $totalSiap = $item->getTotalProcessedForStatus("Proses: {$lastStep} (Out)");
+            }
+            $totalFinalPickup = $item->getTotalProcessedForStatus('Menuju Pengaju');
+            $totalSudah = (float) $item->quantity_received ?: $item->getTotalProcessedForStatus('Sudah diambil');
 
-        $pickupCount = $tasksPickup->count();
-        $transitCount = $tasksTransit->count();
-        $distributionCount = $tasksDistribution->count();
-        $historyCount = $tasksHistory->count();
+            $menungguAmbilFinal = max(0, $totalSiap - $totalFinalPickup);
+            $sedangDibawaFinal = max(0, $totalFinalPickup - $totalSudah);
+
+            // Sub-tab 1: Siap Diambil
+            if ($menungguAmbilFinal > 0) {
+                $finalWaiting[] = [
+                    'id' => $item->id,
+                    'wri_number' => $item->wri_number,
+                    'component_name' => $item->component?->name ?? 'Komponen',
+                    'part_number' => $item->component?->part_number ?? '-',
+                    'dimension' => $item->component?->dimension_formatted ?? '-',
+                    'qty' => $menungguAmbilFinal,
+                    'location' => $lastStep ?: '-',
+                    'destination' => $item->dept_pengaju ?: 'Gudang',
+                    'tgl' => $item->created_at->format('d/m/Y'),
+                    'tgl_raw' => $item->created_at->format('Y-m-d'),
+                    'current_status' => 'Siap Diambil',
+                    'target_status' => 'Menuju Pengaju',
+                    'routing' => $item->routing_text,
+                    'target_location' => $item->target_specific_location_code,
+                    'image_url' => $item->component?->image_url ?? asset('images/logo_hpk.webp'),
+                    'item' => $item,
+                ];
+            }
+
+            // Sub-tab 2: Dalam Perjalanan (Final Transit)
+            if ($sedangDibawaFinal > 0) {
+                $lastPickupLog = $item->logs->filter(function ($l) {
+                    return stripos($l->status_label, 'Menuju Pengaju') !== false;
+                })->last();
+
+                $finalTransit[] = [
+                    'id' => $item->id,
+                    'wri_number' => $item->wri_number,
+                    'component_name' => $item->component?->name ?? 'Komponen',
+                    'part_number' => $item->component?->part_number ?? '-',
+                    'dimension' => $item->component?->dimension_formatted ?? '-',
+                    'qty' => $sedangDibawaFinal,
+                    'location' => $lastStep ?: '-',
+                    'destination' => $item->dept_pengaju ?: 'Gudang',
+                    'tgl' => $item->created_at->format('d/m/Y'),
+                    'tgl_raw' => $item->created_at->format('Y-m-d'),
+                    'pickup_time' => $lastPickupLog ? $lastPickupLog->created_at->format('d/m H:i') : '-',
+                    'current_status' => 'Menuju Pengaju',
+                    'routing' => $item->routing_text,
+                    'target_location' => $item->target_specific_location_code,
+                    'image_url' => $item->component?->image_url ?? asset('images/logo_hpk.webp'),
+                    'item' => $item,
+                ];
+            }
+
+            // Sub-tab 3: Riwayat Selesai
+            if ($totalSudah > 0) {
+                $lastReceiveLog = $item->logs->filter(function ($l) {
+                    return stripos($l->status_label, 'Sudah Diambil') !== false;
+                })->last();
+
+                $finalHistory[] = [
+                    'id' => $item->id,
+                    'wri_number' => $item->wri_number,
+                    'component_name' => $item->component?->name ?? 'Komponen',
+                    'part_number' => $item->component?->part_number ?? '-',
+                    'dimension' => $item->component?->dimension_formatted ?? '-',
+                    'qty' => $totalSudah,
+                    'location' => $lastStep ?: '-',
+                    'destination' => $item->dept_pengaju ?: 'Gudang',
+                    'tgl' => $item->created_at->format('d/m/Y'),
+                    'tgl_raw' => $item->created_at->format('Y-m-d'),
+                    'received_time' => $lastReceiveLog ? $lastReceiveLog->created_at->format('d/m H:i') : '-',
+                    'status' => "Selesai ({$totalSudah} pcs)",
+                    'routing' => $item->routing_text,
+                    'target_location' => $item->target_specific_location_code,
+                    'image_url' => $item->component?->image_url ?? asset('images/logo_hpk.webp'),
+                    'item' => $item,
+                ];
+            }
+
+            // ==========================================
+            // TAB 1: ANTAR MESIN (TRANSFER ANTAR TAHAPAN)
+            // ==========================================
+            foreach ($steps as $idx => $step) {
+                // Step terakhir langsung masuk ke Siap Diambil, bukan Antar Mesin
+                if ($idx === count($steps) - 1) {
+                    continue;
+                }
+
+                $nextStep = $steps[$idx + 1] ?? 'Gudang Akhir';
+                $totalOut = $item->getTotalProcessedForStatus("Proses: {$step} (Out)");
+                $totalPickup = $item->getTotalProcessedForStatus("MH Pickup: {$step}");
+                $totalNextIn = $item->getTotalProcessedForStatus("Proses: {$nextStep} (In)");
+
+                $menungguAmbil = max(0, $totalOut - $totalPickup);
+                $sedangDibawa = max(0, $totalPickup - $totalNextIn);
+
+                // Sub-tab 1: Menunggu Ambil
+                if ($menungguAmbil > 0) {
+                    $transferWaiting[] = [
+                        'id' => $item->id,
+                        'wri_number' => $item->wri_number,
+                        'component_name' => $item->component?->name ?? 'Komponen',
+                        'part_number' => $item->component?->part_number ?? '-',
+                        'dimension' => $item->component?->dimension_formatted ?? '-',
+                        'qty' => $menungguAmbil,
+                        'origin' => $step,
+                        'destination' => $nextStep,
+                        'tgl' => $item->created_at->format('d/m/Y'),
+                        'tgl_raw' => $item->created_at->format('Y-m-d'),
+                        'current_status' => "Proses: {$step} (Out)",
+                        'target_status' => "MH Pickup: {$step}",
+                        'routing' => $item->routing_text,
+                        'target_location' => $item->target_specific_location_code,
+                        'image_url' => $item->component?->image_url ?? asset('images/logo_hpk.webp'),
+                        'item' => $item,
+                    ];
+                }
+
+                // Sub-tab 2: Dalam Perjalanan (Transit)
+                if ($sedangDibawa > 0) {
+                    $lastPickupLog = $item->logs->filter(function ($l) use ($step) {
+                        return stripos($l->status_label, "MH Pickup: {$step}") !== false;
+                    })->last();
+
+                    $transferTransit[] = [
+                        'id' => $item->id,
+                        'wri_number' => $item->wri_number,
+                        'component_name' => $item->component?->name ?? 'Komponen',
+                        'part_number' => $item->component?->part_number ?? '-',
+                        'dimension' => $item->component?->dimension_formatted ?? '-',
+                        'qty' => $sedangDibawa,
+                        'origin' => $step,
+                        'destination' => $nextStep,
+                        'tgl' => $item->created_at->format('d/m/Y'),
+                        'tgl_raw' => $item->created_at->format('Y-m-d'),
+                        'pickup_time' => $lastPickupLog ? $lastPickupLog->created_at->format('d/m H:i') : '-',
+                        'current_status' => "MH Pickup: {$step}",
+                        'routing' => $item->routing_text,
+                        'target_location' => $item->target_specific_location_code,
+                        'image_url' => $item->component?->image_url ?? asset('images/logo_hpk.webp'),
+                        'item' => $item,
+                    ];
+                }
+
+                // Sub-tab 3: Riwayat Transfer
+                if ($totalPickup > 0) {
+                    $transferHistory[] = [
+                        'id' => $item->id,
+                        'wri_number' => $item->wri_number,
+                        'component_name' => $item->component?->name ?? 'Komponen',
+                        'part_number' => $item->component?->part_number ?? '-',
+                        'dimension' => $item->component?->dimension_formatted ?? '-',
+                        'qty' => $totalPickup,
+                        'origin' => $step,
+                        'destination' => $nextStep,
+                        'tgl' => $item->created_at->format('d/m/Y'),
+                        'tgl_raw' => $item->created_at->format('Y-m-d'),
+                        'status' => ($totalNextIn >= $totalPickup) ? "Terkirim ({$totalPickup} pcs)" : "Di-pickup MH ({$totalPickup} pcs)",
+                        'routing' => $item->routing_text,
+                        'target_location' => $item->target_specific_location_code,
+                        'image_url' => $item->component?->image_url ?? asset('images/logo_hpk.webp'),
+                        'item' => $item,
+                    ];
+                }
+            }
+        }
+
+        // List unik untuk dropdown filter
+        $filterOrigins = collect($transferWaiting)->pluck('origin')->merge(collect($transferTransit)->pluck('origin'))->unique()->values()->all();
+        $filterDestinations = collect($transferWaiting)->pluck('destination')->merge(collect($transferTransit)->pluck('destination'))->unique()->values()->all();
+        $filterFinalLocations = collect($finalWaiting)->pluck('location')->merge(collect($finalTransit)->pluck('location'))->unique()->values()->all();
 
         return view('work_station_supplies.index', compact(
-            'tasksPickup',
-            'tasksTransit',
-            'tasksDistribution',
-            'tasksHistory',
-            'recentLogs',
-            'pickupCount',
-            'transitCount',
-            'distributionCount',
-            'historyCount'
+            'transferWaiting',
+            'transferTransit',
+            'transferHistory',
+            'finalWaiting',
+            'finalTransit',
+            'finalHistory',
+            'filterOrigins',
+            'filterDestinations',
+            'filterFinalLocations'
         ));
     }
 
@@ -139,6 +290,7 @@ class WorkStationSupplyController extends Controller
         $validated = $request->validate([
             'work_request_id' => 'required|exists:work_requests,id',
             'action_type' => 'required|in:process,defect,quick_advance',
+            'target_status' => 'nullable|string|max:100',
             'process_qty' => 'nullable|numeric|min:0.01',
             'defect_qty' => 'nullable|numeric|min:0.01',
             'defect_reason' => 'nullable|string|max:255',

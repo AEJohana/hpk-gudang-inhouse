@@ -180,19 +180,19 @@
                     </div>
                 </a>
 
-                <!-- 9. Supply Stasiun Kerja -->
-                <a href="{{ route('work-station-supplies.create') }}" class="dash-card group border-blue-200 bg-blue-50/20">
+                <!-- 9. Material Handling (Task Gudang) -->
+                <a href="{{ route('work-station-supplies.index') }}" class="dash-card group border-teal-200 bg-teal-50/20">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-truck-ramp-box card-icon-bg"></i>
-                    <div class="icon-box text-blue-600 bg-blue-100">
+                    <div class="icon-box text-teal-700 bg-teal-100">
                         <i class="fa-solid fa-truck-ramp-box"></i>
                     </div>
                     <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-blue-700 transition">Supply Stasiun Kerja</h4>
-                            <span class="text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{{ $todaySupplyCount }} Hari Ini</span>
+                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-teal-800 transition">Material Handling</h4>
+                            <span class="text-[11px] font-bold text-teal-800 bg-teal-100 px-2 py-0.5 rounded-full">Task Gudang</span>
                         </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Pengeluaran komponen rak ke Lini Dump Truck, Tangki, Mixer & Sub-Assembly</p>
+                        <p class="text-xs text-slate-500 leading-relaxed">Pengambilan & pengantaran komponen antar mesin fabrikasi dan ke gudang</p>
                     </div>
                 </a>
             </div>

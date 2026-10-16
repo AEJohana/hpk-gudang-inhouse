@@ -66,7 +66,7 @@
                             </x-dropdown-link>
                             @can('material-handling.view')
                             <x-dropdown-link :href="route('work-station-supplies.index')" class="text-xs border-t border-slate-100">
-                                <i class="fa-solid fa-truck-ramp-box me-2 text-blue-600"></i> Material Handling Center
+                                <i class="fa-solid fa-truck-ramp-box me-2 text-blue-600"></i> Material Handling (Task Gudang)
                             </x-dropdown-link>
                             @endcan
                         </x-slot>

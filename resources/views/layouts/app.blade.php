@@ -87,7 +87,7 @@
                 @can('material-handling.view')
                 <a href="{{ route('work-station-supplies.index') }}" class="hpk-sidebar-item {{ request()->routeIs('work-station-supplies.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-truck-ramp-box text-blue-400"></i>
-                    <span>Material Handling (MH)</span>
+                    <span>Material Handling (Task Gudang)</span>
                 </a>
                 @endcan
                 <a href="{{ route('ecrs.index') }}" class="hpk-sidebar-item {{ request()->routeIs('ecrs.*') ? 'active' : '' }}">

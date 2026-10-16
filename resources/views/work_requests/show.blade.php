@@ -142,7 +142,7 @@
                         </div>
                     </div>
 
-                    @if($workRequest->approval_pengaju === 'Menunggu' && $canApprove)
+                    @if($workRequest->approval_pengaju === 'Menunggu' && $canApprovePengaju)
                     <div class="flex items-center space-x-2">
                         <form method="POST" action="{{ route('work-requests.approve-pengaju', $workRequest) }}">
                             @csrf
@@ -181,7 +181,7 @@
                         </div>
                     </div>
 
-                    @if($workRequest->approval_penerima === 'Menunggu' && $canApprove && $workRequest->approval_pengaju === 'Diterima')
+                    @if($workRequest->approval_penerima === 'Menunggu' && $canApprovePenerima && $workRequest->approval_pengaju === 'Diterima')
                     <div class="flex items-center space-x-2">
                         <form method="POST" action="{{ route('work-requests.approve-penerima', $workRequest) }}">
                             @csrf

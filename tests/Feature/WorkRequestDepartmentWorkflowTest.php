@@ -28,6 +28,7 @@ class WorkRequestDepartmentWorkflowTest extends TestCase
     protected User $operatorMH;
     protected Component $component;
     protected Location $location;
+    protected \App\Models\Machine $machine;
 
     protected function setUp(): void
     {
@@ -38,17 +39,25 @@ class WorkRequestDepartmentWorkflowTest extends TestCase
         $roleSpv = Role::firstOrCreate(['name' => 'supervisor']);
         $roleOp = Role::firstOrCreate(['name' => 'operator']);
         $roleOpMh = Role::firstOrCreate(['name' => 'operator_mh']);
+        $roleStaff = Role::firstOrCreate(['name' => 'staff']);
+
+        $this->machine = \App\Models\Machine::firstOrCreate(['code' => 'M1'], [
+            'name' => 'Mesin M1',
+            'machine_type' => 'Laser Cutting',
+        ]);
 
         Permission::firstOrCreate(['name' => 'work-request.view']);
         Permission::firstOrCreate(['name' => 'work-request.create']);
         Permission::firstOrCreate(['name' => 'work-request.approve']);
         Permission::firstOrCreate(['name' => 'work-request.process']);
+        Permission::firstOrCreate(['name' => 'material-handling.view']);
+        Permission::firstOrCreate(['name' => 'material-handling.manage']);
         Permission::firstOrCreate(['name' => 'material-handling.process']);
 
         $roleAdmin->givePermissionTo(Permission::all());
         $roleSpv->givePermissionTo(['work-request.view', 'work-request.create', 'work-request.approve', 'work-request.process']);
         $roleOp->givePermissionTo(['work-request.view', 'work-request.process']);
-        $roleOpMh->givePermissionTo(['work-request.view', 'work-request.process', 'material-handling.process']);
+        $roleOpMh->givePermissionTo(['work-request.view', 'work-request.process', 'material-handling.view', 'material-handling.manage', 'material-handling.process']);
 
         $deptGudang = Department::firstOrCreate(['name' => 'Dept Gudang'], ['code' => '11', 'is_active' => true]);
         $deptM1 = Department::firstOrCreate(['name' => 'Dept M1'], ['code' => '2', 'is_active' => true]);
@@ -123,7 +132,7 @@ class WorkRequestDepartmentWorkflowTest extends TestCase
             'can_access_all_departments' => false,
         ]);
         $this->operatorMH->assignRole('operator_mh');
-        $this->operatorMH->givePermissionTo(['work-request.view', 'work-request.process', 'material-handling.process']);
+        $this->operatorMH->givePermissionTo(['work-request.view', 'work-request.process', 'material-handling.view', 'material-handling.manage', 'material-handling.process']);
 
         // Component & Location
         $warehouse = Warehouse::firstOrCreate(['code' => 'W01'], ['name' => 'Gudang Utama']);
@@ -223,7 +232,7 @@ class WorkRequestDepartmentWorkflowTest extends TestCase
         WorkRequestStep::create([
             'work_request_id' => $wri->id,
             'step_number' => 1,
-            'machine_id' => 1,
+            'machine_id' => $this->machine->id,
             'process_name' => 'Dept M1',
             'status' => 'pending',
         ]);
@@ -397,4 +406,237 @@ class WorkRequestDepartmentWorkflowTest extends TestCase
         $newStock = StockBalance::where('component_id', $this->component->id)->sum('quantity');
         $this->assertEquals($initialStock + 75, $newStock);
     }
+
+    public function test_gudang_cannot_approve_penerima_or_process_m1()
+    {
+        $wri = WorkRequest::create([
+            'wri_number' => 'WRI/DeptGudang/TEST08',
+            'component_id' => $this->component->id,
+            'requested_by_user_id' => $this->operatorGudang->id,
+            'target_location_id' => $this->location->id,
+            'dept_pengaju' => 'Dept Gudang',
+            'dept_penerima' => 'Dept M1',
+            'routing_text' => 'Dept M1',
+            'approval_pengaju' => 'Diterima',
+            'approval_penerima' => 'Menunggu',
+            'quantity_requested' => 100,
+            'status' => 'Dalam antrian',
+        ]);
+
+        // 1. Gudang supervisor attempts to approve as Ka. Penerima of M1 -> REJECTED
+        $failApprove = $this->actingAs($this->spvGudang)
+            ->post(route('work-requests.approve-penerima', $wri), [
+                'operator_name' => 'Fajar M1',
+            ]);
+        $failApprove->assertSessionHas('error');
+        $wri->refresh();
+        $this->assertEquals('Menunggu', $wri->approval_penerima);
+
+        // 2. M1 supervisor approves -> SUCCESS
+        $successApprove = $this->actingAs($this->spvM1)
+            ->post(route('work-requests.approve-penerima', $wri), [
+                'operator_name' => 'Fajar M1',
+            ]);
+        $successApprove->assertSessionHas('success');
+        $wri->refresh();
+        $this->assertEquals('Diterima', $wri->approval_penerima);
+
+        // 3. Gudang supervisor attempts to process machine action (In) for M1 -> REJECTED
+        $failProcess = $this->actingAs($this->spvGudang)
+            ->post(route('work-requests.process-action', $wri), [
+                'action_type' => 'process',
+                'target_status' => 'Proses: Dept M1 (In)',
+                'process_qty' => 100,
+            ]);
+        $failProcess->assertSessionHas('error');
+    }
+
+    public function test_other_dept_such_as_sharing_cannot_see_or_interact_with_wri()
+    {
+        $deptSharing = Department::firstOrCreate(['name' => 'Dept Sharing'], ['code' => '4', 'is_active' => true]);
+        $userSharing = User::factory()->create([
+            'name' => 'DWI',
+            'role' => 'staff',
+            'department_id' => $deptSharing->id,
+            'department' => 'Dept Sharing',
+            'work_area' => 'mesin_center',
+            'can_access_all_departments' => false,
+        ]);
+        $userSharing->assignRole('staff');
+        $userSharing->givePermissionTo(['work-request.view', 'work-request.process']);
+
+        $wri = WorkRequest::create([
+            'wri_number' => 'WRI/DeptGudang/TEST09',
+            'component_id' => $this->component->id,
+            'requested_by_user_id' => $this->operatorGudang->id,
+            'target_location_id' => $this->location->id,
+            'dept_pengaju' => 'Dept Gudang',
+            'dept_penerima' => 'Dept M1',
+            'routing_text' => 'Dept M1',
+            'approval_pengaju' => 'Diterima',
+            'approval_penerima' => 'Diterima',
+            'quantity_requested' => 50,
+            'status' => 'Proses: Dept M1 (In)',
+        ]);
+
+        // Sharing user visits /work-requests -> ticket NOT visible in my_dept
+        $response = $this->actingAs($userSharing)->get(route('work-requests.index', ['scope' => 'my_dept']));
+        $response->assertStatus(200);
+        $response->assertDontSee('WRI/DeptGudang/TEST09');
+
+        // Sharing user attempts to process machine action -> REJECTED
+        $failProcess = $this->actingAs($userSharing)
+            ->post(route('work-requests.process-action', $wri), [
+                'action_type' => 'process',
+                'target_status' => 'Proses: Dept M1 (Out)',
+                'process_qty' => 50,
+            ]);
+        $failProcess->assertSessionHas('error');
+    }
+
+    public function test_unprivileged_user_sees_informative_status_badges_and_detail_contains_approval_audit()
+    {
+        $wri = WorkRequest::create([
+            'wri_number' => 'WRI/DeptGudang/TEST10',
+            'component_id' => $this->component->id,
+            'requested_by_user_id' => $this->operatorGudang->id,
+            'target_location_id' => $this->location->id,
+            'dept_pengaju' => 'Dept Gudang',
+            'dept_penerima' => 'Dept M1',
+            'routing_text' => 'Dept M1',
+            'approval_pengaju' => 'Diterima',
+            'approval_penerima' => 'Diterima',
+            'assigned_operator_name' => 'Fajar M1',
+            'quantity_requested' => 60,
+            'status' => 'Proses: Dept M1 (In)',
+        ]);
+
+        // Operator Gudang views the index
+        // Since the ticket is in machine process at M1, Gudang cannot process it,
+        // so Gudang should see the informative badge "Sedang dalam proses di Line Dept M1"
+        $response = $this->actingAs($this->operatorGudang)->get(route('work-requests.index', ['scope' => 'my_dept']));
+        $response->assertStatus(200);
+        $response->assertSee('WRI/DeptGudang/TEST10');
+        $response->assertSee('Sedang dalam proses di Line Dept M1');
+        $response->assertSee('Status Otorisasi', false);
+    }
+
+    public function test_partial_process_lifecycle_keeps_machine_open_and_updates_material_handling()
+    {
+        // 1. Create approved WR for 100 pcs targeting Dept M1
+        $wri = WorkRequest::create([
+            'wri_number' => 'WRI/DeptGudang/TEST-PARTIAL-01',
+            'component_id' => $this->component->id,
+            'requested_by_user_id' => $this->operatorGudang->id,
+            'target_location_id' => $this->location->id,
+            'dept_pengaju' => 'Dept Gudang',
+            'dept_penerima' => 'Dept M1',
+            'routing_text' => 'Dept M1',
+            'approval_pengaju' => 'Diterima',
+            'approval_penerima' => 'Diterima',
+            'assigned_operator_name' => 'Fajar M1',
+            'quantity_requested' => 100,
+            'quantity_received' => 0,
+            'status' => 'Dalam antrian',
+        ]);
+
+        WorkRequestStep::create([
+            'work_request_id' => $wri->id,
+            'step_number' => 1,
+            'machine_id' => $this->machine->id,
+            'process_name' => 'Dept M1',
+            'status' => 'pending',
+        ]);
+
+        // 2. Fajar M1 starts machine process: Proses: Dept M1 (In) [100 pcs]
+        $this->actingAs($this->operatorM1)
+            ->post(route('work-requests.process-action', $wri), [
+                'action_type' => 'process',
+                'target_status' => 'Proses: Dept M1 (In)',
+                'process_qty' => 100,
+            ])
+            ->assertRedirect();
+
+        $wri->refresh();
+        $this->assertStringContainsString('Proses: Dept M1 (In)', $wri->status);
+
+        // 3. Fajar M1 completes PARTIAL output: Proses: Dept M1 (Out) [75 pcs]
+        $this->actingAs($this->operatorM1)
+            ->post(route('work-requests.process-action', $wri), [
+                'action_type' => 'process',
+                'target_status' => 'Proses: Dept M1 (Out)',
+                'process_qty' => 75,
+            ])
+            ->assertRedirect();
+
+        $wri->refresh();
+        // Status indicates partial
+        $this->assertStringContainsString('Parsial', $wri->status);
+        $this->assertFalse($wri->is_final);
+
+        // Check Step Balance
+        $bal = $wri->getStepBalance('Dept M1', 0);
+        $this->assertEquals(75, $bal['total_out']);
+        $this->assertEquals(25, $bal['saldo_out'], 'Sisa pengerjaan di mesin M1 harus tepat 25 pcs');
+
+        // Check Fajar M1 available actions: still has action for remaining 25 pcs!
+        $fajarActions = $wri->getAvailableActionsForUser($this->operatorM1);
+        $this->assertNotEmpty($fajarActions);
+        $this->assertEquals('out', $fajarActions[0]['type']);
+        $this->assertEquals(25, $fajarActions[0]['quantity'], 'Operator M1 masih harus bisa memproses sisa 25 pcs');
+
+        // 4. Material Handling visits Task Gudang: 75 pcs ready for pickup
+        $responseMh = $this->actingAs($this->operatorMH)->get(route('work-station-supplies.index'));
+        $responseMh->assertStatus(200);
+        $responseMh->assertSee('WRI/DeptGudang/TEST-PARTIAL-01');
+        $responseMh->assertSee('75');
+
+        // 5. Operator MH picks up 75 pcs -> target_status: Menuju Pengaju
+        $this->actingAs($this->operatorMH)
+            ->post(route('work-station-supplies.quick-action'), [
+                'work_request_id' => $wri->id,
+                'action_type' => 'process',
+                'target_status' => 'Menuju Pengaju',
+                'process_qty' => 75,
+            ])
+            ->assertRedirect();
+
+        $wri->refresh();
+        $this->assertStringContainsString('Menuju Pengaju', $wri->status);
+
+        // 6. Gudang receives the 75 pcs batch -> Sudah Diambil [75 pcs]
+        $this->actingAs($this->operatorGudang)
+            ->post(route('work-requests.process-action', $wri), [
+                'action_type' => 'process',
+                'target_status' => 'Sudah Diambil',
+                'process_qty' => 75,
+            ])
+            ->assertRedirect();
+
+        $wri->refresh();
+        $this->assertEquals(75, $wri->quantity_received);
+        $this->assertFalse($wri->is_final, 'Tiket tidak boleh final karena baru 75/100 pcs');
+
+        // Verify warehouse stock increased by 75 pcs
+        $stock = StockBalance::where('component_id', $this->component->id)
+            ->where('location_id', $this->location->id)
+            ->first();
+        $this->assertNotNull($stock);
+        $this->assertEquals(75, $stock->quantity);
+
+        // 7. Fajar M1 finishes the remaining 25 pcs
+        $this->actingAs($this->operatorM1)
+            ->post(route('work-requests.process-action', $wri), [
+                'action_type' => 'process',
+                'target_status' => 'Proses: Dept M1 (Out)',
+                'process_qty' => 25,
+            ])
+            ->assertRedirect();
+
+        $wri->refresh();
+        $balAfter = $wri->getStepBalance('Dept M1', 0);
+        $this->assertEquals(100, $balAfter['total_out']);
+        $this->assertEquals(0, $balAfter['saldo_out'], 'Pengerjaan mesin M1 sekarang telah tuntas 100 pcs');
+    }
 }
+

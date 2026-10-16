@@ -415,8 +415,8 @@
                     <p class="text-[11px] text-amber-800 leading-relaxed">
                         Pengguna ini secara otomatis memiliki otorisasi penuh untuk melihat, menyetujui, dan memproses tiket Work Request Inhouse (WRI) dari seluruh 15 departemen pabrik tanpa terikat pada satu departemen saja.
                     </p>
-                    <input type="hidden" name="can_access_all_departments" value="1">
-                    <input type="hidden" name="department_id" :value="gudangDeptId">
+                    <input type="hidden" name="can_access_all_departments" value="1" :disabled="!isGlobalRole()">
+                    <input type="hidden" name="department_id" :value="gudangDeptId" :disabled="!isGlobalRole()">
                 </div>
 
                 <!-- JIKA STAFF / OPERATOR GUDANG (TERKUNCI KE DEPT GUDANG) -->
