@@ -166,8 +166,8 @@ class WorkRequest extends Model
         $cleanUser = preg_replace('/[^a-z0-9]/', '', $userDept);
         $cleanPengaju = preg_replace('/[^a-z0-9]/', '', $pengajuDept);
 
-        $isMatchingDept = str_contains($cleanUser, $cleanPengaju) || str_contains($cleanPengaju, $cleanUser);
-        return $isMatchingDept && ($user->isSupervisor() || $user->hasRole('admin_gudang') || $user->can('work-request.approve') || $user->hasRole('staff'));
+        $isMatchingDept = $user->canAccessAllDepartments() || $user->hasRole('admin_gudang') || str_contains($cleanUser, $cleanPengaju) || str_contains($cleanPengaju, $cleanUser);
+        return $isMatchingDept && ($user->isSupervisor() || $user->hasRole('admin_gudang') || $user->can('work-request.approve') || $user->hasRole('staff') || $user->canAccessAllDepartments());
     }
 
     /**
@@ -184,8 +184,8 @@ class WorkRequest extends Model
         $cleanUser = preg_replace('/[^a-z0-9]/', '', $userDept);
         $cleanPenerima = preg_replace('/[^a-z0-9]/', '', $penerimaDept);
 
-        $isMatchingDept = str_contains($cleanUser, $cleanPenerima) || str_contains($cleanPenerima, $cleanUser);
-        return $isMatchingDept && ($user->isSupervisor() || $user->hasRole('admin_gudang') || $user->can('work-request.approve') || $user->hasRole('staff'));
+        $isMatchingDept = $user->canAccessAllDepartments() || $user->hasRole('admin_gudang') || str_contains($cleanUser, $cleanPenerima) || str_contains($cleanPenerima, $cleanUser);
+        return $isMatchingDept && ($user->isSupervisor() || $user->hasRole('admin_gudang') || $user->can('work-request.approve') || $user->hasRole('staff') || $user->canAccessAllDepartments());
     }
 
     /**
@@ -208,6 +208,11 @@ class WorkRequest extends Model
         $next = $nextStatus ?? $this->getNextStatusLabel($user);
         $userDept = strtolower(trim($user->effective_department_name));
         $cleanUser = preg_replace('/[^a-z0-9]/', '', $userDept);
+
+        // Superuser oversight
+        if ($user->canAccessAllDepartments() || $user->hasRole('admin_gudang')) {
+            return true;
+        }
 
         // Case A: MH Pickup or Delivery
         if (stripos($next, 'MH Pickup') !== false || stripos($next, 'Menuju Pengaju') !== false) {
@@ -314,10 +319,19 @@ class WorkRequest extends Model
     public function getTotalProcessedForStatus(string $targetStatus): float
     {
         $cleanTarget = strtolower(trim(preg_replace('/^Parsial\s*>\s*/i', '', $targetStatus)));
+        $altTarget = strtolower(trim(preg_replace('/dept\s+/i', '', $cleanTarget)));
+
         return (float) $this->logs()
-            ->where(function ($q) use ($cleanTarget) {
-                $q->whereRaw('LOWER(status_label) LIKE ?', ["%{$cleanTarget}%"])
-                  ->orWhereRaw('LOWER(notes) LIKE ?', ["%{$cleanTarget}%"]);
+            ->where(function ($q) use ($cleanTarget, $altTarget) {
+                $q->where(function ($subQ) use ($cleanTarget, $altTarget) {
+                    $subQ->whereRaw('LOWER(status_label) LIKE ?', ["%{$cleanTarget}%"])
+                         ->orWhereRaw('LOWER(notes) LIKE ?', ["%{$cleanTarget}%"]);
+
+                    if ($altTarget !== $cleanTarget) {
+                        $subQ->orWhereRaw('LOWER(status_label) LIKE ?', ["%{$altTarget}%"])
+                             ->orWhereRaw('LOWER(notes) LIKE ?', ["%{$altTarget}%"]);
+                    }
+                });
             })
             ->where('action_type', '!=', 'defect')
             ->where('status_label', 'not like', 'Defect >%')
@@ -462,10 +476,10 @@ class WorkRequest extends Model
 
         if ($isPengajuUser) {
             $totalMenuju = $this->getTotalProcessedForStatus('Menuju Pengaju');
-            $totalSiap = $this->getTotalProcessedForStatus('Siap diambil');
             $totalSudah = (float) $this->quantity_received ?: $this->getTotalProcessedForStatus('Sudah diambil');
 
-            $saldoTerima = max(0, ($totalMenuju > 0 ? $totalMenuju : $totalSiap) - $totalSudah);
+            // Gerbang Wajib: Gudang HANYA boleh menerima barang jika barang SUDAH DI-PICKUP MH dan sedang dalam perjalanan ('Menuju Pengaju')
+            $saldoTerima = max(0, $totalMenuju - $totalSudah);
             if ($saldoTerima > 0) {
                 $actions[] = [
                     'type' => 'receive',

@@ -115,8 +115,8 @@
                     </div>
                 </template>
 
-                <!-- KASUS B: PROSES KELUAR / OUT (INPUT QTY KELUAR, PARSIAL & DEFECT) -->
-                <template x-if="processData.nextStatus.includes('(Out)')">
+                <!-- KASUS B: PROSES KELUAR / OUT & SELESAI MESIN (INPUT QTY KELUAR, PARSIAL & DEFECT) -->
+                <template x-if="processData.nextStatus.includes('(Out)') || processData.nextStatus.includes('Siap Diambil') || (!processData.nextStatus.includes('(In)') && !processData.nextStatus.includes('MH Pickup') && !processData.nextStatus.includes('Menuju Pengaju') && !processData.nextStatus.includes('Sudah Diambil'))">
                     <div class="space-y-4">
                         <div>
                             <div class="flex items-center justify-between mb-1.5">

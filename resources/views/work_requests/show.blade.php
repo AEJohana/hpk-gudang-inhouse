@@ -236,7 +236,7 @@
                 </div>
             </div>
 
-            <!-- ONE-CLICK ADAPTIVE ACTION BUTTON -->
+            <!-- ONE-CLICK ADAPTIVE ACTION BUTTON (TRIGGERS CONFIRMATION / QTY & DEFECT MODAL) -->
             <div class="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="space-y-1">
                     <span class="text-[11px] font-bold text-amber-300 uppercase tracking-wider block flex items-center space-x-1.5">
@@ -249,39 +249,187 @@
                 </div>
 
                 <div class="flex items-center space-x-2">
-                    <form method="POST" action="{{ route('work-requests.process-action', $workRequest) }}">
-                        @csrf
-                        <input type="hidden" name="action_type" value="process">
-                        <input type="hidden" name="target_status" value="{{ $nextStatus }}">
-                        <input type="hidden" name="process_qty" value="{{ $workRequest->quantity_requested }}">
-                        <button type="submit" 
-                                class="px-5 py-2.5 font-black text-xs rounded-xl shadow-lg transition flex items-center space-x-2 {{ stripos($nextStatus, 'Sudah Diambil') !== false ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950' : (stripos($nextStatus, 'Pickup') !== false ? 'bg-amber-400 hover:bg-amber-300 text-slate-950' : (stripos($nextStatus, '(Out)') !== false ? 'bg-indigo-500 hover:bg-indigo-400 text-white' : 'bg-teal-500 hover:bg-teal-400 text-slate-950')) }}">
-                            @if(stripos($nextStatus, 'Sudah Diambil') !== false)
-                                <i class="fa-solid fa-box-open text-base"></i>
-                                <span>Konfirmasi Serah Terima & Masuk Stok</span>
-                            @elseif(stripos($nextStatus, 'Pickup') !== false)
-                                <i class="fa-solid fa-truck-ramp-box text-base"></i>
-                                <span>Angkut Material Handling (Pickup)</span>
-                            @elseif(stripos($nextStatus, '(Out)') !== false)
-                                <i class="fa-solid fa-check text-base"></i>
-                                <span>Selesaikan Mesin: {{ $nextStatus }}</span>
-                            @elseif(stripos($nextStatus, 'Menuju Pengaju') !== false)
-                                <i class="fa-solid fa-truck-fast text-base"></i>
-                                <span>Kirim ke Pengaju / Gudang</span>
-                            @else
-                                <i class="fa-solid fa-play text-base"></i>
-                                <span>Mulai: {{ $nextStatus }}</span>
-                            @endif
-                        </button>
-                    </form>
+                    <button type="button" 
+                            @click="actionModal = true"
+                            class="px-5 py-2.5 font-black text-xs rounded-xl shadow-lg transition flex items-center space-x-2 {{ stripos($nextStatus, 'Sudah Diambil') !== false ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950' : (stripos($nextStatus, 'Pickup') !== false ? 'bg-amber-400 hover:bg-amber-300 text-slate-950' : (stripos($nextStatus, '(Out)') !== false ? 'bg-indigo-500 hover:bg-indigo-400 text-white' : 'bg-teal-500 hover:bg-teal-400 text-slate-950')) }}">
+                        @if(stripos($nextStatus, 'Sudah Diambil') !== false)
+                            <i class="fa-solid fa-box-open text-base"></i>
+                            <span>Konfirmasi Serah Terima & Masuk Stok</span>
+                        @elseif(stripos($nextStatus, 'Pickup') !== false)
+                            <i class="fa-solid fa-truck-ramp-box text-base"></i>
+                            <span>Angkut Material Handling (Pickup)</span>
+                        @elseif(stripos($nextStatus, '(Out)') !== false)
+                            <i class="fa-solid fa-check text-base"></i>
+                            <span>Selesaikan Mesin: {{ $nextStatus }}</span>
+                        @elseif(stripos($nextStatus, 'Menuju Pengaju') !== false)
+                            <i class="fa-solid fa-truck-fast text-base"></i>
+                            <span>Kirim ke Pengaju / Gudang</span>
+                        @else
+                            <i class="fa-solid fa-play text-base"></i>
+                            <span>Mulai: {{ $nextStatus }}</span>
+                        @endif
+                    </button>
 
                     <button type="button" 
                             @click="showAdvancedForm = !showAdvancedForm" 
                             class="px-3.5 py-2.5 bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold rounded-xl transition border border-white/20 flex items-center space-x-1" 
                             title="Buka opsi parsial / defect / ubah status manual">
                         <i class="fa-solid fa-sliders"></i>
-                        <span x-text="showAdvancedForm ? 'Tutup Opsi' : 'Opsi Parsial / Defect'"></span>
+                        <span x-text="showAdvancedForm ? 'Tutup Opsi' : 'Opsi Lanjutan'"></span>
                     </button>
+                </div>
+            </div>
+
+            <!-- MODAL POP-UP KONFIRMASI PENGERJAAN, QTY PARSIAL & DEFECT -->
+            <div x-show="actionModal" 
+                 x-cloak 
+                 class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+                <div @click.away="actionModal = false" 
+                     class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 transition-all text-slate-800">
+                    
+                    <form method="POST" action="{{ route('work-requests.process-action', $workRequest) }}">
+                        @csrf
+                        <input type="hidden" name="action_type" value="process">
+                        <input type="hidden" name="target_status" value="{{ $nextStatus }}">
+
+                        <!-- Header Modal -->
+                        <div class="px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-lg shadow-xs">
+                                    @if(stripos($nextStatus, 'Sudah Diambil') !== false)
+                                        <i class="fa-solid fa-warehouse"></i>
+                                    @elseif(stripos($nextStatus, 'Pickup') !== false || stripos($nextStatus, 'Menuju Pengaju') !== false)
+                                        <i class="fa-solid fa-truck-fast"></i>
+                                    @elseif(stripos($nextStatus, '(Out)') !== false)
+                                        <i class="fa-solid fa-check"></i>
+                                    @else
+                                        <i class="fa-solid fa-play"></i>
+                                    @endif
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-extrabold text-white">Konfirmasi Langkah Pengerjaan</h3>
+                                    <p class="text-[11px] text-amber-300 font-mono font-semibold">{{ $nextStatus }}</p>
+                                </div>
+                            </div>
+                            <button type="button" @click="actionModal = false" class="text-slate-400 hover:text-white p-1 rounded-xl">
+                                <i class="fa-solid fa-xmark text-lg"></i>
+                            </button>
+                        </div>
+
+                        <!-- Body Modal -->
+                        <div class="p-6 space-y-4 text-xs">
+                            <!-- Card Info Komponen & Sisa Kuota -->
+                            <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                                <div>
+                                    <span class="text-[10px] uppercase font-bold text-slate-400 block">Komponen / Part No:</span>
+                                    <span class="font-bold text-slate-900">{{ $workRequest->component->name }}</span>
+                                    <span class="font-mono text-slate-500 block text-[11px]">{{ $workRequest->component->part_number ?? '-' }}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Permintaan:</span>
+                                    <span class="font-black text-sm text-indigo-700">{{ number_format($workRequest->quantity_requested, 0) }} {{ $workRequest->component->uom }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Input Qty Pengerjaan (Parsial / Penuh) -->
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1 text-[11px]">
+                                    Jumlah Komponen yang Diproses / Dikeluarkan: <span class="text-rose-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="number" 
+                                           name="process_qty" 
+                                           required 
+                                           step="any" 
+                                           min="0.01" 
+                                           max="{{ $workRequest->quantity_requested }}" 
+                                           value="{{ $workRequest->quantity_requested }}" 
+                                           class="w-full px-3.5 py-2.5 text-sm font-black border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                    <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">{{ $workRequest->component->uom }}</span>
+                                </div>
+                                <span class="text-[10px] text-slate-500 mt-1 block">
+                                    <i class="fa-solid fa-circle-info text-blue-500 me-0.5"></i>
+                                    Jika Anda mengisi kurang dari <b>{{ number_format($workRequest->quantity_requested, 0) }}</b>, sistem akan mencatatnya sebagai pengerjaan <b>Parsial (Cicilan)</b>.
+                                </span>
+                            </div>
+
+                            <!-- Checkbox Defect / Reject -->
+                            <div class="pt-1">
+                                <label class="inline-flex items-center cursor-pointer text-xs font-bold text-rose-600 hover:text-rose-700 p-2.5 bg-rose-50/70 border border-rose-200 rounded-xl w-full">
+                                    <input type="checkbox" x-model="showDefectForm" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500 me-2">
+                                    <span>Ada Barang Rusak / Defect saat Pengerjaan?</span>
+                                </label>
+                            </div>
+
+                            <!-- Sub-form Defect (Jika Dicentang) -->
+                            <div x-show="showDefectForm" x-transition class="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-3">
+                                <div class="flex items-center space-x-1.5 text-rose-800 text-[11px] font-bold">
+                                    <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+                                    <span>Defect akan memotong kuantitas tiket & dicatat di audit log</span>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block font-bold text-rose-900 uppercase tracking-wider mb-1 text-[10px]">
+                                            Jumlah Defect (PCS)
+                                        </label>
+                                        <input type="number" 
+                                               name="defect_qty" 
+                                               step="any" 
+                                               min="0.01" 
+                                               max="{{ $workRequest->quantity_requested }}" 
+                                               placeholder="Contoh: 5" 
+                                               class="w-full px-3 py-2 border border-rose-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none font-bold text-rose-900 bg-white">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-rose-900 uppercase tracking-wider mb-1 text-[10px]">
+                                            Alasan Defect
+                                        </label>
+                                        <input type="text" 
+                                               name="defect_reason" 
+                                               placeholder="Contoh: Salah bending, plat bengkok..." 
+                                               class="w-full px-3 py-2 border border-rose-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none bg-white">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Operator Name & Notes -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1 text-[10px]">
+                                        Petugas / Operator:
+                                    </label>
+                                    <input type="text" 
+                                           name="operator_name" 
+                                           value="{{ auth()->user()->name }}" 
+                                           class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-semibold">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1 text-[10px]">
+                                        Catatan (Opsional):
+                                    </label>
+                                    <input type="text" 
+                                           name="notes" 
+                                           placeholder="Nomor pallet, catatan pengerjaan..." 
+                                           class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer Modal -->
+                        <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end space-x-2">
+                            <button type="button" 
+                                    @click="actionModal = false" 
+                                    class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition">
+                                Batal
+                            </button>
+                            <button type="submit" 
+                                    class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>Konfirmasi & Simpan Pengerjaan</span>
+                            </button>
+                        </div>
+                    </form>
+
                 </div>
             </div>
 

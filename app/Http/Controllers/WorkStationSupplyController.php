@@ -48,6 +48,9 @@ class WorkStationSupplyController extends Controller
             if ($totalSiap == 0 && $lastStep !== '') {
                 $totalSiap = $item->getTotalProcessedForStatus("Proses: {$lastStep} (Out)");
             }
+            if ($totalSiap == 0 && (stripos($item->status, 'Siap Diambil') !== false || $item->status === 'ready_for_warehouse')) {
+                $totalSiap = (float) $item->quantity_requested;
+            }
             $totalFinalPickup = $item->getTotalProcessedForStatus('Menuju Pengaju');
             $totalSudah = (float) $item->quantity_received ?: $item->getTotalProcessedForStatus('Sudah diambil');
 

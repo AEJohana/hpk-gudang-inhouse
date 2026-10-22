@@ -367,6 +367,11 @@
                             'is_defect' => $l->action_type === 'defect' || str_contains($l->status_label, 'Defect'),
                         ])->values(),
                         'printUrl' => route('work-requests.print-sheet', $wri),
+                        'remainingQty' => $remainingQty > 0 ? $remainingQty : (float) $wri->quantity_requested,
+                        'nextStatus' => $nextStatus,
+                        'canProcessAction' => $canProcessAction,
+                        'actionUrl' => route('work-requests.process-action', $wri),
+                        'isFinal' => (bool) $wri->is_final,
                     ];
                 @endphp
                 <div class="mobile-data-card space-y-3 border border-slate-200">
