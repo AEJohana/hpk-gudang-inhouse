@@ -69,7 +69,7 @@ Seluruh logika bisnis dari sistem lama telah diimplementasikan secara terstruktu
 | **BR-04** | **Penyimpanan Komponen Baru** | Laravel Storage disk `public` (`storage/app/public/...`). | Foto komponen baru dan bukti lampiran tersimpan aman di server lokal perusahaan dengan tautan simbolik publik. |
 | **BR-05** | **Auto-Routing Stasiun Mesin** | Kolom `components.process_route`, tabel `work_request_steps`, dan `machines`. | Sistem membaca rute urutan mesin (misal: *Laser -> Bending -> Gudang*) dan secara cerdas mengarahkan antrian ke stasiun yang aktif. |
 | **BR-06** | **Prasyarat Tampil di Penerima** | `scopeVisibleToDepartment` & filter `approval_pengaju === 'Diterima'` pada `WorkRequest.php`. | Departemen penerima / mesin tujuan **TIDAK BISA** melihat atau memproses tiket sebelum atasan peminta menyetujui pengajuan. |
-| **BR-07** | **Pengerjaan Parsial (Cicilan)** | Handler `processAction` di `WorkRequestController.php`. | Jika pemohon memesan 100 pcs dan stasiun baru menyelesaikan 40 pcs, sistem memberi label `Parsial > ...`, mencatat log audit kuantitas, dan menyisakan sisa 60 pcs di antrian pengerjaan. |
+| **BR-07** | **Pengerjaan Parsial, Defect Reaktif & Multi-Batch** | Handler `processAction` di `WorkRequestController.php`, `WorkRequest.php`, dan modal Blade. | Jika pemohon memesan 20 pcs dan mesin menyelesaikan 15 pcs unit bagus serta melaporkan 5 pcs defect mesin, sistem secara reaktif membatasi batas unit bagus maksimal 15 pcs (`20 - 5`). Karena 15 bagus + 5 defect = 20 (seluruh bahan tuntas), tahapan mesin **SEKETIKA BERHENTI TUNTAS** (`saldo_out = 0`) dan beralih ke MH (15 pcs). Tiket **TETAP TERBUKA AKTIF** (`is_final = false`) sampai seluruh kuantitas terpenuhi (100%), dan tombol pengerjaan sisa hanya muncul jika memang masih ada saldo fisik yang belum diproses. |
 | **BR-08** | **Auto-Update Saldo Fisik Gudang** | Logika event `Sudah Diambil` di `WorkRequestController.php` (baris 709-760). | Begitu tiket berstatus `Sudah Diambil`, saldo kuantitas pada rak tujuan di `stock_balances` **OTOMATIS BERTAMBAH** dan transaksi masuk resmi terbit di tabel `transactions`. |
 | **BR-09** | **Sanitasi String Status** | Scope pembersihan status dan normalisasi nama status di Model `WorkRequest.php`. | String `Parsial >` dipisahkan secara otomatis saat evaluasi fase logika status dilakukan oleh sistem backend. |
 | **BR-10** | **Pemantauan SLA 3 Hari (Red Alert)** | `scopeOverdueSla` di `WorkRequest.php`: `where('created_at', '<=', now()->subDays(3))`. | Tiket yang belum berstatus `Sudah Diambil` setelah melewati batas waktu 72 jam (3 hari) otomatis diberi label merah peringatan darurat (*Urgent SLA Alert*). |
@@ -89,11 +89,12 @@ Seluruh logika bisnis dari sistem lama telah diimplementasikan secara terstruktu
 3. **Proses (Out):** Pengerjaan mesin telah selesai. Barang diletakkan di *staging out* stasiun kerja menunggu kurir Material Handling.
 4. **Parsial > Proses (Out):** Sebagian kuantitas selesai diproses di mesin dan siap dijemput sebagian oleh kurir MH.
 
-### C. Status Logistik Material Handling
+### C. Status Logistik Material Handling & Serah Terima
 1. **MH Pickup:** Kurir logistik Material Handling telah memindai QR code tiket dan mengambil fisik barang dari stasiun mesin.
 2. **Siap Diambil:** Barang telah tiba di area serah terima / gudang tujuan.
 3. **Menuju Pengaju:** Kurir sedang dalam perjalanan mengantarkan barang ke departemen pemohon.
-4. **Sudah Diambil:** Serah terima fisik telah tuntas divalidasi oleh pemohon/gudang. Memicu eksekusi penambahan stok otomatis (BR-08).
+4. **Sudah Diambil (Parsial):** Serah terima batch cicilan divalidasi oleh gudang. Kuantitas fisik batch masuk stok, sementara tiket tetap terbuka aktif (`is_final = false`) dengan rekomendasi pengerjaan kembali ke mesin sisa.
+5. **Sudah Diambil (Final):** Serah terima fisik telah tuntas 100% divalidasi oleh pemohon/gudang. Memicu eksekusi penambahan stok otomatis (BR-08) dan tiket resmi ditutup (*Closed*, `is_final = true`).
 
 ---
 

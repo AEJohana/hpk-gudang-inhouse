@@ -359,6 +359,36 @@ class WorkRequest extends Model
     }
 
     /**
+     * Helper: Menentukan nama stasiun mesin/tahapan yang aktif untuk target status tertentu
+     */
+    public function getActiveStepNameForTarget(?string $targetStatus = null): ?string
+    {
+        $steps = $this->getRoutingStepsList();
+        if (empty($steps)) return null;
+
+        $target = $targetStatus ?: $this->status;
+        $clean = trim(preg_replace('/^Parsial\s*>\s*/i', '', $target));
+
+        if (preg_match('/^Proses:\s*(.+?)\s*\((?:In|Out)\)$/i', $clean, $m)) {
+            return trim($m[1]);
+        }
+
+        if (preg_match('/^MH Pickup:\s*(.+?)$/i', $clean, $m)) {
+            return trim($m[1]);
+        }
+
+        if (stripos($clean, 'Siap Diambil') !== false) {
+            return end($steps) ?: null;
+        }
+
+        if (stripos($clean, 'Menuju Pengaju') !== false || stripos($clean, 'Sudah Diambil') !== false) {
+            return 'Gudang';
+        }
+
+        return $steps[0] ?? null;
+    }
+
+    /**
      * Helper: Menghitung saldo kuantitas per tahapan mesin (In, Out, Pickup, Remaining)
      */
     public function getStepBalance(string $stepName, int $stepIndex = 0): array
@@ -381,11 +411,20 @@ class WorkRequest extends Model
         // Defect pada tahapan pengerjaan mesin (sebelum atau saat Out)
         $stepMachineDefects = (float) $this->logs()
             ->where('action_type', 'defect')
-            ->where(function ($q) use ($stepName) {
+            ->where(function ($q) use ($stepName, $isLastStep) {
                 $q->where('status_label', 'like', "%{$stepName}%")
                   ->orWhere('notes', 'like', "%{$stepName}%");
+
+                if ($isLastStep) {
+                    $q->orWhere('status_label', 'like', '%Siap Diambil%')
+                      ->orWhere('notes', 'like', '%Siap Diambil%');
+                }
             })
             ->where('status_label', 'not like', '%Pickup%')
+            ->where('status_label', 'not like', '%Menuju Pengaju%')
+            ->where('status_label', 'not like', '%Gudang%')
+            ->where('notes', 'not like', '%Pickup%')
+            ->where('notes', 'not like', '%Penerimaan Gudang%')
             ->sum('quantity');
 
         // Defect / barang hilang saat penjemputan MH pada mesin ini
@@ -398,8 +437,8 @@ class WorkRequest extends Model
             ->sum('quantity');
 
         $saldoIn = max(0, $totalSupply - $totalIn);
-        $saldoOut = max(0, $totalIn - $totalOut - $stepMachineDefects);
-        $waitingPickup = max(0, $totalOut - $totalPickup - $stepPickupDefects);
+        $saldoOut = max(0, min($totalIn - $totalOut - $stepMachineDefects, $totalReq - $totalOut));
+        $waitingPickup = max(0, min($totalOut - $totalPickup - $stepPickupDefects, $totalReq - $totalPickup));
 
         return [
             'step_name' => $stepName,
@@ -608,6 +647,38 @@ class WorkRequest extends Model
             return "Sudah Diambil";
         }
 
+        // Jika tiket belum final, cari tahapan rute mesin yang masih memiliki sisa saldo
+        if (!$this->is_final) {
+            foreach ($steps as $idx => $step) {
+                $bal = $this->getStepBalance($step, $idx);
+                if ($bal['saldo_in'] > 0) {
+                    return "Proses: {$step} (In)";
+                }
+                if ($bal['saldo_out'] > 0) {
+                    return $bal['is_last_step'] ? 'Siap Diambil' : "Proses: {$step} (Out)";
+                }
+                if ($bal['waiting_pickup'] > 0) {
+                    return $bal['is_last_step'] ? 'Menuju Pengaju' : "MH Pickup: {$step}";
+                }
+            }
+
+            $totalMenuju = $this->getTotalProcessedForStatus('Menuju Pengaju');
+            $totalSudah = (float) $this->quantity_received ?: $this->getTotalProcessedForStatus('Sudah diambil');
+            $gudangDefects = (float) $this->logs()
+                ->where('action_type', 'defect')
+                ->where(function ($q) {
+                    $q->where('status_label', 'like', '%Sudah Diambil%')
+                      ->orWhere('status_label', 'like', '%Gudang%')
+                      ->orWhere('notes', 'like', '%Sudah Diambil%')
+                      ->orWhere('notes', 'like', '%Penerimaan Gudang%');
+                })
+                ->sum('quantity');
+
+            if (($totalMenuju - $totalSudah - $gudangDefects) > 0) {
+                return "Sudah Diambil";
+            }
+        }
+
         return "Selesai";
     }
 
@@ -669,9 +740,14 @@ class WorkRequest extends Model
         }
 
         if (stripos($clean, 'Sudah Diambil') !== false || $clean === 'received') {
+            $label = $this->is_final 
+                ? 'Sudah Diambil (Final)' 
+                : ($isPartial ? "[Parsial] Diterima " . (float)$this->quantity_received . "/" . (float)$this->quantity_requested : 'Sudah Diambil');
             return [
-                'label' => $this->is_final ? 'Sudah Diambil (Final)' : ($isPartial ? '[Parsial] Sudah Diambil' : 'Sudah Diambil'),
-                'class' => 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold'
+                'label' => $label,
+                'class' => $this->is_final 
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold' 
+                    : 'bg-amber-100 text-amber-900 border-amber-300 font-bold'
             ];
         }
 

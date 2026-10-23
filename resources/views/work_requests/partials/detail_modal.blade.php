@@ -220,8 +220,8 @@
                                     <div class="flex items-center justify-between">
                                         <span class="font-bold text-xs text-slate-800">Serah Terima ke Pengaju / Gudang</span>
                                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase"
-                                              :class="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-100 text-emerald-800' : (detailData.currentStatus.includes('Menuju Pengaju') ? 'bg-blue-100 text-blue-900 font-extrabold' : 'bg-slate-100 text-slate-500')"
-                                              x-text="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'Diterima Fisik (Closed)' : (detailData.currentStatus.includes('Menuju Pengaju') ? 'Sedang Diantar MH' : 'Menunggu Selesai')"></span>
+                                              :class="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-100 text-emerald-800' : (detailData.receivedQty > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (detailData.currentStatus.includes('Menuju Pengaju') ? 'bg-blue-100 text-blue-900 font-extrabold' : 'bg-slate-100 text-slate-500'))"
+                                              x-text="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'Diterima Fisik (Closed)' : (detailData.receivedQty > 0 ? 'Diterima Parsial (' + detailData.receivedQty + '/' + detailData.totalQty + ')' : (detailData.currentStatus.includes('Menuju Pengaju') ? 'Sedang Diantar MH' : 'Menunggu Selesai'))"></span>
                                     </div>
                                     <p class="text-[10px] text-slate-400 mt-0.5">Barang jadi diantar kembali ke Gudang untuk penambahan stok fisik.</p>
                                 </div>
@@ -231,8 +231,16 @@
                 </div>
 
                 <!-- FORM EKSEKUSI PENGERJAAN, QTY PARSIAL & DEFECT LANGSUNG DI MODAL -->
-                <template x-if="detailData.canProcessAction && !detailData.isFinal && !detailData.currentStatus.includes('Sudah Diambil')">
-                    <div class="p-4 bg-gradient-to-br from-indigo-50/90 via-slate-50 to-indigo-50/70 border-2 border-indigo-200 rounded-3xl space-y-3.5 shadow-xs" x-data="{ hasDefectModal: false }">
+                <template x-if="detailData.canProcessAction && !detailData.isFinal">
+                    <div class="p-4 bg-gradient-to-br from-indigo-50/90 via-slate-50 to-indigo-50/70 border-2 border-indigo-200 rounded-3xl space-y-3.5 shadow-xs" 
+                         x-data="{ 
+                             hasDefectModal: false, 
+                             defectQty: 0, 
+                             processQty: detailData.remainingQty,
+                             getMax() { return Math.max(0, Number(detailData.remainingQty) - (this.hasDefectModal && this.defectQty > 0 ? Number(this.defectQty) : 0)); },
+                             sync() { if (Number(this.processQty) > this.getMax()) this.processQty = this.getMax(); }
+                         }"
+                         x-init="processQty = detailData.remainingQty">
                         <div class="flex items-center justify-between border-b border-indigo-100 pb-2.5">
                             <div class="flex items-center space-x-2.5">
                                 <span class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-xs">
@@ -259,29 +267,32 @@
                                     <label class="block font-bold text-slate-700 uppercase tracking-wider text-[10px]">
                                         Jumlah Komponen yang Diproses / Dikeluarkan: <span class="text-rose-500">*</span>
                                     </label>
-                                    <span class="text-[10px] text-slate-500 font-medium">Bisa dicicil / parsial</span>
+                                    <span class="text-[10px] text-slate-500 font-medium">Batas Maksimal: <b x-text="getMax() + ' ' + detailData.uom"></b></span>
                                 </div>
                                 <div class="relative">
                                     <input type="number" 
                                            name="process_qty" 
+                                           x-model.number="processQty"
+                                           @input="if(Number(processQty) > getMax()) processQty = getMax()"
                                            required 
                                            step="any" 
-                                           min="0.01" 
-                                           :max="detailData.remainingQty" 
-                                           :value="detailData.remainingQty" 
+                                           min="0" 
+                                           :max="getMax()" 
                                            class="w-full px-3.5 py-2 text-sm font-black border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                     <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400" x-text="detailData.uom"></span>
                                 </div>
-                                <span class="text-[10px] text-slate-500 mt-1 block">
-                                    <i class="fa-solid fa-circle-info text-blue-500 me-0.5"></i>
-                                    Jika Anda mengisi kurang dari <b x-text="detailData.remainingQty"></b>, pengerjaan dicatat sebagai <b>Parsial (Cicilan)</b>.
-                                </span>
+
+                                <!-- Allocation Card -->
+                                <div class="p-2 bg-indigo-100/70 border border-indigo-200 rounded-xl flex items-center justify-between text-[11px] font-bold text-indigo-950 mt-1.5">
+                                    <span>Sedia: <b x-text="detailData.remainingQty"></b> | Defect: <b class="text-rose-600" x-text="hasDefectModal && defectQty > 0 ? defectQty : 0"></b></span>
+                                    <span>Batas Unit Bagus: <b class="text-indigo-700" x-text="getMax() + ' ' + detailData.uom"></b></span>
+                                </div>
                             </div>
 
                             <!-- Checkbox Defect / Reject -->
                             <div class="pt-1">
                                 <label class="inline-flex items-center cursor-pointer text-xs font-bold text-rose-600 hover:text-rose-700 p-2 bg-rose-50 border border-rose-200 rounded-xl w-full">
-                                    <input type="checkbox" x-model="hasDefectModal" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500 me-2">
+                                    <input type="checkbox" x-model="hasDefectModal" @change="sync()" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500 me-2">
                                     <span>Terdapat Komponen Rusak / Defect saat Pengerjaan?</span>
                                 </label>
 
@@ -289,7 +300,7 @@
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         <div>
                                             <label class="block font-bold text-rose-900 uppercase text-[9px] mb-0.5">Jumlah Defect (PCS)</label>
-                                            <input type="number" name="defect_qty" step="any" min="0.01" :max="detailData.remainingQty" placeholder="Contoh: 5" class="w-full px-2.5 py-1.5 text-xs border border-rose-300 rounded-lg font-bold text-rose-900 bg-white">
+                                            <input type="number" name="defect_qty" x-model.number="defectQty" @input="sync()" step="any" min="0.01" :max="detailData.remainingQty" placeholder="Contoh: 5" class="w-full px-2.5 py-1.5 text-xs border border-rose-300 rounded-lg font-bold text-rose-900 bg-white">
                                         </div>
                                         <div>
                                             <label class="block font-bold text-rose-900 uppercase text-[9px] mb-0.5">Alasan Defect</label>

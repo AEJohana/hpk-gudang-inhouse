@@ -63,7 +63,17 @@
         </div>
     </x-slot>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6" x-data="{ showDefectForm: false, showAdvancedForm: false, actionModal: false }">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6" 
+         x-data="{ 
+             showDefectForm: false, 
+             showAdvancedForm: false, 
+             actionModal: false,
+             availableQty: {{ (float) $workRequest->quantity_requested }},
+             defectQty: 0,
+             processQty: {{ (float) $workRequest->quantity_requested }},
+             getMax() { return Math.max(0, Number(this.availableQty) - (this.showDefectForm && this.defectQty > 0 ? Number(this.defectQty) : 0)); },
+             sync() { if (Number(this.processQty) > this.getMax()) this.processQty = this.getMax(); }
+         }">
 
         @if(session('success'))
             <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center justify-between shadow-xs">
@@ -207,7 +217,7 @@
         @endif
 
         <!-- OPERATIONAL ACTION HERO BOX (Siklus Kerja Operasional) -->
-        @if(!$workRequest->is_final && stripos($workRequest->status, 'Sudah Diambil') === false)
+        @if(!$workRequest->is_final)
         <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 text-white shadow-xl border border-indigo-900/50 space-y-5">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
@@ -338,30 +348,36 @@
 
                             <!-- Input Qty Pengerjaan (Parsial / Penuh) -->
                             <div>
-                                <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1 text-[11px]">
-                                    Jumlah Komponen yang Diproses / Dikeluarkan: <span class="text-rose-500">*</span>
-                                </label>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+                                        Jumlah Komponen yang Diproses / Dikeluarkan: <span class="text-rose-500">*</span>
+                                    </label>
+                                    <span class="text-[11px] text-slate-500 font-medium">Batas Maksimal: <b x-text="getMax() + ' {{ $workRequest->component->uom }}'"></b></span>
+                                </div>
                                 <div class="relative">
                                     <input type="number" 
                                            name="process_qty" 
+                                           x-model.number="processQty"
+                                           @input="if(Number(processQty) > getMax()) processQty = getMax()"
                                            required 
                                            step="any" 
-                                           min="0.01" 
-                                           max="{{ $workRequest->quantity_requested }}" 
-                                           value="{{ $workRequest->quantity_requested }}" 
+                                           min="0" 
+                                           :max="getMax()" 
                                            class="w-full px-3.5 py-2.5 text-sm font-black border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                     <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">{{ $workRequest->component->uom }}</span>
                                 </div>
-                                <span class="text-[10px] text-slate-500 mt-1 block">
-                                    <i class="fa-solid fa-circle-info text-blue-500 me-0.5"></i>
-                                    Jika Anda mengisi kurang dari <b>{{ number_format($workRequest->quantity_requested, 0) }}</b>, sistem akan mencatatnya sebagai pengerjaan <b>Parsial (Cicilan)</b>.
-                                </span>
+
+                                <!-- Allocation Card -->
+                                <div class="p-2.5 bg-indigo-100/70 border border-indigo-200 rounded-xl flex items-center justify-between text-[11px] font-bold text-indigo-950 mt-1.5">
+                                    <span>Tersedia: <b x-text="availableQty"></b> | Defect: <b class="text-rose-600" x-text="showDefectForm && defectQty > 0 ? defectQty : 0"></b></span>
+                                    <span>Batas Unit Bagus: <b class="text-indigo-700" x-text="getMax() + ' {{ $workRequest->component->uom }}'"></b></span>
+                                </div>
                             </div>
 
                             <!-- Checkbox Defect / Reject -->
                             <div class="pt-1">
                                 <label class="inline-flex items-center cursor-pointer text-xs font-bold text-rose-600 hover:text-rose-700 p-2.5 bg-rose-50/70 border border-rose-200 rounded-xl w-full">
-                                    <input type="checkbox" x-model="showDefectForm" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500 me-2">
+                                    <input type="checkbox" x-model="showDefectForm" @change="sync()" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500 me-2">
                                     <span>Ada Barang Rusak / Defect saat Pengerjaan?</span>
                                 </label>
                             </div>
@@ -379,9 +395,11 @@
                                         </label>
                                         <input type="number" 
                                                name="defect_qty" 
+                                               x-model.number="defectQty"
+                                               @input="sync()"
                                                step="any" 
                                                min="0.01" 
-                                               max="{{ $workRequest->quantity_requested }}" 
+                                               :max="availableQty" 
                                                placeholder="Contoh: 5" 
                                                class="w-full px-3 py-2 border border-rose-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none font-bold text-rose-900 bg-white">
                                     </div>

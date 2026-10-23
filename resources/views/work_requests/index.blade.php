@@ -439,7 +439,7 @@
                         </div>
 
                         <div class="flex items-center gap-2">
-                            @if(!$wri->is_final && stripos($wri->status, 'Sudah Diambil') === false)
+                            @if(!$wri->is_final)
                                 @if($wri->approval_pengaju === 'Menunggu')
                                     @if($canApprovePengaju)
                                         <form method="POST" action="{{ route('work-requests.approve-pengaju', $wri) }}" class="flex-1">
@@ -782,7 +782,7 @@
                             <!-- Actions (In-Place Pop-ups) -->
                             <td class="py-3.5 px-4 align-top text-right">
                                 <div class="flex items-center justify-end space-x-1.5">
-                                    @if(!$wri->is_final && stripos($wri->status, 'Sudah Diambil') === false)
+                                    @if(!$wri->is_final)
                                         @if($wri->approval_pengaju === 'Menunggu')
                                             @if($canApprovePengaju)
                                                 <form method="POST" action="{{ route('work-requests.approve-pengaju', $wri) }}" class="inline">
@@ -970,9 +970,10 @@
                 },
                 openProcessModal(data) {
                     const isHandover = data.nextStatus && (data.nextStatus.includes('MH Pickup') || data.nextStatus.includes('Menuju Pengaju') || data.nextStatus.includes('Sudah Diambil'));
-                    const initialQty = (isHandover && data.currentBatchQty > 0) ? data.currentBatchQty : (data.remainingQty || 1);
+                    const initialQty = (isHandover && data.currentBatchQty > 0) ? Number(data.currentBatchQty) : Number(data.remainingQty || 1);
                     this.processData = {
                         ...data,
+                        availableQty: initialQty,
                         processQty: initialQty,
                         hasDefect: false,
                         defectQty: null,
@@ -980,6 +981,17 @@
                         notes: '',
                     };
                     this.processModalOpen = true;
+                },
+                getMaxProcessQty() {
+                    const avail = Number(this.processData.availableQty || (this.processData.currentBatchQty > 0 ? this.processData.currentBatchQty : this.processData.remainingQty) || 0);
+                    const defect = (this.processData.hasDefect && this.processData.defectQty > 0) ? Number(this.processData.defectQty) : 0;
+                    return Math.max(0, avail - defect);
+                },
+                syncProcessQtyWithDefect() {
+                    const maxGood = this.getMaxProcessQty();
+                    if (Number(this.processData.processQty) > maxGood || this.processData.processQty === null || this.processData.processQty === undefined) {
+                        this.processData.processQty = maxGood;
+                    }
                 },
                 closeProcessModal() {
                     this.processModalOpen = false;

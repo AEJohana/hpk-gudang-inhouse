@@ -124,7 +124,7 @@
                                     Jumlah Unit yang Selesai Dikerjakan <span class="text-rose-500">*</span>
                                 </label>
                                 <span class="text-[11px] text-slate-500">
-                                    Sisa Order: <strong class="text-slate-800" x-text="processData.remainingQty + ' ' + processData.uom"></strong>
+                                    Sisa di Mesin: <strong class="text-slate-800" x-text="processData.remainingQty + ' ' + processData.uom"></strong>
                                 </span>
                             </div>
 
@@ -133,26 +133,42 @@
                                        name="process_qty" 
                                        x-model.number="processData.processQty" 
                                        required 
-                                       min="0.01" 
-                                       :max="processData.remainingQty"
+                                       min="0" 
+                                       :max="getMaxProcessQty()"
+                                       @input="if(Number(processData.processQty) > getMaxProcessQty()) processData.processQty = getMaxProcessQty()"
                                        step="any" 
                                        class="w-full min-w-0 flex-1 px-4 py-2.5 text-lg font-black text-slate-900 border-0 focus:ring-0 focus:outline-none text-center">
                                 <span class="inline-flex items-center px-4 py-2.5 bg-slate-100 text-slate-700 font-extrabold text-xs border-l border-slate-200 select-none whitespace-nowrap" 
                                       x-text="processData.uom"></span>
                             </div>
 
+                            <!-- Reactive Allocation Card (Mesin) -->
+                            <div class="mt-2.5 p-3 bg-indigo-50/80 border border-indigo-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                <div>
+                                    <span class="text-[10px] text-indigo-700 font-extrabold uppercase tracking-wider block">Kalkulasi Fisik Mesin:</span>
+                                    <span class="font-bold text-slate-800">
+                                        Sisa di Mesin: <b class="text-indigo-950 font-black" x-text="processData.remainingQty"></b> | 
+                                        Defect: <b class="text-rose-600 font-black" x-text="processData.hasDefect && processData.defectQty > 0 ? processData.defectQty : 0"></b>
+                                    </span>
+                                </div>
+                                <div class="sm:text-right">
+                                    <span class="text-[10px] text-indigo-700 font-extrabold uppercase tracking-wider block">Batas Maksimal Unit Bagus:</span>
+                                    <span class="text-sm font-black text-indigo-700" x-text="getMaxProcessQty() + ' ' + processData.uom"></span>
+                                </div>
+                            </div>
+
                             <!-- Dynamic Helper Notes -->
                             <div class="mt-2 text-[11px]">
-                                <template x-if="processData.processQty < processData.remainingQty">
+                                <template x-if="((Number(processData.processQty) || 0) + (processData.hasDefect && processData.defectQty > 0 ? Number(processData.defectQty) : 0)) < processData.remainingQty">
                                     <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 flex items-start space-x-2">
                                         <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5"></i>
-                                        <span>Kuantitas yang selesai (<span x-text="processData.processQty"></span>) lebih kecil dari total (<span x-text="processData.remainingQty"></span>). Sistem otomatis mencatat pengerjaan sebagai <strong>Parsial (Cicilan)</strong>. Sisa unit tetap dalam proses mesin.</span>
+                                        <span>Pengerjaan parsial (cicilan): Total diproses <strong x-text="((Number(processData.processQty) || 0) + (processData.hasDefect && processData.defectQty > 0 ? Number(processData.defectQty) : 0))"></strong> dari <strong x-text="processData.remainingQty"></strong> PCS. Sisa unit (<strong x-text="Math.max(0, processData.remainingQty - (Number(processData.processQty) || 0) - (processData.hasDefect && processData.defectQty > 0 ? Number(processData.defectQty) : 0))"></strong> PCS) tetap dalam proses mesin.</span>
                                     </div>
                                 </template>
-                                <template x-if="processData.processQty >= processData.remainingQty">
+                                <template x-if="((Number(processData.processQty) || 0) + (processData.hasDefect && processData.defectQty > 0 ? Number(processData.defectQty) : 0)) >= processData.remainingQty">
                                     <div class="p-2 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-center space-x-2">
                                         <i class="fa-solid fa-circle-check text-emerald-600"></i>
-                                        <span>Kuantitas penuh. Seluruh unit siap diambil oleh Material Handling (MH).</span>
+                                        <span>Kuantitas penuh. Seluruh unit (<strong x-text="processData.remainingQty"></strong>) tuntas diproses (<strong x-text="processData.processQty || 0"></strong> unit bagus + <strong x-text="processData.hasDefect && processData.defectQty > 0 ? processData.defectQty : 0"></strong> reject). Tahapan mesin akan selesai dan berhenti.</span>
                                     </div>
                                 </template>
                             </div>
@@ -163,6 +179,7 @@
                             <label class="flex items-center space-x-2.5 cursor-pointer p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
                                 <input type="checkbox" 
                                        x-model="processData.hasDefect" 
+                                       @change="syncProcessQtyWithDefect()"
                                        class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
                                 <div class="flex items-center space-x-1.5 text-xs font-bold text-slate-700">
                                     <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
@@ -182,7 +199,9 @@
                                         <input type="number" 
                                                name="defect_qty" 
                                                x-model.number="processData.defectQty" 
+                                               @input="syncProcessQtyWithDefect()"
                                                min="0.01" 
+                                               :max="processData.remainingQty"
                                                step="any" 
                                                placeholder="0"
                                                class="w-full px-3 py-1.5 text-xs border border-rose-300 rounded-xl focus:ring-2 focus:ring-rose-500 font-bold text-rose-950">
@@ -231,7 +250,7 @@
                                     Jumlah Fisik Bagus yang Diambil Kurir MH <span class="text-rose-500">*</span>
                                 </label>
                                 <span class="text-[11px] text-slate-500">
-                                    Maksimal: <strong class="text-slate-800" x-text="(processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty) + ' ' + processData.uom"></strong>
+                                    Batas Maksimal: <strong class="text-slate-800" x-text="getMaxProcessQty() + ' ' + processData.uom"></strong>
                                 </span>
                             </div>
 
@@ -240,12 +259,28 @@
                                        name="process_qty" 
                                        x-model.number="processData.processQty" 
                                        required 
-                                       min="0.01" 
-                                       :max="processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty"
+                                       min="0" 
+                                       :max="getMaxProcessQty()"
+                                       @input="if(Number(processData.processQty) > getMaxProcessQty()) processData.processQty = getMaxProcessQty()"
                                        step="any" 
                                        class="w-full min-w-0 flex-1 px-4 py-2.5 text-lg font-black text-slate-900 border-0 focus:ring-0 focus:outline-none text-center">
                                 <span class="inline-flex items-center px-4 py-2.5 bg-slate-100 text-slate-700 font-extrabold text-xs border-l border-slate-200 select-none whitespace-nowrap" 
                                       x-text="processData.uom"></span>
+                            </div>
+
+                            <!-- Reactive Allocation Card (MH) -->
+                            <div class="mt-2.5 p-3 bg-amber-50/80 border border-amber-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                <div>
+                                    <span class="text-[10px] text-amber-800 font-extrabold uppercase tracking-wider block">Kalkulasi Fisik Serah Terima MH:</span>
+                                    <span class="font-bold text-slate-800">
+                                        Siap di Mesin: <b class="text-amber-950 font-black" x-text="processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty"></b> | 
+                                        Defect/Hilang: <b class="text-rose-600 font-black" x-text="processData.hasDefect && processData.defectQty > 0 ? processData.defectQty : 0"></b>
+                                    </span>
+                                </div>
+                                <div class="sm:text-right">
+                                    <span class="text-[10px] text-amber-800 font-extrabold uppercase tracking-wider block">Batas Maksimal Diangkut:</span>
+                                    <span class="text-sm font-black text-amber-700" x-text="getMaxProcessQty() + ' ' + processData.uom"></span>
+                                </div>
                             </div>
                         </div>
 
@@ -254,6 +289,7 @@
                             <label class="flex items-center space-x-2.5 cursor-pointer p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
                                 <input type="checkbox" 
                                        x-model="processData.hasDefect" 
+                                       @change="syncProcessQtyWithDefect()"
                                        class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
                                 <div class="flex items-center space-x-1.5 text-xs font-bold text-slate-700">
                                     <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
@@ -273,7 +309,9 @@
                                         <input type="number" 
                                                name="defect_qty" 
                                                x-model.number="processData.defectQty" 
+                                               @input="syncProcessQtyWithDefect()"
                                                min="0.01" 
+                                               :max="processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty"
                                                step="any" 
                                                placeholder="0"
                                                class="w-full px-3 py-1.5 text-xs border border-rose-300 rounded-xl focus:ring-2 focus:ring-rose-500 font-bold text-rose-950">
@@ -322,7 +360,7 @@
                                     Jumlah Unit Bagus yang Diterima Masuk Rak <span class="text-rose-500">*</span>
                                 </label>
                                 <span class="text-[11px] text-slate-500">
-                                    Maksimal: <strong class="text-slate-800" x-text="(processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty) + ' ' + processData.uom"></strong>
+                                    Batas Maksimal: <strong class="text-slate-800" x-text="getMaxProcessQty() + ' ' + processData.uom"></strong>
                                 </span>
                             </div>
 
@@ -331,12 +369,28 @@
                                        name="process_qty" 
                                        x-model.number="processData.processQty" 
                                        required 
-                                       min="0.01" 
-                                       :max="processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty"
+                                       min="0" 
+                                       :max="getMaxProcessQty()"
+                                       @input="if(Number(processData.processQty) > getMaxProcessQty()) processData.processQty = getMaxProcessQty()"
                                        step="any" 
                                        class="w-full min-w-0 flex-1 px-4 py-2.5 text-lg font-black text-slate-900 border-0 focus:ring-0 focus:outline-none text-center">
                                 <span class="inline-flex items-center px-4 py-2.5 bg-slate-100 text-slate-700 font-extrabold text-xs border-l border-slate-200 select-none whitespace-nowrap" 
                                       x-text="processData.uom"></span>
+                            </div>
+
+                            <!-- Reactive Allocation Card (Gudang) -->
+                            <div class="mt-2.5 p-3 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                <div>
+                                    <span class="text-[10px] text-emerald-800 font-extrabold uppercase tracking-wider block">Kalkulasi Masuk Rak Gudang:</span>
+                                    <span class="font-bold text-slate-800">
+                                        Dikirim Kurir MH: <b class="text-emerald-950 font-black" x-text="processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty"></b> | 
+                                        Defect Transit: <b class="text-rose-600 font-black" x-text="processData.hasDefect && processData.defectQty > 0 ? processData.defectQty : 0"></b>
+                                    </span>
+                                </div>
+                                <div class="sm:text-right">
+                                    <span class="text-[10px] text-emerald-800 font-extrabold uppercase tracking-wider block">Batas Maksimal Masuk Rak:</span>
+                                    <span class="text-sm font-black text-emerald-700" x-text="getMaxProcessQty() + ' ' + processData.uom"></span>
+                                </div>
                             </div>
                         </div>
 
@@ -345,6 +399,7 @@
                             <label class="flex items-center space-x-2.5 cursor-pointer p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
                                 <input type="checkbox" 
                                        x-model="processData.hasDefect" 
+                                       @change="syncProcessQtyWithDefect()"
                                        class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
                                 <div class="flex items-center space-x-1.5 text-xs font-bold text-slate-700">
                                     <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
@@ -364,7 +419,9 @@
                                         <input type="number" 
                                                name="defect_qty" 
                                                x-model.number="processData.defectQty" 
+                                               @input="syncProcessQtyWithDefect()"
                                                min="0.01" 
+                                               :max="processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty"
                                                step="any" 
                                                placeholder="0"
                                                class="w-full px-3 py-1.5 text-xs border border-rose-300 rounded-xl focus:ring-2 focus:ring-rose-500 font-bold text-rose-950">

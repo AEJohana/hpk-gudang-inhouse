@@ -37,7 +37,23 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Koreksi Saldo Mesin Tanpa Celah:** `saldoOut = max(0, totalIn - totalOut - stepMachineDefects)` dan `waitingPickup = max(0, totalOut - totalPickup - pickupDefects)`. Tidak ada lagi aksi sisa hantu setelah defect dilaporkan.
 - **Penguncian Batas Atas (Anti Over-Processing):** Kuantitas yang diproses/diambil dikunci secara ketat di backend dan frontend agar tidak pernah melebihi sisa pesanan aktif.
 - **Audit Trail Defect Transparan:** Mencatat Nama Operator, Departemen, Tanggal & Jam Presisi (`d/m/Y H:i`), serta Alasan Defect di log audit dan modal detail.
-- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestDefectAndHandoverTest.php` - 4 passed, 6 assertions).
+- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestDefectAndHandoverTest.php` - 5 passed, 19 assertions).
+
+### D. Siklus Parsial Multi-Batch & Pencegahan Penutupan Prematur (Baru Selesai & Teruji 100%)
+- **Pembersihan Jebakan String Blade:** Menghapus pengecekan `stripos(status, 'Sudah Diambil') === false` pada `index.blade.php`, `show.blade.php`, dan `detail_modal.blade.php`. Penutupan tiket murni dikontrol oleh boolean `$workRequest->is_final`.
+- **Akses Tombol Pengerjaan Sisa Mesin:** Ketika Gudang menerima 50 pcs parsial dari pesanan 100 pcs, tiket tetap berstatus aktif (`is_final = false`). Tombol aksi pengerjaan sisa 50 pcs untuk Mesin tetap muncul dan dapat dieksekusi secara instan.
+- **Penyempurnaan `getNextStatusLabel()`:** Ketika tiket parsial belum final, sistem otomatis memeriksa sisa saldo pengerjaan mesin yang belum selesai (`saldo_out > 0`) sehingga rekomendasi alur tetap menunjuk ke pengerjaan sisa mesin (`Siap Diambil` / `Proses: M1 (Out)`), bukan `"Selesai"`.
+- **Koreksi Filter Tab & Counter Selesai:** Tiket berstatus `Parsial > Sudah Diambil` tetap berada di tab Antrian Aktif dan Parsial, dan tidak dimasukkan ke tab atau counter `Selesai` hingga seluruh unit diterima (100%).
+- **Pengujian Unit Otomatis:** Lulus 100% pada SQLite `:memory:` (`test_partial_delivery_keeps_ticket_open_and_allows_machine_to_finish_remaining_quantity`).
+
+### E. Sinkronisasi Reaktif Defect & Penghentian Tuntas Mesin (Baru Selesai & Teruji 100%)
+- **Penghentian Otomatis Tahapan Mesin (Auto-Stop):** Menyelesaikan bug di mana pengerjaan 15 pcs unit bagus + 5 pcs defect mesin dari 20 pcs pengajuan tidak menghentikan mesin. Formula `getStepBalance` kini mengatribusikan defect pada status `Siap Diambil` ke stasiun mesin terakhir dan menerapkan batas `saldoOut = max(0, min($totalIn - $totalOut - $stepMachineDefects, $totalReq - $totalOut)) = 0`. Mesin seketika berhenti (*stop*).
+- **Link Reaktif Input Defect & Process Qty:** Modal proses menghubungkan secara real-time `maxProcessQty = availableQty - defectQty`. Jika defect diisi 5 pada saldo sedia 20, batas maksimal unit bagus otomatis terkunci menjadi 15 pcs.
+- **Kartu Kalkulasi Alokasi Fisik Kontekstual di 3 Titik:**
+  - **Mesin Center:** `Sisa di Mesin: 20 | Defect: 5 -> Batas Maksimal Unit Bagus: 15 PCS`.
+  - **Material Handling:** `Siap di Mesin: 15 | Defect/Hilang: 1 -> Batas Maksimal Diangkut: 14 PCS`.
+  - **Gudang Penerima:** `Dikirim Kurir MH: 14 | Defect Transit: 1 -> Batas Maksimal Masuk Rak: 13 PCS`.
+- **Pengujian Unit Otomatis:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestDefectAndHandoverTest.php` - 6 passed, 30 assertions).
 
 ---
 

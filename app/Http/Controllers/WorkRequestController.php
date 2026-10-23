@@ -64,9 +64,13 @@ class WorkRequestController extends Controller
                 });
             } elseif ($st === 'selesai') {
                 $query->where(function ($q) {
-                    $q->where('status', 'like', '%Sudah Diambil%')
-                      ->orWhere('status', 'received')
-                      ->orWhere('is_final', true);
+                    $q->where('is_final', true)
+                      ->orWhere(function ($sub) {
+                          $sub->where(function ($w) {
+                              $w->where('status', 'like', '%Sudah Diambil%')
+                                ->orWhere('status', 'received');
+                          })->where('status', 'not like', '%Parsial%');
+                      });
                 });
             } elseif ($st === 'parsial') {
                 $query->where('status', 'like', '%Parsial%');
@@ -119,9 +123,13 @@ class WorkRequestController extends Controller
               ->orWhere('status', 'ready_for_warehouse');
         })->count();
         $receivedCount = (clone $baseStatQuery)->where(function ($q) {
-            $q->where('status', 'like', '%Sudah Diambil%')
-              ->orWhere('status', 'received')
-              ->orWhere('is_final', true);
+            $q->where('is_final', true)
+              ->orWhere(function ($sub) {
+                  $sub->where(function ($w) {
+                      $w->where('status', 'like', '%Sudah Diambil%')
+                        ->orWhere('status', 'received');
+                  })->where('status', 'not like', '%Parsial%');
+              });
         })->count();
         $partialCount = (clone $baseStatQuery)->where('status', 'like', '%Parsial%')->count();
         $needsApprovalCount = (clone $baseStatQuery)->needsApproval()->count();
@@ -570,7 +578,7 @@ class WorkRequestController extends Controller
         $validated = $request->validate([
             'action_type' => 'required|in:process,defect,quick_advance',
             'target_status' => 'nullable|string|max:100',
-            'process_qty' => 'nullable|numeric|min:0.01',
+            'process_qty' => 'nullable|numeric|min:0',
             'defect_qty' => 'nullable|numeric|min:0.01',
             'defect_reason' => 'nullable|string|max:255',
             'operator_name' => 'nullable|string|max:100',
@@ -609,14 +617,15 @@ class WorkRequestController extends Controller
                     'notes' => trim(($workRequest->notes ? $workRequest->notes . "\n" : '') . "[Koreksi Defect] -{$defectQty} pcs: {$reason}"),
                 ]);
 
+                $activeStepName = $workRequest->getActiveStepNameForTarget($workRequest->status);
                 WorkRequestLog::create([
                     'work_request_id' => $workRequest->id,
                     'action_type' => 'defect',
-                    'status_label' => 'Defect > ' . $workRequest->status,
+                    'status_label' => 'Defect > ' . $workRequest->status . ($activeStepName ? " [{$activeStepName}]" : ''),
                     'quantity' => $defectQty,
                     'quantity_accumulated' => $newTotalDefect,
                     'operator_name' => $operator,
-                    'notes' => "Reject/Defect: {$reason}. Kuota order dipotong {$defectQty} pcs menjadi {$newReq} pcs.",
+                    'notes' => "Reject/Defect" . ($activeStepName ? " ({$activeStepName})" : '') . ": {$reason}. Kuota order dipotong {$defectQty} pcs menjadi {$newReq} pcs.",
                 ]);
 
                 return redirect()->back()
@@ -640,14 +649,15 @@ class WorkRequestController extends Controller
                     'quantity_requested' => $totalReq,
                 ]);
 
+                $activeStepName = $workRequest->getActiveStepNameForTarget($cleanTarget);
                 WorkRequestLog::create([
                     'work_request_id' => $workRequest->id,
                     'action_type' => 'defect',
-                    'status_label' => 'Defect > ' . $cleanTarget,
+                    'status_label' => 'Defect > ' . $cleanTarget . ($activeStepName ? " [{$activeStepName}]" : ''),
                     'quantity' => $defectQty,
                     'quantity_accumulated' => $accumDefect,
                     'operator_name' => $operator,
-                    'notes' => "Reject/Defect pada tahap {$cleanTarget}: {$reason}. Kuota total tiket dipotong {$defectQty} pcs menjadi {$totalReq} pcs.",
+                    'notes' => "Reject/Defect pada tahap {$cleanTarget}" . ($activeStepName ? " ({$activeStepName})" : '') . ": {$reason}. Kuota total tiket dipotong {$defectQty} pcs menjadi {$totalReq} pcs.",
                 ]);
             }
 
@@ -655,7 +665,7 @@ class WorkRequestController extends Controller
             if (stripos($cleanTarget, '(In)') !== false) {
                 $processQty = max(0, $totalReq - $accumReceived);
             } else {
-                $rawQty = isset($validated['process_qty']) && (float) $validated['process_qty'] > 0
+                $rawQty = isset($validated['process_qty']) && is_numeric($validated['process_qty'])
                     ? (float) $validated['process_qty']
                     : ($totalReq - $accumReceived);
 

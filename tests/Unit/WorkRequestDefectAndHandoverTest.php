@@ -253,4 +253,287 @@ class WorkRequestDefectAndHandoverTest extends TestCase
         // Karena 19 unit sudah diterima dan 1 unit defect (total 20 unit terhitung), saldoTerima = 20 - 19 - 1 = 0
         $this->assertEmpty($actions, 'Tidak boleh ada sisa aksi penerimaan gudang karena seluruh unit telah tuntas diproses');
     }
+
+    public function test_partial_delivery_keeps_ticket_open_and_allows_machine_to_finish_remaining_quantity(): void
+    {
+        $userM1 = new User([
+            'name' => 'Operator Laser',
+            'work_area' => 'mesin_center',
+            'department' => 'Dept Laser',
+        ]);
+
+        $userMH = new User([
+            'name' => 'Kurir Material Handling',
+            'work_area' => 'material_handling',
+            'department' => 'Dept Logistic',
+        ]);
+
+        $userGudang = new User([
+            'name' => 'Staf Gudang',
+            'work_area' => 'gudang',
+            'department' => 'Dept Gudang',
+        ]);
+
+        // Buat WorkRequest: Pengajuan 100 pcs untuk Mesin Laser (M1)
+        $wr = WorkRequest::create([
+            'wri_number' => 'WRI-PARTIAL-100',
+            'dept_pengaju' => 'Dept Gudang',
+            'dept_penerima' => 'Dept Laser',
+            'routing_text' => 'Laser',
+            'quantity_requested' => 100,
+            'approval_pengaju' => 'Diterima',
+            'approval_penerima' => 'Diterima',
+            'status' => 'Dalam antrian',
+            'is_final' => false,
+        ]);
+
+        // 1. M1 mengambil bahan (In): 100 pcs
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'process',
+            'status_label' => 'Proses: Laser (In)',
+            'quantity' => 100,
+            'quantity_accumulated' => 100,
+        ]);
+        $wr->update(['status' => 'Proses: Laser (In)']);
+
+        // 2. M1 memproses parsial (Out) batch 1: 50 pcs (sisa 50 pcs masih di mesin)
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'partial',
+            'status_label' => 'Parsial > Siap Diambil',
+            'quantity' => 50,
+            'quantity_accumulated' => 50,
+        ]);
+        $wr->update(['status' => 'Parsial > Siap Diambil', 'current_batch_qty' => 50]);
+
+        // 3. Material Handling pickup batch 1: 50 pcs
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'partial',
+            'status_label' => 'Parsial > Menuju Pengaju',
+            'quantity' => 50,
+            'quantity_accumulated' => 50,
+        ]);
+        $wr->update(['status' => 'Parsial > Menuju Pengaju', 'current_batch_qty' => 50]);
+
+        // 4. Gudang menerima batch 1: 50 pcs (Sudah Diambil)
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'partial',
+            'status_label' => 'Parsial > Sudah Diambil',
+            'quantity' => 50,
+            'quantity_accumulated' => 50,
+        ]);
+        $wr->update([
+            'status' => 'Parsial > Sudah Diambil',
+            'quantity_received' => 50,
+            'is_final' => false,
+            'current_batch_qty' => 0,
+        ]);
+
+        // VERIFIKASI FASE PARSIAL:
+        // A. Tiket TIDAK boleh final
+        $this->assertFalse($wr->is_final, 'Tiket parsial tidak boleh berstatus is_final=true');
+
+        // B. M1 HARUS tetap memiliki aksi pengerjaan untuk 50 pcs sisanya
+        $actionsM1 = $wr->getAvailableActionsForUser($userM1);
+        $this->assertNotEmpty($actionsM1, 'Operator M1 harus tetap melihat tombol aksi pengerjaan sisa');
+        $this->assertEquals(50, $actionsM1[0]['quantity'], 'Sisa kuota pengerjaan M1 harus tepat 50 pcs');
+        $this->assertEquals('Siap Diambil', $actionsM1[0]['target_status']);
+
+        // C. getNextStatusLabel TIDAK boleh mengembalikan 'Selesai'
+        $this->assertEquals('Siap Diambil', $wr->getNextStatusLabel($userM1));
+        $this->assertEquals('Siap Diambil', $wr->getNextStatusLabel(null), 'Rekomendasi alur tiket harus mengarah ke sisa pengerjaan mesin');
+
+        // D. Status badge menginformasikan parsial diterima 50/100
+        $this->assertStringContainsString('50/100', $wr->status_badge['label']);
+
+        // 5. M1 melanjutkan dan menyelesaikan sisa 50 pcs
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'process',
+            'status_label' => 'Siap Diambil',
+            'quantity' => 50,
+            'quantity_accumulated' => 100,
+        ]);
+        $wr->update(['status' => 'Siap Diambil', 'current_batch_qty' => 50]);
+
+        // 6. Material Handling pickup sisa 50 pcs
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'process',
+            'status_label' => 'Menuju Pengaju',
+            'quantity' => 50,
+            'quantity_accumulated' => 100,
+        ]);
+        $wr->update(['status' => 'Menuju Pengaju', 'current_batch_qty' => 50]);
+
+        // 7. Gudang menerima sisa 50 pcs (Total Diterima = 100 pcs -> Final Closed)
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'process',
+            'status_label' => 'Sudah Diambil',
+            'quantity' => 50,
+            'quantity_accumulated' => 100,
+        ]);
+        $wr->update([
+            'status' => 'Sudah Diambil',
+            'quantity_received' => 100,
+            'is_final' => true,
+            'current_batch_qty' => 0,
+        ]);
+
+        // VERIFIKASI FASE FINAL:
+        $this->assertTrue($wr->is_final, 'Tiket harus berstatus final setelah 100 pcs tuntas diterima');
+        $this->assertEmpty($wr->getAvailableActionsForUser($userM1), 'M1 tidak boleh memiliki aksi lagi setelah tiket final');
+        $this->assertEmpty($wr->getAvailableActionsForUser($userMH), 'MH tidak boleh memiliki aksi lagi setelah tiket final');
+        $this->assertEmpty($wr->getAvailableActionsForUser($userGudang), 'Gudang tidak boleh memiliki aksi lagi setelah tiket final');
+        $this->assertEquals('Selesai', $wr->getNextStatusLabel(null));
+        $this->assertEquals('Sudah Diambil (Final)', $wr->status_badge['label']);
+    }
+
+    public function test_machine_stops_completely_when_good_plus_defect_equals_total_supply(): void
+    {
+        $userM1 = new User([
+            'name' => 'Operator M1',
+            'work_area' => 'mesin_center',
+            'department' => 'Dept M1',
+        ]);
+
+        $userMH = new User([
+            'name' => 'Kurir MH',
+            'work_area' => 'material_handling',
+            'department' => 'Dept Logistic',
+        ]);
+
+        $userGudang = new User([
+            'name' => 'Staf Gudang',
+            'work_area' => 'gudang',
+            'department' => 'Dept Gudang',
+        ]);
+
+        // Pengajuan 20 pcs untuk M1
+        $wr = WorkRequest::create([
+            'wri_number' => 'WRI-DEFECT-STOP-20',
+            'dept_pengaju' => 'Dept Gudang',
+            'dept_penerima' => 'Dept M1',
+            'routing_text' => 'M1',
+            'quantity_requested' => 20,
+            'approval_pengaju' => 'Diterima',
+            'approval_penerima' => 'Diterima',
+            'status' => 'Dalam antrian',
+            'is_final' => false,
+        ]);
+
+        // 1. M1 In: 20 pcs
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'process',
+            'status_label' => 'Proses: M1 (In)',
+            'quantity' => 20,
+            'quantity_accumulated' => 20,
+        ]);
+        $wr->update(['status' => 'Proses: M1 (In)']);
+
+        // 2. M1 Out: 15 pcs unit bagus + 5 pcs defect mesin (Total: 20 pcs tuntas)
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'defect',
+            'status_label' => 'Defect > Siap Diambil [M1]',
+            'quantity' => 5,
+            'quantity_accumulated' => 5,
+            'notes' => 'Reject/Defect pada tahap Siap Diambil (M1): Plat gompal. Kuota total tiket dipotong 5 pcs menjadi 15 pcs.',
+        ]);
+
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'process',
+            'status_label' => 'Siap Diambil',
+            'quantity' => 15,
+            'quantity_accumulated' => 15,
+        ]);
+
+        $wr->update([
+            'quantity_requested' => 15,
+            'quantity_defect' => 5,
+            'status' => 'Siap Diambil',
+            'current_batch_qty' => 15,
+        ]);
+
+        // VERIFIKASI M1 BERHENTI (STOP):
+        $bal = $wr->getStepBalance('M1', 0);
+        $this->assertEquals(0, $bal['saldo_out'], 'Saldo out M1 harus 0 setelah 15 unit bagus + 5 defect selesai');
+        $actionsM1 = $wr->getAvailableActionsForUser($userM1);
+        $this->assertEmpty($actionsM1, 'M1 HARUS BERHENTI (tidak boleh ada tombol pengerjaan lagi)');
+
+        // VERIFIKASI MATERIAL HANDLING MENERIMA 15 PCS:
+        $this->assertEquals(15, $bal['waiting_pickup'], 'Barang siap angkut MH harus tepat 15 pcs');
+        $actionsMH = $wr->getAvailableActionsForUser($userMH);
+        $this->assertNotEmpty($actionsMH, 'Kurir MH harus memiliki aksi angkut');
+        $this->assertEquals(15, $actionsMH[0]['quantity'], 'Jumlah yang diangkut kurir MH adalah 15 pcs');
+
+        // 3. MH angkut 14 pcs bagus + 1 defect/hilang transit
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'defect',
+            'status_label' => 'Defect > Menuju Pengaju [Gudang]',
+            'quantity' => 1,
+            'quantity_accumulated' => 6,
+            'notes' => '1 unit hilang saat loading troli',
+        ]);
+
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'process',
+            'status_label' => 'Menuju Pengaju',
+            'quantity' => 14,
+            'quantity_accumulated' => 14,
+        ]);
+
+        $wr->update([
+            'quantity_requested' => 14,
+            'quantity_defect' => 6,
+            'status' => 'Menuju Pengaju',
+            'current_batch_qty' => 14,
+        ]);
+
+        // MH selesai angkut
+        $actionsMHAfter = $wr->getAvailableActionsForUser($userMH);
+        $this->assertEmpty($actionsMHAfter, 'Kurir MH harus berhenti setelah mengangkut seluruh barang siap');
+
+        // 4. Gudang menerima 13 pcs bagus + 1 defect transit
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'defect',
+            'status_label' => 'Defect > Sudah Diambil [Gudang]',
+            'quantity' => 1,
+            'quantity_accumulated' => 7,
+            'notes' => '1 unit cacat terbentur troli',
+        ]);
+
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'action_type' => 'process',
+            'status_label' => 'Sudah Diambil',
+            'quantity' => 13,
+            'quantity_accumulated' => 13,
+        ]);
+
+        $wr->update([
+            'quantity_requested' => 13,
+            'quantity_defect' => 7,
+            'quantity_received' => 13,
+            'status' => 'Sudah Diambil',
+            'is_final' => true,
+            'current_batch_qty' => 0,
+        ]);
+
+        // VERIFIKASI TIKET TUNTAS & SELESAI
+        $this->assertTrue($wr->is_final, 'Tiket harus berstatus final');
+        $this->assertEquals(13, $wr->quantity_received, 'Fisik yang diterima masuk stok gudang adalah 13 pcs');
+        $this->assertEquals(7, $wr->quantity_defect, 'Total defect dari 3 stasiun adalah 7 pcs');
+        $this->assertEquals(20, $wr->original_quantity_requested, 'Total order awal tetap tercatat 20 pcs');
+        $this->assertEmpty($wr->getAvailableActionsForUser($userGudang));
+    }
 }
