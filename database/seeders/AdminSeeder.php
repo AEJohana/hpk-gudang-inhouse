@@ -86,19 +86,9 @@ class AdminSeeder extends Seeder
             'material-handling.manage',
         ]);
 
-        // Role: Operator Gudang (Pengaju Tiket & Picker)
+        // Role: Operator (Hak akses spesifik diberikan per-user via checklist matrix berdasarkan area kerja)
         $roleOperator = Role::firstOrCreate(['name' => 'operator', 'guard_name' => 'web']);
-        $roleOperator->syncPermissions([
-            'peta-gudang.view',
-            'master-komponen.view',
-            'transaksi-komponen.view', 'transaksi-komponen.create',
-            'label-qr.view', 'label-qr.create',
-            'cycle-count.view', 'cycle-count.create',
-            // WRI (Hak create diberikan per-user via checklist matrix)
-            'work-request.view',
-            'work-request.print',
-            'work-request.safety-stock',
-        ]);
+        $roleOperator->syncPermissions([]);
 
         // Role Baru: Operator Mesin Fabrikasi (Penerima: Laser, SB, M1, UNP, Robot)
         $roleOperatorMesin = Role::firstOrCreate(['name' => 'operator_mesin', 'guard_name' => 'web']);
@@ -140,18 +130,9 @@ class AdminSeeder extends Seeder
             'work-request.monitoring',
         ]);
 
-        // Role: Staff (PPC, Administrasi, Logistik, Lapangan)
+        // Role: Staff (Hak akses spesifik diberikan per-user via checklist matrix berdasarkan area kerja)
         $roleStaff = Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web']);
-        $roleStaff->syncPermissions([
-            'peta-gudang.view',
-            'master-komponen.view', 'master-komponen.create', 'master-komponen.edit',
-            'transaksi-komponen.view', 'transaksi-komponen.create',
-            'label-qr.view', 'label-qr.create',
-            'cycle-count.view', 'cycle-count.create',
-            'laporan.view', 'laporan.export',
-            'work-request.view', 'work-request.print', 'work-request.safety-stock', 'work-request.monitoring',
-            'material-handling.view',
-        ]);
+        $roleStaff->syncPermissions([]);
 
         // 5. Hubungkan Pengguna Awal ke Master Departemen & Sync Role
         $deptGudang = Department::where('code', '11')->first();

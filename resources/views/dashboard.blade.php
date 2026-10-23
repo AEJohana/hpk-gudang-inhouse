@@ -52,6 +52,7 @@
 
             <div class="dashboard-grid">
                 <!-- 1. Master Komponen -->
+                @can('master-komponen.view')
                 <a href="{{ route('components.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-boxes-stacked card-icon-bg"></i>
@@ -73,8 +74,10 @@
                         <p class="text-xs text-slate-500 leading-relaxed">Katalog part, upload foto fisik, spesifikasi teknis & batas safety stock</p>
                     </div>
                 </a>
+                @endcan
 
                 <!-- 2. Transaksi Barang -->
+                @can('transaksi-komponen.view')
                 <a href="{{ route('transactions.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-right-left card-icon-bg"></i>
@@ -89,8 +92,10 @@
                         <p class="text-xs text-slate-500 leading-relaxed">Inbound supplier, outbound serah terima lini perakitan & transfer antar rak</p>
                     </div>
                 </a>
+                @endcan
 
                 <!-- 3. ECR Revisi Komponen -->
+                @can('ecr.view')
                 <a href="{{ route('ecrs.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-file-pen card-icon-bg"></i>
@@ -107,8 +112,10 @@
                         <p class="text-xs text-slate-500 leading-relaxed">Engineering Change Request, pembaruan dimensi spek & persetujuan berjenjang</p>
                     </div>
                 </a>
+                @endcan
 
                 <!-- 4. Cycle Count (Stok Opname) -->
+                @can('cycle-count.view')
                 <a href="{{ route('cycle-counts.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-clipboard-check card-icon-bg"></i>
@@ -123,8 +130,10 @@
                         <p class="text-xs text-slate-500 leading-relaxed">Audit stok periodik per zona rak gudang, input jumlah fisik & rekonsiliasi selisih</p>
                     </div>
                 </a>
+                @endcan
 
                 <!-- 5. Permintaan Label QR -->
+                @can('label-qr.view')
                 <a href="{{ route('qr-requests.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-qrcode card-icon-bg"></i>
@@ -141,8 +150,10 @@
                         <p class="text-xs text-slate-500 leading-relaxed">Pengajuan stiker barcode / QR code thermal untuk part baru & identifikasi rak</p>
                     </div>
                 </a>
+                @endcan
 
                 <!-- 6. Pengajuan Disposal Scrap -->
+                @can('disposal.view')
                 <a href="{{ route('disposals.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-trash-can card-icon-bg"></i>
@@ -159,8 +170,10 @@
                         <p class="text-xs text-slate-500 leading-relaxed">Scrap potongan plat besi, material rusak/afkir & otorisasi pimpinan</p>
                     </div>
                 </a>
+                @endcan
 
                 <!-- 8. Work Request Inhouse (Machine Center) -->
+                @can('work-request.view')
                 <a href="{{ route('work-requests.index') }}" class="dash-card group border-amber-300 bg-amber-50/20">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-industry card-icon-bg"></i>
@@ -179,8 +192,10 @@
                         <p class="text-xs text-slate-500 leading-relaxed">Order fabrikasi ke Mesin Center (Potong Laser & Bending) & serah terima stok</p>
                     </div>
                 </a>
+                @endcan
 
                 <!-- 9. Material Handling (Task Gudang) -->
+                @can('material-handling.view')
                 <a href="{{ route('work-station-supplies.index') }}" class="dash-card group border-teal-200 bg-teal-50/20">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-truck-ramp-box card-icon-bg"></i>
@@ -195,6 +210,7 @@
                         <p class="text-xs text-slate-500 leading-relaxed">Pengambilan & pengantaran komponen antar mesin fabrikasi dan ke gudang</p>
                     </div>
                 </a>
+                @endcan
             </div>
         </div>
 
@@ -216,6 +232,7 @@
             </div>
 
             <!-- Alert Stok Kritis / Minimum -->
+            @can('master-komponen.view')
             <a href="{{ route('components.index', ['low_stock' => 1]) }}" class="bg-white rounded-2xl p-5 border {{ $lowStockCount > 0 ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200/80' }} shadow-sm flex items-center justify-between group hover:border-rose-400 hover:shadow-md transition">
                 <div>
                     <p class="text-[11px] font-bold uppercase tracking-wider text-rose-600 flex items-center">
@@ -231,6 +248,23 @@
                     <i class="fa-solid fa-triangle-exclamation"></i>
                 </div>
             </a>
+            @else
+            <div class="bg-white rounded-2xl p-5 border {{ $lowStockCount > 0 ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200/80' }} shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-rose-600 flex items-center">
+                        <span class="w-2 h-2 rounded-full bg-rose-500 me-1.5 animate-pulse"></span>
+                        Stok Menipis (Kritis)
+                    </p>
+                    <h3 class="text-2xl font-black text-slate-900 mt-1">{{ $lowStockCount }} <span class="text-xs font-normal text-slate-500">Item</span></h3>
+                    <p class="text-[11px] text-slate-400 mt-1 font-semibold">
+                        Katalog Gudang
+                    </p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shadow-xs">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+            </div>
+            @endcan
 
             <!-- Transaksi Hari Ini -->
             <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between hover:shadow-md transition">

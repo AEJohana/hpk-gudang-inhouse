@@ -28,22 +28,29 @@
                     <a href="{{ route('dashboard') }}" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('dashboard') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
                         Dashboard
                     </a>
+                    @can('master-komponen.view')
                     <a href="{{ route('components.index') }}" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('components.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
                         Komponen
                     </a>
+                    @endcan
+                    @can('transaksi-komponen.view')
                     <a href="{{ route('transactions.index') }}" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('transactions.*') && !request()->routeIs('work-station-supplies.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
                         Transaksi
                     </a>
+                    @endcan
                     @can('work-request.view')
                     <a href="{{ route('work-requests.index') }}" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('work-requests.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
                         <i class="fa-solid fa-industry me-1 text-teal-300 text-[10px]"></i> Work Request (WRI)
                     </a>
                     @endcan
+                    @can('peta-gudang.view')
                     <a href="{{ route('warehouse-map.index') }}" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('warehouse-map.*', 'locations.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
                         Peta Gudang
                     </a>
+                    @endcan
 
                     <!-- Dropdown: Kualitas & Audit -->
+                    @if(Auth::user()->canAny(['ecr.view', 'disposal.view', 'label-qr.view', 'cycle-count.view', 'material-handling.view']))
                     <x-dropdown align="left" width="48">
                         <x-slot name="trigger">
                             <button class="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition flex items-center {{ request()->routeIs('ecrs.*', 'disposals.*', 'qr-requests.*', 'cycle-counts.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
@@ -52,18 +59,26 @@
                             </button>
                         </x-slot>
                         <x-slot name="content">
+                            @can('ecr.view')
                             <x-dropdown-link :href="route('ecrs.index')" class="text-xs">
                                 <i class="fa-solid fa-file-pen me-2 text-purple-600"></i> ECR Revisi Part
                             </x-dropdown-link>
+                            @endcan
+                            @can('disposal.view')
                             <x-dropdown-link :href="route('disposals.index')" class="text-xs">
                                 <i class="fa-solid fa-trash-can me-2 text-rose-600"></i> Pengajuan Disposal
                             </x-dropdown-link>
+                            @endcan
+                            @can('label-qr.view')
                             <x-dropdown-link :href="route('qr-requests.index')" class="text-xs">
                                 <i class="fa-solid fa-qrcode me-2 text-cyan-600"></i> Permintaan Label QR
                             </x-dropdown-link>
+                            @endcan
+                            @can('cycle-count.view')
                             <x-dropdown-link :href="route('cycle-counts.index')" class="text-xs">
                                 <i class="fa-solid fa-clipboard-check me-2 text-amber-600"></i> Cycle Count Opname
                             </x-dropdown-link>
+                            @endcan
                             @can('material-handling.view')
                             <x-dropdown-link :href="route('work-station-supplies.index')" class="text-xs border-t border-slate-100">
                                 <i class="fa-solid fa-truck-ramp-box me-2 text-blue-600"></i> Material Handling (Task Gudang)
@@ -71,6 +86,7 @@
                             @endcan
                         </x-slot>
                     </x-dropdown>
+                    @endif
                     
                     @if(Auth::user()->hasRole('admin_gudang'))
                     <a href="{{ route('admin.dashboard') }}" class="px-2.5 py-1.5 text-xs font-bold rounded-lg transition bg-amber-500/20 text-amber-300 border border-amber-300/30 hover:bg-amber-500/30 ml-1">

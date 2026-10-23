@@ -216,17 +216,29 @@ class WorkRequest extends Model
 
         // Case A: MH Pickup or Delivery
         if (stripos($next, 'MH Pickup') !== false || stripos($next, 'Menuju Pengaju') !== false) {
+            // Operator / Staff Mesin Center DILARANG memproses alur Material Handling
+            if ($user->work_area === 'mesin_center') {
+                return false;
+            }
             return ($user->work_area === 'material_handling' || $user->hasRole('operator_mh') || $user->can('material-handling.process') || $user->can('material-handling.manage'));
         }
 
         // Case B: Final Receive at Warehouse (Sudah Diambil)
         if (stripos($next, 'Sudah Diambil') !== false) {
+            // Mesin Center dan Material Handling DILARANG memproses penerimaan gudang
+            if ($user->work_area === 'mesin_center' || $user->work_area === 'material_handling') {
+                return false;
+            }
             $pengajuDept = strtolower(trim($this->dept_pengaju ?? ''));
             $cleanPengaju = preg_replace('/[^a-z0-9]/', '', $pengajuDept);
             return (str_contains($cleanUser, $cleanPengaju) || str_contains($cleanPengaju, $cleanUser) || $user->work_area === 'gudang');
         }
 
         // Case C: Machine Processing (In or Out)
+        // Operator / Staff Material Handling DILARANG memproses eksekusi mesin
+        if ($user->work_area === 'material_handling') {
+            return false;
+        }
         $penerimaDept = strtolower(trim($this->dept_penerima ?? ''));
         $cleanPenerima = preg_replace('/[^a-z0-9]/', '', $penerimaDept);
         $isMachineDept = str_contains($cleanUser, $cleanPenerima) || str_contains($cleanPenerima, $cleanUser);
@@ -437,8 +449,8 @@ class WorkRequest extends Model
             }
         }
 
-        // 2. Cek aksi Material Handling
-        if ($user->work_area === 'material_handling' || $user->hasRole('operator_mh') || $user->can('material-handling.process') || $user->can('material-handling.manage')) {
+        // 2. Cek aksi Material Handling (Hanya untuk Material Handling, Mesin Center DILARANG)
+        if (($user->work_area === 'material_handling' || $user->hasRole('operator_mh') || $user->can('material-handling.process') || $user->can('material-handling.manage')) && $user->work_area !== 'mesin_center') {
             foreach ($steps as $idx => $step) {
                 $bal = $this->getStepBalance($step, $idx);
                 if (!$bal['is_last_step']) {
@@ -469,10 +481,10 @@ class WorkRequest extends Model
             }
         }
 
-        // 3. Cek aksi Penerimaan Gudang / Pengaju (Sudah Diambil)
+        // 3. Cek aksi Penerimaan Gudang / Pengaju (Sudah Diambil - Mesin Center & MH DILARANG)
         $pengajuDept = strtolower(trim($this->dept_pengaju ?? ''));
         $cleanPengaju = preg_replace('/[^a-z0-9]/', '', $pengajuDept);
-        $isPengajuUser = str_contains($cleanUser, $cleanPengaju) || str_contains($cleanPengaju, $cleanUser) || $user->work_area === 'gudang';
+        $isPengajuUser = ($user->work_area !== 'mesin_center' && $user->work_area !== 'material_handling') && (str_contains($cleanUser, $cleanPengaju) || str_contains($cleanPengaju, $cleanUser) || $user->work_area === 'gudang');
 
         if ($isPengajuUser) {
             $totalMenuju = $this->getTotalProcessedForStatus('Menuju Pengaju');

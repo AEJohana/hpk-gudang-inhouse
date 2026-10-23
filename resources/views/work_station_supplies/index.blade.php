@@ -30,10 +30,6 @@
                     <i class="fa-solid fa-qrcode me-1.5 text-sm"></i>
                     Scan QR Tiket WRI
                 </button>
-                <a href="{{ route('work-station-supplies.create') }}" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center">
-                    <i class="fa-solid fa-dolly me-1.5 text-blue-600"></i>
-                    Supply Bahan Baku
-                </a>
                 <a href="{{ route('work-requests.index') }}" class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center">
                     <i class="fa-solid fa-list-check me-1.5"></i>
                     Semua Tiket WRI

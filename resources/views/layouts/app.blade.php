@@ -70,14 +70,18 @@
                     <i class="fa-solid fa-gauge-high"></i>
                     <span>Dashboard</span>
                 </a>
+                @can('master-komponen.view')
                 <a href="{{ route('components.index') }}" class="hpk-sidebar-item {{ request()->routeIs('components.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-boxes-stacked"></i>
                     <span>Master Komponen</span>
                 </a>
+                @endcan
+                @can('transaksi-komponen.view')
                 <a href="{{ route('transactions.index') }}" class="hpk-sidebar-item {{ request()->routeIs('transactions.*') && !request()->routeIs('work-station-supplies.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-right-left"></i>
                     <span>Transaksi Barang</span>
                 </a>
+                @endcan
                 @can('work-request.view')
                 <a href="{{ route('work-requests.index') }}" class="hpk-sidebar-item {{ request()->routeIs('work-requests.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-industry text-amber-400"></i>
@@ -90,26 +94,36 @@
                     <span>Material Handling (Task Gudang)</span>
                 </a>
                 @endcan
+                @can('ecr.view')
                 <a href="{{ route('ecrs.index') }}" class="hpk-sidebar-item {{ request()->routeIs('ecrs.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-file-pen"></i>
                     <span>ECR Revisi Part</span>
                 </a>
+                @endcan
+                @can('disposal.view')
                 <a href="{{ route('disposals.index') }}" class="hpk-sidebar-item {{ request()->routeIs('disposals.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-trash-can"></i>
                     <span>Pengajuan Disposal</span>
                 </a>
+                @endcan
+                @can('label-qr.view')
                 <a href="{{ route('qr-requests.index') }}" class="hpk-sidebar-item {{ request()->routeIs('qr-requests.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-qrcode"></i>
                     <span>Permintaan Label QR</span>
                 </a>
+                @endcan
+                @can('cycle-count.view')
                 <a href="{{ route('cycle-counts.index') }}" class="hpk-sidebar-item {{ request()->routeIs('cycle-counts.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-clipboard-check"></i>
                     <span>Cycle Count (Opname)</span>
                 </a>
+                @endcan
+                @can('peta-gudang.view')
                 <a href="{{ route('warehouse-map.index') }}" class="hpk-sidebar-item {{ request()->routeIs('warehouse-map.*', 'locations.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-map-location-dot"></i>
                     <span>Peta Denah Gudang</span>
                 </a>
+                @endcan
                 
                 @if(Auth::user()->hasRole('admin_gudang'))
                 <div class="my-2 border-t border-white/10"></div>
@@ -204,11 +218,18 @@
                 <span>Home</span>
             </a>
 
-            <!-- 2. Master Komponen -->
+            <!-- 2. Master Komponen / WRI Shortcut -->
+            @can('master-komponen.view')
             <a href="{{ route('components.index') }}" class="mobile-nav-item {{ request()->routeIs('components.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-boxes-stacked"></i>
                 <span>Komponen</span>
             </a>
+            @elsecan('work-request.view')
+            <a href="{{ route('work-requests.index') }}" class="mobile-nav-item {{ request()->routeIs('work-requests.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-industry"></i>
+                <span>WRI</span>
+            </a>
+            @endcan
 
             <!-- 3. Central Scanner FAB Button -->
             <button type="button" @click="openScanner()" class="mobile-scanner-fab" title="Scan QR Code / Barcode">
@@ -216,11 +237,18 @@
                 <span class="text-[8px] font-black tracking-tighter uppercase mt-0.5">SCAN</span>
             </button>
 
-            <!-- 4. Transaksi Barang -->
+            <!-- 4. Transaksi Barang / MH Shortcut -->
+            @can('transaksi-komponen.view')
             <a href="{{ route('transactions.index') }}" class="mobile-nav-item {{ request()->routeIs('transactions.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-right-left"></i>
                 <span>Transaksi</span>
             </a>
+            @elsecan('material-handling.view')
+            <a href="{{ route('work-station-supplies.index') }}" class="mobile-nav-item {{ request()->routeIs('work-station-supplies.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-truck-ramp-box"></i>
+                <span>MH</span>
+            </a>
+            @endcan
 
             <!-- 5. Menu Drawer Toggle -->
             <button type="button" @click="sidebarOpen = true" class="mobile-nav-item focus:outline-none">

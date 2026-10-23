@@ -48,13 +48,6 @@
                     <span>Safety Stock Alert</span>
                 </a>
                 @endcan
-                @can('work-request.monitoring')
-                <a href="{{ route('work-requests.monitoring') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100">
-                    <i class="fa-solid fa-chart-line text-xs text-blue-500"></i>
-                    <span>Monitoring SLA & Durasi</span>
-                </a>
-                @endcan
             </div>
 
             <div class="flex items-center space-x-2 text-xs">
@@ -278,7 +271,7 @@
 
                     $canApprovePengaju = $wri->canUserApprovePengaju(auth()->user());
                     $canApprovePenerima = $wri->canUserApprovePenerima(auth()->user());
-                    $canProcessAction = $hasUserAction ? true : $wri->canUserProcessAction(auth()->user(), $nextStatus);
+                    $canProcessAction = $hasUserAction ? true : (auth()->user()->isAdmin() && $wri->canUserProcessAction(auth()->user(), $nextStatus));
 
                     $assignPayload = [
                         'id' => $wri->id,
@@ -561,7 +554,7 @@
 
                             $canApprovePengaju = $wri->canUserApprovePengaju(auth()->user());
                             $canApprovePenerima = $wri->canUserApprovePenerima(auth()->user());
-                            $canProcessAction = $hasUserAction ? true : $wri->canUserProcessAction(auth()->user(), $nextStatus);
+                            $canProcessAction = $hasUserAction ? true : (auth()->user()->isAdmin() && $wri->canUserProcessAction(auth()->user(), $nextStatus));
 
                             $assignPayload = [
                                 'id' => $wri->id,
@@ -650,6 +643,11 @@
                                     'is_defect' => $l->action_type === 'defect' || str_contains($l->status_label, 'Defect'),
                                 ])->values(),
                                 'printUrl' => route('work-requests.print-sheet', $wri),
+                                'remainingQty' => $remainingQty > 0 ? $remainingQty : (float) $wri->quantity_requested,
+                                'nextStatus' => $nextStatus,
+                                'canProcessAction' => $canProcessAction,
+                                'actionUrl' => route('work-requests.process-action', $wri),
+                                'isFinal' => (bool) $wri->is_final,
                             ];
                         @endphp
                         <tr class="hover:bg-slate-50/70 transition">

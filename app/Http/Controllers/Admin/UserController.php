@@ -174,6 +174,9 @@ class UserController extends Controller
         // Sync Direct Permissions selected in checklist
         $user->syncPermissions($request->permissions ?? []);
 
+        // Reset Spatie cached permissions
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
         return redirect()->route('admin.users.index')->with('success', 'User dan hak akses otorisasi berhasil dibuat.');
     }
 
@@ -289,6 +292,9 @@ class UserController extends Controller
         // Sync Direct Permissions selected in checklist
         $user->syncPermissions($request->permissions ?? []);
 
+        // Reset Spatie cached permissions
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
         return redirect()->route('admin.users.index')->with('success', 'User dan hak akses otorisasi berhasil diperbarui.');
     }
 
@@ -320,28 +326,20 @@ class UserController extends Controller
             'supervisor' => $allPermissions,
             'admin_gudang' => $allPermissions,
             'staff' => [
-                'gudang' => array_values(array_filter($allPermissions, function($p) {
-                    return str_starts_with($p, 'master-komponen.') ||
-                           str_starts_with($p, 'transaksi-komponen.') ||
-                           str_starts_with($p, 'peta-gudang.') ||
-                           str_starts_with($p, 'cycle-count.') ||
-                           str_starts_with($p, 'label-qr.') ||
-                           str_starts_with($p, 'laporan.') ||
-                           $p === 'material-handling.view' ||
-                           in_array($p, ['work-request.view', 'work-request.create', 'work-request.print', 'work-request.monitoring', 'work-request.safety-stock']);
-                })),
-                'mesin_center' => [
-                    'work-request.view', 'work-request.process', 'work-request.print', 'work-request.monitoring', 'work-request.safety-stock',
-                    'master-komponen.view',
+                'gudang' => [
+                    'master-komponen.view', 'master-komponen.create', 'master-komponen.edit',
+                    'transaksi-komponen.view', 'transaksi-komponen.create',
                     'peta-gudang.view',
+                    'label-qr.view', 'label-qr.create',
+                    'cycle-count.view', 'cycle-count.create',
                     'laporan.view', 'laporan.export',
+                    'work-request.view', 'work-request.create', 'work-request.print',
+                ],
+                'mesin_center' => [
+                    'work-request.view', 'work-request.process', 'work-request.print',
                 ],
                 'material_handling' => [
-                    'material-handling.view', 'material-handling.manage',
-                    'work-request.view', 'work-request.print',
-                    'peta-gudang.view',
-                    'master-komponen.view',
-                    'laporan.view',
+                    'material-handling.view', 'material-handling.manage', 'material-handling.process',
                 ],
             ],
             'operator' => [
@@ -355,14 +353,9 @@ class UserController extends Controller
                 ],
                 'mesin_center' => [
                     'work-request.view', 'work-request.process', 'work-request.print',
-                    'master-komponen.view',
-                    'peta-gudang.view',
                 ],
                 'material_handling' => [
-                    'material-handling.view', 'material-handling.manage',
-                    'work-request.view', 'work-request.print',
-                    'peta-gudang.view',
-                    'master-komponen.view',
+                    'material-handling.view', 'material-handling.manage', 'material-handling.process',
                 ],
             ],
         ];

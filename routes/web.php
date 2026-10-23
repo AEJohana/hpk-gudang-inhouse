@@ -28,44 +28,78 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // 2. Master Data Komponen
-    Route::resource('components', ComponentController::class);
-    Route::get('/components/{component}/qr-label', [ComponentController::class, 'printQrLabel'])->name('components.qr-label');
-    Route::get('/api/components/search', [ComponentController::class, 'searchApi'])->name('api.components.search');
-    Route::post('/api/components/quick-store', [ComponentController::class, 'quickStore'])->name('api.components.quick-store');
+    Route::middleware(['can:master-komponen.view'])->group(function () {
+        Route::get('/components', [ComponentController::class, 'index'])->name('components.index');
+        Route::get('/components/create', [ComponentController::class, 'create'])->middleware('can:master-komponen.create')->name('components.create');
+        Route::post('/components', [ComponentController::class, 'store'])->middleware('can:master-komponen.create')->name('components.store');
+        Route::post('/api/components/quick-store', [ComponentController::class, 'quickStore'])->middleware('can:master-komponen.create')->name('api.components.quick-store');
+        Route::get('/components/{component}', [ComponentController::class, 'show'])->name('components.show');
+        Route::get('/components/{component}/edit', [ComponentController::class, 'edit'])->middleware('can:master-komponen.edit')->name('components.edit');
+        Route::match(['put', 'patch'], '/components/{component}', [ComponentController::class, 'update'])->middleware('can:master-komponen.edit')->name('components.update');
+        Route::delete('/components/{component}', [ComponentController::class, 'destroy'])->middleware('can:master-komponen.delete')->name('components.destroy');
+        Route::get('/components/{component}/qr-label', [ComponentController::class, 'printQrLabel'])->name('components.qr-label');
+        Route::get('/api/components/search', [ComponentController::class, 'searchApi'])->name('api.components.search');
+    });
 
     // 3. Transaksi Komponen (Inbound, Outbound, Transfer, Return)
-    Route::resource('transactions', TransactionController::class)->only(['index', 'create', 'store', 'show']);
+    Route::middleware(['can:transaksi-komponen.view'])->group(function () {
+        Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
+        Route::get('/transactions/create', [TransactionController::class, 'create'])->middleware('can:transaksi-komponen.create')->name('transactions.create');
+        Route::post('/transactions', [TransactionController::class, 'store'])->middleware('can:transaksi-komponen.create')->name('transactions.store');
+        Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
+    });
 
     // 4. ECR (Engineering Change Request) - Revisi Komponen
-    Route::resource('ecrs', EcrController::class)->only(['index', 'create', 'store', 'show']);
-    Route::post('/ecrs/{ecr}/approve', [EcrController::class, 'approve'])->name('ecrs.approve');
-    Route::post('/ecrs/{ecr}/reject', [EcrController::class, 'reject'])->name('ecrs.reject');
+    Route::middleware(['can:ecr.view'])->group(function () {
+        Route::get('/ecrs', [EcrController::class, 'index'])->name('ecrs.index');
+        Route::get('/ecrs/create', [EcrController::class, 'create'])->middleware('can:ecr.create')->name('ecrs.create');
+        Route::post('/ecrs', [EcrController::class, 'store'])->middleware('can:ecr.create')->name('ecrs.store');
+        Route::get('/ecrs/{ecr}', [EcrController::class, 'show'])->name('ecrs.show');
+        Route::post('/ecrs/{ecr}/approve', [EcrController::class, 'approve'])->middleware('can:ecr.approve')->name('ecrs.approve');
+        Route::post('/ecrs/{ecr}/reject', [EcrController::class, 'reject'])->middleware('can:ecr.approve')->name('ecrs.reject');
+    });
 
     // 5. Pengajuan Disposal (Scrap & Afkir Material)
-    Route::resource('disposals', DisposalController::class)->only(['index', 'create', 'store', 'show']);
-    Route::post('/disposals/{disposal}/approve', [DisposalController::class, 'approve'])->name('disposals.approve');
-    Route::post('/disposals/{disposal}/complete', [DisposalController::class, 'complete'])->name('disposals.complete');
+    Route::middleware(['can:disposal.view'])->group(function () {
+        Route::get('/disposals', [DisposalController::class, 'index'])->name('disposals.index');
+        Route::get('/disposals/create', [DisposalController::class, 'create'])->middleware('can:disposal.create')->name('disposals.create');
+        Route::post('/disposals', [DisposalController::class, 'store'])->middleware('can:disposal.create')->name('disposals.store');
+        Route::get('/disposals/{disposal}', [DisposalController::class, 'show'])->name('disposals.show');
+        Route::post('/disposals/{disposal}/approve', [DisposalController::class, 'approve'])->middleware('can:disposal.approve')->name('disposals.approve');
+        Route::post('/disposals/{disposal}/complete', [DisposalController::class, 'complete'])->middleware('can:disposal.approve')->name('disposals.complete');
+    });
 
     // 6. Permintaan Label QR (Barcode / QR Generator)
-    Route::resource('qr-requests', QrRequestController::class)->only(['index', 'create', 'store']);
-    Route::get('/qr-requests/{qrRequest}/print-thermal', [QrRequestController::class, 'printThermal'])->name('qr-requests.print-thermal');
-    Route::get('/qr-requests/{qrRequest}/print-sheet', [QrRequestController::class, 'printSheet'])->name('qr-requests.print-sheet');
+    Route::middleware(['can:label-qr.view'])->group(function () {
+        Route::get('/qr-requests', [QrRequestController::class, 'index'])->name('qr-requests.index');
+        Route::get('/qr-requests/create', [QrRequestController::class, 'create'])->middleware('can:label-qr.create')->name('qr-requests.create');
+        Route::post('/qr-requests', [QrRequestController::class, 'store'])->middleware('can:label-qr.create')->name('qr-requests.store');
+        Route::get('/qr-requests/{qrRequest}/print-thermal', [QrRequestController::class, 'printThermal'])->name('qr-requests.print-thermal');
+        Route::get('/qr-requests/{qrRequest}/print-sheet', [QrRequestController::class, 'printSheet'])->name('qr-requests.print-sheet');
+    });
 
     // 7. Cycle Count (Stok Opname)
-    Route::resource('cycle-counts', CycleCountController::class)->only(['index', 'create', 'store', 'show']);
-    Route::post('/cycle-counts/{cycleCount}/submit-count', [CycleCountController::class, 'submitCount'])->name('cycle-counts.submit-count');
-    Route::post('/cycle-counts/{cycleCount}/reconcile', [CycleCountController::class, 'reconcile'])->name('cycle-counts.reconcile');
+    Route::middleware(['can:cycle-count.view'])->group(function () {
+        Route::get('/cycle-counts', [CycleCountController::class, 'index'])->name('cycle-counts.index');
+        Route::get('/cycle-counts/create', [CycleCountController::class, 'create'])->middleware('can:cycle-count.create')->name('cycle-counts.create');
+        Route::post('/cycle-counts', [CycleCountController::class, 'store'])->middleware('can:cycle-count.create')->name('cycle-counts.store');
+        Route::get('/cycle-counts/{cycleCount}', [CycleCountController::class, 'show'])->name('cycle-counts.show');
+        Route::post('/cycle-counts/{cycleCount}/submit-count', [CycleCountController::class, 'submitCount'])->middleware('can:cycle-count.create')->name('cycle-counts.submit-count');
+        Route::post('/cycle-counts/{cycleCount}/reconcile', [CycleCountController::class, 'reconcile'])->middleware('can:cycle-count.approve')->name('cycle-counts.reconcile');
+    });
 
     // Peta Gudang Multi-Gedung & Denah Interaktif Rak / Pallet
-    Route::get('/warehouse-map', [LocationController::class, 'index'])->name('warehouse-map.index');
-    Route::get('/locations', [LocationController::class, 'index'])->name('locations.index');
-    Route::post('/warehouse-map/save-layout', [LocationController::class, 'saveLayout'])->name('warehouse-map.save-layout');
-    Route::post('/warehouse-map/reset-layout', [LocationController::class, 'resetLayout'])->name('warehouse-map.reset-layout');
-    Route::post('/warehouse-map/warehouses/{warehouse}/update-area', [LocationController::class, 'updateWarehouseArea'])->name('warehouse-map.update-area');
-    Route::post('/warehouse-map/create-location', [LocationController::class, 'createLocation'])->name('warehouse-map.create-location');
-    Route::post('/warehouse-map/locations/{location}/update-config', [LocationController::class, 'updateLocationConfig'])->name('warehouse-map.locations.update-config');
-    Route::get('/api/locations/{location}/quick-detail', [LocationController::class, 'quickDetail'])->name('warehouse-map.quick-detail');
-    Route::get('/locations/{location}', [LocationController::class, 'show'])->name('locations.show');
+    Route::middleware(['can:peta-gudang.view'])->group(function () {
+        Route::get('/warehouse-map', [LocationController::class, 'index'])->name('warehouse-map.index');
+        Route::get('/locations', [LocationController::class, 'index'])->name('locations.index');
+        Route::post('/warehouse-map/save-layout', [LocationController::class, 'saveLayout'])->middleware('can:peta-gudang.edit')->name('warehouse-map.save-layout');
+        Route::post('/warehouse-map/reset-layout', [LocationController::class, 'resetLayout'])->middleware('can:peta-gudang.edit')->name('warehouse-map.reset-layout');
+        Route::post('/warehouse-map/warehouses/{warehouse}/update-area', [LocationController::class, 'updateWarehouseArea'])->middleware('can:peta-gudang.edit')->name('warehouse-map.update-area');
+        Route::post('/warehouse-map/create-location', [LocationController::class, 'createLocation'])->middleware('can:peta-gudang.create')->name('warehouse-map.create-location');
+        Route::post('/warehouse-map/locations/{location}/update-config', [LocationController::class, 'updateLocationConfig'])->middleware('can:peta-gudang.edit')->name('warehouse-map.locations.update-config');
+        Route::get('/api/locations/{location}/quick-detail', [LocationController::class, 'quickDetail'])->name('warehouse-map.quick-detail');
+        Route::get('/locations/{location}', [LocationController::class, 'show'])->name('locations.show');
+    });
 
     // 8. Work Request Inhouse (Order ke Machine Center & Routing Multi-Mesin)
     Route::middleware(['can:work-request.view'])->group(function () {
