@@ -81,6 +81,12 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - Cyan/Emerald: `DITERIMA GUDANG` (penerimaan fisik di rak gudang)
 - **Penyelarasan Alur Redirect:** Pembuatan tiket WRI baru tidak lagi melempar pengguna ke halaman show mandiri (Lampiran 4), melainkan langsung kembali ke antrean utama dengan modal detail otomatis terbuka.
 
+### H. Pembersihan Widget Dummy "Status Mesin Utama (Machine Center)" (Baru Selesai & Teruji 100%)
+- **Penghapusan Widget Dummy:** Blok pill grid 7 mesin fiktif (`MC-LC-01` s/d `MC-WLD-01`) pada `resources/views/work_requests/index.blade.php` telah dihapus seutuhnya.
+- **Pembersihan Beban Query Backend:** Query `$activeMachines` di `WorkRequestController::index()` ditiadakan untuk mempercepat waktu render antrean WRI.
+- **Kepatuhan Zero Database Regression:** Tabel `machines` dan foreign key relasi langkah WRI pada database operasional `hpk_gudang` tetap utuh 100% tanpa ada penghapusan data tabel.
+- **Tampilan WRI Ringkas & Efisien:** Halaman antrean WRI kini langsung menyajikan Kartu KPI Utama, Filter Scope, dan Tabel 9 Kolom tanpa elemen statis yang membingungkan operator pabrik.
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

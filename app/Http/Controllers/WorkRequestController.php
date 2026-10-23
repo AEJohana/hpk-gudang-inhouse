@@ -135,12 +135,6 @@ class WorkRequestController extends Controller
         $needsApprovalCount = (clone $baseStatQuery)->needsApproval()->count();
         $overdueSlaCount = (clone $baseStatQuery)->overdueSla()->count();
 
-        // Active Machines
-        Machine::ensureDefaultMachinesExist();
-        $activeMachines = Machine::withCount(['workRequestSteps as active_steps_count' => function ($q) {
-            $q->where('status', 'in_progress');
-        }])->get();
-
         $openDetailPayload = null;
         if ($request->filled('open_detail')) {
             $targetWr = WorkRequest::with(['component', 'requestedBy', 'targetLocation', 'steps.machine', 'logs'])->find($request->open_detail);
@@ -225,7 +219,6 @@ class WorkRequestController extends Controller
             'partialCount',
             'needsApprovalCount',
             'overdueSlaCount',
-            'activeMachines',
             'openDetailPayload'
         ));
     }

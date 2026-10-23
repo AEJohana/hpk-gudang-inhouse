@@ -124,44 +124,7 @@
             </div>
         </div>
 
-        <!-- 2. MACHINE STATUS LIVE PILL STRIP -->
-        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
-            <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
-                <div class="flex items-center space-x-2">
-                    <i class="fa-solid fa-microchip text-slate-700"></i>
-                    <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Status Mesin Utama (Machine Center)</h4>
-                </div>
-                <span class="text-[11px] text-slate-400 font-medium">Monitoring utilisasi mesin fabrikasi inhouse</span>
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
-                @foreach($activeMachines as $machine)
-                <div class="p-2.5 rounded-xl border {{ $machine->active_steps_count > 0 ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-400/30' : 'bg-slate-50 border-slate-200' }} flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="font-mono text-[10px] font-bold {{ $machine->active_steps_count > 0 ? 'text-blue-700' : 'text-slate-600' }}">
-                                {{ $machine->code }}
-                            </span>
-                            @if($machine->active_steps_count > 0)
-                                <span class="w-2 h-2 rounded-full bg-blue-600 animate-ping"></span>
-                            @else
-                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            @endif
-                        </div>
-                        <h5 class="text-xs font-bold text-slate-900 line-clamp-1 leading-snug">{{ $machine->name }}</h5>
-                    </div>
-                    <div class="mt-2 pt-1 border-t border-slate-200/60 flex items-center justify-between text-[10px]">
-                        <span class="text-slate-500">{{ $machine->type_label }}</span>
-                        <span class="font-bold {{ $machine->active_steps_count > 0 ? 'text-blue-700' : 'text-slate-500' }}">
-                            {{ $machine->active_steps_count }} WRI
-                        </span>
-                    </div>
-                </div>
-                @endforeach
-            </div>
-        </div>
-
-        <!-- 3. SCOPE SELECTOR & STATUS FILTER TABS -->
+        <!-- 2. SCOPE SELECTOR & STATUS FILTER TABS -->
         <div class="space-y-3">
             <!-- Scope Switcher: Departemen Saya vs Perlu Verifikasi vs Semua Dept -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200">
@@ -245,7 +208,7 @@
             </div>
         </div>
 
-        <!-- 4. WORK REQUESTS (DUAL-MODE: MOBILE CARDS & DESKTOP TABLE) -->
+        <!-- 3. WORK REQUESTS (DUAL-MODE: MOBILE CARDS & DESKTOP TABLE) -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <!-- Mobile Work Request Cards (< md screens) -->
             <div class="block md:hidden p-4 space-y-3">
