@@ -55,6 +55,32 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - **Gudang Penerima:** `Dikirim Kurir MH: 14 | Defect Transit: 1 -> Batas Maksimal Masuk Rak: 13 PCS`.
 - **Pengujian Unit Otomatis:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestDefectAndHandoverTest.php` - 6 passed, 30 assertions).
 
+### F. Perombakan Layout Tabel Antrean WRI Desktop & Foto Preview (Baru Selesai & Teruji 100%)
+- **Struktur 9 Kolom Standar Industri:**
+  1. `No WR / Status`: Nomor tiket (klik untuk modal detail) + Tombol aksi status interaktif terintegrasi / lencana status informatif.
+  2. `Tanggal`: Tanggal dan jam pengajuan (`d M Y, H:i WIB`).
+  3. `Komponen`: Nama komponen tebal dan part number mono.
+  4. `Sts Pengaju`: Persetujuan pengaju dengan tombol cepat `Setujui` untuk Ka. Pengaju/SPV.
+  5. `Sts Penerima`: Persetujuan penerima dengan tombol `Tugaskan` operator untuk Ka. Penerima.
+  6. `Foto`: Tombol kapsul `[Lihat]` yang memunculkan pop-up modal foto komponen resolusi penuh.
+  7. `Routing / Dimensi / Qty`: Menampilkan penerima tujuan, dimensi part, dan kuantitas order (beserta tag defect jika ada).
+  8. `Deskripsi`: Catatan order pengajuan (`notes`) dan referensi SPK.
+  9. `Pengaju / Penerima`: Departemen pengaju, departemen penerima, dan nama operator pelaksana.
+- **Penghapusan Kolom Non-Krusial:** Kolom *Target Slot Gudang* dan *Lokasi Gambar* resmi ditiadakan dari tabel utama.
+- **Modal Foto Komponen (`image_preview_modal.blade.php`):** Pratinjau foto komponen resolusi tinggi dengan Alpine.js tanpa reload.
+- **Pengujian & Validasi:** Seluruh 11 pengujian unit lolos 100% pada SQLite `:memory:` dan kompilasi Blade cache sukses 100%.
+
+### G. Redesign Pop-Up Detail Tracking (Lampiran 1-3) & Penyelarasan Alur Show (Baru Selesai & Teruji 100%)
+- **Ikon Status Hero Melingkar:** Visualisasi status di bagian atas (Kuning Jam: `Belum Verifikasi`, Hijau Centang: `Siap Diambil`, Emerald Centang Ganda: `Sudah Diambil`, Biru Gear: `Sedang Diproses`).
+- **Dual Approval Card Transparan:** Menampilkan verifikator pengaju dan penerima secara terpisah (nama Ka. Bagian, tanggal & jam, status approval, serta nama operator pelaksana).
+- **Tracking Proses dengan Balok Event Warna-warni:**
+  - Biru: `MASUK` (kuantitas & waktu stasiun)
+  - Kuning: `PARSIAL (SELESAI)` (pengerjaan cicilan bertahap)
+  - Merah: `DEFECT / REJECT` (kuantitas defect, operator, dan alasan kerusakan yang transparan memotong kuota)
+  - Hijau: `SELESAI (FINAL)` (penyelesaian stasiun tuntas)
+  - Cyan/Emerald: `DITERIMA GUDANG` (penerimaan fisik di rak gudang)
+- **Penyelarasan Alur Redirect:** Pembuatan tiket WRI baru tidak lagi melempar pengguna ke halaman show mandiri (Lampiran 4), melainkan langsung kembali ke antrean utama dengan modal detail otomatis terbuka.
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

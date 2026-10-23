@@ -154,3 +154,38 @@ Untuk memastikan transparansi dan integritas fisik komponen yang berpindah antar
    $$\text{Unit Bagus Diproses} + \text{Defect Dilaporkan} \le \text{Saldo Tersedia dari Tahap Sebelumnya}$$
 4. **Audit Trail Defect:**  
    Setiap pencatatan defect mencatat secara permanen: **Nama Operator & Departemen**, **Tanggal dan Jam (DD/MM/YYYY HH:mm)**, **Titik Terjadinya Masalah**, dan **Alasan Defect**.
+
+---
+
+## 5. Tata Letak Tabel Antrean WRI Desktop (9 Kolom Standar Industri)
+
+Tabel antrean WRI pada desktop dirancang dengan struktur 9 kolom presisi untuk visibilitas maksimal:
+1. **No WR / Status:** Tautan nomor tiket WRI (klik membuka detail lengkap) + tombol aksi eksekusi status (aktif jika user berwenang) atau lencana status informatif.
+2. **Tanggal:** Tanggal dan jam tiket WRI diajukan (`DD MMM YYYY, HH:mm WIB`).
+3. **Komponen:** Nama komponen tebal beserta nomor kode part number.
+4. **Sts Pengaju:** Status persetujuan pengaju (`Diterima`, `Menunggu`, `Ditolak`) dengan tombol cepat persetujuan untuk Ka. Pengaju/SPV.
+5. **Sts Penerima:** Status persetujuan penerima (`Belum Verifikasi`, `Diterima`) dengan tombol penugasan operator bagi Ka. Penerima.
+6. **Foto:** Tombol kapsul `[Lihat]` yang memicu modal pop-up foto part beresolusi penuh.
+7. **Routing / Dimensi / Qty:** Menampilkan departemen tujuan penerima, dimensi spesifikasi part, serta kuantitas order (beserta kuota defect jika ada).
+8. **Deskripsi:** Catatan order pengajuan (`notes`) dan referensi SPK.
+9. **Pengaju / Penerima:** Menampilkan departemen pemohon, departemen pelaksana, dan nama operator yang ditugaskan.
+*(Catatan: Kolom lama Target Slot Gudang dan Lokasi Gambar ditiadakan dari tabel utama demi kerapian alur kerja).*
+
+---
+
+## 6. Antarmuka Pop-Up Detail Tracking Tiket WRI (Dual Verification & Defect Box)
+
+Pop-up modal detail tiket (`detail_modal.blade.php`) menyajikan visualisasi hierarkis proses pengerjaan:
+1. **Hero Status Header:** Ikon melingkar besar (Kuning Jam: `Belum Verifikasi`, Hijau Centang: `Siap Diambil`, Emerald Centang Ganda: `Sudah Diambil`, Biru Gear: `Sedang Diproses`).
+2. **Kartu QR & Identitas Tiket:** Menampilkan kode QR pemindai fisik, nomor WRI tebal, nama komponen, dan part number.
+3. **Dual Verification Card:** Menampilkan identitas otorisasi ganda secara transparan:
+   - **Verifikator Pengaju:** Ka. Pengaju / SPV, waktu otorisasi, status persetujuan.
+   - **Verifikator Penerima:** Ka. Penerima, waktu verifikasi, dan nama operator pelaksana yang ditugaskan.
+4. **Strip Kuota Order & Defect Transparan:** Menampilkan Order Awal, Potongan Defect, Target Aktif, dan Total Diterima Gudang.
+5. **Tracking Proses (Station Event Boxes):**
+   - **Biru (MASUK):** Kuantitas masuk stasiun pengerjaan & waktu.
+   - **Kuning (PARSIAL):** Kuantitas selesai bertahap/cicilan.
+   - **Merah (DEFECT):** Kuantitas rusak/hilang, nama operator, dan alasan kerusakan (kuota otomatis berkurang).
+   - **Hijau (SELESAI FINAL):** Kuantitas tuntas pengerjaan stasiun.
+   - **Node Pengiriman Gudang:** Konfirmasi fisik barang diterima di rak gudang.
+6. **Penyelarasan Alur Pembuatan Tiket:** Pembuatan tiket WRI baru tidak lagi me-redirect ke halaman penuh terpisah, melainkan langsung kembali ke antrean utama dengan modal detail otomatis terbuka.

@@ -141,6 +141,79 @@ class WorkRequestController extends Controller
             $q->where('status', 'in_progress');
         }])->get();
 
+        $openDetailPayload = null;
+        if ($request->filled('open_detail')) {
+            $targetWr = WorkRequest::with(['component', 'requestedBy', 'targetLocation', 'steps.machine', 'logs'])->find($request->open_detail);
+            if ($targetWr) {
+                $userActions = $targetWr->getAvailableActionsForUser($user);
+                $hasUserAction = !empty($userActions);
+                $primaryAction = $hasUserAction ? $userActions[0] : null;
+                $nextStatus = $primaryAction ? $primaryAction['target_status'] : $targetWr->getNextStatusLabel($user);
+                $remainingQty = $primaryAction ? $primaryAction['quantity'] : max(0, (float) $targetWr->quantity_requested - (float) $targetWr->quantity_received);
+                $canProcessAction = $hasUserAction ? true : ($user->isAdmin() && $targetWr->canUserProcessAction($user, $nextStatus));
+
+                $appPengajuLog = $targetWr->approval_pengaju_log;
+                $appPenerimaLog = $targetWr->approval_penerima_log;
+                $approvalPengajuStatus = $targetWr->approval_pengaju ?: 'Menunggu';
+                $approvalPengajuBy = $appPengajuLog?->operator_name ?? ($targetWr->approval_pengaju === 'Diterima' ? ($targetWr->requestedBy?->name ?? 'Ka. ' . ($targetWr->dept_pengaju ?: 'Pengaju')) : 'Menunggu');
+                $approvalPengajuAt = $appPengajuLog?->created_at?->format('d/m/Y H:i') ?? ($targetWr->approval_pengaju === 'Diterima' ? $targetWr->created_at->format('d/m/Y H:i') : '-');
+                $approvalPenerimaStatus = $targetWr->approval_penerima ?: 'Menunggu';
+                $approvalPenerimaBy = $appPenerimaLog?->operator_name ?? ($targetWr->approval_penerima === 'Diterima' ? 'Ka. ' . ($targetWr->dept_penerima ?: 'Mesin') : 'Menunggu');
+                $approvalPenerimaAt = $appPenerimaLog?->created_at?->format('d/m/Y H:i') ?? '-';
+
+                $openDetailPayload = [
+                    'id' => $targetWr->id,
+                    'wriNumber' => $targetWr->wri_number,
+                    'componentName' => $targetWr->component?->name ?? 'Komponen',
+                    'partNumber' => $targetWr->component?->part_number ?? '-',
+                    'dimension' => $targetWr->component?->dimension_formatted ?? '-',
+                    'uom' => $targetWr->component?->uom ?? 'PCS',
+                    'imageUrl' => $targetWr->component?->image_url ?? asset('images/logo_hpk.webp'),
+                    'qrUrl' => 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($targetWr->wri_number),
+                    'deptPengaju' => $targetWr->dept_pengaju ?: 'Gudang',
+                    'deptPenerima' => $targetWr->dept_penerima ?: 'Mesin',
+                    'priority' => $targetWr->priority_badge['label'],
+                    'priorityClass' => $targetWr->priority_badge['class'],
+                    'currentStatus' => $targetWr->status,
+                    'statusClass' => $targetWr->status_badge['class'],
+                    'targetRack' => $targetWr->target_specific_location_code ?: 'Belum di Rak',
+                    'originalQty' => (float) $targetWr->original_quantity_requested,
+                    'totalQty' => (float) $targetWr->quantity_requested,
+                    'receivedQty' => (float) $targetWr->quantity_received,
+                    'defectQty' => (float) $targetWr->quantity_defect,
+                    'progressPercentage' => $targetWr->progress_percentage,
+                    'routingText' => $targetWr->routing_text,
+                    'requestedByName' => $targetWr->requestedBy?->name ?? 'Pemohon Gudang',
+                    'approvalPengajuStatus' => $approvalPengajuStatus,
+                    'approvalPengajuBy' => $approvalPengajuBy,
+                    'approvalPengajuAt' => $approvalPengajuAt,
+                    'approvalPenerimaStatus' => $approvalPenerimaStatus,
+                    'approvalPenerimaBy' => $approvalPenerimaBy,
+                    'approvalPenerimaAt' => $approvalPenerimaAt,
+                    'assignedOperator' => $targetWr->assigned_operator_name ?: 'Belum ditentukan',
+                    'steps' => $targetWr->steps->map(fn($s) => [
+                        'step' => $s->step_number,
+                        'name' => $s->process_name,
+                        'status' => $s->status,
+                    ])->values(),
+                    'logs' => $targetWr->logs->map(fn($l) => [
+                        'time' => $l->created_at->format('d/m/Y H:i'),
+                        'status' => $l->status_label,
+                        'qty' => (float) $l->quantity,
+                        'operator' => $l->operator_name ?: '-',
+                        'notes' => $l->notes ?: '-',
+                        'is_defect' => $l->action_type === 'defect' || str_contains($l->status_label, 'Defect'),
+                    ])->values(),
+                    'printUrl' => route('work-requests.print-sheet', $targetWr),
+                    'remainingQty' => $remainingQty > 0 ? $remainingQty : (float) $targetWr->quantity_requested,
+                    'nextStatus' => $nextStatus,
+                    'canProcessAction' => $canProcessAction,
+                    'actionUrl' => route('work-requests.process-action', $targetWr),
+                    'isFinal' => (bool) $targetWr->is_final,
+                ];
+            }
+        }
+
         return view('work_requests.index', compact(
             'workRequests',
             'scope',
@@ -152,7 +225,8 @@ class WorkRequestController extends Controller
             'partialCount',
             'needsApprovalCount',
             'overdueSlaCount',
-            'activeMachines'
+            'activeMachines',
+            'openDetailPayload'
         ));
     }
 
@@ -373,7 +447,7 @@ class WorkRequestController extends Controller
                 'notes' => $logNotes,
             ]);
 
-            return redirect()->route('work-requests.show', $workRequest)
+            return redirect()->route('work-requests.index', ['open_detail' => $workRequest->id])
                 ->with('success', "Work Request {$workRequest->wri_number} berhasil diterbitkan!");
         });
     }

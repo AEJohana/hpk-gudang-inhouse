@@ -17,7 +17,7 @@
          class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity" 
          @click="closeDetailModal()"></div>
 
-    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+    <div class="flex min-h-full items-center justify-center p-3 sm:p-4 text-center">
         <div x-show="detailModalOpen" 
              x-transition:enter="ease-out duration-300" 
              x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
@@ -25,212 +25,344 @@
              x-transition:leave="ease-in duration-200" 
              x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" 
              x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
-             class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-slate-200 flex flex-col max-h-[90vh]">
+             class="relative transform overflow-hidden rounded-3xl bg-slate-100 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-xl border border-slate-200 flex flex-col max-h-[92vh]">
             
-            <!-- Sticky Header -->
-            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-5 text-white flex items-center justify-between flex-shrink-0">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-teal-300 text-lg">
-                        <i class="fa-solid fa-diagram-project"></i>
-                    </div>
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <span class="font-mono text-xs font-black text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20" x-text="detailData.wriNumber"></span>
-                            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold" :class="detailData.statusClass" x-text="detailData.currentStatus"></span>
-                        </div>
-                        <h3 class="text-base font-extrabold text-white mt-1 leading-snug truncate" x-text="detailData.componentName"></h3>
-                    </div>
-                </div>
-                <button type="button" 
-                        @click="closeDetailModal()" 
-                        class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition">
-                    <i class="fa-solid fa-xmark text-sm"></i>
-                </button>
-            </div>
+            <!-- Minimalist Top Close Button -->
+            <button type="button" 
+                    @click="closeDetailModal()" 
+                    class="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-slate-400 hover:text-slate-700 shadow-xs flex items-center justify-center transition"
+                    title="Tutup">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
 
             <!-- Scrollable Content Body -->
-            <div class="p-5 overflow-y-auto space-y-5 text-xs text-slate-700">
+            <div class="p-5 overflow-y-auto space-y-4 text-xs text-slate-700">
                 
-                <!-- Identitas Komponen & QR Card -->
-                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div class="flex items-center space-x-3.5">
-                        <div class="flex items-center space-x-2 flex-shrink-0">
-                            <!-- Foto Komponen -->
-                            <div class="relative group" title="Foto Komponen">
-                                <img :src="detailData.imageUrl" 
-                                     class="w-16 h-16 rounded-xl object-cover bg-white border border-slate-200 shadow-2xs"
-                                     x-on:error="$el.src = '{{ asset('images/logo_hpk.webp') }}'">
-                                <span class="absolute -bottom-1 -right-1 bg-slate-800 text-white text-[8px] font-black px-1 rounded uppercase">Foto</span>
+                <!-- 1. HERO STATUS BADGE (Top Center - Lampiran 1-3 Style) -->
+                <div class="pt-2 pb-1 text-center">
+                    <!-- Icon Bulat Status -->
+                    <template x-if="detailData.approvalPengajuStatus === 'Menunggu' || detailData.approvalPenerimaStatus === 'Menunggu' || (detailData.currentStatus && detailData.currentStatus.toLowerCase().includes('antrian'))">
+                        <div class="inline-block">
+                            <div class="w-16 h-16 rounded-full bg-amber-100 border-4 border-amber-50 text-amber-500 flex items-center justify-center text-2xl shadow-sm mx-auto">
+                                <i class="fa-solid fa-clock"></i>
                             </div>
-                            <!-- QR Code Nomor WRI -->
-                            <div class="relative group" title="QR Code Tiket WRI">
-                                <img :src="detailData.qrUrl" 
-                                     class="w-16 h-16 rounded-xl object-contain p-0.5 bg-white border border-slate-200 shadow-2xs">
-                                <span class="absolute -bottom-1 -right-1 bg-amber-500 text-slate-950 text-[8px] font-black px-1 rounded uppercase">QR</span>
-                            </div>
+                            <h3 class="font-extrabold text-base sm:text-lg text-slate-900 mt-2">Belum Verifikasi</h3>
+                            <p class="text-[11px] text-slate-400 font-medium">Status saat ini</p>
                         </div>
-                        <div>
-                            <span class="text-[10px] font-bold uppercase text-slate-400 block">Kode / Part Number:</span>
-                            <span class="font-mono font-extrabold text-sm text-slate-900" x-text="detailData.partNumber"></span>
-                            <div class="text-[11px] text-slate-500 mt-0.5">
-                                Dimensi: <strong class="text-slate-700" x-text="detailData.dimension"></strong> &bull; Slot Rak: <strong class="text-indigo-800 font-mono" x-text="detailData.targetRack"></strong>
+                    </template>
+
+                    <template x-if="detailData.currentStatus && detailData.currentStatus.toLowerCase().includes('siap diambil')">
+                        <div class="inline-block">
+                            <div class="w-16 h-16 rounded-full bg-emerald-100 border-4 border-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shadow-sm mx-auto">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                            <h3 class="font-extrabold text-base sm:text-lg text-slate-900 mt-2">Siap diambil</h3>
+                            <p class="text-[11px] text-slate-400 font-medium">Selesai & Siap diambil</p>
+                        </div>
+                    </template>
+
+                    <template x-if="detailData.isFinal || (detailData.currentStatus && detailData.currentStatus.toLowerCase().includes('sudah diambil'))">
+                        <div class="inline-block">
+                            <div class="w-16 h-16 rounded-full bg-emerald-600 border-4 border-emerald-100 text-white flex items-center justify-center text-2xl shadow-sm mx-auto">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                            <h3 class="font-extrabold text-base sm:text-lg text-slate-900 mt-2">Sudah diambil</h3>
+                            <p class="text-[11px] text-slate-400 font-medium">Telah diambil oleh Pengaju / Diterima Gudang</p>
+                        </div>
+                    </template>
+
+                    <template x-if="detailData.currentStatus && detailData.currentStatus.toLowerCase().includes('menuju pengaju')">
+                        <div class="inline-block">
+                            <div class="w-16 h-16 rounded-full bg-purple-100 border-4 border-purple-50 text-purple-600 flex items-center justify-center text-2xl shadow-sm mx-auto">
+                                <i class="fa-solid fa-truck-fast"></i>
+                            </div>
+                            <h3 class="font-extrabold text-base sm:text-lg text-slate-900 mt-2">Sedang Diantar MH</h3>
+                            <p class="text-[11px] text-slate-400 font-medium">Dalam perjalanan menuju Pengaju / Gudang</p>
+                        </div>
+                    </template>
+
+                    <template x-if="detailData.currentStatus && (detailData.currentStatus.toLowerCase().includes('proses:') || detailData.currentStatus.toLowerCase().includes('in_production')) && !detailData.currentStatus.toLowerCase().includes('siap diambil') && !detailData.currentStatus.toLowerCase().includes('sudah diambil')">
+                        <div class="inline-block">
+                            <div class="w-16 h-16 rounded-full bg-blue-100 border-4 border-blue-50 text-blue-600 flex items-center justify-center text-2xl shadow-sm mx-auto">
+                                <i class="fa-solid fa-gear fa-spin"></i>
+                            </div>
+                            <h3 class="font-extrabold text-base sm:text-lg text-slate-900 mt-2" x-text="detailData.currentStatus"></h3>
+                            <p class="text-[11px] text-slate-400 font-medium">Sedang dalam proses pengerjaan mesin</p>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- 2. IDENTITAS TIKET, QR CODE & DUAL VERIFIKATOR (Lampiran 1-3 Style) -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
+                    <div class="flex items-start gap-3.5">
+                        <!-- QR Code Section (Left) -->
+                        <div class="bg-slate-50 p-1.5 rounded-xl border border-slate-200 flex items-center justify-center shadow-2xs shrink-0 w-24 h-24 sm:w-28 sm:h-28">
+                            <img :src="detailData.qrUrl" alt="QR Tiket" class="w-full h-full object-contain">
+                        </div>
+
+                        <!-- Details Section (Right) -->
+                        <div class="flex-grow overflow-hidden">
+                            <div class="border-b border-slate-100 pb-2 mb-2">
+                                <div class="text-[9px] font-bold uppercase tracking-wider text-slate-400">No Work Request</div>
+                                <div class="font-mono font-bold text-blue-600 text-xs sm:text-sm break-all leading-snug" x-text="detailData.wriNumber"></div>
+                            </div>
+                            <div>
+                                <div class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Komponen</div>
+                                <div class="font-black text-slate-900 text-xs sm:text-sm leading-tight uppercase truncate" :title="detailData.componentName" x-text="detailData.componentName"></div>
+                                <div class="font-mono text-[11px] font-semibold text-slate-500 mt-0.5" x-text="detailData.partNumber"></div>
+                                <div class="text-[10px] text-slate-400 mt-0.5" x-show="detailData.dimension && detailData.dimension !== '-'">
+                                    Dimensi: <span class="font-medium text-slate-600" x-text="detailData.dimension"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Kuota Qty Strip (Transparan dengan Defect & Target Aktif) -->
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center bg-white p-2.5 rounded-2xl border border-slate-200/80 w-full sm:w-auto shadow-2xs">
-                        <div class="px-2">
-                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Order Awal</span>
-                            <span class="font-black text-sm text-slate-700" x-text="(detailData.originalQty || detailData.totalQty) + ' ' + detailData.uom"></span>
-                        </div>
-                        <div class="px-2 border-l border-slate-100">
-                            <span class="text-[9px] uppercase font-bold text-rose-500 block">Defect</span>
-                            <span class="font-black text-sm text-rose-600" x-text="'-' + detailData.defectQty + ' ' + detailData.uom"></span>
-                        </div>
-                        <div class="px-2 border-l border-slate-100">
-                            <span class="text-[9px] uppercase font-bold text-indigo-600 block">Target Aktif</span>
-                            <span class="font-black text-sm text-indigo-900" x-text="detailData.totalQty + ' ' + detailData.uom"></span>
-                        </div>
-                        <div class="px-2 border-l border-slate-100">
-                            <span class="text-[9px] uppercase font-bold text-emerald-600 block">Diterima Gudang</span>
-                            <span class="font-black text-sm text-emerald-700" x-text="detailData.receivedQty + ' ' + detailData.uom"></span>
+                    <!-- DUAL APPROVAL / VERIFIKATOR SECTION (Menjawab Permintaan Pengguna) -->
+                    <div class="border-t border-slate-100 pt-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                            <!-- 1. Verifikator Pengaju -->
+                            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                                <div class="text-[9px] font-bold uppercase tracking-wider text-slate-500 flex items-center">
+                                    <i class="fa-solid fa-user-check text-emerald-600 me-1.5"></i>
+                                    <span>Verifikator Pengaju</span>
+                                </div>
+                                <div class="font-bold text-slate-900 text-xs mt-1" x-text="detailData.approvalPengajuBy"></div>
+                                <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                                          :class="detailData.approvalPengajuStatus === 'Diterima' ? 'bg-emerald-100 text-emerald-800' : (detailData.approvalPengajuStatus === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900')"
+                                          x-text="detailData.approvalPengajuStatus === 'Diterima' ? 'Disetujui' : (detailData.approvalPengajuStatus === 'Ditolak' ? 'Ditolak' : 'Menunggu Approval')"></span>
+                                    <span class="text-[10px] text-slate-400 font-mono" x-show="detailData.approvalPengajuAt && detailData.approvalPengajuAt !== '-'" x-text="detailData.approvalPengajuAt"></span>
+                                </div>
+                            </div>
+
+                            <!-- 2. Verifikator Penerima -->
+                            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                                <div class="text-[9px] font-bold uppercase tracking-wider text-slate-500 flex items-center">
+                                    <i class="fa-solid fa-user-gear text-blue-600 me-1.5"></i>
+                                    <span>Verifikator Penerima</span>
+                                </div>
+                                <div class="font-bold text-slate-900 text-xs mt-1" x-text="detailData.approvalPenerimaBy"></div>
+                                <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                                          :class="detailData.approvalPenerimaStatus === 'Diterima' ? 'bg-blue-100 text-blue-800' : (detailData.approvalPenerimaStatus === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-700')"
+                                          x-text="detailData.approvalPenerimaStatus === 'Diterima' ? 'Diverifikasi' : (detailData.approvalPenerimaStatus === 'Ditolak' ? 'Ditolak' : 'Belum Verifikasi')"></span>
+                                    <template x-if="detailData.assignedOperator && detailData.assignedOperator !== 'Belum ditentukan'">
+                                        <span class="px-2 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold" x-text="'Op: ' + detailData.assignedOperator"></span>
+                                    </template>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- STATUS OTORISASI & VERIFIKASI DEPARTEMEN -->
-                <div class="space-y-2.5">
-                    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-                        <div class="flex items-center space-x-2">
-                            <i class="fa-solid fa-stamp text-amber-500"></i>
-                            <h4 class="font-bold text-xs uppercase tracking-wider text-slate-800">Status Otorisasi & Verifikasi Alur</h4>
-                        </div>
+                <!-- 3. STRIP KUOTA ORDER & DEFECT TRANSPARAN -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center bg-white p-2.5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div class="px-2">
+                        <span class="text-[9px] uppercase font-bold text-slate-400 block">Order Awal</span>
+                        <span class="font-black text-xs sm:text-sm text-slate-700" x-text="(detailData.originalQty || detailData.totalQty) + ' ' + detailData.uom"></span>
                     </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <!-- Kartu 1: Verifikasi Departemen Pengaju -->
-                        <div class="p-3.5 rounded-2xl border" 
-                             :class="detailData.approvalPengajuStatus === 'Diterima' ? 'bg-emerald-50/60 border-emerald-200' : (detailData.approvalPengajuStatus === 'Ditolak' ? 'bg-rose-50 border-rose-200' : 'bg-amber-50/60 border-amber-200')">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">1. Otorisasi Pengaju</span>
-                                <span class="text-[10px] font-black px-2 py-0.5 rounded-full uppercase"
-                                      :class="detailData.approvalPengajuStatus === 'Diterima' ? 'bg-emerald-100 text-emerald-800' : (detailData.approvalPengajuStatus === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900 animate-pulse')"
-                                      x-text="detailData.approvalPengajuStatus === 'Diterima' ? 'Disetujui' : (detailData.approvalPengajuStatus === 'Ditolak' ? 'Ditolak' : 'Menunggu Ka. Pengaju')"></span>
-                            </div>
-                            <div class="space-y-1.5 text-[11px]">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-slate-500">Departemen:</span>
-                                    <strong class="text-slate-800 font-bold" x-text="detailData.deptPengaju"></strong>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-slate-500">Pemohon / Dibuat:</span>
-                                    <strong class="text-slate-800" x-text="detailData.requestedByName"></strong>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-slate-500">Diverifikasi Ka.:</span>
-                                    <strong class="text-emerald-700 font-bold" x-text="detailData.approvalPengajuBy"></strong>
-                                </div>
-                                <div class="flex justify-between items-center text-[10px] text-slate-400 pt-1.5 border-t border-slate-200/60">
-                                    <span>Waktu Otorisasi:</span>
-                                    <span class="font-mono" x-text="detailData.approvalPengajuAt"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Kartu 2: Verifikasi Departemen Penerima (Mesin) -->
-                        <div class="p-3.5 rounded-2xl border" 
-                             :class="detailData.approvalPenerimaStatus === 'Diterima' ? 'bg-blue-50/60 border-blue-200' : (detailData.approvalPenerimaStatus === 'Ditolak' ? 'bg-rose-50 border-rose-200' : 'bg-amber-50/60 border-amber-200')">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">2. Otorisasi Penerima</span>
-                                <span class="text-[10px] font-black px-2 py-0.5 rounded-full uppercase"
-                                      :class="detailData.approvalPenerimaStatus === 'Diterima' ? 'bg-blue-100 text-blue-800' : (detailData.approvalPenerimaStatus === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900 animate-pulse')"
-                                      x-text="detailData.approvalPenerimaStatus === 'Diterima' ? 'Disetujui & Siap' : (detailData.approvalPenerimaStatus === 'Ditolak' ? 'Ditolak' : 'Menunggu Ka. ' + detailData.deptPenerima)"></span>
-                            </div>
-                            <div class="space-y-1.5 text-[11px]">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-slate-500">Departemen:</span>
-                                    <strong class="text-slate-800 font-bold" x-text="detailData.deptPenerima"></strong>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-slate-500">Diverifikasi Ka.:</span>
-                                    <strong class="text-blue-800 font-bold" x-text="detailData.approvalPenerimaBy"></strong>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-slate-500">Operator Pelaksana:</span>
-                                    <strong class="text-indigo-900 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 font-bold" x-text="detailData.assignedOperator"></strong>
-                                </div>
-                                <div class="flex justify-between items-center text-[10px] text-slate-400 pt-1.5 border-t border-slate-200/60">
-                                    <span>Waktu Otorisasi:</span>
-                                    <span class="font-mono" x-text="detailData.approvalPenerimaAt"></span>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="px-2 border-l border-slate-100">
+                        <span class="text-[9px] uppercase font-bold text-rose-500 block">Defect / Reject</span>
+                        <span class="font-black text-xs sm:text-sm" :class="detailData.defectQty > 0 ? 'text-rose-600' : 'text-slate-400'" x-text="'-' + detailData.defectQty + ' ' + detailData.uom"></span>
+                    </div>
+                    <div class="px-2 border-l border-slate-100">
+                        <span class="text-[9px] uppercase font-bold text-indigo-600 block">Target Aktif</span>
+                        <span class="font-black text-xs sm:text-sm text-indigo-900" x-text="detailData.totalQty + ' ' + detailData.uom"></span>
+                    </div>
+                    <div class="px-2 border-l border-slate-100">
+                        <span class="text-[9px] uppercase font-bold text-emerald-600 block">Diterima Gudang</span>
+                        <span class="font-black text-xs sm:text-sm text-emerald-700" x-text="detailData.receivedQty + ' ' + detailData.uom"></span>
                     </div>
                 </div>
 
-                <!-- TRACKING PROSES FABRIKASI & LOGISTIK MH -->
+                <!-- 4. TRACKING PROSES (Station Timeline with Event Boxes - Lampiran 1-3 Style) -->
                 <div class="space-y-3">
-                    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-                        <div class="flex items-center space-x-2">
-                            <i class="fa-solid fa-route text-indigo-600"></i>
-                            <h4 class="font-bold text-xs uppercase tracking-wider text-slate-800">Alur Fabrikasi & Material Handling</h4>
-                        </div>
-                        <span class="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg border border-indigo-200" x-text="detailData.progressPercentage + '% Selesai'"></span>
-                    </div>
+                    <h6 class="font-bold text-slate-400 text-xs tracking-wider uppercase ps-1">TRACKING PROSES</h6>
 
-                    <!-- Modern Timeline Card -->
-                    <div class="p-4 bg-white rounded-2xl border border-slate-200 space-y-3 shadow-2xs">
-                        <div class="space-y-2">
-                            <template x-for="(st, sIdx) in detailData.steps" :key="sIdx">
-                                <div class="flex items-start space-x-3">
-                                    <!-- Step Indicator Dot -->
-                                    <div class="flex flex-col items-center">
-                                        <div class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px]"
-                                             :class="st.status === 'completed' ? 'bg-emerald-600 text-white' : (st.status === 'in_progress' ? 'bg-amber-500 text-slate-950 animate-pulse' : 'bg-slate-200 text-slate-600')"
+                    <!-- Timeline Cards per Station -->
+                    <div class="space-y-3">
+                        <template x-for="(st, sIdx) in detailData.steps" :key="sIdx">
+                            <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-2.5">
+                                <!-- Station Title Header -->
+                                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+                                             :class="st.status === 'completed' ? 'bg-emerald-600 text-white' : (st.status === 'in_progress' ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-200 text-slate-600')"
                                              x-text="sIdx + 1"></div>
-                                        <div x-show="sIdx < detailData.steps.length - 1" class="w-0.5 h-6 bg-slate-200 my-1"></div>
+                                        <h4 class="font-black text-xs text-slate-900" x-text="st.name"></h4>
                                     </div>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase"
+                                          :class="st.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : (st.status === 'in_progress' ? 'bg-amber-100 text-amber-900 font-extrabold' : 'bg-slate-100 text-slate-500')"
+                                          x-text="st.status === 'completed' ? 'Selesai' : (st.status === 'in_progress' ? 'Sedang Diproses' : 'Menunggu')"></span>
+                                </div>
 
-                                    <!-- Step Content -->
-                                    <div class="flex-1 pb-2">
+                                <!-- Station Events Boxes (Biru MASUK, Kuning PARSIAL, Merah DEFECT, Hijau SELESAI) -->
+                                <div class="space-y-2">
+                                    <template x-for="(log, lIdx) in getStepLogs(st.name, sIdx)" :key="lIdx">
+                                        <div>
+                                            <!-- A. EVENT BOX MERAH: DEFECT / REJECT (FITUR BARU) -->
+                                            <template x-if="log.is_defect">
+                                                <div class="p-3 rounded-2xl border-2 border-rose-300 bg-rose-50 shadow-xs">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center space-x-2.5">
+                                                            <div class="w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs font-bold shadow-xs shrink-0">
+                                                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                                            </div>
+                                                            <div>
+                                                                <span class="font-black text-xs uppercase tracking-wide text-rose-800">DEFECT / RUSAK</span>
+                                                                <span class="block text-[10px] text-rose-600 font-medium" x-text="log.time"></span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-end">
+                                                            <div class="font-extrabold text-sm sm:text-base text-rose-600 leading-tight" x-text="'-' + log.qty + ' ' + detailData.uom"></div>
+                                                            <div class="text-[10px] text-rose-800 font-semibold" x-text="log.operator ? 'Op: ' + log.operator : ''"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mt-2 pt-2 border-t border-rose-200 text-[11px] text-rose-900 font-medium flex items-start space-x-1">
+                                                        <span class="font-bold shrink-0">Alasan:</span>
+                                                        <span class="break-words" x-text="log.notes || 'Komponen cacat / reject pengerjaan'"></span>
+                                                    </div>
+                                                    <span class="block text-[9px] text-rose-500 font-medium italic mt-1">* Kuota pesanan tiket otomatis dikurangi</span>
+                                                </div>
+                                            </template>
+
+                                            <!-- B. EVENT BOX BIRU: MASUK -->
+                                            <template x-if="!log.is_defect && log.status.includes('(In)')">
+                                                <div class="p-3 rounded-2xl border border-blue-200 bg-blue-50/70 shadow-2xs">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center space-x-2.5">
+                                                            <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-xs shrink-0">
+                                                                <i class="fa-solid fa-arrow-right"></i>
+                                                            </div>
+                                                            <div>
+                                                                <span class="font-black text-xs uppercase tracking-wide text-blue-900">MASUK</span>
+                                                                <span class="block text-[10px] text-blue-600 font-medium" x-text="log.time"></span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-end">
+                                                            <div class="font-extrabold text-sm sm:text-base text-blue-950 leading-tight" x-text="log.qty + ' ' + detailData.uom"></div>
+                                                            <div class="text-[10px] text-blue-800 font-semibold" x-text="log.operator ? 'Op: ' + log.operator : ''"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div x-show="log.notes && log.notes !== '-'" class="mt-2 pt-2 border-t border-blue-200/60 text-[10px] text-blue-800" x-text="log.notes"></div>
+                                                </div>
+                                            </template>
+
+                                            <!-- C. EVENT BOX KUNING: PARSIAL (SELESAI) -->
+                                            <template x-if="!log.is_defect && !log.status.includes('(In)') && log.status.toLowerCase().includes('parsial')">
+                                                <div class="p-3 rounded-2xl border border-amber-300 bg-amber-50/80 shadow-2xs">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center space-x-2.5">
+                                                            <div class="w-8 h-8 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-xs font-bold shadow-xs shrink-0">
+                                                                <i class="fa-solid fa-chart-pie"></i>
+                                                            </div>
+                                                            <div>
+                                                                <span class="font-black text-xs uppercase tracking-wide text-amber-950">PARSIAL (SELESAI)</span>
+                                                                <span class="block text-[10px] text-amber-700 font-medium" x-text="log.time + ' • Bertahap'"></span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-end">
+                                                            <div class="font-extrabold text-sm sm:text-base text-amber-950 leading-tight" x-text="log.qty + ' ' + detailData.uom"></div>
+                                                            <div class="text-[10px] text-amber-900 font-semibold" x-text="log.operator ? 'Op: ' + log.operator : ''"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div x-show="log.notes && log.notes !== '-'" class="mt-2 pt-2 border-t border-amber-200/60 text-[10px] text-amber-900" x-text="log.notes"></div>
+                                                </div>
+                                            </template>
+
+                                            <!-- D. EVENT BOX HIJAU: SELESAI (FINAL) -->
+                                            <template x-if="!log.is_defect && !log.status.includes('(In)') && !log.status.toLowerCase().includes('parsial') && !log.status.toLowerCase().includes('pickup') && !log.status.toLowerCase().includes('sudah diambil') && !log.status.toLowerCase().includes('menuju pengaju')">
+                                                <div class="p-3 rounded-2xl border border-emerald-300 bg-emerald-50/80 shadow-2xs">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center space-x-2.5">
+                                                            <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-xs shrink-0">
+                                                                <i class="fa-solid fa-check"></i>
+                                                            </div>
+                                                            <div>
+                                                                <span class="font-black text-xs uppercase tracking-wide text-emerald-950">SELESAI (FINAL)</span>
+                                                                <span class="block text-[10px] text-emerald-700 font-medium" x-text="log.time + ' • Parsial Terakhir Selesai'"></span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-end">
+                                                            <div class="font-extrabold text-sm sm:text-base text-emerald-950 leading-tight" x-text="log.qty + ' ' + detailData.uom"></div>
+                                                            <div class="text-[10px] text-emerald-900 font-semibold" x-text="log.operator ? 'Op: ' + log.operator : ''"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div x-show="log.notes && log.notes !== '-'" class="mt-2 pt-2 border-t border-emerald-200/60 text-[10px] text-emerald-900" x-text="log.notes"></div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <!-- Placeholder jika stasiun belum ada log -->
+                                    <template x-if="getStepLogs(st.name, sIdx).length === 0">
+                                        <div class="p-3 text-center text-slate-400 text-xs italic bg-slate-50/60 rounded-xl border border-slate-100">
+                                            Menunggu antrian pengerjaan
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Final Destination Card: Pengiriman ke Dept Gudang -->
+                        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-2.5">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+                                         :class="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-600 text-white' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'bg-purple-600 text-white animate-bounce' : 'bg-slate-200 text-slate-600')">
+                                        <i class="fa-solid fa-warehouse text-[9px]"></i>
+                                    </div>
+                                    <h4 class="font-black text-xs text-slate-900" x-text="'Pengiriman ke ' + (detailData.deptPengaju || 'Dept Gudang')"></h4>
+                                </div>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase"
+                                      :class="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-100 text-emerald-800' : (detailData.receivedQty > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'bg-purple-100 text-purple-900 font-extrabold' : 'bg-slate-100 text-slate-500'))"
+                                      x-text="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'Selesai Diterima' : (detailData.receivedQty > 0 ? 'Diterima Parsial (' + detailData.receivedQty + '/' + detailData.totalQty + ')' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'Sedang Diantar MH' : 'Menunggu Selesai'))"></span>
+                            </div>
+
+                            <!-- Final Logs / Status -->
+                            <div class="space-y-2">
+                                <template x-for="(gLog, gIdx) in getGudangLogs()" :key="gIdx">
+                                    <div class="p-3 rounded-2xl border border-emerald-300 bg-emerald-50/80 shadow-2xs">
                                         <div class="flex items-center justify-between">
-                                            <span class="font-bold text-xs text-slate-800" x-text="st.name"></span>
-                                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase"
-                                                  :class="st.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : (st.status === 'in_progress' ? 'bg-amber-100 text-amber-900 font-extrabold' : 'bg-slate-100 text-slate-500')"
-                                                  x-text="st.status === 'completed' ? 'Selesai' : (st.status === 'in_progress' ? 'Sedang Diproses' : 'Antrian')"></span>
+                                            <div class="flex items-center space-x-2.5">
+                                                <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-xs shrink-0">
+                                                    <i class="fa-solid fa-warehouse"></i>
+                                                </div>
+                                                <div>
+                                                    <span class="font-black text-xs uppercase tracking-wide text-emerald-950">DITERIMA GUDANG</span>
+                                                    <span class="block text-[10px] text-emerald-700 font-medium" x-text="gLog.time"></span>
+                                                </div>
+                                            </div>
+                                            <div class="text-end">
+                                                <div class="font-extrabold text-sm sm:text-base text-emerald-950 leading-tight" x-text="gLog.qty + ' ' + detailData.uom"></div>
+                                                <div class="text-[10px] text-emerald-900 font-semibold" x-text="gLog.operator ? 'Penerima: ' + gLog.operator : ''"></div>
+                                            </div>
                                         </div>
-
-                                        <!-- MH Transfer indicator between steps -->
-                                        <div x-show="sIdx < detailData.steps.length - 1" class="mt-1 text-[10px] text-blue-700 bg-blue-50/60 px-2 py-0.5 rounded border border-blue-200 flex items-center space-x-1.5 w-fit">
-                                            <i class="fa-solid fa-truck-fast text-blue-500"></i>
-                                            <span>Transfer Material Handling (MH) ke stasiun berikutnya</span>
-                                        </div>
+                                        <div x-show="gLog.notes && gLog.notes !== '-'" class="mt-2 pt-2 border-t border-emerald-200/60 text-[10px] text-emerald-900" x-text="gLog.notes"></div>
                                     </div>
-                                </div>
-                            </template>
+                                </template>
 
-                            <!-- Final Delivery Step: MH Kirim ke Pengaju / Gudang -->
-                            <div class="flex items-start space-x-3 pt-1 border-t border-slate-100">
-                                <div class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px]"
-                                     :class="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-600 text-white' : (detailData.currentStatus.includes('Menuju Pengaju') ? 'bg-blue-600 text-white animate-bounce' : 'bg-slate-200 text-slate-600')">
-                                    <i class="fa-solid fa-warehouse text-[9px]"></i>
-                                </div>
-                                <div class="flex-1">
-                                    <div class="flex items-center justify-between">
-                                        <span class="font-bold text-xs text-slate-800">Serah Terima ke Pengaju / Gudang</span>
-                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase"
-                                              :class="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-100 text-emerald-800' : (detailData.receivedQty > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (detailData.currentStatus.includes('Menuju Pengaju') ? 'bg-blue-100 text-blue-900 font-extrabold' : 'bg-slate-100 text-slate-500'))"
-                                              x-text="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'Diterima Fisik (Closed)' : (detailData.receivedQty > 0 ? 'Diterima Parsial (' + detailData.receivedQty + '/' + detailData.totalQty + ')' : (detailData.currentStatus.includes('Menuju Pengaju') ? 'Sedang Diantar MH' : 'Menunggu Selesai'))"></span>
+                                <template x-if="getGudangLogs().length === 0">
+                                    <div>
+                                        <template x-if="detailData.currentStatus.toLowerCase().includes('menuju pengaju')">
+                                            <div class="p-3 rounded-2xl border border-purple-200 bg-purple-50 text-purple-900 flex items-center space-x-2.5">
+                                                <i class="fa-solid fa-truck-fast text-purple-600 text-base"></i>
+                                                <span class="font-bold text-xs">Sedang Diantar Kurir Material Handling ke Gudang</span>
+                                            </div>
+                                        </template>
+                                        <template x-if="!detailData.currentStatus.toLowerCase().includes('menuju pengaju')">
+                                            <div class="p-3 text-center text-slate-400 text-xs italic bg-slate-50/60 rounded-xl border border-slate-100">
+                                                Menunggu tahapan pengerjaan mesin selesai
+                                            </div>
+                                        </template>
                                     </div>
-                                    <p class="text-[10px] text-slate-400 mt-0.5">Barang jadi diantar kembali ke Gudang untuk penambahan stok fisik.</p>
-                                </div>
+                                </template>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- FORM EKSEKUSI PENGERJAAN, QTY PARSIAL & DEFECT LANGSUNG DI MODAL -->
+                <!-- 5. FORM EKSEKUSI PENGERJAAN LANGSUNG DI MODAL -->
                 <template x-if="detailData.canProcessAction && !detailData.isFinal">
                     <div class="p-4 bg-gradient-to-br from-indigo-50/90 via-slate-50 to-indigo-50/70 border-2 border-indigo-200 rounded-3xl space-y-3.5 shadow-xs" 
                          x-data="{ 
@@ -332,52 +464,13 @@
                     </div>
                 </template>
 
-                <!-- RIWAYAT AUDIT LOGS -->
-                <div class="space-y-2">
-                    <div class="flex items-center justify-between border-b border-slate-200 pb-1.5">
-                        <div class="flex items-center space-x-1.5">
-                            <i class="fa-solid fa-clock-rotate-left text-slate-500"></i>
-                            <h4 class="font-bold text-xs uppercase tracking-wider text-slate-800">Riwayat Log Transaksi & Defect</h4>
-                        </div>
-                        <span class="text-[10px] text-slate-400" x-text="detailData.logs ? detailData.logs.length + ' Entri' : '0 Entri'"></span>
-                    </div>
-
-                    <div class="max-h-48 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100 bg-slate-50/50">
-                        <template x-for="(log, lIdx) in detailData.logs" :key="lIdx">
-                            <div class="p-2.5 flex items-start justify-between text-[11px] transition" :class="log.is_defect ? 'bg-rose-50/90 border-l-4 border-rose-500' : 'bg-white'">
-                                <div>
-                                    <div class="flex items-center space-x-2">
-                                        <template x-if="log.is_defect">
-                                            <span class="text-rose-700 font-extrabold text-[9px] bg-rose-200/80 px-1.5 py-0.5 rounded uppercase">
-                                                <i class="fa-solid fa-triangle-exclamation me-1"></i> Defect
-                                            </span>
-                                        </template>
-                                        <span class="font-bold text-slate-900" x-text="log.status"></span>
-                                        <span class="text-[10px] px-1.5 py-0.2 rounded font-bold"
-                                              :class="log.is_defect ? 'bg-rose-200 text-rose-900' : 'bg-slate-100 text-slate-600'"
-                                              x-text="(log.is_defect ? '-' : '') + log.qty + ' ' + detailData.uom"></span>
-                                    </div>
-                                    <p class="text-[10px] mt-0.5" :class="log.is_defect ? 'text-rose-700 font-medium' : 'text-slate-500'" x-text="log.notes"></p>
-                                </div>
-                                <div class="text-right text-[10px] text-slate-400 font-mono flex-shrink-0 ml-3">
-                                    <span class="text-slate-600 font-semibold" x-text="log.time"></span>
-                                    <span class="block text-slate-800 font-bold font-sans" x-text="log.operator"></span>
-                                </div>
-                            </div>
-                        </template>
-                        <div x-show="!detailData.logs || detailData.logs.length === 0" class="p-4 text-center text-slate-400 text-xs italic">
-                            Belum ada riwayat aktivitas pengerjaan.
-                        </div>
-                    </div>
-                </div>
-
             </div>
 
             <!-- Sticky Footer -->
-            <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between flex-shrink-0">
+            <div class="p-4 bg-white border-t border-slate-200 flex items-center justify-between flex-shrink-0">
                 <a :href="detailData.printUrl" 
                    target="_blank" 
-                   class="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-bold text-xs transition flex items-center space-x-1.5 shadow-2xs">
+                   class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold text-xs transition flex items-center space-x-1.5 shadow-2xs">
                     <i class="fa-solid fa-print text-slate-600"></i>
                     <span>Cetak Lembar WR / Kanban</span>
                 </a>

@@ -31,7 +31,11 @@
         </div>
     </x-slot>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6" x-data="wriQueueManager()">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6" 
+         x-data="wriQueueManager()"
+         @if(isset($openDetailPayload) && $openDetailPayload)
+             x-init="openDetailModal(@json($openDetailPayload))"
+         @endif>
 
         <!-- 0. INTEGRATED WRI SUB-NAVIGATION TABS (Antrian, Safety Stock, Monitoring) -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 pb-3">
@@ -429,12 +433,12 @@
                         </div>
                     </div>
 
-                    <!-- Target Rack & Actions (Direct In-Place Pop-ups) -->
+                    <!-- Info Penerima & Operator & Actions (Direct In-Place Pop-ups) -->
                     <div class="pt-2 border-t border-slate-100 flex flex-col gap-2">
                         <div class="flex items-center justify-between text-xs">
-                            <span class="text-[10px] text-slate-400 block uppercase font-bold">Slot Rak:</span>
-                            <span class="font-mono font-bold text-blue-900 text-[11px]">
-                                {{ $wri->target_specific_location_code ?: '-' }}
+                            <span class="text-[10px] text-slate-400 block font-medium">Tujuan & Operator:</span>
+                            <span class="font-bold text-slate-800 text-[11px] truncate max-w-[200px]">
+                                {{ $wri->dept_penerima ?: 'Mesin' }} &bull; <span class="text-indigo-700">{{ $wri->assigned_operator_name ?: 'Belum ditentukan' }}</span>
                             </span>
                         </div>
 
@@ -521,15 +525,17 @@
             <!-- Desktop Table (>= md screens) -->
             <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-left text-xs text-slate-600">
-                    <thead class="bg-slate-50/70 text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200">
+                    <thead class="bg-slate-50/80 text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200">
                         <tr>
-                            <th class="py-3.5 px-4">No. WRI & Info Dept</th>
-                            <th class="py-3.5 px-4">Komponen & Spek</th>
-                            <th class="py-3.5 px-4 text-center">Jumlah Order</th>
-                            <th class="py-3.5 px-4">Alur Routing & Progres</th>
-                            <th class="py-3.5 px-4">Target Slot Gudang</th>
-                            <th class="py-3.5 px-4 text-center">Status</th>
-                            <th class="py-3.5 px-4 text-right">Aksi</th>
+                            <th class="py-3.5 px-3 min-w-[190px]">No WR / Status</th>
+                            <th class="py-3.5 px-3 whitespace-nowrap">Tanggal</th>
+                            <th class="py-3.5 px-3 min-w-[200px]">Komponen</th>
+                            <th class="py-3.5 px-2 text-center whitespace-nowrap">Sts Pengaju</th>
+                            <th class="py-3.5 px-2 text-center whitespace-nowrap">Sts Penerima</th>
+                            <th class="py-3.5 px-2 text-center whitespace-nowrap">Foto</th>
+                            <th class="py-3.5 px-3 min-w-[170px]">Routing / Dimensi / Qty</th>
+                            <th class="py-3.5 px-3 min-w-[180px]">Deskripsi</th>
+                            <th class="py-3.5 px-3 min-w-[170px]">Pengaju / Penerima</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -605,6 +611,13 @@
                                 ?? ($wri->approval_penerima === 'Diterima' ? 'Ka. ' . ($wri->dept_penerima ?: 'Mesin') : 'Menunggu');
                             $approvalPenerimaAt = $appPenerimaLog?->created_at?->format('d/m/Y H:i') ?? '-';
 
+                            $imagePayload = [
+                                'imageUrl' => $wri->component?->image_url ?? asset('images/logo_hpk.webp'),
+                                'componentName' => $wri->component?->name ?? 'Komponen',
+                                'partNumber' => $wri->component?->part_number ?? '-',
+                                'dimension' => $wri->component?->dimension_formatted ?? ($wri->component?->specification ?? '-'),
+                            ];
+
                             $detailPayload = [
                                 'id' => $wri->id,
                                 'wriNumber' => $wri->wri_number,
@@ -657,206 +670,222 @@
                             ];
                         @endphp
                         <tr class="hover:bg-slate-50/70 transition">
-                            <!-- No WRI & Meta -->
-                            <td class="py-3.5 px-4 align-top">
+                            <!-- 1. No WR / Status -->
+                            <td class="py-3 px-3 align-top">
                                 <button type="button" 
                                         @click='openDetailModal(@json($detailPayload))' 
-                                        class="font-mono font-bold text-slate-900 hover:text-blue-600 text-xs flex items-center group text-left">
-                                    <span>{{ $wri->wri_number }}</span>
-                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-slate-400 group-hover:text-blue-500 ms-1 opacity-0 group-hover:opacity-100 transition"></i>
+                                        class="font-mono font-bold text-blue-600 hover:text-blue-800 text-xs flex items-center group text-left"
+                                        title="Klik untuk lihat detail WRI">
+                                    <span class="break-all">{{ $wri->wri_number }}</span>
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-blue-400 group-hover:text-blue-600 ms-1 opacity-0 group-hover:opacity-100 transition shrink-0"></i>
                                 </button>
-                                <div class="text-[11px] text-slate-500 mt-0.5 font-medium">
-                                    {{ $wri->dept_pengaju ?: 'Gudang' }} &rarr; {{ $wri->dept_penerima ?: 'Mesin' }}
-                                </div>
-                                <p class="text-[10px] text-slate-400 mt-0.5">
-                                    {{ $wri->created_at->format('d M Y, H:i') }}
-                                </p>
-                                @if($wri->assigned_operator_name)
-                                    <span class="inline-flex items-center mt-1 px-1.5 py-0.2 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold">
-                                        <i class="fa-solid fa-user-gear text-[9px] me-1"></i> Op: {{ $wri->assigned_operator_name }}
-                                    </span>
-                                @endif
-                                @if($wri->spk_reference)
-                                    <span class="inline-block mt-1 px-2 py-0.5 rounded bg-slate-100 font-mono text-[10px] text-slate-600 font-semibold">
-                                        SPK: {{ $wri->spk_reference }}
-                                    </span>
-                                @endif
-                                <div class="mt-1">
-                                    <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] {{ $wri->priority_badge['class'] }}">
+                                
+                                <div class="flex flex-wrap items-center gap-1 mt-1">
+                                    @if($wri->spk_reference)
+                                        <span class="inline-block px-1.5 py-0.2 rounded bg-slate-100 font-mono text-[9px] text-slate-600 font-semibold" title="Referensi SPK">
+                                            SPK: {{ $wri->spk_reference }}
+                                        </span>
+                                    @endif
+                                    <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] {{ $wri->priority_badge['class'] }}">
                                         {{ $wri->priority_badge['label'] }}
                                     </span>
                                 </div>
-                            </td>
 
-                            <!-- Komponen & Spek -->
-                            <td class="py-3.5 px-4 align-top max-w-xs cursor-pointer" @click='openDetailModal(@json($detailPayload))'>
-                                <div class="flex items-start space-x-2.5">
-                                    <div class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                                        <img src="{{ $wri->component?->image_url ?? asset('images/logo_hpk.webp') }}" alt="{{ $wri->component?->name ?? 'Komponen' }}" class="w-full h-full object-cover">
-                                    </div>
-                                    <div>
-                                        @if($wri->component)
-                                            <span class="font-bold text-slate-900 hover:text-teal-700 block line-clamp-1 leading-snug">
-                                                {{ $wri->component->name }}
-                                            </span>
-                                            <span class="font-mono text-[11px] font-semibold text-amber-900 bg-amber-100/70 px-1.5 py-0.2 rounded mt-0.5 inline-block">
-                                                {{ $wri->component->part_number }}
-                                            </span>
-                                            <p class="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
-                                                {{ $wri->component->specification ?: '-' }}
-                                            </p>
-                                        @else
-                                            <span class="font-bold text-slate-500 block text-xs">Komponen Dihapus</span>
-                                            <span class="font-mono text-[11px] text-slate-400">ID #{{ $wri->component_id }}</span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </td>
-
-                            <!-- Qty Info -->
-                            <td class="py-3.5 px-4 align-top text-center cursor-pointer" @click='openDetailModal(@json($detailPayload))'>
-                                <div class="font-extrabold text-sm text-slate-900">
-                                    {{ number_format($wri->quantity_requested, 0) }} <span class="text-xs font-normal text-slate-500">{{ $wri->component?->uom ?? 'PCS' }}</span>
-                                </div>
-                                @if($wri->quantity_received > 0)
-                                    <span class="text-[10px] text-emerald-700 font-bold block mt-0.5">
-                                        Masuk: {{ number_format($wri->quantity_received, 0) }}
-                                    </span>
-                                @elseif($wri->quantity_produced > 0)
-                                    <span class="text-[10px] text-blue-700 font-semibold block mt-0.5">
-                                        Produksi: {{ number_format($wri->quantity_produced, 0) }}
-                                    </span>
-                                @endif
-                                @if($wri->quantity_defect > 0)
-                                    <span class="text-[10px] text-rose-600 font-bold bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded inline-block mt-0.5" title="Order Awal: {{ number_format($wri->original_quantity_requested, 0) }}">
-                                        Defect: -{{ number_format($wri->quantity_defect, 0) }}
-                                    </span>
-                                @endif
-                            </td>
-
-                            <!-- Alur Routing Mesin Steps -->
-                            <td class="py-3.5 px-4 align-top cursor-pointer" @click='openDetailModal(@json($detailPayload))'>
-                                <div class="text-[11px] font-medium text-slate-700 line-clamp-1">
-                                    {{ $wri->routing_text ?: 'Proses Fabrikasi Inhouse' }}
-                                </div>
-                                <div class="flex items-center space-x-1.5 mt-1 text-[10px] text-slate-400">
-                                    <span>Status Aktif:</span>
-                                    <span class="font-bold text-slate-800">{{ $wri->status }}</span>
-                                </div>
-                                <!-- Progress Bar -->
-                                <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
-                                    <div class="bg-gradient-to-r from-blue-500 to-emerald-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ $wri->progress_percentage }}%"></div>
-                                </div>
-                            </td>
-
-                            <!-- Target Slot Gudang -->
-                            <td class="py-3.5 px-4 align-top">
-                                @if($wri->targetLocation)
-                                    <div class="flex items-center space-x-1.5">
-                                        <span class="px-2 py-0.5 bg-blue-50 border border-blue-200 rounded font-mono font-bold text-xs text-blue-900">
-                                            {{ $wri->target_specific_location_code }}
-                                        </span>
-                                    </div>
-                                    <span class="text-[10px] text-slate-500 block mt-0.5">
-                                        {{ $wri->targetLocation->display_rack_name }} &bull; {{ $wri->targetLocation->zone_name }}
-                                    </span>
-                                @else
-                                    <span class="text-slate-400 text-xs italic">Belum ditentukan</span>
-                                @endif
-                            </td>
-
-                            <!-- Status Badge -->
-                            <td class="py-3.5 px-4 align-top text-center cursor-pointer" @click='openDetailModal(@json($detailPayload))'>
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border {{ $wri->status_badge['class'] }}">
-                                    @if(str_contains(strtolower($wri->status), 'proses:'))
-                                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping me-1.5"></span>
-                                    @elseif(str_contains(strtolower($wri->status), 'siap diambil'))
-                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce me-1.5"></span>
-                                    @elseif(str_contains(strtolower($wri->status), 'sudah diambil'))
-                                        <i class="fa-solid fa-check me-1 text-[10px]"></i>
-                                    @endif
-                                    {{ $wri->status_badge['label'] }}
-                                </span>
-                            </td>
-
-                            <!-- Actions (In-Place Pop-ups) -->
-                            <td class="py-3.5 px-4 align-top text-right">
-                                <div class="flex items-center justify-end space-x-1.5">
+                                <!-- Tombol Aksi Status / Lencana Status -->
+                                <div class="mt-2">
                                     @if(!$wri->is_final)
                                         @if($wri->approval_pengaju === 'Menunggu')
-                                            @if($canApprovePengaju)
-                                                <form method="POST" action="{{ route('work-requests.approve-pengaju', $wri) }}" class="inline">
-                                                    @csrf
-                                                    <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition space-x-1">
-                                                        <i class="fa-solid fa-check text-[10px]"></i>
-                                                        <span>Setujui</span>
-                                                    </button>
-                                                </form>
-                                            @else
-                                                <span class="inline-flex items-center px-2.5 py-1 text-amber-800 bg-amber-50 border border-amber-200 rounded-xl text-xs font-bold">
-                                                    <i class="fa-solid fa-clock text-amber-500 me-1 text-[10px]"></i> Menunggu Verifikasi Ka. {{ $wri->dept_pengaju ?: 'Pengaju' }}
-                                                </span>
-                                            @endif
+                                            <span class="inline-flex items-center px-2 py-1 text-amber-800 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                                <i class="fa-solid fa-clock text-amber-500 me-1 text-[9px]"></i> Menunggu Pengaju
+                                            </span>
                                         @elseif($wri->approval_penerima === 'Menunggu')
-                                            @if($canApprovePenerima)
-                                                <button type="button" 
-                                                        @click='openAssignModal(@json($assignPayload))'
-                                                        class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition space-x-1">
-                                                    <i class="fa-solid fa-user-check text-[10px]"></i>
-                                                    <span>Verifikasi & Tugaskan</span>
-                                                </button>
-                                            @else
-                                                <span class="inline-flex items-center px-2.5 py-1 text-blue-800 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold">
-                                                    <i class="fa-solid fa-clock text-blue-500 me-1 text-[10px]"></i> Menunggu Verifikasi Ka. {{ $wri->dept_penerima ?: 'Penerima' }}
-                                                </span>
-                                            @endif
+                                            <span class="inline-flex items-center px-2 py-1 text-blue-800 bg-blue-50 border border-blue-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                                <i class="fa-solid fa-clock text-blue-500 me-1 text-[9px]"></i> Menunggu Penerima
+                                            </span>
                                         @else
                                             @if($canProcessAction)
                                                 <button type="button" 
                                                         @click='openProcessModal(@json($processPayload))'
-                                                        class="inline-flex items-center px-3 py-1.5 {{ $btnBg }} font-bold text-xs rounded-xl shadow-xs transition space-x-1.5">
+                                                        class="w-full inline-flex items-center justify-center px-2.5 py-1.5 {{ $btnBg }} font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition space-x-1.5 text-center">
                                                     <i class="fa-solid {{ $btnIcon }} text-[10px]"></i>
-                                                    <span>{{ $shortLabel }}</span>
+                                                    <span class="truncate">{{ $shortLabel }}</span>
                                                 </button>
                                             @else
                                                 @if($isSudah)
-                                                    <span class="inline-flex items-center px-2.5 py-1 text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold">
-                                                        <i class="fa-solid fa-warehouse text-emerald-600 me-1 text-[10px]"></i> Menunggu Penerimaan {{ $wri->dept_pengaju ?: 'Gudang' }}
+                                                    <span class="inline-flex items-center px-2 py-1 text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                                        <i class="fa-solid fa-warehouse text-emerald-600 me-1 text-[9px]"></i> Tunggu Terima {{ $wri->dept_pengaju ?: 'Gudang' }}
                                                     </span>
                                                 @elseif($isMenuju)
-                                                    <span class="inline-flex items-center px-2.5 py-1 text-purple-800 bg-purple-50 border border-purple-200 rounded-xl text-xs font-bold">
-                                                        <i class="fa-solid fa-truck-fast text-purple-600 me-1 text-[10px]"></i> Sedang Diantar ke {{ $wri->dept_pengaju ?: 'Pengaju' }}
+                                                    <span class="inline-flex items-center px-2 py-1 text-purple-800 bg-purple-50 border border-purple-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                                        <i class="fa-solid fa-truck-fast text-purple-600 me-1 text-[9px]"></i> Diantar ke {{ $wri->dept_pengaju ?: 'Pengaju' }}
                                                     </span>
                                                 @elseif($isPickup || stripos($wri->status, 'Siap Diambil') !== false)
-                                                    <span class="inline-flex items-center px-2.5 py-1 text-amber-900 bg-amber-50 border border-amber-300 rounded-xl text-xs font-bold">
-                                                        <i class="fa-solid fa-dolly text-amber-600 me-1 text-[10px]"></i> Siap Dijemput Material Handling
+                                                    <span class="inline-flex items-center px-2 py-1 text-amber-900 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                                        <i class="fa-solid fa-dolly text-amber-600 me-1 text-[9px]"></i> Siap Dijemput MH
                                                     </span>
                                                 @else
-                                                    <span class="inline-flex items-center px-2.5 py-1 text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold">
-                                                        <i class="fa-solid fa-gear fa-spin text-indigo-500 me-1.5 text-[10px]"></i> Sedang dalam proses di Line {{ $wri->dept_penerima ?: 'Penerima' }}
+                                                    <span class="inline-flex items-center px-2 py-1 text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                                        <i class="fa-solid fa-gear fa-spin text-indigo-500 me-1 text-[9px]"></i> Proses Line {{ $wri->dept_penerima ?: 'Penerima' }}
                                                     </span>
                                                 @endif
                                             @endif
                                         @endif
                                     @else
-                                        <span class="inline-flex items-center px-2.5 py-1 text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold">
-                                            <i class="fa-solid fa-circle-check text-emerald-600 me-1 text-[10px]"></i> Selesai Diterima {{ $wri->dept_pengaju ?: 'Gudang' }}
+                                        <span class="inline-flex items-center px-2 py-1 text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                            <i class="fa-solid fa-circle-check text-emerald-600 me-1 text-[9px]"></i> Selesai Diterima {{ $wri->dept_pengaju ?: 'Gudang' }}
                                         </span>
                                     @endif
+                                </div>
+                            </td>
 
-                                    <button type="button" 
-                                            @click='openDetailModal(@json($detailPayload))'
-                                            class="inline-flex items-center px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition space-x-1"
-                                            title="Detail & Tracking">
-                                        <i class="fa-solid fa-timeline text-slate-500"></i>
-                                        <span>Detail</span>
-                                    </button>
+                            <!-- 2. Tanggal -->
+                            <td class="py-3 px-3 align-top">
+                                <div class="font-medium text-slate-800 text-xs whitespace-nowrap">
+                                    {{ $wri->created_at->format('d M Y') }}
+                                </div>
+                                <div class="text-[10px] text-slate-400 mt-0.5 whitespace-nowrap">
+                                    {{ $wri->created_at->format('H:i') }} WIB
+                                </div>
+                            </td>
+
+                            <!-- 3. Komponen -->
+                            <td class="py-3 px-3 align-top max-w-xs">
+                                <div class="cursor-pointer" @click='openDetailModal(@json($detailPayload))'>
+                                    @if($wri->component)
+                                        <span class="font-bold text-slate-900 hover:text-blue-600 block line-clamp-1 leading-snug" title="{{ $wri->component->name }}">
+                                            {{ $wri->component->name }}
+                                        </span>
+                                        <div class="font-mono text-[11px] font-semibold text-slate-500 mt-0.5">
+                                            {{ $wri->component->part_number }}
+                                        </div>
+                                    @else
+                                        <span class="font-bold text-slate-500 block text-xs">Komponen Dihapus</span>
+                                        <span class="font-mono text-[11px] text-slate-400">ID #{{ $wri->component_id }}</span>
+                                    @endif
+                                </div>
+                            </td>
+
+                            <!-- 4. Sts Pengaju -->
+                            <td class="py-3 px-2 align-top text-center">
+                                @if($wri->approval_pengaju === 'Menunggu')
+                                    @if($canApprovePengaju)
+                                        <form method="POST" action="{{ route('work-requests.approve-pengaju', $wri) }}" class="inline">
+                                            @csrf
+                                            <button type="submit" class="inline-flex items-center px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs transition space-x-1">
+                                                <i class="fa-solid fa-check text-[9px]"></i>
+                                                <span>Setujui</span>
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-1 text-amber-800 bg-amber-50 border border-amber-300 rounded-lg text-[11px] font-bold whitespace-nowrap">
+                                            Menunggu
+                                        </span>
+                                    @endif
+                                @elseif($wri->approval_pengaju === 'Diterima')
+                                    <span class="inline-flex items-center px-2.5 py-1 text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-bold whitespace-nowrap shadow-2xs" title="Disetujui oleh: {{ $approvalPengajuBy }} ({{ $approvalPengajuAt }})">
+                                        <i class="fa-solid fa-check text-[9px] me-1 text-emerald-600"></i> Diterima
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-rose-300 rounded-lg text-xs font-bold whitespace-nowrap">
+                                        <i class="fa-solid fa-xmark text-[9px] me-1 text-rose-600"></i> Ditolak
+                                    </span>
+                                @endif
+                            </td>
+
+                            <!-- 5. Sts Penerima -->
+                            <td class="py-3 px-2 align-top text-center">
+                                @if($wri->approval_penerima === 'Menunggu')
+                                    @if($canApprovePenerima)
+                                        <button type="button" 
+                                                @click='openAssignModal(@json($assignPayload))'
+                                                class="inline-flex items-center px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-xs transition space-x-1">
+                                            <i class="fa-solid fa-user-check text-[9px]"></i>
+                                            <span>Tugaskan</span>
+                                        </button>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap">
+                                            Belum Verifikasi
+                                        </span>
+                                    @endif
+                                @elseif($wri->approval_penerima === 'Diterima')
+                                    <span class="inline-flex items-center px-2.5 py-1 text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-bold whitespace-nowrap shadow-2xs" title="Diverifikasi oleh: {{ $approvalPenerimaBy }} ({{ $approvalPenerimaAt }})">
+                                        <i class="fa-solid fa-check text-[9px] me-1 text-emerald-600"></i> Diterima
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-rose-300 rounded-lg text-xs font-bold whitespace-nowrap">
+                                        <i class="fa-solid fa-xmark text-[9px] me-1 text-rose-600"></i> Ditolak
+                                    </span>
+                                @endif
+                            </td>
+
+                            <!-- 6. Foto -->
+                            <td class="py-3 px-2 align-top text-center">
+                                <button type="button" 
+                                        @click='openImageModal(@json($imagePayload))'
+                                        class="inline-flex items-center px-3 py-1 bg-white hover:bg-blue-50 text-blue-600 hover:text-blue-700 border border-blue-300 hover:border-blue-400 rounded-full font-bold text-xs shadow-2xs transition space-x-1.5"
+                                        title="Lihat foto komponen">
+                                    <i class="fa-solid fa-image text-[10px]"></i>
+                                    <span>Lihat</span>
+                                </button>
+                            </td>
+
+                            <!-- 7. Routing / Dimensi / Qty -->
+                            <td class="py-3 px-3 align-top">
+                                <div class="text-xs text-slate-600 space-y-0.5">
+                                    <div class="flex items-start space-x-1">
+                                        <span class="text-slate-400 w-14 shrink-0">Routing</span>
+                                        <span class="text-slate-400">:</span>
+                                        <span class="font-bold text-slate-800 truncate" title="{{ $wri->dept_penerima ?: ($wri->routing_text ?: '-') }}">{{ $wri->dept_penerima ?: ($wri->routing_text ?: '-') }}</span>
+                                    </div>
+                                    <div class="flex items-start space-x-1">
+                                        <span class="text-slate-400 w-14 shrink-0">Dimensi</span>
+                                        <span class="text-slate-400">:</span>
+                                        <span class="font-bold text-slate-800 truncate" title="{{ $wri->component?->dimension_formatted ?: ($wri->component?->specification ?: '-') }}">{{ $wri->component?->dimension_formatted ?: ($wri->component?->specification ?: '-') }}</span>
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <span class="text-slate-400 w-14 shrink-0">Qty</span>
+                                        <span class="text-slate-400">:</span>
+                                        <span class="font-extrabold text-slate-900">{{ number_format($wri->quantity_requested, 0) }} <span class="font-normal text-[11px] text-slate-500">{{ $wri->component?->uom ?? 'PCS' }}</span></span>
+                                        @if($wri->quantity_defect > 0)
+                                            <span class="text-[10px] text-rose-600 font-bold ml-1" title="Defect: {{ number_format($wri->quantity_defect, 0) }}">(-{{ number_format($wri->quantity_defect, 0) }})</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- 8. Deskripsi -->
+                            <td class="py-3 px-3 align-top">
+                                <div class="max-w-[220px]">
+                                    <div class="text-xs text-slate-700 line-clamp-2 leading-relaxed" title="{{ $wri->notes ?: '-' }}">
+                                        {{ $wri->notes ?: '-' }}
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- 9. Pengaju / Penerima -->
+                            <td class="py-3 px-3 align-top">
+                                <div class="text-xs text-slate-600 space-y-0.5">
+                                    <div class="flex items-start space-x-1">
+                                        <span class="text-slate-400 w-16 shrink-0">Pengaju</span>
+                                        <span class="text-slate-400">:</span>
+                                        <span class="font-bold text-slate-800 truncate" title="{{ $wri->dept_pengaju ?: 'Gudang' }}">{{ $wri->dept_pengaju ?: 'Gudang' }}</span>
+                                    </div>
+                                    <div class="flex items-start space-x-1">
+                                        <span class="text-slate-400 w-16 shrink-0">Penerima</span>
+                                        <span class="text-slate-400">:</span>
+                                        <span class="font-bold text-slate-800 truncate" title="{{ $wri->dept_penerima ?: 'Mesin' }}">{{ $wri->dept_penerima ?: 'Mesin' }}</span>
+                                    </div>
+                                    <div class="flex items-start space-x-1">
+                                        <span class="text-slate-400 w-16 shrink-0">Operator</span>
+                                        <span class="text-slate-400">:</span>
+                                        <span class="font-bold text-indigo-700 truncate" title="{{ $wri->assigned_operator_name ?: 'Belum ditentukan' }}">{{ $wri->assigned_operator_name ?: 'Belum ditentukan' }}</span>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="py-12 text-center text-slate-400">
+                            <td colspan="9" class="py-12 text-center text-slate-400">
                                 <div class="w-16 h-16 rounded-full bg-slate-100 text-slate-300 flex items-center justify-center mx-auto mb-3 text-2xl">
                                     <i class="fa-solid fa-industry"></i>
                                 </div>
@@ -881,6 +910,7 @@
         @include('work_requests.partials.assign_operator_modal')
         @include('work_requests.partials.process_modal')
         @include('work_requests.partials.detail_modal')
+        @include('work_requests.partials.image_preview_modal')
 
     </div>
 
@@ -890,6 +920,13 @@
                 processModalOpen: false,
                 detailModalOpen: false,
                 assignModalOpen: false,
+                imageModalOpen: false,
+                imageData: {
+                    imageUrl: '',
+                    componentName: '',
+                    partNumber: '',
+                    dimension: '',
+                },
                 assignData: {
                     id: null,
                     wriNumber: '',
@@ -1002,6 +1039,37 @@
                 },
                 closeDetailModal() {
                     this.detailModalOpen = false;
+                },
+                openImageModal(data) {
+                    this.imageData = { ...data };
+                    this.imageModalOpen = true;
+                },
+                closeImageModal() {
+                    this.imageModalOpen = false;
+                },
+                getStepLogs(stepName, stepIndex) {
+                    if (!this.detailData || !this.detailData.logs) return [];
+                    const cleanName = (stepName || '').replace(/^Dept\s+/i, '').trim().toLowerCase();
+                    const sLower = (stepName || '').toLowerCase();
+                    const isLastStep = Boolean(this.detailData.steps && stepIndex === this.detailData.steps.length - 1);
+                    return this.detailData.logs.filter(l => {
+                        const status = (l.status || '').toLowerCase();
+                        const notes = (l.notes || '').toLowerCase();
+                        if (status.includes(sLower) || status.includes(cleanName) || notes.includes(sLower) || notes.includes(cleanName)) {
+                            return true;
+                        }
+                        if (isLastStep && status.includes('siap diambil') && !status.includes('pickup')) {
+                            return true;
+                        }
+                        return false;
+                    });
+                },
+                getGudangLogs() {
+                    if (!this.detailData || !this.detailData.logs) return [];
+                    return this.detailData.logs.filter(l => {
+                        const status = (l.status || '').toLowerCase();
+                        return status.includes('sudah diambil') || status.includes('menuju pengaju');
+                    });
                 }
             };
         }
