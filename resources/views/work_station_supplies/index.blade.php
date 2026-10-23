@@ -555,104 +555,186 @@
         <!-- ======================================================== -->
         <div x-show="actionModalOpen" 
              style="display: none;" 
-             class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-            <div @click.away="closeActionModal()" class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 transition-all">
+             class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+            <div @click.away="closeActionModal()" class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200/80 transition-all text-slate-800">
                 <form method="POST" action="{{ route('work-station-supplies.quick-action') }}">
                     @csrf
                     <input type="hidden" name="work_request_id" :value="activeItem?.id">
                     <input type="hidden" name="action_type" value="process">
                     <input type="hidden" name="target_status" :value="activeItem?.target_status">
 
-                    <div class="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
-                        <div class="flex items-center space-x-2.5">
-                            <div class="p-2 bg-amber-400 text-slate-950 rounded-xl font-bold">
-                                <i class="fa-solid fa-truck-ramp-box text-lg"></i>
+                    <!-- Modal Header Bersih & Kompak -->
+                    <div class="p-5 pb-3 border-b border-slate-100 relative">
+                        <button type="button" @click="closeActionModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+
+                        <div class="flex items-center space-x-3 pr-8">
+                            <div class="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/70 flex items-center justify-center text-lg flex-shrink-0 shadow-2xs">
+                                <i class="fa-solid fa-truck-ramp-box"></i>
                             </div>
-                            <div>
-                                <h3 class="text-sm font-extrabold text-white">Konfirmasi Pickup Material Handling</h3>
-                                <p class="text-[11px] text-slate-400">Ambil komponen untuk dipindahkan ke stasiun tujuan</p>
+                            <div class="min-w-0">
+                                <h3 class="text-base font-extrabold text-slate-900 leading-tight truncate">Verifikasi Ambil MH</h3>
+                                <p class="text-[11px] text-slate-500 font-medium truncate mt-0.5">Ambil komponen untuk dipindahkan ke tujuan</p>
                             </div>
                         </div>
-                        <button type="button" @click="closeActionModal()" class="text-slate-400 hover:text-white p-1 rounded-xl">
-                            <i class="fa-solid fa-xmark text-lg"></i>
-                        </button>
+
+                        <!-- Tiket & Info Komponen Ringkas -->
+                        <div class="mt-3 p-2.5 bg-slate-50 border border-slate-200/70 rounded-2xl flex items-center justify-between text-xs">
+                            <div class="min-w-0 flex-1 pr-2">
+                                <div class="flex items-center space-x-1.5">
+                                    <span class="text-[10px] font-mono font-black uppercase text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/60" x-text="activeItem?.wri_number"></span>
+                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="activeItem?.target_status"></span>
+                                </div>
+                                <div class="font-bold text-slate-800 text-xs truncate mt-1" x-text="activeItem?.component_name"></div>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <span class="text-[10px] text-slate-400 font-medium block">Rute:</span>
+                                <span class="text-[11px] font-bold text-slate-700" x-text="(activeItem?.origin || activeItem?.location || '-') + ' → ' + (activeItem?.destination || '-')"></span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="p-5 space-y-4">
-                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5">
-                            <div class="flex items-center justify-between">
-                                <span class="font-mono text-xs font-black text-slate-900" x-text="activeItem?.wri_number"></span>
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800" x-text="activeItem?.target_status"></span>
-                            </div>
-                            <div class="text-xs font-bold text-slate-800" x-text="activeItem?.component_name"></div>
-                            <div class="text-[11px] text-slate-500 font-medium">
-                                Rute: <span class="font-semibold text-slate-800" x-text="(activeItem?.origin || activeItem?.location || '-') + ' &rarr; ' + (activeItem?.destination || '-')"></span>
-                            </div>
-                        </div>
-
+                    <!-- Form Body Kompak & Fungsional -->
+                    <div class="p-5 pt-4 space-y-3.5 text-xs" x-data="{ hasDefectAction: false, defectQtyVal: null, defectReasonVal: '' }">
+                        <!-- Hero Numeric Stepper -->
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                Jumlah Komponen yang Diambil:
-                            </label>
-                            <div class="relative">
-                                <input type="number" 
-                                       name="process_qty" 
-                                       x-model="pickupQty" 
-                                       step="1" 
-                                       min="1" 
-                                       :max="activeItem?.qty" 
-                                       class="w-full px-3.5 py-2.5 text-sm font-black border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                                <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">PCS</span>
+                            <div class="flex items-center justify-between text-xs mb-1.5">
+                                <label class="font-extrabold text-slate-700 uppercase tracking-wider text-[11px]">
+                                    Unit yang Diambil Kurir <span class="text-rose-500">*</span>
+                                </label>
+                                
+                                <!-- Shortcut Button 'Semua' -->
+                                <button type="button" 
+                                        @click="setMaxPickupQty()" 
+                                        class="px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-lg text-[10px] border border-amber-200/80 transition flex items-center space-x-1">
+                                    <span>Semua:</span>
+                                    <strong x-text="activeItem?.qty"></strong>
+                                    <span>PCS</span>
+                                </button>
                             </div>
-                            <span class="text-[10px] text-slate-500 mt-1 block">
-                                Sedia untuk diambil: <b x-text="activeItem?.qty"></b> pcs. Anda bisa mengambil sebagian (parsial).
-                            </span>
+
+                            <!-- Stepper Container (Touch-Friendly) -->
+                            <div class="flex items-center rounded-2xl border-2 border-slate-200 bg-slate-50/70 focus-within:border-amber-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-amber-500/10 transition-all p-1">
+                                <button type="button" 
+                                        @click="decrementPickupQty()" 
+                                        :disabled="Number(pickupQty) <= 1"
+                                        class="w-11 h-11 rounded-xl bg-white hover:bg-slate-100 active:bg-slate-200 border border-slate-200 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-sm font-bold shadow-2xs transition">
+                                    <i class="fa-solid fa-minus"></i>
+                                </button>
+
+                                <div class="flex-1 relative flex items-center justify-center">
+                                    <input type="number" 
+                                           name="process_qty" 
+                                           x-model.number="pickupQty" 
+                                           required 
+                                           min="1" 
+                                           :max="activeItem?.qty"
+                                           @input="if(Number(pickupQty) > activeItem?.qty) pickupQty = activeItem?.qty"
+                                           step="1" 
+                                           class="w-full text-center text-2xl sm:text-3xl font-black text-slate-900 border-0 bg-transparent focus:ring-0 focus:outline-none p-0 py-1 font-mono">
+                                </div>
+
+                                <span class="text-xs font-extrabold text-slate-400 font-mono pr-2 select-none">PCS</span>
+
+                                <button type="button" 
+                                        @click="incrementPickupQty()" 
+                                        :disabled="Number(pickupQty) >= activeItem?.qty"
+                                        class="w-11 h-11 rounded-xl bg-white hover:bg-slate-100 active:bg-slate-200 border border-slate-200 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-sm font-bold shadow-2xs transition">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
+
+                            <!-- Micro Status & Calculation -->
+                            <div class="mt-1.5 flex items-center justify-between px-1 text-[11px] text-slate-500">
+                                <span>Tersedia: <strong class="text-slate-800" x-text="activeItem?.qty + ' PCS'"></strong></span>
+                                <template x-if="Number(pickupQty) < activeItem?.qty">
+                                    <span class="text-amber-600 font-semibold flex items-center gap-1">
+                                        <i class="fa-solid fa-clock-rotate-left text-[10px]"></i> Ambil Sebagian (Parsial)
+                                    </span>
+                                </template>
+                                <template x-if="Number(pickupQty) >= activeItem?.qty">
+                                    <span class="text-emerald-600 font-semibold flex items-center gap-1">
+                                        <i class="fa-solid fa-check text-[10px]"></i> Ambil Penuh
+                                    </span>
+                                </template>
+                            </div>
                         </div>
 
-                        <!-- Toggle Defect / Barang Hilang -->
-                        <div class="pt-2 border-t border-slate-100" x-data="{ hasDefectAction: false }">
-                            <label class="flex items-center space-x-2.5 cursor-pointer p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
-                                <input type="checkbox" 
-                                       x-model="hasDefectAction" 
-                                       class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
-                                <div class="flex items-center space-x-1.5 text-xs font-bold text-slate-700">
-                                    <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
-                                    <span>Ada Barang Cacat / Hilang saat Penjemputan?</span>
-                                </div>
-                            </label>
+                        <!-- Smart Defect Toggle (Ramping & Opsional) -->
+                        <div class="pt-1 border-t border-slate-100">
+                            <div class="flex items-center justify-between">
+                                <button type="button" 
+                                        @click="hasDefectAction = !hasDefectAction" 
+                                        class="inline-flex items-center space-x-1.5 text-[11px] font-bold transition px-2.5 py-1 rounded-xl"
+                                        :class="hasDefectAction ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'text-slate-600 hover:text-rose-600 hover:bg-rose-50 border border-dashed border-slate-300'">
+                                    <i :class="hasDefectAction ? 'fa-solid fa-circle-xmark text-rose-600' : 'fa-solid fa-triangle-exclamation text-amber-500'"></i>
+                                    <span x-text="hasDefectAction ? 'Tutup Laporan Cacat / Hilang' : '+ Ada Cacat / Hilang saat Pickup? (Opsional)'"></span>
+                                </button>
+                            </div>
 
-                            <div x-show="hasDefectAction" x-transition class="mt-2 p-3 bg-rose-50/80 border border-rose-200 rounded-xl space-y-2 text-xs">
+                            <div x-show="hasDefectAction" 
+                                 x-transition 
+                                 class="mt-2 p-3 bg-rose-50/70 border border-rose-200 rounded-2xl space-y-2">
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     <div>
-                                        <label class="block font-bold text-rose-900 uppercase text-[9px] mb-0.5">Jumlah Defect / Hilang</label>
-                                        <input type="number" name="defect_qty" step="any" min="0.01" :max="activeItem?.qty" placeholder="0" class="w-full px-2.5 py-1.5 text-xs border border-rose-300 rounded-lg font-bold text-rose-900 bg-white">
+                                        <label class="block font-bold text-rose-900 text-[10px] uppercase tracking-wider mb-1">
+                                            Jumlah Cacat / Hilang
+                                        </label>
+                                        <input type="number" 
+                                               name="defect_qty" 
+                                               x-model.number="defectQtyVal" 
+                                               min="0.01" 
+                                               :max="activeItem?.qty" 
+                                               step="any" 
+                                               placeholder="0" 
+                                               class="w-full px-2.5 py-1.5 text-xs bg-white border border-rose-300 rounded-xl font-bold text-rose-950 focus:ring-2 focus:ring-rose-500 text-center font-mono">
                                     </div>
                                     <div>
-                                        <label class="block font-bold text-rose-900 uppercase text-[9px] mb-0.5">Alasan Selisih</label>
-                                        <input type="text" name="defect_reason" placeholder="Contoh: Rusak / hilang saat serah terima mesin" class="w-full px-2.5 py-1.5 text-xs border border-rose-300 rounded-lg bg-white">
+                                        <label class="block font-bold text-rose-900 text-[10px] uppercase tracking-wider mb-1">
+                                            Alasan Selisih
+                                        </label>
+                                        <input type="text" 
+                                               name="defect_reason" 
+                                               x-model="defectReasonVal" 
+                                               placeholder="Contoh: Hilang / retak saat serah terima" 
+                                               class="w-full px-2.5 py-1.5 text-xs bg-white border border-rose-300 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-rose-500">
                                     </div>
                                 </div>
-                                <p class="text-[9px] text-rose-700">Barang cacat/hilang akan otomatis memotong kuota tiket pesanan.</p>
+                                <p class="text-[10px] text-rose-700 leading-tight">
+                                    <i class="fa-solid fa-info-circle me-1"></i> Barang cacat/hilang akan otomatis memotong kuota tiket pesanan.
+                                </p>
                             </div>
                         </div>
 
+                        <!-- Catatan Kurir Logistik -->
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                Catatan Kurir Logistik (Opsional):
+                            <label class="block font-bold text-slate-500 uppercase tracking-wider text-[10px] mb-1">
+                                Catatan Kurir MH <span class="font-normal text-slate-400 lowercase">(opsional)</span>:
                             </label>
-                            <textarea name="notes" rows="2" placeholder="Catatan nomor pallet / troli..." class="w-full text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 p-2.5"></textarea>
+                            <input type="text" 
+                                   name="notes" 
+                                   placeholder="Catatan nomor pallet / troli..." 
+                                   class="w-full px-3 py-2 text-xs border border-slate-200 bg-slate-50 focus:bg-white rounded-xl focus:ring-2 focus:ring-amber-500 font-medium text-slate-800 transition">
+                        </div>
+
+                        <!-- Footer Tombol Aksi Simetris -->
+                        <div class="pt-2 border-t border-slate-100 flex items-center space-x-2">
+                            <button type="button" 
+                                    @click="closeActionModal()" 
+                                    class="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition">
+                                Batal
+                            </button>
+                            <button type="submit" 
+                                    class="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition flex items-center justify-center space-x-1.5">
+                                <i class="fa-solid fa-truck-ramp-box"></i>
+                                <span>Konfirmasi Ambil Material</span>
+                            </button>
                         </div>
                     </div>
-
-                    <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end space-x-2">
-                        <button type="button" @click="closeActionModal()" class="px-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-100 transition">
-                            Batal
-                        </button>
-                        <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-check text-xs"></i>
-                            <span>Konfirmasi Ambil Material</span>
-                        </button>
-                    </div>
+                </form>
+            </div>
+        </div>
                 </form>
             </div>
         </div>
@@ -911,6 +993,24 @@
                     this.activeItem = item;
                     this.pickupQty = item.qty;
                     this.actionModalOpen = true;
+                },
+
+                incrementPickupQty() {
+                    if (this.activeItem && this.pickupQty < this.activeItem.qty) {
+                        this.pickupQty++;
+                    }
+                },
+
+                decrementPickupQty() {
+                    if (this.pickupQty > 1) {
+                        this.pickupQty--;
+                    }
+                },
+
+                setMaxPickupQty() {
+                    if (this.activeItem) {
+                        this.pickupQty = this.activeItem.qty;
+                    }
                 },
 
                 closeActionModal() {

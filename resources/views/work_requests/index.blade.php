@@ -993,6 +993,34 @@
                         this.processData.processQty = maxGood;
                     }
                 },
+                incrementProcessQty(step = 1) {
+                    const max = this.getMaxProcessQty();
+                    let cur = Number(this.processData.processQty || 0);
+                    if (cur + step <= max) {
+                        this.processData.processQty = cur + step;
+                    } else {
+                        this.processData.processQty = max;
+                    }
+                },
+                decrementProcessQty(step = 1) {
+                    let cur = Number(this.processData.processQty || 0);
+                    if (cur - step >= 0) {
+                        this.processData.processQty = cur - step;
+                    } else {
+                        this.processData.processQty = 0;
+                    }
+                },
+                setMaxProcessQty() {
+                    this.processData.processQty = this.getMaxProcessQty();
+                },
+                toggleDefect() {
+                    this.processData.hasDefect = !this.processData.hasDefect;
+                    if (!this.processData.hasDefect) {
+                        this.processData.defectQty = null;
+                        this.processData.defectReason = '';
+                    }
+                    this.syncProcessQtyWithDefect();
+                },
                 closeProcessModal() {
                     this.processModalOpen = false;
                 },

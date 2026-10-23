@@ -70,9 +70,22 @@
              actionModal: false,
              availableQty: {{ (float) $workRequest->quantity_requested }},
              defectQty: 0,
+             defectReason: '',
+             notes: '',
              processQty: {{ (float) $workRequest->quantity_requested }},
              getMax() { return Math.max(0, Number(this.availableQty) - (this.showDefectForm && this.defectQty > 0 ? Number(this.defectQty) : 0)); },
-             sync() { if (Number(this.processQty) > this.getMax()) this.processQty = this.getMax(); }
+             sync() { if (Number(this.processQty) > this.getMax()) this.processQty = this.getMax(); },
+             increment() { if (Number(this.processQty) < this.getMax()) this.processQty++; },
+             decrement() { if (Number(this.processQty) > 0) this.processQty--; },
+             setMax() { this.processQty = this.getMax(); },
+             toggleDefect() {
+                 this.showDefectForm = !this.showDefectForm;
+                 if (!this.showDefectForm) {
+                     this.defectQty = 0;
+                     this.defectReason = '';
+                 }
+                 this.sync();
+             }
          }">
 
         @if(session('success'))
@@ -295,160 +308,222 @@
                  x-cloak 
                  class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
                 <div @click.away="actionModal = false" 
-                     class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 transition-all text-slate-800">
+                     class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200/80 transition-all text-slate-800">
                     
                     <form method="POST" action="{{ route('work-requests.process-action', $workRequest) }}">
                         @csrf
                         <input type="hidden" name="action_type" value="process">
                         <input type="hidden" name="target_status" value="{{ $nextStatus }}">
 
-                        <!-- Header Modal -->
-                        <div class="px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-lg shadow-xs">
+                        <!-- Modal Header Bersih & Kompak -->
+                        <div class="p-5 pb-3 border-b border-slate-100 relative">
+                            <button type="button" @click="actionModal = false" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition">
+                                <i class="fa-solid fa-xmark text-sm"></i>
+                            </button>
+
+                            <div class="flex items-center space-x-3 pr-8">
+                                <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-lg flex-shrink-0 shadow-2xs {{ stripos($nextStatus, 'Sudah Diambil') !== false ? 'bg-emerald-50 text-emerald-600 border border-emerald-200/70' : (stripos($nextStatus, 'Pickup') !== false || stripos($nextStatus, 'Menuju Pengaju') !== false ? 'bg-amber-50 text-amber-600 border border-amber-200/70' : (stripos($nextStatus, '(In)') !== false ? 'bg-teal-50 text-teal-600 border border-teal-200/70' : 'bg-indigo-50 text-indigo-600 border border-indigo-200/70')) }}">
                                     @if(stripos($nextStatus, 'Sudah Diambil') !== false)
                                         <i class="fa-solid fa-warehouse"></i>
                                     @elseif(stripos($nextStatus, 'Pickup') !== false || stripos($nextStatus, 'Menuju Pengaju') !== false)
-                                        <i class="fa-solid fa-truck-fast"></i>
-                                    @elseif(stripos($nextStatus, '(Out)') !== false)
-                                        <i class="fa-solid fa-check"></i>
-                                    @else
+                                        <i class="fa-solid fa-truck-ramp-box"></i>
+                                    @elseif(stripos($nextStatus, '(In)') !== false)
                                         <i class="fa-solid fa-play"></i>
+                                    @else
+                                        <i class="fa-solid fa-calculator"></i>
                                     @endif
                                 </div>
-                                <div>
-                                    <h3 class="text-sm font-extrabold text-white">Konfirmasi Langkah Pengerjaan</h3>
-                                    <p class="text-[11px] text-amber-300 font-mono font-semibold">{{ $nextStatus }}</p>
+                                <div class="min-w-0">
+                                    <h3 class="text-base font-extrabold text-slate-900 leading-tight truncate">
+                                        @if(stripos($nextStatus, 'Sudah Diambil') !== false)
+                                            Penerimaan di Rak Gudang
+                                        @elseif(stripos($nextStatus, 'Pickup') !== false)
+                                            Verifikasi Ambil MH
+                                        @elseif(stripos($nextStatus, 'Menuju Pengaju') !== false)
+                                            Pengantaran ke Pengaju
+                                        @elseif(stripos($nextStatus, '(In)') !== false)
+                                            Mulai Pengerjaan Mesin
+                                        @else
+                                            Input Kuantitas Pengerjaan
+                                        @endif
+                                    </h3>
+                                    <p class="text-[11px] text-slate-500 font-medium truncate mt-0.5">Konfirmasi kuantitas pengerjaan & pergerakan alur</p>
                                 </div>
                             </div>
-                            <button type="button" @click="actionModal = false" class="text-slate-400 hover:text-white p-1 rounded-xl">
-                                <i class="fa-solid fa-xmark text-lg"></i>
-                            </button>
+
+                            <!-- Tiket & Info Komponen Ringkas -->
+                            <div class="mt-3 p-2.5 bg-slate-50 border border-slate-200/70 rounded-2xl flex items-center justify-between text-xs">
+                                <div class="min-w-0 flex-1 pr-2">
+                                    <div class="flex items-center space-x-1.5">
+                                        <span class="text-[10px] font-mono font-black uppercase text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/60">{{ $workRequest->wri_number }}</span>
+                                    </div>
+                                    <div class="font-bold text-slate-800 text-xs truncate mt-1">{{ $workRequest->component->name }}</div>
+                                </div>
+                                <div class="text-right flex-shrink-0">
+                                    <span class="text-[10px] text-slate-400 font-mono block">{{ $workRequest->component->part_number ?? '-' }}</span>
+                                    <span class="text-[10px] font-extrabold text-indigo-700">Target: {{ number_format($workRequest->quantity_requested, 0) }} {{ $workRequest->component->uom }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Breadcrumb Alur Mini Satu Baris -->
+                            <div class="mt-2 flex items-center justify-between text-[11px] px-1 text-slate-500">
+                                <span class="truncate max-w-[45%]">{{ $workRequest->status ?: 'Dalam antrian' }}</span>
+                                <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 mx-1"></i>
+                                <span class="font-extrabold truncate max-w-[50%] text-indigo-700">{{ $nextStatus }}</span>
+                            </div>
                         </div>
 
-                        <!-- Body Modal -->
-                        <div class="p-6 space-y-4 text-xs">
-                            <!-- Card Info Komponen & Sisa Kuota -->
-                            <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
-                                <div>
-                                    <span class="text-[10px] uppercase font-bold text-slate-400 block">Komponen / Part No:</span>
-                                    <span class="font-bold text-slate-900">{{ $workRequest->component->name }}</span>
-                                    <span class="font-mono text-slate-500 block text-[11px]">{{ $workRequest->component->part_number ?? '-' }}</span>
-                                </div>
-                                <div class="text-right">
-                                    @if($workRequest->quantity_defect > 0)
-                                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Order Awal: {{ number_format($workRequest->original_quantity_requested, 0) }} | Defect: -{{ number_format($workRequest->quantity_defect, 0) }}</span>
-                                        <span class="font-black text-sm text-indigo-700">Target: {{ number_format($workRequest->quantity_requested, 0) }} {{ $workRequest->component->uom }}</span>
-                                    @else
-                                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Permintaan:</span>
-                                        <span class="font-black text-sm text-indigo-700">{{ number_format($workRequest->quantity_requested, 0) }} {{ $workRequest->component->uom }}</span>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <!-- Input Qty Pengerjaan (Parsial / Penuh) -->
+                        <!-- Form Body Kompak & Fungsional -->
+                        <div class="p-5 pt-4 space-y-3.5 text-xs">
+                            <!-- Hero Numeric Stepper -->
                             <div>
-                                <div class="flex items-center justify-between mb-1">
-                                    <label class="block font-bold text-slate-700 uppercase tracking-wider text-[11px]">
-                                        Jumlah Komponen yang Diproses / Dikeluarkan: <span class="text-rose-500">*</span>
+                                <div class="flex items-center justify-between text-xs mb-1.5">
+                                    <label class="font-extrabold text-slate-700 uppercase tracking-wider text-[11px]">
+                                        Unit Diproses / Dikeluarkan <span class="text-rose-500">*</span>
                                     </label>
-                                    <span class="text-[11px] text-slate-500 font-medium">Batas Maksimal: <b x-text="getMax() + ' {{ $workRequest->component->uom }}'"></b></span>
-                                </div>
-                                <div class="relative">
-                                    <input type="number" 
-                                           name="process_qty" 
-                                           x-model.number="processQty"
-                                           @input="if(Number(processQty) > getMax()) processQty = getMax()"
-                                           required 
-                                           step="any" 
-                                           min="0" 
-                                           :max="getMax()" 
-                                           class="w-full px-3.5 py-2.5 text-sm font-black border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                                    <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">{{ $workRequest->component->uom }}</span>
+                                    
+                                    <!-- Shortcut Button 'Semua' -->
+                                    <button type="button" 
+                                            @click="setMax()" 
+                                            class="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg text-[10px] border border-indigo-200/80 transition flex items-center space-x-1">
+                                        <span>Semua:</span>
+                                        <strong x-text="getMax()"></strong>
+                                        <span>{{ $workRequest->component->uom }}</span>
+                                    </button>
                                 </div>
 
-                                <!-- Allocation Card -->
-                                <div class="p-2.5 bg-indigo-100/70 border border-indigo-200 rounded-xl flex items-center justify-between text-[11px] font-bold text-indigo-950 mt-1.5">
-                                    <span>Tersedia: <b x-text="availableQty"></b> | Defect: <b class="text-rose-600" x-text="showDefectForm && defectQty > 0 ? defectQty : 0"></b></span>
-                                    <span>Batas Unit Bagus: <b class="text-indigo-700" x-text="getMax() + ' {{ $workRequest->component->uom }}'"></b></span>
-                                </div>
-                            </div>
+                                <!-- Stepper Container (Touch-Friendly) -->
+                                <div class="flex items-center rounded-2xl border-2 border-slate-200 bg-slate-50/70 focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all p-1">
+                                    <button type="button" 
+                                            @click="decrement()" 
+                                            :disabled="Number(processQty) <= 0"
+                                            class="w-11 h-11 rounded-xl bg-white hover:bg-slate-100 active:bg-slate-200 border border-slate-200 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-sm font-bold shadow-2xs transition">
+                                        <i class="fa-solid fa-minus"></i>
+                                    </button>
 
-                            <!-- Checkbox Defect / Reject -->
-                            <div class="pt-1">
-                                <label class="inline-flex items-center cursor-pointer text-xs font-bold text-rose-600 hover:text-rose-700 p-2.5 bg-rose-50/70 border border-rose-200 rounded-xl w-full">
-                                    <input type="checkbox" x-model="showDefectForm" @change="sync()" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500 me-2">
-                                    <span>Ada Barang Rusak / Defect saat Pengerjaan?</span>
-                                </label>
-                            </div>
-
-                            <!-- Sub-form Defect (Jika Dicentang) -->
-                            <div x-show="showDefectForm" x-transition class="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-3">
-                                <div class="flex items-center space-x-1.5 text-rose-800 text-[11px] font-bold">
-                                    <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
-                                    <span>Defect akan memotong kuantitas tiket & dicatat di audit log</span>
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block font-bold text-rose-900 uppercase tracking-wider mb-1 text-[10px]">
-                                            Jumlah Defect (PCS)
-                                        </label>
+                                    <div class="flex-1 relative flex items-center justify-center">
                                         <input type="number" 
-                                               name="defect_qty" 
-                                               x-model.number="defectQty"
-                                               @input="sync()"
+                                               name="process_qty" 
+                                               x-model.number="processQty" 
+                                               required 
+                                               min="0" 
+                                               :max="getMax()"
+                                               @input="if(Number(processQty) > getMax()) processQty = getMax()"
                                                step="any" 
-                                               min="0.01" 
-                                               :max="availableQty" 
-                                               placeholder="Contoh: 5" 
-                                               class="w-full px-3 py-2 border border-rose-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none font-bold text-rose-900 bg-white">
+                                               class="w-full text-center text-2xl sm:text-3xl font-black text-slate-900 border-0 bg-transparent focus:ring-0 focus:outline-none p-0 py-1 font-mono">
                                     </div>
-                                    <div>
-                                        <label class="block font-bold text-rose-900 uppercase tracking-wider mb-1 text-[10px]">
-                                            Alasan Defect
-                                        </label>
-                                        <input type="text" 
-                                               name="defect_reason" 
-                                               placeholder="Contoh: Salah bending, plat bengkok..." 
-                                               class="w-full px-3 py-2 border border-rose-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none bg-white">
-                                    </div>
+
+                                    <span class="text-xs font-extrabold text-slate-400 font-mono pr-2 select-none">{{ $workRequest->component->uom }}</span>
+
+                                    <button type="button" 
+                                            @click="increment()" 
+                                            :disabled="Number(processQty) >= getMax()"
+                                            class="w-11 h-11 rounded-xl bg-white hover:bg-slate-100 active:bg-slate-200 border border-slate-200 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-sm font-bold shadow-2xs transition">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Micro Status & Calculation -->
+                                <div class="mt-1.5 flex items-center justify-between px-1 text-[11px] text-slate-500">
+                                    <span>Tersedia: <strong class="text-slate-800" x-text="availableQty + ' {{ $workRequest->component->uom }}'"></strong></span>
+                                    <template x-if="showDefectForm && defectQty > 0">
+                                        <span class="text-rose-600 font-bold">Defect: <strong x-text="defectQty"></strong></span>
+                                    </template>
+                                    <template x-if="Number(processQty) < getMax()">
+                                        <span class="text-amber-600 font-semibold flex items-center gap-1">
+                                            <i class="fa-solid fa-clock-rotate-left text-[10px]"></i> Parsial
+                                        </span>
+                                    </template>
+                                    <template x-if="Number(processQty) >= getMax() && getMax() > 0">
+                                        <span class="text-emerald-600 font-semibold flex items-center gap-1">
+                                            <i class="fa-solid fa-check text-[10px]"></i> Penuh
+                                        </span>
+                                    </template>
                                 </div>
                             </div>
 
-                            <!-- Operator Name & Notes -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <!-- Smart Defect Toggle -->
+                            <div class="pt-1 border-t border-slate-100">
+                                <div class="flex items-center justify-between">
+                                    <button type="button" 
+                                            @click="toggleDefect()" 
+                                            class="inline-flex items-center space-x-1.5 text-[11px] font-bold transition px-2.5 py-1 rounded-xl"
+                                            :class="showDefectForm ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'text-slate-600 hover:text-rose-600 hover:bg-rose-50 border border-dashed border-slate-300'">
+                                        <i :class="showDefectForm ? 'fa-solid fa-circle-xmark text-rose-600' : 'fa-solid fa-triangle-exclamation text-amber-500'"></i>
+                                        <span x-text="showDefectForm ? 'Tutup Laporan Defect' : '+ Ada Defect / Rusak? (Opsional)'"></span>
+                                    </button>
+                                </div>
+
+                                <div x-show="showDefectForm" 
+                                     x-transition 
+                                     class="mt-2 p-3 bg-rose-50/70 border border-rose-200 rounded-2xl space-y-2">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block font-bold text-rose-900 text-[10px] uppercase tracking-wider mb-1">
+                                                Jumlah Defect ({{ $workRequest->component->uom }})
+                                            </label>
+                                            <input type="number" 
+                                                   name="defect_qty" 
+                                                   x-model.number="defectQty" 
+                                                   @input="sync()" 
+                                                   min="0.01" 
+                                                   :max="availableQty" 
+                                                   step="any" 
+                                                   placeholder="0" 
+                                                   class="w-full px-2.5 py-1.5 text-xs bg-white border border-rose-300 rounded-xl font-bold text-rose-950 focus:ring-2 focus:ring-rose-500 text-center font-mono">
+                                        </div>
+                                        <div>
+                                            <label class="block font-bold text-rose-900 text-[10px] uppercase tracking-wider mb-1">
+                                                Alasan Defect
+                                            </label>
+                                            <input type="text" 
+                                                   name="defect_reason" 
+                                                   x-model="defectReason" 
+                                                   placeholder="Contoh: Salah potong / retak" 
+                                                   class="w-full px-2.5 py-1.5 text-xs bg-white border border-rose-300 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-rose-500">
+                                        </div>
+                                    </div>
+                                    <p class="text-[10px] text-rose-700 leading-tight">
+                                        <i class="fa-solid fa-info-circle me-1"></i> Defect akan otomatis memotong kuota tiket secara permanen.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Petugas & Catatan -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                 <div>
-                                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1 text-[10px]">
+                                    <label class="block font-bold text-slate-500 uppercase tracking-wider text-[10px] mb-1">
                                         Petugas / Operator:
                                     </label>
                                     <input type="text" 
                                            name="operator_name" 
                                            value="{{ auth()->user()->name }}" 
-                                           class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-semibold">
+                                           class="w-full px-2.5 py-1.5 text-xs border border-slate-200 bg-slate-50 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800">
                                 </div>
                                 <div>
-                                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1 text-[10px]">
-                                        Catatan (Opsional):
+                                    <label class="block font-bold text-slate-500 uppercase tracking-wider text-[10px] mb-1">
+                                        Catatan <span class="font-normal text-slate-400 lowercase">(opsional)</span>:
                                     </label>
                                     <input type="text" 
                                            name="notes" 
-                                           placeholder="Nomor pallet, catatan pengerjaan..." 
-                                           class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                           x-model="notes" 
+                                           placeholder="Catatan pengerjaan..." 
+                                           class="w-full px-2.5 py-1.5 text-xs border border-slate-200 bg-slate-50 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800">
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Footer Modal -->
-                        <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end space-x-2">
+                        <!-- Footer Tombol Aksi Simetris -->
+                        <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center space-x-2">
                             <button type="button" 
                                     @click="actionModal = false" 
-                                    class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition">
+                                    class="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition">
                                 Batal
                             </button>
                             <button type="submit" 
-                                    class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5">
-                                <i class="fa-solid fa-circle-check"></i>
-                                <span>Konfirmasi & Simpan Pengerjaan</span>
+                                    class="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center space-x-1.5">
+                                <i class="fa-solid fa-check"></i>
+                                <span>Simpan & Lanjutkan</span>
                             </button>
                         </div>
                     </form>

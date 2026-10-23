@@ -189,3 +189,15 @@ Pop-up modal detail tiket (`detail_modal.blade.php`) menyajikan visualisasi hier
    - **Hijau (SELESAI FINAL):** Kuantitas tuntas pengerjaan stasiun.
    - **Node Pengiriman Gudang:** Konfirmasi fisik barang diterima di rak gudang.
 6. **Penyelarasan Alur Pembuatan Tiket:** Pembuatan tiket WRI baru tidak lagi me-redirect ke halaman penuh terpisah, melainkan langsung kembali ke antrean utama dengan modal detail otomatis terbuka.
+
+---
+
+## 7. Antarmuka Pop-Up Quantity (Input Qty & Defect Minimalis)
+
+Pop-up modal input kuantitas pengerjaan dan serah terima (`process_modal.blade.php`) mengadopsi prinsip desain bersih (*clean industrial*), ergonomis, dan tidak bising (*non-cluttered*):
+1. **Dimensi Kompak & Bebas Scroll (`max-w-md` ~420px):** Seluruh elemen aksi esensial muat dalam 1 layar tanpa mengharuskan operator/kurir menggulir layar (*scrolling*).
+2. **Ikon Melingkar Berwarna Lembut (Soft Pastel Badge):** Mengindikasikan konteks proses (Teal untuk Mesin Masuk, Indigo untuk Mesin Keluar, Amber untuk MH Pickup/Antar, Emerald untuk Rak Gudang).
+3. **Hero Stepper Touch-Friendly:** Dilengkapi tombol minus `[-]`, input angka besar font mono tebal di tengah, tombol plus `[+]`, serta tombol cepat `[Semua / Max: X pcs]` untuk mengisi kuantitas penuh secara instan tanpa mengetik manual.
+4. **Smart Defect Drawer (Opsional & Dapat Dilipat):** Tombol toggle `[+ Ada Defect / Rusak? (Opsional)]` menyembunyikan form defect jika tidak ada reject (90%+ kondisi normal). Jika dibuka, menyediakan input kuantitas defect dan alasan secara kompak dengan kalkulasi otomatis pemotongan kuota.
+5. **Penguncian Tahap Mesin Masuk `(In)`:** Kuantitas otomatis terkunci penuh dengan lencana gembok, memberi informasi jelas bahwa input kuantitas hasil dan defect dilakukan saat mesin selesai `(Out)`.
+6. **Integritas Fungsi & Zero Regression:** Seluruh 7 parameter form (`action_type`, `target_status`, `operator_name`, `process_qty`, `defect_qty`, `defect_reason`, `notes`), route aksi, dan validasi database tetap berjalan 100% identik tanpa perubahan logika backend.

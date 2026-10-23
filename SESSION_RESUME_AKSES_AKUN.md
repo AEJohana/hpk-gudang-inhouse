@@ -87,6 +87,13 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Kepatuhan Zero Database Regression:** Tabel `machines` dan foreign key relasi langkah WRI pada database operasional `hpk_gudang` tetap utuh 100% tanpa ada penghapusan data tabel.
 - **Tampilan WRI Ringkas & Efisien:** Halaman antrean WRI kini langsung menyajikan Kartu KPI Utama, Filter Scope, dan Tabel 9 Kolom tanpa elemen statis yang membingungkan operator pabrik.
 
+### I. Perombakan Pop-Up Modal Quantity (Input Qty & Defect Minimalis - Baru Selesai & Teruji 100%)
+- **Terinspirasi dari Sistem Lama (`System WR lama`):** Pop-up berukuran ramping (`max-w-md` ~420px) dengan visual lembut, bebas scroll, dan fokus pada input angka pengerjaan yang cepat dan intuitif.
+- **Hero Stepper Touch-Friendly:** Dilengkapi tombol minus `[-]`, input angka besar di tengah (`text-3xl font-black font-mono`), tombol plus `[+]`, serta shortcut instan `[Semua / Max: X pcs]` agar operator atau kurir MH dapat mengisi kuota penuh hanya dengan 1 kali klik tanpa mengetik manual.
+- **Smart Defect Toggle (Minimalis):** Form defect tidak lagi memakan ruang secara permanen; disembunyikan rapi di balik tombol toggle ramping `[+ Ada Defect / Rusak? (Opsional)]`. Jika aktif, memunculkan input kuantitas defect dan alasan dengan kalkulasi reaktif instan ke unit bagus.
+- **Fase Mulai Mesin `(In)` Terkunci Rapi:** Menampilkan kuantitas pengerjaan terkunci dengan badge gembok informatif tanpa membebani layar dengan formulir defect yang belum diperlukan.
+- **Integritas Fungsi & Zero Regression 100%:** Seluruh 7 parameter form (`action_type`, `target_status`, `operator_name`, `process_qty`, `defect_qty`, `defect_reason`, `notes`), validasi parsial, dan backend handling tetap berjalan tanpa perubahan fungsi. Unit tests lolos 100%.
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

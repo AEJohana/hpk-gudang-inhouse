@@ -61,6 +61,7 @@ Sistem mengadopsi 15 departemen standar pabrik yang termigrasi dari basis data a
    - *Hybrid Smart Approval* (Operator membutuhkan verifikasi Ka. Bagian; SPV/Admin/Urgent Line Stop otomatis lolos).
    - Prasyarat Penerima (Departemen tujuan tidak dapat melihat/memproses tiket sebelum disetujui Pengaju).
    - Pengerjaan Parsial (*Cicilan*) dengan pelacakan kuota bertahap (`Parsial > ...`).
+   - Pop-up Kuantitas Minimalis: Input kuantitas cepat dengan *hero stepper* touch-friendly (`[-]` / `[+]`), shortcut instan `[Semua / Max]`, dan *collapsible defect drawer* tanpa membuat layar bising (*non-cluttered*).
    - Auto-Update Saldo Fisik: Saat tiket berstatus `Sudah Diambil`, stok di rak tujuan otomatis bertambah dan transaksi `inbound` resmi tercatat.
    - Peringatan SLA 3 Hari (*Urgent Red Alert*).
 6. **Material Handling (Command Center):** 4 Tab operasional (*Tasks Pickup*, *Tasks Transit*, *Tasks Distribution*, *Tasks History*) dilengkapi pemindai kamera QR Code langsung.
