@@ -78,19 +78,23 @@
                         </div>
                     </div>
 
-                    <!-- Kuota Qty Strip -->
-                    <div class="grid grid-cols-3 gap-2 text-center bg-white p-2.5 rounded-xl border border-slate-200/80 w-full sm:w-auto">
+                    <!-- Kuota Qty Strip (Transparan dengan Defect & Target Aktif) -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center bg-white p-2.5 rounded-2xl border border-slate-200/80 w-full sm:w-auto shadow-2xs">
                         <div class="px-2">
-                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Order</span>
-                            <span class="font-black text-sm text-slate-900" x-text="detailData.totalQty + ' ' + detailData.uom"></span>
+                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Order Awal</span>
+                            <span class="font-black text-sm text-slate-700" x-text="(detailData.originalQty || detailData.totalQty) + ' ' + detailData.uom"></span>
                         </div>
-                        <div class="px-2 border-x border-slate-100">
-                            <span class="text-[9px] uppercase font-bold text-emerald-600 block">Masuk</span>
-                            <span class="font-black text-sm text-emerald-700" x-text="detailData.receivedQty + ' ' + detailData.uom"></span>
-                        </div>
-                        <div class="px-2">
+                        <div class="px-2 border-l border-slate-100">
                             <span class="text-[9px] uppercase font-bold text-rose-500 block">Defect</span>
-                            <span class="font-black text-sm text-rose-600" x-text="detailData.defectQty + ' ' + detailData.uom"></span>
+                            <span class="font-black text-sm text-rose-600" x-text="'-' + detailData.defectQty + ' ' + detailData.uom"></span>
+                        </div>
+                        <div class="px-2 border-l border-slate-100">
+                            <span class="text-[9px] uppercase font-bold text-indigo-600 block">Target Aktif</span>
+                            <span class="font-black text-sm text-indigo-900" x-text="detailData.totalQty + ' ' + detailData.uom"></span>
+                        </div>
+                        <div class="px-2 border-l border-slate-100">
+                            <span class="text-[9px] uppercase font-bold text-emerald-600 block">Diterima Gudang</span>
+                            <span class="font-black text-sm text-emerald-700" x-text="detailData.receivedQty + ' ' + detailData.uom"></span>
                         </div>
                     </div>
                 </div>
@@ -329,19 +333,24 @@
 
                     <div class="max-h-48 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100 bg-slate-50/50">
                         <template x-for="(log, lIdx) in detailData.logs" :key="lIdx">
-                            <div class="p-2.5 flex items-start justify-between text-[11px]" :class="log.is_defect ? 'bg-rose-50/80' : 'bg-white'">
+                            <div class="p-2.5 flex items-start justify-between text-[11px] transition" :class="log.is_defect ? 'bg-rose-50/90 border-l-4 border-rose-500' : 'bg-white'">
                                 <div>
                                     <div class="flex items-center space-x-2">
+                                        <template x-if="log.is_defect">
+                                            <span class="text-rose-700 font-extrabold text-[9px] bg-rose-200/80 px-1.5 py-0.5 rounded uppercase">
+                                                <i class="fa-solid fa-triangle-exclamation me-1"></i> Defect
+                                            </span>
+                                        </template>
                                         <span class="font-bold text-slate-900" x-text="log.status"></span>
                                         <span class="text-[10px] px-1.5 py-0.2 rounded font-bold"
                                               :class="log.is_defect ? 'bg-rose-200 text-rose-900' : 'bg-slate-100 text-slate-600'"
-                                              x-text="log.qty + ' ' + detailData.uom"></span>
+                                              x-text="(log.is_defect ? '-' : '') + log.qty + ' ' + detailData.uom"></span>
                                     </div>
-                                    <p class="text-[10px] text-slate-500 mt-0.5" x-text="log.notes"></p>
+                                    <p class="text-[10px] mt-0.5" :class="log.is_defect ? 'text-rose-700 font-medium' : 'text-slate-500'" x-text="log.notes"></p>
                                 </div>
                                 <div class="text-right text-[10px] text-slate-400 font-mono flex-shrink-0 ml-3">
-                                    <span x-text="log.time"></span>
-                                    <span class="block text-slate-600 font-semibold font-sans" x-text="log.operator"></span>
+                                    <span class="text-slate-600 font-semibold" x-text="log.time"></span>
+                                    <span class="block text-slate-800 font-bold font-sans" x-text="log.operator"></span>
                                 </div>
                             </div>
                         </template>

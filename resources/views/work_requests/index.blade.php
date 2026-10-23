@@ -333,6 +333,7 @@
                         'currentStatus' => $wri->status,
                         'statusClass' => $wri->status_badge['class'],
                         'targetRack' => $wri->target_specific_location_code ?: 'Belum di Rak',
+                        'originalQty' => (float) $wri->original_quantity_requested,
                         'totalQty' => (float) $wri->quantity_requested,
                         'receivedQty' => (float) $wri->quantity_received,
                         'defectQty' => (float) $wri->quantity_defect,
@@ -352,7 +353,7 @@
                             'status' => $s->status,
                         ])->values(),
                         'logs' => $wri->logs->map(fn($l) => [
-                            'time' => $l->created_at->format('d/m H:i'),
+                            'time' => $l->created_at->format('d/m/Y H:i'),
                             'status' => $l->status_label,
                             'qty' => (float) $l->quantity,
                             'operator' => $l->operator_name ?: '-',
@@ -363,6 +364,8 @@
                         'remainingQty' => $remainingQty > 0 ? $remainingQty : (float) $wri->quantity_requested,
                         'nextStatus' => $nextStatus,
                         'canProcessAction' => $canProcessAction,
+                        'actionUrl' => route('work-requests.process-action', $wri),
+                        'isFinal' => (bool) $wri->is_final,
                         'actionUrl' => route('work-requests.process-action', $wri),
                         'isFinal' => (bool) $wri->is_final,
                     ];
@@ -405,9 +408,11 @@
                                 {{ $wri->component?->part_number ?? '-' }}
                             </span>
                             <div class="flex items-center justify-between text-[11px] font-extrabold text-slate-900 mt-1">
-                                <span>Order: {{ number_format($wri->quantity_requested, 0) }} {{ $wri->component?->uom ?? 'PCS' }}</span>
+                                <span>Target: {{ number_format($wri->quantity_requested, 0) }} {{ $wri->component?->uom ?? 'PCS' }}</span>
                                 @if($wri->quantity_defect > 0)
-                                    <span class="text-rose-600 font-bold text-[10px]">Defect: {{ number_format($wri->quantity_defect, 0) }}</span>
+                                    <span class="text-rose-600 font-bold text-[10px] bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200" title="Order Awal: {{ number_format($wri->original_quantity_requested, 0) }}">
+                                        Defect: -{{ number_format($wri->quantity_defect, 0) }}
+                                    </span>
                                 @endif
                             </div>
                         </div>
@@ -616,6 +621,7 @@
                                 'currentStatus' => $wri->status,
                                 'statusClass' => $wri->status_badge['class'],
                                 'targetRack' => $wri->target_specific_location_code ?: 'Belum di Rak',
+                                'originalQty' => (float) $wri->original_quantity_requested,
                                 'totalQty' => (float) $wri->quantity_requested,
                                 'receivedQty' => (float) $wri->quantity_received,
                                 'defectQty' => (float) $wri->quantity_defect,
@@ -635,7 +641,7 @@
                                     'status' => $s->status,
                                 ])->values(),
                                 'logs' => $wri->logs->map(fn($l) => [
-                                    'time' => $l->created_at->format('d/m H:i'),
+                                    'time' => $l->created_at->format('d/m/Y H:i'),
                                     'status' => $l->status_label,
                                     'qty' => (float) $l->quantity,
                                     'operator' => $l->operator_name ?: '-',
@@ -722,8 +728,8 @@
                                     </span>
                                 @endif
                                 @if($wri->quantity_defect > 0)
-                                    <span class="text-[10px] text-rose-600 font-bold bg-rose-50 px-1.5 py-0.2 rounded inline-block mt-0.5">
-                                        Defect: {{ number_format($wri->quantity_defect, 0) }}
+                                    <span class="text-[10px] text-rose-600 font-bold bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded inline-block mt-0.5" title="Order Awal: {{ number_format($wri->original_quantity_requested, 0) }}">
+                                        Defect: -{{ number_format($wri->quantity_defect, 0) }}
                                     </span>
                                 @endif
                             </td>
@@ -963,9 +969,11 @@
                     this.assignModalOpen = false;
                 },
                 openProcessModal(data) {
+                    const isHandover = data.nextStatus && (data.nextStatus.includes('MH Pickup') || data.nextStatus.includes('Menuju Pengaju') || data.nextStatus.includes('Sudah Diambil'));
+                    const initialQty = (isHandover && data.currentBatchQty > 0) ? data.currentBatchQty : (data.remainingQty || 1);
                     this.processData = {
                         ...data,
-                        processQty: data.remainingQty || 1,
+                        processQty: initialQty,
                         hasDefect: false,
                         defectQty: null,
                         defectReason: '',

@@ -8,14 +8,16 @@
 - **Frontend:** Laravel Blade, Alpine.js, Tailwind CSS
 - **Database:** MySQL (Database name: `hpk_gudang`)
 - **Build Tooling:** Vite
-- **Key Libraries:** `html5-qrcode` & `qrcode` (for QR scanning and generation capabilities)
-- **Authentication:** Laravel Breeze
+- **Key Libraries:** `html5-qrcode` & `qrcode` (for QR scanning and generation capabilities), `simplesoftwareio/simple-qrcode`
+- **Authentication & RBAC:** Laravel Breeze & Spatie Laravel Permission (`spatie/laravel-permission`)
 
 ## Core Features & Workflows
 
-### 1. User Management & Roles
-Users have specific roles that dictate their permissions and workflows within the warehouse:
-- **Roles:** `admin_gudang`, `operator`, `qc`, `engineering`, `supervisor`.
+### 1. User Management, Departments & Roles
+Users have specific roles and departmental scopes that dictate their permissions and workflows:
+- **Roles:** `admin_gudang`, `operator`, `qc`, `engineering`, `supervisor`, `operator_mesin`, `material_handling`.
+- **15 Standardized Departments:** Laser, M1, UNP, Sharing, Band Saw, Aksesoris, Press, Hydraulic, CNC, Sharing & Bending, Gudang, SPO, Robot, Uji 1, Uji 2.
+- **Dynamic Access Control:** Users only see navigation menus and dashboard modules that they are authorized to access. Machine center operators default strictly to Work Request, while logistics operators default strictly to Material Handling.
 
 ### 2. Location Management (Peta Gudang)
 - Manages physical warehouse mapping (specifically handling Zones A through F).
@@ -51,5 +53,27 @@ Users have specific roles that dictate their permissions and workflows within th
 - Targets specific warehouse zones for organized, periodic counting.
 - Tracks variances (System Qty vs. Physical Qty) and requires documented reasons for discrepancies, culminating in an official reconciliation approval process.
 
+### 9. Work Request Inhouse (WRI) & Multi-Step Machine Routing
+- Internal inter-departmental request system replacing legacy Google Sheets.
+- **Auto-Routing:** Dynamically assigns the next processing machine/station based on component configuration (`process_route`).
+- **Hybrid Smart Approval:** Requester operators require Section Head approval (`Menunggu` -> `Diterima`), while Supervisors, Admins, and Urgent Line Stops bypass approval automatically (`Diterima`).
+- **Prerequisite Gate:** Receiving departments cannot view or process tickets until requester approval is `Diterima`.
+- **Partial Processing (Cicilan):** Supports completing and sending quantities in increments (`Parsial > ...`) with cumulative quota tracking.
+- **Three-Point Handover Verification & Defect Correction:** Kuantitas fisik diverifikasi interaktif pada 3 titik serah terima (**Mesin Out &rarr; MH Pickup &rarr; Gudang Terima**). Jika ada komponen cacat atau hilang pada setiap titik, kuota order tiket otomatis dipotong (`quantity_requested` berkurang), dicatat dalam audit trail lengkap (operator, tanggal, jam, alasan), dan saldo pengerjaan dikunci agar tidak melebihi pesanan.
+- **Automatic Stock Balance Update:** Once a ticket achieves `Sudah Diambil` status, the physical warehouse rack balance (`stock_balances`) increments automatically (hanya unit bagus) and generates an official inbound `transactions` record.
+- **SLA 3-Day Monitoring:** Overdue tickets exceeding 72 hours trigger high-visibility Red Alerts on dashboard cards.
+
+### 10. Material Handling (MH) Command Center
+- Dedicated logistics and internal transportation queue for physical movement of components between machine centers and the warehouse.
+- **4 Tab Command Center:** `tasksPickup` (items waiting at machine stations), `tasksTransit` (items currently carried by couriers), `tasksDistribution` (items ready for handover), and `tasksHistory` (audit trail of completed transfers).
+- **Interactive Verification & Defect Reporting:** Kurir MH dapat memverifikasi jumlah fisik aktual saat pickup serta melaporkan barang hilang/rusak sebelum transit.
+- **Live Camera QR Scanning:** Integrates `html5-qrcode` to scan ticket/component barcodes directly from smartphone or tablet cameras for instantaneous verification.
+- **Strict Role Gating:** Machine operators can only process their machine stage (`Dalam antrian` -> `Proses (In)` -> `Proses (Out)`), while only Material Handling personnel can pick up and distribute goods (`MH Pickup` -> `Siap Diambil` -> `Menuju Pengaju` -> `Sudah Diambil`).
+
+### 11. Role-Based Access Control (RBAC) & Dynamic Dashboard
+- Implemented using Spatie Laravel Permission with granular abilities (`work-request.view`, `work-request.process`, `material-handling.view`, `material-handling.manage`, etc.).
+- **Dynamic Beranda & Navigation:** Non-authorized modules are completely omitted from the UI, preventing unauthorized clicks or route access.
+- **Intelligent Presets:** New or edited users assigned to Machine Center roles automatically receive Work Request permissions, while Material Handling roles receive logistics permissions.
+
 ## Summary
-The system is a comprehensive, highly tailored WMS. It goes beyond simple stock tracking by deeply integrating quality control, engineering change workflows (ECR), and strict disposal management directly into the warehouse operations lifecycle. It is heavily reliant on QR code scanning to bridge the gap between physical items and digital records.
+The system is an enterprise-grade, unified Warehouse Management System (WMS) and Work Request (WRI) platform. It seamlessly connects raw material warehouse storage (Zones A-F), multi-station production machine routing (Laser, M1, UNP, CNC, etc.), internal logistics transit (Material Handling), quality engineering control (ECR & Disposal), and inventory reconciliation into a single cohesive, auditable, and QR-driven ecosystem.

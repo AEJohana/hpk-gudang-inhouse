@@ -616,7 +616,7 @@ class WorkRequestController extends Controller
                     'quantity' => $defectQty,
                     'quantity_accumulated' => $newTotalDefect,
                     'operator_name' => $operator,
-                    'notes' => "Reject/Defect: {$reason}. Kuota order dipotong menjadi {$newReq} pcs.",
+                    'notes' => "Reject/Defect: {$reason}. Kuota order dipotong {$defectQty} pcs menjadi {$newReq} pcs.",
                 ]);
 
                 return redirect()->back()
@@ -625,10 +625,12 @@ class WorkRequestController extends Controller
 
             // SCENARIO 2: PROGRESS LIFECYCLE (PARTIAL OR FULL)
 
-            // Defect saat Proses (Out) jika diceklis
-            if (!empty($validated['defect_qty']) && (float) $validated['defect_qty'] > 0 && stripos($cleanTarget, '(In)') === false) {
+            // Defect / Reject / Barang Hilang di setiap tahapan serah terima (Mesin, MH Pickup, atau Gudang)
+            $hasDefectReport = !empty($validated['defect_qty']) && (float) $validated['defect_qty'] > 0;
+            $defectQty = 0;
+            if ($hasDefectReport && stripos($cleanTarget, '(In)') === false) {
                 $defectQty = (float) $validated['defect_qty'];
-                $reason = !empty($validated['defect_reason']) ? $validated['defect_reason'] : 'Komponen cacat saat pengerjaan mesin';
+                $reason = !empty($validated['defect_reason']) ? $validated['defect_reason'] : 'Komponen cacat / rusak fisik serah terima';
 
                 $accumDefect += $defectQty;
                 $totalReq = max(0, $totalReq - $defectQty);
@@ -645,7 +647,7 @@ class WorkRequestController extends Controller
                     'quantity' => $defectQty,
                     'quantity_accumulated' => $accumDefect,
                     'operator_name' => $operator,
-                    'notes' => "Reject/Defect pengerjaan: {$reason}. Kuota total tiket dipotong menjadi {$totalReq} pcs.",
+                    'notes' => "Reject/Defect pada tahap {$cleanTarget}: {$reason}. Kuota total tiket dipotong {$defectQty} pcs menjadi {$totalReq} pcs.",
                 ]);
             }
 
@@ -653,22 +655,32 @@ class WorkRequestController extends Controller
             if (stripos($cleanTarget, '(In)') !== false) {
                 $processQty = max(0, $totalReq - $accumReceived);
             } else {
-                $processQty = isset($validated['process_qty']) && (float) $validated['process_qty'] > 0
+                $rawQty = isset($validated['process_qty']) && (float) $validated['process_qty'] > 0
                     ? (float) $validated['process_qty']
                     : ($totalReq - $accumReceived);
+
+                // Anti Over-Processing: kuantitas pengerjaan/pengambilan tidak boleh melebihi sisa target tiket
+                $maxPossible = max(0, $totalReq - $accumReceived);
+                $processQty = ($maxPossible > 0 && stripos($cleanTarget, 'Sudah Diambil') !== false) 
+                    ? min($rawQty, $totalReq) 
+                    : min($rawQty, $maxPossible ?: $totalReq);
             }
 
             $alreadyProcessed = $workRequest->getTotalProcessedForStatus($cleanTarget);
             $newAccum = $alreadyProcessed + $processQty;
 
-            $isPartial = ($newAccum < $totalReq);
+            $isPartial = ($newAccum < $totalReq && $totalReq > 0);
             $effectiveStatus = ($isPartial ? 'Parsial > ' : '') . $cleanTarget;
 
             $isFinalDelivery = (stripos($cleanTarget, 'Sudah Diambil') !== false && !$isPartial);
 
-            // Simpan batch qty jika selesai mesin (Out) agar diangkut MH
-            if (stripos($cleanTarget, '(Out)') !== false) {
+            // Simpan batch qty untuk penjemputan MH dan serah terima
+            if (stripos($cleanTarget, '(Out)') !== false || stripos($cleanTarget, 'Siap Diambil') !== false) {
                 $workRequest->current_batch_qty = $processQty;
+            } elseif (stripos($cleanTarget, 'MH Pickup') !== false || stripos($cleanTarget, 'Menuju Pengaju') !== false) {
+                $workRequest->current_batch_qty = $processQty;
+            } elseif (stripos($cleanTarget, 'Sudah Diambil') !== false) {
+                $workRequest->current_batch_qty = 0;
             }
 
             $workRequest->update([

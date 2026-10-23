@@ -609,6 +609,33 @@
                             </span>
                         </div>
 
+                        <!-- Toggle Defect / Barang Hilang -->
+                        <div class="pt-2 border-t border-slate-100" x-data="{ hasDefectAction: false }">
+                            <label class="flex items-center space-x-2.5 cursor-pointer p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                                <input type="checkbox" 
+                                       x-model="hasDefectAction" 
+                                       class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
+                                <div class="flex items-center space-x-1.5 text-xs font-bold text-slate-700">
+                                    <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
+                                    <span>Ada Barang Cacat / Hilang saat Penjemputan?</span>
+                                </div>
+                            </label>
+
+                            <div x-show="hasDefectAction" x-transition class="mt-2 p-3 bg-rose-50/80 border border-rose-200 rounded-xl space-y-2 text-xs">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block font-bold text-rose-900 uppercase text-[9px] mb-0.5">Jumlah Defect / Hilang</label>
+                                        <input type="number" name="defect_qty" step="any" min="0.01" :max="activeItem?.qty" placeholder="0" class="w-full px-2.5 py-1.5 text-xs border border-rose-300 rounded-lg font-bold text-rose-900 bg-white">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-rose-900 uppercase text-[9px] mb-0.5">Alasan Selisih</label>
+                                        <input type="text" name="defect_reason" placeholder="Contoh: Rusak / hilang saat serah terima mesin" class="w-full px-2.5 py-1.5 text-xs border border-rose-300 rounded-lg bg-white">
+                                    </div>
+                                </div>
+                                <p class="text-[9px] text-rose-700">Barang cacat/hilang akan otomatis memotong kuota tiket pesanan.</p>
+                            </div>
+                        </div>
+
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                                 Catatan Kurir Logistik (Opsional):
@@ -760,16 +787,53 @@
                             </div>
                         </div>
 
-                        <form method="POST" action="{{ route('work-station-supplies.quick-action') }}" class="pt-2">
+                        <form method="POST" action="{{ route('work-station-supplies.quick-action') }}" class="pt-2 space-y-2.5" x-data="{ scanDefect: false, scanQty: null }">
                             @csrf
                             <input type="hidden" name="work_request_id" :value="scannedTicket?.id">
                             <input type="hidden" name="action_type" value="process">
                             <input type="hidden" name="target_status" :value="scannedTicket?.next_status">
-                            <input type="hidden" name="process_qty" :value="scannedTicket?.quantity_requested">
 
-                            <div class="flex items-center justify-between space-x-2">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                                    Verifikasi Kuantitas Fisik:
+                                </label>
+                                <div class="relative">
+                                    <input type="number" 
+                                           name="process_qty" 
+                                           :value="scannedTicket?.quantity_requested" 
+                                           x-model="scanQty"
+                                           required 
+                                           step="any" 
+                                           min="0.01" 
+                                           :max="scannedTicket?.quantity_requested"
+                                           class="w-full px-3 py-1.5 text-sm font-black border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-mono text-center">
+                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400" x-text="scannedTicket?.uom"></span>
+                                </div>
+                            </div>
+
+                            <!-- Toggle Defect Scanner -->
+                            <div>
+                                <label class="flex items-center space-x-1.5 cursor-pointer text-[10px] font-bold text-rose-600">
+                                    <input type="checkbox" x-model="scanDefect" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
+                                    <span>Ada Defect / Barang Hilang saat Scan?</span>
+                                </label>
+                                <div x-show="scanDefect" x-transition class="mt-1.5 p-2 bg-rose-50 border border-rose-200 rounded-xl space-y-1.5 text-xs">
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-[9px] font-bold text-rose-900 uppercase">Qty Defect</label>
+                                            <input type="number" name="defect_qty" step="any" min="0.01" placeholder="0" class="w-full px-2 py-1 text-xs border border-rose-300 rounded-lg bg-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[9px] font-bold text-rose-900 uppercase">Alasan</label>
+                                            <input type="text" name="defect_reason" placeholder="Alasan defect..." class="w-full px-2 py-1 text-xs border border-rose-300 rounded-lg bg-white">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between space-x-2 pt-1">
                                 <a :href="scannedTicket?.show_url" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition">
-                                    Buka Detail Tiket &rarr;
+                                    Detail Tiket &rarr;
                                 </a>
                                 <button type="submit" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-1.5">
                                     <i class="fa-solid fa-bolt text-xs"></i>

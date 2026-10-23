@@ -326,8 +326,13 @@
                                     <span class="font-mono text-slate-500 block text-[11px]">{{ $workRequest->component->part_number ?? '-' }}</span>
                                 </div>
                                 <div class="text-right">
-                                    <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Permintaan:</span>
-                                    <span class="font-black text-sm text-indigo-700">{{ number_format($workRequest->quantity_requested, 0) }} {{ $workRequest->component->uom }}</span>
+                                    @if($workRequest->quantity_defect > 0)
+                                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Order Awal: {{ number_format($workRequest->original_quantity_requested, 0) }} | Defect: -{{ number_format($workRequest->quantity_defect, 0) }}</span>
+                                        <span class="font-black text-sm text-indigo-700">Target: {{ number_format($workRequest->quantity_requested, 0) }} {{ $workRequest->component->uom }}</span>
+                                    @else
+                                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Permintaan:</span>
+                                        <span class="font-black text-sm text-indigo-700">{{ number_format($workRequest->quantity_requested, 0) }} {{ $workRequest->component->uom }}</span>
+                                    @endif
                                 </div>
                             </div>
 

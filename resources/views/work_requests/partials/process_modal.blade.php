@@ -208,51 +208,183 @@
 
                 <!-- KASUS C: LOGISTIK MATERIAL HANDLING (PICKUP & PENGANTARAN) -->
                 <template x-if="processData.nextStatus.includes('MH Pickup') || processData.nextStatus.includes('Menuju Pengaju')">
-                    <div class="space-y-3">
+                    <div class="space-y-4">
                         <div class="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl">
                             <div class="flex items-center justify-between text-xs font-bold text-amber-900 mb-1">
-                                <span>Penjemputan Material Handling (MH)</span>
+                                <span>Verifikasi Fisik Penjemputan MH</span>
                                 <span>Logistik Karoseri</span>
                             </div>
                             <div class="flex items-center justify-between mt-2 pt-2 border-t border-amber-200/60">
                                 <div>
-                                    <span class="text-[10px] text-amber-800 block">Kuantitas Siap Diangkut:</span>
-                                    <span class="text-2xl font-black text-amber-950" x-text="(processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty) + ' ' + processData.uom"></span>
+                                    <span class="text-[10px] text-amber-800 block">Tercatat Siap di Mesin:</span>
+                                    <span class="text-xl font-black text-amber-950" x-text="(processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty) + ' ' + processData.uom"></span>
                                 </div>
                                 <span class="px-2.5 py-1 bg-amber-200/80 text-amber-950 rounded-lg text-[10px] font-black">
-                                    <i class="fa-solid fa-truck-ramp-box me-1"></i> MH Pickup
+                                    <i class="fa-solid fa-truck-ramp-box me-1"></i> Verifikasi MH
                                 </span>
                             </div>
-                            <input type="hidden" name="process_qty" :value="processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty">
                         </div>
-                        <p class="text-[11px] text-slate-500 leading-relaxed">
-                            <i class="fa-solid fa-truck-fast text-amber-600 me-1"></i> Mengonfirmasi bahwa komponen telah diambil dari stasiun mesin dan sedang dalam perjalanan diantar ke pengaju / gudang.
-                        </p>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+                                    Jumlah Fisik Bagus yang Diambil Kurir MH <span class="text-rose-500">*</span>
+                                </label>
+                                <span class="text-[11px] text-slate-500">
+                                    Maksimal: <strong class="text-slate-800" x-text="(processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty) + ' ' + processData.uom"></strong>
+                                </span>
+                            </div>
+
+                            <div class="relative flex items-stretch rounded-2xl border-2 border-slate-300 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 overflow-hidden bg-white shadow-2xs">
+                                <input type="number" 
+                                       name="process_qty" 
+                                       x-model.number="processData.processQty" 
+                                       required 
+                                       min="0.01" 
+                                       :max="processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty"
+                                       step="any" 
+                                       class="w-full min-w-0 flex-1 px-4 py-2.5 text-lg font-black text-slate-900 border-0 focus:ring-0 focus:outline-none text-center">
+                                <span class="inline-flex items-center px-4 py-2.5 bg-slate-100 text-slate-700 font-extrabold text-xs border-l border-slate-200 select-none whitespace-nowrap" 
+                                      x-text="processData.uom"></span>
+                            </div>
+                        </div>
+
+                        <!-- Toggle Defect / Barang Hilang saat Pickup MH -->
+                        <div class="pt-2 border-t border-slate-100">
+                            <label class="flex items-center space-x-2.5 cursor-pointer p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                                <input type="checkbox" 
+                                       x-model="processData.hasDefect" 
+                                       class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
+                                <div class="flex items-center space-x-1.5 text-xs font-bold text-slate-700">
+                                    <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
+                                    <span>Ada Barang Cacat / Hilang / Selisih saat Penjemputan?</span>
+                                </div>
+                            </label>
+
+                            <!-- Sub-form Defect MH -->
+                            <div x-show="processData.hasDefect" 
+                                 x-transition 
+                                 class="mt-2.5 p-3.5 bg-rose-50/70 border border-rose-200 rounded-2xl space-y-3">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block font-bold text-rose-900 uppercase tracking-wider text-[10px] mb-1">
+                                            Jumlah Defect / Hilang (<span x-text="processData.uom"></span>) <span class="text-rose-600">*</span>
+                                        </label>
+                                        <input type="number" 
+                                               name="defect_qty" 
+                                               x-model.number="processData.defectQty" 
+                                               min="0.01" 
+                                               step="any" 
+                                               placeholder="0"
+                                               class="w-full px-3 py-1.5 text-xs border border-rose-300 rounded-xl focus:ring-2 focus:ring-rose-500 font-bold text-rose-950">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-rose-900 uppercase tracking-wider text-[10px] mb-1">
+                                            Alasan Selisih / Defect <span class="text-rose-600">*</span>
+                                        </label>
+                                        <input type="text" 
+                                               name="defect_reason" 
+                                               x-model="processData.defectReason" 
+                                               placeholder="Contoh: 1 unit hilang / rusak saat serah terima mesin" 
+                                               class="w-full px-3 py-1.5 text-xs border border-rose-300 rounded-xl focus:ring-2 focus:ring-rose-500 font-semibold text-slate-800">
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-rose-700 leading-relaxed">
+                                    <i class="fa-solid fa-info-circle me-1"></i> Barang hilang/defect akan otomatis memotong kuota order tiket dan tercatat dalam audit log serah terima.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </template>
 
                 <!-- KASUS D: PENERIMAAN FISIK DI GUDANG (SUDAH DIAMBIL) -->
                 <template x-if="processData.nextStatus.includes('Sudah Diambil')">
-                    <div class="space-y-3">
+                    <div class="space-y-4">
                         <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
                             <div class="flex items-center justify-between text-xs font-bold text-emerald-900 mb-1">
-                                <span>Serah Terima Fisik ke Rak Gudang</span>
+                                <span>Verifikasi Penerimaan Fisik di Rak Gudang</span>
                                 <span class="text-emerald-700 font-mono font-extrabold" x-text="processData.targetRack"></span>
                             </div>
                             <div class="flex items-center justify-between mt-2 pt-2 border-t border-emerald-200/60">
                                 <div>
-                                    <span class="text-[10px] text-emerald-800 block">Kuantitas Diterima Fisik:</span>
-                                    <span class="text-2xl font-black text-emerald-950" x-text="(processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty) + ' ' + processData.uom"></span>
+                                    <span class="text-[10px] text-emerald-800 block">Kuantitas Dikirim oleh MH:</span>
+                                    <span class="text-xl font-black text-emerald-950" x-text="(processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty) + ' ' + processData.uom"></span>
                                 </div>
                                 <span class="px-2.5 py-1 bg-emerald-200/80 text-emerald-950 rounded-lg text-[10px] font-black">
-                                    <i class="fa-solid fa-warehouse me-1"></i> Auto +Stok
+                                    <i class="fa-solid fa-warehouse me-1"></i> Masuk Rak
                                 </span>
                             </div>
-                            <input type="hidden" name="process_qty" :value="processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty">
                         </div>
-                        <p class="text-[11px] text-slate-500 leading-relaxed">
-                            <i class="fa-solid fa-check-double text-emerald-600 me-1"></i> Konfirmasi penerimaan fisik akan otomatis menambahkan saldo stok komponen pada rak lokasi gudang dan mencatat transaksi inbound resmi.
-                        </p>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+                                    Jumlah Unit Bagus yang Diterima Masuk Rak <span class="text-rose-500">*</span>
+                                </label>
+                                <span class="text-[11px] text-slate-500">
+                                    Maksimal: <strong class="text-slate-800" x-text="(processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty) + ' ' + processData.uom"></strong>
+                                </span>
+                            </div>
+
+                            <div class="relative flex items-stretch rounded-2xl border-2 border-slate-300 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 overflow-hidden bg-white shadow-2xs">
+                                <input type="number" 
+                                       name="process_qty" 
+                                       x-model.number="processData.processQty" 
+                                       required 
+                                       min="0.01" 
+                                       :max="processData.currentBatchQty > 0 ? processData.currentBatchQty : processData.remainingQty"
+                                       step="any" 
+                                       class="w-full min-w-0 flex-1 px-4 py-2.5 text-lg font-black text-slate-900 border-0 focus:ring-0 focus:outline-none text-center">
+                                <span class="inline-flex items-center px-4 py-2.5 bg-slate-100 text-slate-700 font-extrabold text-xs border-l border-slate-200 select-none whitespace-nowrap" 
+                                      x-text="processData.uom"></span>
+                            </div>
+                        </div>
+
+                        <!-- Toggle Defect / Barang Rusak saat Tiba di Gudang -->
+                        <div class="pt-2 border-t border-slate-100">
+                            <label class="flex items-center space-x-2.5 cursor-pointer p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                                <input type="checkbox" 
+                                       x-model="processData.hasDefect" 
+                                       class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
+                                <div class="flex items-center space-x-1.5 text-xs font-bold text-slate-700">
+                                    <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
+                                    <span>Terdapat Komponen Rusak / Defect saat Tiba di Gudang?</span>
+                                </div>
+                            </label>
+
+                            <!-- Sub-form Defect Gudang -->
+                            <div x-show="processData.hasDefect" 
+                                 x-transition 
+                                 class="mt-2.5 p-3.5 bg-rose-50/70 border border-rose-200 rounded-2xl space-y-3">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block font-bold text-rose-900 uppercase tracking-wider text-[10px] mb-1">
+                                            Jumlah Defect (<span x-text="processData.uom"></span>) <span class="text-rose-600">*</span>
+                                        </label>
+                                        <input type="number" 
+                                               name="defect_qty" 
+                                               x-model.number="processData.defectQty" 
+                                               min="0.01" 
+                                               step="any" 
+                                               placeholder="0"
+                                               class="w-full px-3 py-1.5 text-xs border border-rose-300 rounded-xl focus:ring-2 focus:ring-rose-500 font-bold text-rose-950">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-rose-900 uppercase tracking-wider text-[10px] mb-1">
+                                            Alasan Kerusakan / Defect <span class="text-rose-600">*</span>
+                                        </label>
+                                        <input type="text" 
+                                               name="defect_reason" 
+                                               x-model="processData.defectReason" 
+                                               placeholder="Contoh: Terbentur saat pengangkutan troli MH" 
+                                               class="w-full px-3 py-1.5 text-xs border border-rose-300 rounded-xl focus:ring-2 focus:ring-rose-500 font-semibold text-slate-800">
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-rose-700 leading-relaxed">
+                                    <i class="fa-solid fa-info-circle me-1"></i> Hanya unit bagus yang akan menambah stok rak. Unit defect akan memotong kuota tiket secara permanen.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </template>
 

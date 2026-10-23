@@ -68,6 +68,14 @@ class WorkRequest extends Model
         return $this->belongsTo(User::class, 'received_by_user_id');
     }
 
+    /**
+     * Kuantitas awal yang diminta sebelum dipotong oleh defect/reject.
+     */
+    public function getOriginalQuantityRequestedAttribute(): float
+    {
+        return (float) $this->quantity_requested + (float) $this->quantity_defect;
+    }
+
     public function targetWarehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class, 'target_warehouse_id');
@@ -370,9 +378,28 @@ class WorkRequest extends Model
             ? $totalReq
             : $this->getTotalProcessedForStatus("MH Pickup: " . ($steps[$stepIndex - 1] ?? ''));
 
+        // Defect pada tahapan pengerjaan mesin (sebelum atau saat Out)
+        $stepMachineDefects = (float) $this->logs()
+            ->where('action_type', 'defect')
+            ->where(function ($q) use ($stepName) {
+                $q->where('status_label', 'like', "%{$stepName}%")
+                  ->orWhere('notes', 'like', "%{$stepName}%");
+            })
+            ->where('status_label', 'not like', '%Pickup%')
+            ->sum('quantity');
+
+        // Defect / barang hilang saat penjemputan MH pada mesin ini
+        $stepPickupDefects = (float) $this->logs()
+            ->where('action_type', 'defect')
+            ->where(function ($q) use ($stepName) {
+                $q->where('status_label', 'like', "%Pickup: {$stepName}%")
+                  ->orWhere('notes', 'like', "%Pickup: {$stepName}%");
+            })
+            ->sum('quantity');
+
         $saldoIn = max(0, $totalSupply - $totalIn);
-        $saldoOut = max(0, $totalIn - $totalOut);
-        $waitingPickup = max(0, $totalOut - $totalPickup);
+        $saldoOut = max(0, $totalIn - $totalOut - $stepMachineDefects);
+        $waitingPickup = max(0, $totalOut - $totalPickup - $stepPickupDefects);
 
         return [
             'step_name' => $stepName,
@@ -381,6 +408,8 @@ class WorkRequest extends Model
             'total_in' => $totalIn,
             'total_out' => $totalOut,
             'total_pickup' => $totalPickup,
+            'machine_defects' => $stepMachineDefects,
+            'pickup_defects' => $stepPickupDefects,
             'saldo_in' => $saldoIn,
             'saldo_out' => $saldoOut,
             'waiting_pickup' => $waitingPickup,
@@ -466,7 +495,16 @@ class WorkRequest extends Model
                     }
                 } else {
                     $totalMenuju = $this->getTotalProcessedForStatus('Menuju Pengaju');
-                    $waitingFinal = max(0, $bal['total_out'] - $totalMenuju);
+                    $finalPickupDefects = (float) $this->logs()
+                        ->where('action_type', 'defect')
+                        ->where(function ($q) {
+                            $q->where('status_label', 'like', '%Menuju Pengaju%')
+                              ->orWhere('status_label', 'like', '%Pickup Final%')
+                              ->orWhere('notes', 'like', '%Menuju Pengaju%');
+                        })
+                        ->sum('quantity');
+
+                    $waitingFinal = max(0, $bal['total_out'] - $totalMenuju - $finalPickupDefects);
                     if ($waitingFinal > 0) {
                         $actions[] = [
                             'type' => 'pickup_final',
@@ -489,9 +527,18 @@ class WorkRequest extends Model
         if ($isPengajuUser) {
             $totalMenuju = $this->getTotalProcessedForStatus('Menuju Pengaju');
             $totalSudah = (float) $this->quantity_received ?: $this->getTotalProcessedForStatus('Sudah diambil');
+            $gudangDefects = (float) $this->logs()
+                ->where('action_type', 'defect')
+                ->where(function ($q) {
+                    $q->where('status_label', 'like', '%Sudah Diambil%')
+                      ->orWhere('status_label', 'like', '%Gudang%')
+                      ->orWhere('notes', 'like', '%Sudah Diambil%')
+                      ->orWhere('notes', 'like', '%Penerimaan Gudang%');
+                })
+                ->sum('quantity');
 
             // Gerbang Wajib: Gudang HANYA boleh menerima barang jika barang SUDAH DI-PICKUP MH dan sedang dalam perjalanan ('Menuju Pengaju')
-            $saldoTerima = max(0, $totalMenuju - $totalSudah);
+            $saldoTerima = max(0, $totalMenuju - $totalSudah - $gudangDefects);
             if ($saldoTerima > 0) {
                 $actions[] = [
                     'type' => 'receive',

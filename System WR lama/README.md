@@ -1,4 +1,14 @@
-# WR System (Work Request) - PT Hydraxle Perkasa
+# [ARSIP HISTORIS] WR System (Work Request) - PT Hydraxle Perkasa
+
+> [!CAUTION]
+> **DOKUMEN INI ADALAH ARSIP SEJARAH (LEGACY SYSTEM REFERENCE)**  
+> Seluruh file di dalam direktori `System WR lama/` adalah catatan teknis dari sistem lama berbasis **Google Apps Script & Google Sheets** sebelum seluruh fungsi dan aturan bisnis dimigrasikan ke platform **Laravel 10 & MySQL (`hpk-gudang-inhouse`)**.  
+> Seluruh aturan bisnis inti (BR-01 s/d BR-10) telah diimplementasikan ke dalam kode Laravel. Untuk dokumentasi sistem operasional aktif saat ini, silakan merujuk ke:
+> - [`about.md`](../about.md) - Gambaran Umum Sistem WMS & WRI Terkini
+> - [`README.md`](../README.md) - Dokumentasi & Panduan Proyek Utama
+> - [`docs/SOP_DAN_ALUR_PROSES.md`](../docs/SOP_DAN_ALUR_PROSES.md) - SOP Operasional, Diagram Alur & Aturan Bisnis Modern
+
+---
 
 ## Tentang Program
 **WR System (Sistem Permintaan Kerja)** adalah aplikasi berbasis web internal milik PT Hydraxle Perkasa. Tujuan utama program ini adalah untuk mempermudah, melacak, dan mengelola alur permintaan komponen atau barang antar departemen di dalam perusahaan secara terpusat dan efisien.

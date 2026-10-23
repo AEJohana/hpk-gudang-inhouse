@@ -1,54 +1,67 @@
 # HPK WMS - RESUME OPERASIONAL & ROADMAP PENGEMBANGAN
-**Terakhir Diperbarui:** 13 Oktober 2026
+**Terakhir Diperbarui:** 23 Oktober 2026
 
 Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutnya langsung memahami konteks proyek secara 100% utuh tanpa ada informasi yang hilang.
 
 ---
 
-## 1. Status Proyek Saat Ini (Sudah Selesai & Disetujui)
-- **Work Request Inhouse (WRI) & Material Handling (Supply Stasiun Kerja)** telah selesai 100% dan diuji:
-  - Alur Multi-Routing: `Dalam antrian` -> `Proses (In)` -> `Proses (Out)` -> `MH Pickup` -> `Siap Diambil` -> `Menuju Pengaju` -> `Sudah Diambil`.
-  - Pengerjaan & Pengiriman Parsial (Cicilan): label otomatis `Parsial > ...` dan tracking kuota akumulatif.
-  - Koreksi Defect / Reject: pemotongan otomatis kuantitas order tiket & pencatatan alasan defect di audit log.
-  - Auto-Update Saldo Fisik Gudang: saat status `Sudah Diambil`, stok di rak tujuan otomatis bertambah (`stock_balances`) & transaksi inbound resmi diterbitkan.
-  - Material Handling Command Center: 4 Tab (`tasksPickup`, `tasksTransit`, `tasksDistribution`, `tasksHistory`) + Live Camera QR Scanner.
-  - Dokumen Walkthrough: `walkthrough_wri_material_handling.md` (Approved).
+## 1. Status Proyek Saat Ini (Sudah Selesai, Disetujui & Teruji)
+
+### A. Work Request Inhouse (WRI) & Material Handling (MH)
+- **Multi-Routing Manufaktur:** `Dalam antrian` -> `Proses (In)` -> `Proses (Out)` -> `MH Pickup` -> `Siap Diambil` -> `Menuju Pengaju` -> `Sudah Diambil`.
+- **Pengerjaan & Pengiriman Parsial (Cicilan):** Label otomatis `Parsial > ...` dan tracking kuota akumulatif per tiket.
+- **Koreksi Defect / Reject:** Pemotongan otomatis kuantitas order tiket & pencatatan alasan defect di audit log.
+- **Auto-Update Saldo Fisik Gudang:** Saat status `Sudah Diambil`, stok di rak tujuan otomatis bertambah (`stock_balances`) & transaksi inbound resmi diterbitkan (BR-08).
+- **Material Handling Command Center:** 4 Tab (`tasksPickup`, `tasksTransit`, `tasksDistribution`, `tasksHistory`) + Live Camera QR Scanner.
+- **SLA 3 Hari (Red Alert):** Scope `scopeOverdueSla` otomatis memberi tanda darurat untuk tiket > 72 jam (BR-10).
+
+### B. Otoritas Hak Akses (RBAC) & Isolasi Peran (Baru Selesai & Teruji 100%)
+- **Middleware Proteksi Route:** Seluruh route pada `routes/web.php` telah diproteksi dengan middleware `can:...` (Work Request, Material Handling, ECR, Disposal, Cycle Count, Users).
+- **Tampilan Beranda Dinamis (`dashboard.blade.php`):** Modul kartu yang tidak diizinkan untuk pengguna login otomatis disembunyikan.
+- **Navigasi & Sidebar Dinamis (`navigation.blade.php` & `app.blade.php`):** Hanya tautan menu berizin yang tampil di desktop & mobile bar.
+- **Pemisahan Aksi Ketat (Mesin Center vs MH):** 
+  - Operator Mesin Center hanya berhak memproses tahapan mesin (`Dalam antrian`, `Proses (In)`, `Proses (Out)`).
+  - Kurir MH hanya berhak memproses logistik (`MH Pickup`, `Siap Diambil`, `Menuju Pengaju`, `Sudah Diambil`).
+  - Divalidasi di model `WorkRequest.php` (`canUserProcessAction` & `getAvailableActionsForUser`) dan Blade.
+- **Default Presets Akun Baru (`UserController.php`):**
+  - Akun yang ditetapkan sebagai Mesin Center otomatis didefaultkan HANYA memiliki izin Work Request.
+  - Akun yang ditetapkan sebagai Material Handling otomatis didefaultkan HANYA memiliki izin Material Handling.
+- **Cache Invalidation Otomatis:** Pembaruan akun dan role langsung menjalankan `forgetCachedPermissions()`.
+- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestAuthorizationTest.php`).
+
+### C. Verifikasi Kuantitas 3 Titik Serah Terima & Defect Presisi (Baru Selesai & Teruji 100%)
+- **Input Kuantitas Interaktif di 3 Titik:**
+  - Mesin Out: Operator mesin verifikasi unit selesai & input defect mesin.
+  - MH Pickup: Mengganti hidden field dengan input angka interaktif kurir MH + opsi defect/barang hilang.
+  - Gudang Penerima (Sudah Diambil): Mengganti hidden field dengan input angka interaktif staf gudang + opsi defect transit.
+- **Koreksi Saldo Mesin Tanpa Celah:** `saldoOut = max(0, totalIn - totalOut - stepMachineDefects)` dan `waitingPickup = max(0, totalOut - totalPickup - pickupDefects)`. Tidak ada lagi aksi sisa hantu setelah defect dilaporkan.
+- **Penguncian Batas Atas (Anti Over-Processing):** Kuantitas yang diproses/diambil dikunci secara ketat di backend dan frontend agar tidak pernah melebihi sisa pesanan aktif.
+- **Audit Trail Defect Transparan:** Mencatat Nama Operator, Departemen, Tanggal & Jam Presisi (`d/m/Y H:i`), serta Alasan Defect di log audit dan modal detail.
+- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestDefectAndHandoverTest.php` - 4 passed, 6 assertions).
 
 ---
 
-## 2. Agenda Pembahasan Saat Ini: Akses Akun, Identitas Departemen & Hak Operasional
-
-### A. Rujukan Data Acuan Sistem Lama (`System WR lama/`):
-- `System WR lama/Spreadsheet/Form Work Request - Data User.csv` (Akun, ID Departemen, Password, Kode Akses, Nama, Link TTD).
-- `System WR lama/Spreadsheet/Form Work Request - Akses User.csv` (Kode Akses 1 s/d 8).
-- `System WR lama/Spreadsheet/Form Work Request - Akses Dept User.csv` (15 Departemen: Laser, M1, UNP, Sharing, Band Saw, Aksesoris, Press, Hydraulic, CNC, Sharing & Bending, Gudang, SPO, Robot, Uji 1, Uji 2).
-- `System WR lama/Spreadsheet/Form Work Request - Data User MH.csv` (User logistik Material Handling).
-- `System WR lama/js_auth.html` & `Kode.js` (`checkLogin`, `applyAccessControl`, scoping data per departemen).
-
-### B. Dokumen Rencana Teknis yang Telah Dibuat:
-- **Lokasi Plan**: `plan_akses_akun_dan_identitas.md`
-- **Poin Arsitektur Inti**:
-  1. **Master Departemen**: Tabel baru `departments` (ID 1-15 sesuai legacy) menggantikan string bebas, relasi `department_id` di `users`. Kolom `can_access_all_departments` (padanan tanda `*` di akun admin lama).
-  2. **Pemetaan Hak Akses Spatie**:
-     - Akses 1: `wri.create`
-     - Akses 2: `wri.view`
-     - Akses 3: `wri.print`
-     - Akses 4: `wri.monitoring`
-     - Akses 5: `wri.approve` (Approval Ka. Bagian)
-     - Akses 6: `material-handling.manage`
-     - Akses 7: `safety-stock.view`
-     - Akses 8: `components.manage`
-     - Tambahan: `wri.view-all` (Akses global tiket semua departemen)
-  3. **Identitas Mempengaruhi Proses (Process Gating)**:
-     - Form Buat WRI: `dept_pengaju` otomatis terkunci ke departemen user login.
-     - Scoping Data WRI: Tab `Tiket Departemen Saya` (default untuk operator/SPV) vs `Semua Departemen` (Admin).
-     - Hybrid Smart Approval: Operator butuh persetujuan kepala bagian (`approval_pengaju = 'Menunggu'`), sedangkan SPV/Admin/Urgent Line Stop otomatis `Diterima` (Bypass cerdas).
-     - Tombol Approval Pengaju/Penerima hanya aktif bagi user yang memiliki hak `wri.approve` dan departemennya cocok.
-  4. **Tanda Tangan Digital**: Field `signature_path` pada tabel `users` untuk otomatisasi cetak form WRI.
+## 2. Struktur 15 Departemen Resmi
+1. `Laser`
+2. `M1` (Mesin Center 1)
+3. `UNP`
+4. `Sharing`
+5. `Band Saw`
+6. `Aksesoris`
+7. `Press`
+8. `Hydraulic`
+9. `CNC`
+10. `Sharing & Bending`
+11. `Gudang`
+12. `SPO`
+13. `Robot`
+14. `Uji 1`
+15. `Uji 2`
 
 ---
 
-## 3. Keputusan Pengguna yang Perlu Dikonfirmasi Saat Resume:
-1. **Daftar Departemen**: Gunakan 15 departemen dari data acuan legacy.
-2. **Aturan Approval**: Setuju menggunakan Hybrid Smart Approval.
-3. **Tanda Tangan Digital**: Apakah fitur upload tanda tangan digital diaktifkan.
+## 3. Tautan Panduan Terkait
+- [about.md](about.md) - Rincian Arsitektur dan 11 Modul WMS & WRI
+- [README.md](README.md) - Dokumentasi Utama Proyek
+- [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - Standar Operasional Prosedur & Aturan Bisnis Modern
+- [.gemini/rules/guardrails.md](.gemini/rules/guardrails.md) - Aturan Wajib Pengembangan & Kepatuhan Prompt AI Agent
