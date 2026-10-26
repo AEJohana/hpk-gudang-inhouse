@@ -80,7 +80,19 @@ Users have specific roles and departmental scopes that dictate their permissions
 - **Live Camera QR Scanning:** Integrates `html5-qrcode` to scan ticket/component barcodes directly from smartphone or tablet cameras for instantaneous verification.
 - **Strict Role Gating:** Machine operators can only process their machine stage (`Dalam antrian` -> `Proses (In)` -> `Proses (Out)`), while only Material Handling personnel can pick up and distribute goods (`MH Pickup` -> `Siap Diambil` -> `Menuju Pengaju` -> `Sudah Diambil`).
 
-### 11. Role-Based Access Control (RBAC) & Dynamic Dashboard
+### 11. Bulk Import & Manajemen Massal Komponen Karoseri (Excel 2-Sheet Streaming)
+- **High-Volume Urgent Data Ingestion:** Memfasilitasi pendaftaran ratusan hingga ribuan katalog komponen sekaligus secara instan melalui impor berkas spreadsheet (`.xlsx` dan `.csv`).
+- **Official 2-Sheet Corporate Template:** Disediakan generator template Excel resmi (`ComponentExcelTemplateService`) berbasis library streaming `OpenSpout` yang sangat efisien memori. Template memuat 2 sheet terintegrasi:
+  1. `INPUT DATA KOMPONEN`: Lembar kerja formulir berheader Dark Navy HPK (`#0A2342`) dengan petunjuk pengisian dan 3 baris data sampel riil.
+  2. `PEDOMAN & REFERENSI DROPDOWN`: Kamus data sistem yang dinamis, memuat daftar kategori part valid, satuan resmi HPK, daftar kode rak fisik gudang aktif (sinkron langsung dari database `locations`), serta panduan kolom wajib vs kolom opsional.
+- **Flexible Column Tolerances & Intelligent Normalization:** Kolom wajib dibatasi hanya pada **Kode Komponen** dan **Nama Komponen**. Seluruh kolom lain (kategori, satuan, dimensi P x L x T, spesifikasi teknis, stok minimum, stok awal, kode rak, tautan foto) bersifat opsional dan otomatis dinormalisasi dengan fallback aman (`PCS` untuk satuan, `null` untuk kategori dan dimensi, `0` untuk stok).
+- **Google Drive & URL Photo Ingestion:** Mendukung tautan foto dari Google Drive (berbagi publik) atau URL web umum. Sistem secara otomatis mengekstrak file ID Drive, mengunduh file ke penyimpanan lokal server (`public/uploads/components/`), dan menautkannya ke profil komponen tanpa membebani operator. Kolom foto juga dapat dikosongkan terlebih dahulu untuk input mendesak (komponen langsung aktif dengan QR Code otomatis).
+- **Safe 2-Step Live Preview & Audit Reconciliation:**
+  1. *Langkah 1 (Upload & Opsi Duplikat):* Operator mengunggah berkas Excel dan memilih kebijakan penanganan duplikat: **Lewati Duplikat (Skip)** untuk mempertahankan data lama, atau **Perbarui (Update)** untuk memperbarui spek/kategori/rak/stok dengan data terbaru Excel.
+  2. *Langkah 2 (Live Preview Modal):* Sistem mem-parsing berkas di memori dan menyajikan tabel pratinjau interaktif dengan kartu indikator KPI (Total Baris, Komponen Baru, Duplikat Dilewati/Diupdate, Error) beserta badge status per baris.
+  3. *Langkah 3 (Eksekusi Transaksi DB):* Operator mengonfirmasi simpan, seluruh data valid di-commit dalam satu transaksi database atomik (`DB::beginTransaction` / `commit` / `rollBack`), dan sistem menampilkan ringkasan audit hasil impor.
+
+### 12. Role-Based Access Control (RBAC) & Dynamic Dashboard
 - Implemented using Spatie Laravel Permission with granular abilities (`work-request.view`, `work-request.process`, `material-handling.view`, `material-handling.manage`, etc.).
 - **Dynamic Beranda & Navigation:** Non-authorized modules are completely omitted from the UI, preventing unauthorized clicks or route access.
 - **Intelligent Presets:** New or edited users assigned to Machine Center roles automatically receive Work Request permissions, while Material Handling roles receive logistics permissions.

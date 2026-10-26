@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ComponentController;
+use App\Http\Controllers\ComponentImportController;
 use App\Http\Controllers\CycleCountController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisposalController;
@@ -32,6 +33,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware(['can:master-komponen.view'])->group(function () {
         Route::get('/components', [ComponentController::class, 'index'])->name('components.index');
+        Route::get('/components/import/template', [ComponentImportController::class, 'downloadTemplate'])
+            ->middleware('can:master-komponen.create')
+            ->name('components.import.template');
+        Route::post('/components/import/preview', [ComponentImportController::class, 'preview'])
+            ->middleware('can:master-komponen.create')
+            ->name('components.import.preview');
+        Route::post('/components/import/confirm', [ComponentImportController::class, 'confirm'])
+            ->middleware('can:master-komponen.create')
+            ->name('components.import.confirm');
         Route::get('/components/create', [ComponentController::class, 'create'])->middleware('can:master-komponen.create')->name('components.create');
         Route::post('/components', [ComponentController::class, 'store'])->middleware('can:master-komponen.create')->name('components.store');
         Route::get('/components/{component}', [ComponentController::class, 'show'])->name('components.show');

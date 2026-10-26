@@ -16,6 +16,12 @@
                 </div>
             </div>
             <div class="flex items-center space-x-2 self-start sm:self-auto">
+                <button type="button" 
+                        @click="$dispatch('open-import-modal')" 
+                        class="inline-flex items-center px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition touch-target cursor-pointer">
+                    <i class="fa-solid fa-file-excel me-1.5 text-emerald-200"></i>
+                    Import Excel
+                </button>
                 <a href="{{ route('components.create') }}" class="inline-flex items-center px-4 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition touch-target">
                     <i class="fa-solid fa-plus me-1.5 text-teal-400"></i>
                     Tambah Komponen Baru
@@ -292,4 +298,7 @@
         @endif
 
     </div>
+
+    {{-- Modal Import Massal Excel --}}
+    @include('master_components.partials.import_modal')
 </x-app-layout>

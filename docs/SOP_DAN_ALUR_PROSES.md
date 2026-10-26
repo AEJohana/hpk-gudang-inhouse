@@ -257,3 +257,40 @@ Untuk menjamin setiap klik tombol, dropdown, atau tautan langsung merespon seket
    - Menjamin bahwa saat modal sedang dalam animasi memudar (fade-out 200–300 ms), lapisan transparan tidak menelan klik pengguna berikutnya.
 4. **Indikator Visual & Proteksi Double Submission pada Dropdown WRI:**
    - Aksi pemilihan persetujuan pada tiket WRI langsung menampilkan status visual loading (`Memproses...` disertai animasi spinner) dan mengunci input untuk mencegah double klik selama proses pengiriman form ke server.
+
+---
+
+## 11. Prosedur & Tata Kelola Impor Massal Master Komponen Karoseri (Bulk Excel Import)
+
+Untuk mengakomodasi kebutuhan penginputan data master komponen karoseri dalam jumlah banyak dan mendesak (*urgent batch input*):
+
+1. **Format Resmi Template Excel 2-Sheet:**
+   - Pengguna mengunduh berkas template resmi melalui tombol `[ Download Template Excel ]` pada modal impor di halaman `/components`.
+   - **Sheet 1 (`INPUT DATA KOMPONEN`):** Formulir pengisian data komponen berheader Dark Navy HPK (`#0A2342`) dengan 3 baris sampel pengisian riil.
+   - **Sheet 2 (`PEDOMAN & REFERENSI DROPDOWN`):** Kamus referensi master data terkini:
+     - Tabel Kategori Resmi (subframe, assy, accessories, pto, potong_chassis, spo).
+     - Tabel Satuan Resmi (PCS, SET, BATANG, LEMBAR, KG, LITER, BOX, METER).
+     - Tabel Kode Rak Fisik Aktif Gudang (sinkron langsung dari database `locations`).
+     - Panduan Kolom Wajib (*Mandatory*) vs Kolom Opsional (*Optional*).
+
+2. **Fleksibilitas Kolom & Nilai Bawaan (Default Values):**
+   - **Kolom Wajib:** Hanya **Kode Komponen** (`part_number`) dan **Nama Komponen** (`name`).
+   - **Kolom Opsional (Boleh Kosong):**
+     - Kategori: jika kosong, tersimpan sebagai belum dikategorikan (`null`) dan otomatis masuk antrean filter *Perlu Kategori*.
+     - Satuan (UoM): jika kosong, otomatis menggunakan default `PCS`.
+     - Dimensi (P, L, T) & Spek: boleh dikosongkan.
+     - Stok Minimum: jika kosong, default `0`.
+     - Saldo Stok Awal: jika kosong, default `0`. Jika diisi > 0, otomatis mencatat mutasi stok awal.
+     - Kode Rak: jika kosong, default ditempatkan pada area penampungan sementara (`Area Penampungan Awal / Belum Dialokasikan ke Rak`).
+
+3. **Tata Kelola Foto Komponen (Google Drive & Tautan Web):**
+   - Kolom **Tautan Foto** dapat diisi tautan berbagi Google Drive publik atau URL gambar web langsung.
+   - Sistem secara otomatis mengunduh file gambar tersebut ke direktori server internal (`public/uploads/components/`), sehingga sistem tidak bergantung pada jaringan internet saat operasional harian.
+   - Kolom foto dapat dikosongkan sepenuhnya pada saat input massal mendesak; komponen langsung aktif dan sistem secara otomatis men-generate kode QR unik.
+
+4. **Alur Validasi 2 Tahap (Pre-Import Live Preview & Audit):**
+   - **Langkah 1 (Upload & Opsi Duplikat):** Pengguna mengunggah file `.xlsx` atau `.csv` dan memilih salah satu kebijakan duplikat:
+     - *Lewati Duplikat (Skip):* Mempertahankan data lama jika kode part sudah terdaftar di database.
+     - *Perbarui Duplikat (Update):* Menimpa spesifikasi, kategori, rak, dan stok dengan data terbaru dari Excel.
+   - **Langkah 2 (Pratinjau Live):** Sistem menampilkan kartu ringkasan KPI (Total Baris, Komponen Baru, Duplikat Dilewati/Diupdate, Error) dan tabel baris lengkap dengan badge warna status. Baris error dapat ditinjau tanpa merusak baris valid lainnya.
+   - **Langkah 3 (Eksekusi Atomik):** Pengguna menekan tombol `[ Konfirmasi & Simpan ke Database ]`. Seluruh data valid disimpan dalam transaksi database terisolasi (`DB::beginTransaction` / `commit` / `rollBack`), memunculkan ringkasan audit hasil impor, dan menyajikan tombol muat ulang halaman.
