@@ -2,6 +2,7 @@
 <div x-show="assignModalOpen" 
      x-cloak 
      style="display: none;"
+     :class="{ 'pointer-events-none': !assignModalOpen }"
      class="fixed inset-0 z-50 overflow-y-auto" 
      aria-labelledby="modal-assign-title" 
      role="dialog" 
@@ -15,6 +16,7 @@
          x-transition:leave="ease-in duration-200" 
          x-transition:leave-start="opacity-100" 
          x-transition:leave-end="opacity-0" 
+         :class="{ 'pointer-events-none': !assignModalOpen }"
          class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity" 
          @click="closeAssignModal()"></div>
 

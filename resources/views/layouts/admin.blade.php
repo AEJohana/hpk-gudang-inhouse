@@ -32,6 +32,7 @@
              x-transition:leave="transition-opacity ease-linear duration-300"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
+             :class="{ 'pointer-events-none': !sidebarOpen }"
              class="fixed inset-0 bg-slate-950/70 z-50 backdrop-blur-xs"></div>
 
         <!-- SLIDING HPK NAVY SIDEBAR DRAWER (FROM REFERENS) -->

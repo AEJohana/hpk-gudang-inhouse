@@ -241,3 +241,19 @@ Untuk menjamin kelancaran navigasi operator dan mencegah kebingungan pengguna di
 4. **Tombol Refresh 1-Klik Antrean WRI & Stasiun Mesin:**
    - Header antrean [work_requests/index.blade.php](file:///C:/xampp/htdocs/hpk-gudang-inhouse/resources/views/work_requests/index.blade.php) dan antrean Material Handling / Mesin [work_station_supplies/index.blade.php](file:///C:/xampp/htdocs/hpk-gudang-inhouse/resources/views/work_station_supplies/index.blade.php) menyediakan tombol **Refresh** 1-klik (`fa-solid fa-arrows-rotate`).
    - Tombol ini menjalankan penyegaran instan (`window.location.reload()`) yang mempertahankan filter status tab dan pencarian aktif secara aman tanpa mengharuskan pengguna menekan F5 browser.
+
+---
+
+## 10. Optimasi Responsivitas Antarmuka (Instant Click & Zero-Ghost-Click Protection)
+
+Untuk menjamin setiap klik tombol, dropdown, atau tautan langsung merespon seketika tanpa fenomena *double-click* atau *unresponsive refresh*:
+1. **Pembersihan File Hot Module Replacement (`public/hot`):**
+   - File `public/hot` dinonaktifkan sehingga peramban berjalan 100% pada aset statis terkompilasi (`public/build/`).
+   - Mencegah server dev WebSocket port 5173 memicu `window.location.reload()` otomatis secara tiba-tiba di tengah aktivitas klik pengguna.
+2. **Pencegahan Race-Condition Navigasi Dropdown:**
+   - Komponen dropdown navigasi atas dioptimasi agar event klik tautan (`<a>`) dieksekusi tuntas oleh peramban tanpa terbatalkan di tengah jalan oleh Alpine.js *DOM unmounting*.
+3. **Penonaktifan Seketika Pointer Events pada Backdrop Transisi Modal:**
+   - Seluruh modal dialog dan drawer menu samping dipasangi kelas dinamis `:class="{ 'pointer-events-none': !isOpen }"`.
+   - Menjamin bahwa saat modal sedang dalam animasi memudar (fade-out 200–300 ms), lapisan transparan tidak menelan klik pengguna berikutnya.
+4. **Indikator Visual & Proteksi Double Submission pada Dropdown WRI:**
+   - Aksi pemilihan persetujuan pada tiket WRI langsung menampilkan status visual loading (`Memproses...` disertai animasi spinner) dan mengunci input untuk mencegah double klik selama proses pengiriman form ke server.

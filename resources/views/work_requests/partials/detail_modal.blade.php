@@ -2,6 +2,7 @@
 <div x-show="detailModalOpen" 
      x-cloak 
      style="display: none;"
+     :class="{ 'pointer-events-none': !detailModalOpen }"
      class="fixed inset-0 z-50 overflow-y-auto" 
      aria-labelledby="modal-title" 
      role="dialog" 
@@ -15,6 +16,7 @@
          x-transition:leave="ease-in duration-200" 
          x-transition:leave-start="opacity-100" 
          x-transition:leave-end="opacity-0" 
+         :class="{ 'pointer-events-none': !detailModalOpen }"
          class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity" 
          @click="closeDetailModal()"></div>
 

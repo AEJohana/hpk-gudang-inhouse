@@ -37,6 +37,7 @@
              x-transition:leave="transition-opacity ease-linear duration-300"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
+             :class="{ 'pointer-events-none': !sidebarOpen }"
              class="fixed inset-0 bg-slate-950/70 z-50 backdrop-blur-xs"></div>
 
         <!-- SLIDING HPK NAVY SIDEBAR DRAWER (FROM REFERENS) -->
@@ -265,6 +266,7 @@
         <!-- GLOBAL CAMERA SCANNER MODAL -->
         <div x-show="scannerOpen" 
              style="display: none;" 
+             :class="{ 'pointer-events-none': !scannerOpen }"
              class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
             
             <div @click.away="closeScanner()" class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto border border-slate-200 transition-all">

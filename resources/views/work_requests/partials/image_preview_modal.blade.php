@@ -1,6 +1,7 @@
 <div x-show="imageModalOpen" 
      x-cloak
      style="display: none;"
+     :class="{ 'pointer-events-none': !imageModalOpen }"
      class="fixed inset-0 z-50 overflow-y-auto"
      aria-labelledby="modal-image-title" role="dialog" aria-modal="true">
     <div class="flex items-center justify-center min-h-screen px-4 text-center sm:block sm:p-0">
@@ -12,6 +13,7 @@
              x-transition:leave="ease-in duration-200"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
+             :class="{ 'pointer-events-none': !imageModalOpen }"
              class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" 
              @click="imageModalOpen = false"></div>
 

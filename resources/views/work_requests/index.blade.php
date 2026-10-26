@@ -1111,9 +1111,15 @@
                     this.qrZoomModal = false;
                 },
                 handlePengajuAction(event, approveUrl, rejectUrl, wriNumber) {
-                    const val = event.target.value;
-                    event.target.value = '';
+                    const select = event.target;
+                    const val = select.value;
                     if (val === 'terima') {
+                        select.disabled = true;
+                        select.classList.add('opacity-50', 'cursor-wait');
+                        const parent = select.parentElement;
+                        if (parent) {
+                            parent.insertAdjacentHTML('beforeend', '<span class="inline-flex items-center text-[10px] font-bold text-amber-700 ms-1 animate-pulse"><i class="fa-solid fa-spinner fa-spin me-1"></i> Memproses...</span>');
+                        }
                         const form = document.createElement('form');
                         form.method = 'POST';
                         form.action = approveUrl;
@@ -1125,12 +1131,14 @@
                         document.body.appendChild(form);
                         form.submit();
                     } else if (val === 'tolak') {
+                        select.value = '';
                         this.openRejectModal(rejectUrl, wriNumber);
                     }
                 },
                 handlePenerimaAction(event, assignPayload, rejectUrl, wriNumber) {
-                    const val = event.target.value;
-                    event.target.value = '';
+                    const select = event.target;
+                    const val = select.value;
+                    select.value = '';
                     if (val === 'terima') {
                         this.openAssignModal(assignPayload);
                     } else if (val === 'tolak') {
