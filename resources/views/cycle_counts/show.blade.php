@@ -2,8 +2,9 @@
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
             <div class="flex items-center space-x-3">
-                <a href="{{ route('cycle-counts.index') }}" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                <a href="{{ route('cycle-counts.index') }}" class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer">
+                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
+                    <span>Kembali</span>
                 </a>
                 <div>
                     <div class="flex items-center space-x-2">

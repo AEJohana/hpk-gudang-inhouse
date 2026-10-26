@@ -28,13 +28,24 @@
              x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
              class="relative transform overflow-hidden rounded-3xl bg-slate-100 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-xl border border-slate-200 flex flex-col max-h-[92vh]">
             
-            <!-- Minimalist Top Close Button -->
-            <button type="button" 
-                    @click="closeDetailModal()" 
-                    class="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-slate-400 hover:text-slate-700 shadow-xs flex items-center justify-center transition"
-                    title="Tutup">
-                <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
+            <!-- Top Header Action Bar -->
+            <div class="px-5 py-3 bg-white border-b border-slate-200/80 flex items-center justify-between flex-shrink-0 z-20">
+                <button type="button" 
+                        @click="closeDetailModal()" 
+                        class="px-2.5 py-1 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl border border-slate-200 transition flex items-center space-x-1.5 cursor-pointer">
+                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
+                    <span>Kembali</span>
+                </button>
+                <div class="flex items-center space-x-2">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Detail Pelacakan Tiket</span>
+                    <button type="button" 
+                            @click="closeDetailModal()" 
+                            class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition"
+                            title="Tutup">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+            </div>
 
             <!-- Scrollable Content Body -->
             <div class="p-5 overflow-y-auto space-y-4 text-xs text-slate-700">
@@ -509,8 +520,9 @@
                 </a>
                 <button type="button" 
                         @click="closeDetailModal()" 
-                        class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs transition">
-                    Tutup
+                        class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs transition flex items-center space-x-1.5 cursor-pointer">
+                    <i class="fa-solid fa-arrow-left text-xs"></i>
+                    <span>Kembali / Tutup</span>
                 </button>
             </div>
 

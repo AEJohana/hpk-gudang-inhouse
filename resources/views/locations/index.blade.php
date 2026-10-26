@@ -1,20 +1,28 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <div class="flex items-center space-x-2">
-                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 uppercase tracking-wider">
-                        Interactive Lego 2D Floor Plan
-                    </span>
-                    <span class="text-xs text-slate-500 font-medium">Multi-Gedung &bull; Sistem Rak & Pallet Pabrik Karoseri HPK</span>
+            <div class="flex items-start space-x-3">
+                <a href="{{ route('dashboard') }}" 
+                   class="mt-1 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
+                   title="Kembali ke Beranda Utama">
+                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
+                    <span>Kembali</span>
+                </a>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 uppercase tracking-wider">
+                            Interactive Lego 2D Floor Plan
+                        </span>
+                        <span class="text-xs text-slate-500 font-medium">Multi-Gedung &bull; Sistem Rak & Pallet Pabrik Karoseri HPK</span>
+                    </div>
+                    <h2 class="font-extrabold text-2xl text-slate-900 leading-tight mt-1 flex items-center gap-2">
+                        <i class="fa-solid fa-cubes text-amber-500"></i>
+                        Peta Lokasi & Tata Letak Rak & Pallet Gudang
+                    </h2>
+                    <p class="text-xs text-slate-600 mt-0.5">
+                        Sesuaikan luas area gedung terlebih dahulu, susun letak balok rak bertingkat (1x1) dan area penyimpanan lantai non-rak (Pallet 1x1) secara fleksibel.
+                    </p>
                 </div>
-                <h2 class="font-extrabold text-2xl text-slate-900 leading-tight mt-1 flex items-center gap-2">
-                    <i class="fa-solid fa-cubes text-amber-500"></i>
-                    Peta Lokasi & Tata Letak Rak & Pallet Gudang
-                </h2>
-                <p class="text-xs text-slate-600 mt-0.5">
-                    Sesuaikan luas area gedung terlebih dahulu, susun letak balok rak bertingkat (1x1) dan area penyimpanan lantai non-rak (Pallet 1x1) secara fleksibel.
-                </p>
             </div>
 
             <!-- KPI Pill Bar (Tema Terang) -->

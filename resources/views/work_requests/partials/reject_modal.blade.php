@@ -78,8 +78,9 @@
                 <div class="pt-3 border-t border-slate-100 flex items-center justify-end space-x-2">
                     <button type="button" 
                             @click="closeRejectModal()" 
-                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
-                        Batal
+                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer">
+                        <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
+                        <span>Kembali / Batal</span>
                     </button>
                     <button type="submit" 
                             class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5">

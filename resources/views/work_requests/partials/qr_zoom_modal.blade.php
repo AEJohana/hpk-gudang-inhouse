@@ -58,8 +58,9 @@
 
             <button type="button" 
                     @click="closeQrZoom()" 
-                    class="mt-4 w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition">
-                Tutup Pembesar QR
+                    class="mt-4 w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center space-x-1.5 cursor-pointer">
+                <i class="fa-solid fa-arrow-left text-xs"></i>
+                <span>Kembali / Tutup Pembesar QR</span>
             </button>
         </div>
     </div>

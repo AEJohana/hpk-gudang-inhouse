@@ -223,3 +223,21 @@ Formulir pengajuan pesanan pembuatan part (`/work-requests/create`) menerapkan a
    - Penyimpanan via AJAX seketika menambahkan komponen ke katalog master dan langsung memilihnya di formulir WR tanpa me-refresh halaman.
 3. **Standarisasi Zero-FOUC (Bebas Kedipan Modal):**
    - Seluruh modal dilindungi oleh deklarasi CSS global `[x-cloak] { display: none !important; }` dan inline style `style="display: none;"` untuk menjamin tidak ada modal yang muncul sekilas saat halaman pertama kali dibuka.
+
+---
+
+## 9. Standar Navigasi Kembali (Universal Back Navigation) & Tombol Refresh Antrean
+
+Untuk menjamin kelancaran navigasi operator dan mencegah kebingungan pengguna di lantai produksi:
+1. **Tombol Kembali Prominen pada Seluruh Menu Utama (Index Views) Menuju Beranda:**
+   - Seluruh halaman menu utama (*Index Views*: Work Request, Material Handling Center, Master Komponen, Transaksi Gudang, Peta Gudang 2D, ECR, Disposal, Stok Opname, Cetak Label QR, dan Admin Area) kini dilengkapi tombol navigasi `[ < Kembali ]` di sisi kiri judul menu.
+   - Tombol ini langsung mengarahkan pengguna kembali ke **Beranda Utama (`/dashboard`)** dalam 1-klik, mengeliminasi kebutuhan mencari tombol logo atau menu sidebar samping.
+2. **Tombol Kembali Prominen pada Seluruh Sub-View Jendela:**
+   - Seluruh halaman input dan detail (*create, edit, show*) di modul Work Request, Master Komponen, Transaksi, ECR, Disposal, dan Cycle Count dilengkapi tombol navigasi `[ < Kembali ]` berbasis border fisik (`border-slate-300`), latar belakang putih kontras, ikon panah `fa-arrow-left`, dan teks tebal yang mengarahkan kembali ke indeks modul induk masing-masing.
+3. **Standarisasi Tombol Batal & Tutup pada Seluruh Pop-up Modal Dialog:**
+   - Bagian header modal detail WRI dilengkapi tombol navigasi `[ < Kembali ]` di samping tombol silang `(X)`.
+   - Tombol penutup pada sticky footer modal detail diperjelas menjadi `[ < Kembali / Tutup ]`.
+   - Modal proses kuantitas, penugasan operator, pembatalan/penolakan tiket, pembesar QR, dan pratinjau foto part distandarisasi dengan tombol pembatalan eksplisit `[ < Kembali / Batal ]` atau `[ < Kembali / Tutup ]`.
+4. **Tombol Refresh 1-Klik Antrean WRI & Stasiun Mesin:**
+   - Header antrean [work_requests/index.blade.php](file:///C:/xampp/htdocs/hpk-gudang-inhouse/resources/views/work_requests/index.blade.php) dan antrean Material Handling / Mesin [work_station_supplies/index.blade.php](file:///C:/xampp/htdocs/hpk-gudang-inhouse/resources/views/work_station_supplies/index.blade.php) menyediakan tombol **Refresh** 1-klik (`fa-solid fa-arrows-rotate`).
+   - Tombol ini menjalankan penyegaran instan (`window.location.reload()`) yang mempertahankan filter status tab dan pencarian aktif secara aman tanpa mengharuskan pengguna menekan F5 browser.

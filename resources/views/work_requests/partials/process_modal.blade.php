@@ -270,8 +270,9 @@
                 <div class="pt-2 border-t border-slate-100 flex items-center space-x-2">
                     <button type="button" 
                             @click="closeProcessModal()" 
-                            class="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition">
-                        Batal
+                            class="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition flex items-center justify-center space-x-1.5 cursor-pointer">
+                        <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
+                        <span>Kembali / Batal</span>
                     </button>
                     <button type="submit" 
                             class="flex-1 py-2.5 rounded-xl text-white font-extrabold text-xs shadow-md transition flex items-center justify-center space-x-1.5"

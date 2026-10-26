@@ -1,11 +1,19 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
-            <div>
-                <h2 class="font-extrabold text-xl text-slate-900 leading-tight">
-                    Permintaan & Pencetakan Label QR Komponen
-                </h2>
-                <p class="text-xs text-slate-500 mt-0.5">Generator stiker barcode & QR Code tahan oli/panas untuk penandaan part, box, dan rak gudang HPK</p>
+            <div class="flex items-start space-x-3">
+                <a href="{{ route('dashboard') }}" 
+                   class="mt-1 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
+                   title="Kembali ke Beranda Utama">
+                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
+                    <span>Kembali</span>
+                </a>
+                <div>
+                    <h2 class="font-extrabold text-xl text-slate-900 leading-tight">
+                        Permintaan & Pencetakan Label QR Komponen
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Generator stiker barcode & QR Code tahan oli/panas untuk penandaan part, box, dan rak gudang HPK</p>
+                </div>
             </div>
             <a href="{{ route('qr-requests.create') }}" class="px-3.5 py-2 bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center w-full sm:w-auto">
                 <i class="fa-solid fa-plus me-1.5"></i>

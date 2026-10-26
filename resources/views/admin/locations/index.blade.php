@@ -18,13 +18,21 @@
                 </div>
 
                 <div class="flex flex-col md:flex-row md:items-end md:justify-between">
-                    <div>
-                        <h1 class="font-black text-2xl sm:text-3xl text-white tracking-wide">
-                            Gudang, Zona & Lokasi Rak
-                        </h1>
-                        <p class="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                            Pemetaan fisik 1 gedung HPK Karoseri terbagi menjadi 6 zona operasional (A sampai F) dan titik bin level.
-                        </p>
+                    <div class="flex items-start space-x-3">
+                        <a href="{{ route('dashboard') }}" 
+                           class="mt-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
+                           title="Kembali ke Beranda Utama">
+                            <i class="fa-solid fa-arrow-left text-xs text-amber-300"></i>
+                            <span>Kembali</span>
+                        </a>
+                        <div>
+                            <h1 class="font-black text-2xl sm:text-3xl text-white tracking-wide">
+                                Gudang, Zona & Lokasi Rak
+                            </h1>
+                            <p class="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                                Pemetaan fisik 1 gedung HPK Karoseri terbagi menjadi 6 zona operasional (A sampai F) dan titik bin level.
+                            </p>
+                        </div>
                     </div>
                     <div class="mt-4 md:mt-0 flex items-center space-x-3">
                         <a href="{{ route('warehouse-map.index') }}" 

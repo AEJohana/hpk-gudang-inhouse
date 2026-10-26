@@ -112,8 +112,9 @@
                     <div>
                         <button type="button" 
                                 @click="closeAssignModal()" 
-                                class="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs transition">
-                            Batal
+                                class="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs transition flex items-center space-x-1.5 cursor-pointer">
+                            <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
+                            <span>Kembali / Batal</span>
                         </button>
                     </div>
                     <div class="flex items-center space-x-2">

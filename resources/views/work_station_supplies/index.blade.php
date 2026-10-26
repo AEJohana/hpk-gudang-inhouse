@@ -1,29 +1,44 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <div class="flex items-center space-x-2">
-                    <span class="px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-md bg-teal-100 text-teal-900 border border-teal-300">
-                        Task Gudang &bull; Logistik Antar Stasiun
-                    </span>
-                    <span class="text-xs text-slate-500 font-medium">PT. Hydraxle Perkasa</span>
-                </div>
-                <div class="flex items-center space-x-3 mt-1">
-                    <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight">
-                        Material Handling
-                    </h2>
-                    <!-- Jam Digital Ringan Kotak (Sesuai Desain Legacy) -->
-                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/80 shadow-xs text-xs font-bold text-slate-600 font-mono" x-data="{ time: new Date().toLocaleTimeString('id-ID') }" x-init="setInterval(() => time = new Date().toLocaleTimeString('id-ID'), 1000)">
-                        <i class="fa-regular fa-clock text-slate-400 text-[11px]"></i>
-                        <span x-text="time">--:--:--</span>
+            <div class="flex items-start space-x-3">
+                <a href="{{ route('dashboard') }}" 
+                   class="mt-1 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
+                   title="Kembali ke Beranda Utama">
+                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
+                    <span>Kembali</span>
+                </a>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-md bg-teal-100 text-teal-900 border border-teal-300">
+                            Task Gudang &bull; Logistik Antar Stasiun
+                        </span>
+                        <span class="text-xs text-slate-500 font-medium">PT. Hydraxle Perkasa</span>
                     </div>
+                    <div class="flex items-center space-x-3 mt-1">
+                        <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight">
+                            Material Handling
+                        </h2>
+                        <!-- Jam Digital Ringan Kotak (Sesuai Desain Legacy) -->
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/80 shadow-xs text-xs font-bold text-slate-600 font-mono" x-data="{ time: new Date().toLocaleTimeString('id-ID') }" x-init="setInterval(() => time = new Date().toLocaleTimeString('id-ID'), 1000)">
+                            <i class="fa-regular fa-clock text-slate-400 text-[11px]"></i>
+                            <span x-text="time">--:--:--</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        Proses pengambilan & pengiriman barang antar mesin dan ke gudang
+                    </p>
                 </div>
-                <p class="text-xs text-slate-500 mt-0.5">
-                    Proses pengambilan & pengiriman barang antar mesin dan ke gudang
-                </p>
             </div>
 
             <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                <button type="button" 
+                        onclick="window.location.reload()" 
+                        class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs transition flex items-center space-x-1.5 cursor-pointer active:scale-95"
+                        title="Segarkan antrean tugas MH">
+                    <i class="fa-solid fa-arrows-rotate text-xs text-teal-600"></i>
+                    <span>Refresh</span>
+                </button>
                 <button type="button" 
                         @click="$dispatch('open-mh-scanner')" 
                         class="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center">

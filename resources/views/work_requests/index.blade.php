@@ -1,22 +1,37 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <div class="flex items-center space-x-2">
-                    <span class="px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-md bg-amber-100 text-amber-900 border border-amber-300">
-                        WRI &bull; Alur Multi-Routing & Parsial
-                    </span>
-                    <span class="text-xs text-slate-500 font-medium">PT Hydraxle Perkasa Karoseri</span>
+            <div class="flex items-start space-x-3">
+                <a href="{{ route('dashboard') }}" 
+                   class="mt-1 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
+                   title="Kembali ke Beranda Utama">
+                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
+                    <span>Kembali</span>
+                </a>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-md bg-amber-100 text-amber-900 border border-amber-300">
+                            WRI &bull; Alur Multi-Routing & Parsial
+                        </span>
+                        <span class="text-xs text-slate-500 font-medium">PT Hydraxle Perkasa Karoseri</span>
+                    </div>
+                    <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight mt-1">
+                        Work Request Inhouse (WRI)
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        Permintaan komponen fabrikasi in-house dengan alur multi-mesin, pencatatan parsial, koreksi defect, hingga serah terima & auto-update stok gudang
+                    </p>
                 </div>
-                <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight mt-1">
-                    Work Request Inhouse (WRI)
-                </h2>
-                <p class="text-xs text-slate-500 mt-0.5">
-                    Permintaan komponen fabrikasi in-house dengan alur multi-mesin, pencatatan parsial, koreksi defect, hingga serah terima & auto-update stok gudang
-                </p>
             </div>
 
             <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                <button type="button" 
+                        onclick="window.location.reload()" 
+                        class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs transition flex items-center space-x-1.5 cursor-pointer active:scale-95"
+                        title="Segarkan antrean tiket WRI">
+                    <i class="fa-solid fa-arrows-rotate text-xs text-amber-600"></i>
+                    <span>Refresh</span>
+                </button>
                 <a href="{{ route('work-station-supplies.index') }}" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center">
                     <i class="fa-solid fa-truck-ramp-box me-1.5 text-sm"></i>
                     Material Handling Center

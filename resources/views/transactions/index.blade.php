@@ -1,11 +1,19 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-            <div>
-                <h2 class="font-extrabold text-xl text-slate-900 leading-tight">
-                    Transaksi Komponen Gudang HPK
-                </h2>
-                <p class="text-xs text-slate-500 mt-0.5">Penerimaan (Inbound), Pengeluaran (Outbound Karoseri), dan Transfer Antar Rak</p>
+            <div class="flex items-start space-x-3">
+                <a href="{{ route('dashboard') }}" 
+                   class="mt-1 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
+                   title="Kembali ke Beranda Utama">
+                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
+                    <span>Kembali</span>
+                </a>
+                <div>
+                    <h2 class="font-extrabold text-xl text-slate-900 leading-tight">
+                        Transaksi Komponen Gudang HPK
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Penerimaan (Inbound), Pengeluaran (Outbound Karoseri), dan Transfer Antar Rak</p>
+                </div>
             </div>
             <div class="flex flex-wrap gap-2 self-start sm:self-auto">
                 <a href="{{ route('transactions.create', ['type' => 'inbound']) }}" class="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center">
