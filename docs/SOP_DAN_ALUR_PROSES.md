@@ -201,3 +201,20 @@ Pop-up modal input kuantitas pengerjaan dan serah terima (`process_modal.blade.p
 4. **Smart Defect Drawer (Opsional & Dapat Dilipat):** Tombol toggle `[+ Ada Defect / Rusak? (Opsional)]` menyembunyikan form defect jika tidak ada reject (90%+ kondisi normal). Jika dibuka, menyediakan input kuantitas defect dan alasan secara kompak dengan kalkulasi otomatis pemotongan kuota.
 5. **Penguncian Tahap Mesin Masuk `(In)`:** Kuantitas otomatis terkunci penuh dengan lencana gembok, memberi informasi jelas bahwa input kuantitas hasil dan defect dilakukan saat mesin selesai `(Out)`.
 6. **Integritas Fungsi & Zero Regression:** Seluruh 7 parameter form (`action_type`, `target_status`, `operator_name`, `process_qty`, `defect_qty`, `defect_reason`, `notes`), route aksi, dan validasi database tetap berjalan 100% identik tanpa perubahan logika backend.
+
+---
+
+## 8. Alur Pemilihan & Pendaftaran Komponen Baru pada Formulir Membuat WR
+
+Formulir pengajuan pesanan pembuatan part (`/work-requests/create`) menerapkan alur pemilihan dan pendaftaran on-the-fly yang mulus:
+1. **Searchable Combobox (Pencarian Cepat 627+ Komponen):**
+   - Pengaju mengetik nama part atau kode part pada kolom input interaktif.
+   - Panel hasil pencarian secara instan menyaring daftar katalog komponen karoseri, menampilkan foto thumbnail, kode part, nama, kategori, dimensi (P x L x T), dan saldo stok fisik gudang.
+   - Memilih part langsung menampilkan kartu identitas visual dan mengisi rekomendasi stasiun mesin fabrikasi (*Smart Suggest Routing*) secara otomatis.
+2. **Fallback Pendaftaran Part Baru On-The-Fly:**
+   - Apabila part yang diketik belum terdaftar di sistem (*Zero Results*), sistem secara otomatis menampilkan kartu informasi ramah dengan tombol `[+ Daftarkan Part Baru Ini]`.
+   - Nama part yang diketik otomatis diisikan (*pre-filled*) ke dalam form modal registrasi tanpa mengharuskan pengguna mengetik ulang.
+   - Form modal menyediakan pilihan **Kategori Part (Opsional)** dengan default aman (*Subframe / Karoseri*) dan input dimensi teknis.
+   - Penyimpanan via AJAX seketika menambahkan komponen ke katalog master dan langsung memilihnya di formulir WR tanpa me-refresh halaman.
+3. **Standarisasi Zero-FOUC (Bebas Kedipan Modal):**
+   - Seluruh modal dilindungi oleh deklarasi CSS global `[x-cloak] { display: none !important; }` dan inline style `style="display: none;"` untuk menjamin tidak ada modal yang muncul sekilas saat halaman pertama kali dibuka.

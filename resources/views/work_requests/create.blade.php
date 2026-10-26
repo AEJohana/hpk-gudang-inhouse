@@ -13,7 +13,28 @@
         </div>
     </x-slot>
 
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="membuatWrForm()">
+@php
+    $componentsJsonData = $components->map(function($c) {
+        return [
+            'id' => $c->id,
+            'part_number' => $c->part_number ?? '-',
+            'name' => $c->name,
+            'category' => $c->category ?? 'subframe',
+            'uom' => $c->uom ?: 'PCS',
+            'specs' => $c->specification ?: '',
+            'image_url' => $c->image_url,
+            'length_mm' => (string) ($c->length_mm ?? ''),
+            'width_mm' => (string) ($c->width_or_diameter_mm ?? ''),
+            'thickness_mm' => (string) ($c->thickness_or_height_mm ?? ''),
+            'dimensions' => $c->dimension_formatted ?: '-',
+            'stock' => (float) $c->total_stock,
+            'min_stock' => (float) ($c->minimum_stock ?: 0),
+            'rack' => $c->default_full_location_code ?: 'Belum di Rak',
+        ];
+    })->values();
+@endphp
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="membuatWrForm(@js($componentsJsonData))">
         <form method="POST" action="{{ route('work-requests.store') }}" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
             @csrf
 
@@ -125,23 +146,125 @@
                     </button>
                 </div>
 
+                <!-- TOAST NOTIFIKASI SUKSES PART BARU -->
+                <div x-show="quickAddSuccessToast" 
+                     x-transition 
+                     x-cloak 
+                     style="display: none;" 
+                     class="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-xl text-xs flex items-center justify-between shadow-xs">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+                        <span>Komponen baru berhasil didaftarkan dan langsung terpilih di formulir pesanan!</span>
+                    </div>
+                    <button type="button" @click="quickAddSuccessToast = false" class="text-emerald-700 hover:text-emerald-900 font-bold px-2 py-0.5">
+                        &times;
+                    </button>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                    <!-- Dropdown Komponen -->
-                    <div class="sm:col-span-8">
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                            Pilih Komponen In-House <span class="text-rose-500">*</span>
-                        </label>
+                    <!-- Searchable Combobox Komponen (Opsi A) -->
+                    <div class="sm:col-span-8 relative" @click.outside="isSearchOpen = false">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                Cari & Pilih Komponen In-House <span class="text-rose-500">*</span>
+                            </label>
+                            <span class="text-[10px] text-slate-400 font-semibold" x-text="componentsList.length + ' Master Part Tersedia'"></span>
+                        </div>
+
+                        <!-- Kotak Input Pencarian Interaktif -->
+                        <div class="relative">
+                            <input type="text" 
+                                   x-model="searchQuery" 
+                                   @focus="isSearchOpen = true" 
+                                   @input="isSearchOpen = true; if(!searchQuery) clearSelection()"
+                                   placeholder="Ketik Nama atau Kode Part Karoseri (misal: BUMPER, ADR, UNP)..." 
+                                   class="w-full px-3.5 py-2 pl-9 pr-9 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-bold text-slate-900 transition shadow-2xs">
+                            
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+
+                            <!-- Tombol Clear / Hapus Pilihan -->
+                            <button type="button" 
+                                    x-show="searchQuery || selectedComponentId" 
+                                    @click="clearSelection()" 
+                                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                                    title="Bersihkan pilihan">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                        </div>
+
+                        <!-- Dropdown Panel Hasil Pencarian (Live Filter) -->
+                        <div x-show="isSearchOpen" 
+                             x-cloak 
+                             style="display: none;"
+                             class="absolute left-0 right-0 z-30 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-72 overflow-y-auto divide-y divide-slate-100">
+                            
+                            <!-- Daftar Hasil Filter -->
+                            <template x-for="comp in filteredComponents()" :key="comp.id">
+                                <div @click="selectComponent(comp)" 
+                                     :class="{ 'bg-amber-50/80 font-bold': selectedComponentId == comp.id }"
+                                     class="p-2.5 hover:bg-slate-50 cursor-pointer flex items-center space-x-3 transition">
+                                    
+                                    <!-- Thumbnail Foto Part -->
+                                    <img :src="comp.image_url" 
+                                         :alt="comp.name" 
+                                         class="w-10 h-10 rounded-lg object-cover bg-slate-100 border border-slate-200 flex-shrink-0"
+                                         x-on:error="$el.src = '{{ asset('images/placeholder_part.svg') }}'">
+                                    
+                                    <!-- Rincian Identitas Part -->
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="font-mono text-[11px] font-bold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200" x-text="comp.part_number"></span>
+                                            <span class="text-[10px] text-slate-500 font-semibold uppercase" x-text="'[' + (comp.category || 'subframe') + ']'"></span>
+                                        </div>
+                                        <div class="font-bold text-xs text-slate-900 truncate mt-0.5" x-text="comp.name"></div>
+                                        <div class="text-[10px] text-slate-400 flex items-center space-x-2 mt-0.5">
+                                            <span x-text="'Dimensi: ' + comp.dimensions"></span>
+                                            <span>&bull;</span>
+                                            <span x-text="'Rak: ' + comp.rack"></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Ketersediaan Stok -->
+                                    <div class="text-right flex-shrink-0">
+                                        <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full"
+                                              :class="comp.stock > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'"
+                                              x-text="'Stok: ' + comp.stock + ' ' + comp.uom"></span>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Kondisi: Part Tidak Ditemukan (Fallback Pendaftaran Baru Cepat) -->
+                            <div x-show="filteredComponents().length === 0" class="p-4 text-center space-y-2">
+                                <div class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 mx-auto flex items-center justify-center text-sm border border-amber-200">
+                                    <i class="fa-solid fa-cube"></i>
+                                </div>
+                                <div class="text-xs font-bold text-slate-800">
+                                    Part "<span x-text="searchQuery" class="text-amber-700 font-extrabold"></span>" belum terdaftar di sistem.
+                                </div>
+                                <p class="text-[11px] text-slate-500">
+                                    Daftarkan part baru ini langsung ke sistem agar dapat segera diproses stasiun mesin.
+                                </p>
+                                <button type="button" 
+                                        @click="openQuickAddModal(searchQuery)" 
+                                        class="mt-1 inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition shadow-xs">
+                                    <i class="fa-solid fa-plus text-[10px]"></i>
+                                    <span>+ Daftarkan Part Baru Ini</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Hidden Native Select untuk POST Form (Menjaga Kompatibilitas) -->
                         <select name="component_id" 
                                 id="componentSelect" 
                                 required 
                                 x-model="selectedComponentId" 
-                                @change="updateComponentDetails()" 
-                                class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-semibold text-slate-900">
+                                class="hidden">
                             <option value="">-- Cari / Pilih Komponen Karoseri --</option>
                             @foreach($components as $comp)
                                 <option value="{{ $comp->id }}" 
                                         data-part="{{ $comp->part_number }}"
                                         data-name="{{ $comp->name }}"
+                                        data-category="{{ $comp->category }}"
                                         data-uom="{{ $comp->uom ?: 'PCS' }}"
                                         data-specs="{{ $comp->specification }}"
                                         data-image="{{ $comp->image_url }}"
@@ -156,7 +279,7 @@
                                 </option>
                             @endforeach
                         </select>
-                        <p class="text-[10px] text-slate-400 mt-1">Pilih part baja atau komponen karoseri yang akan dibuat oleh mesin center.</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Ketik kata kunci untuk mencari part karoseri atau daftarkan part baru jika belum ada.</p>
                     </div>
 
                     <!-- Jumlah Permintaan & UoM (Integrated Anti-Overflow Input Group) -->
@@ -381,6 +504,7 @@
         <!-- MODAL CEPAT: DAFTARKAN KOMPONEN BARU ON-THE-FLY -->
         <div x-show="showQuickAddModal" 
              x-cloak 
+             style="display: none;"
              class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4" @click.outside="showQuickAddModal = false">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -415,9 +539,35 @@
                         </div>
                         <div>
                             <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                Kategori Part (Opsional)
+                            </label>
+                            <select x-model="newComp.category" class="w-full px-3 py-1.5 border border-slate-300 rounded-xl font-bold text-slate-800">
+                                <option value="">-- Bawaan: Subframe --</option>
+                                <option value="subframe">Subframe (Sasis Karoseri)</option>
+                                <option value="karoseri">Karoseri (Panel & Bodi)</option>
+                                <option value="assy">Assy (Sub-Assembly)</option>
+                                <option value="accessories">Aksesoris (Engsel, Bracket)</option>
+                                <option value="hydraulic">Hydraulic (Silinder/Pump)</option>
+                                <option value="raw_material">Raw Material (Plat/Baja)</option>
+                                <option value="fastener">Fastener (Baut, U-Bolt)</option>
+                                <option value="potong_chassis">Potong Chassis</option>
+                                <option value="spo">SPO (Special Purpose)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">
                                 Satuan (UoM)
                             </label>
                             <input type="text" x-model="newComp.uom" placeholder="PCS / SET / BATANG" class="w-full px-3 py-1.5 border border-slate-300 rounded-xl font-bold text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                Material / Spesifikasi
+                            </label>
+                            <input type="text" x-model="newComp.specification" placeholder="Contoh: Plat SPHC 6mm / Pipa Seamless..." class="w-full px-3 py-1.5 border border-slate-300 rounded-xl">
                         </div>
                     </div>
 
@@ -431,13 +581,6 @@
                             <input type="text" x-model="newComp.width_or_diameter_mm" placeholder="L / ⌀ (mm)" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-center font-bold">
                             <input type="text" x-model="newComp.thickness_or_height_mm" placeholder="T (mm)" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-center font-bold">
                         </div>
-                    </div>
-
-                    <div>
-                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">
-                            Material / Catatan Spesifikasi
-                        </label>
-                        <input type="text" x-model="newComp.specification" placeholder="Contoh: Plat Hitam SPHC 6mm / Pipa Seamless..." class="w-full px-3 py-1.5 border border-slate-300 rounded-xl">
                     </div>
 
                     <div>
@@ -462,8 +605,12 @@
     </div>
 
     <script>
-        function membuatWrForm() {
+        function membuatWrForm(initialComponents = []) {
             return {
+                componentsList: initialComponents || [],
+                searchQuery: '',
+                isSearchOpen: false,
+
                 selectedComponentId: '',
                 selectedPartNumber: '',
                 selectedName: '',
@@ -489,9 +636,11 @@
                 // Modal Registrasi Komponen Baru
                 showQuickAddModal: false,
                 isSubmittingNewComp: false,
+                quickAddSuccessToast: false,
                 newComp: {
                     name: '',
                     part_number: '',
+                    category: '',
                     uom: 'PCS',
                     length_mm: '',
                     width_or_diameter_mm: '',
@@ -500,29 +649,74 @@
                     file: null
                 },
 
+                filteredComponents() {
+                    if (!this.searchQuery || !this.searchQuery.trim()) {
+                        return this.componentsList.slice(0, 25);
+                    }
+                    const q = this.searchQuery.toLowerCase().trim();
+                    return this.componentsList.filter(c => {
+                        return (c.name && c.name.toLowerCase().includes(q)) || 
+                               (c.part_number && c.part_number.toLowerCase().includes(q));
+                    }).slice(0, 35);
+                },
+
+                selectComponent(comp) {
+                    if (!comp) return;
+                    this.selectedComponentId = comp.id;
+                    this.searchQuery = comp.part_number + ' • ' + comp.name;
+                    this.selectedPartNumber = comp.part_number || '';
+                    this.selectedName = comp.name || '';
+                    this.selectedUom = comp.uom || 'PCS';
+                    this.selectedSpecs = comp.specs || '';
+                    this.selectedImage = comp.image_url || '{{ asset('images/placeholder_part.svg') }}';
+                    this.selectedDimensions = comp.dimensions || '-';
+                    this.lengthMm = comp.length_mm || '';
+                    this.widthMm = comp.width_mm || '';
+                    this.thicknessMm = comp.thickness_mm || '';
+                    this.totalStock = comp.stock || 0;
+                    this.minimumStock = comp.min_stock || 0;
+                    this.rackCode = comp.rack || 'Belum di Rak';
+                    this.isSearchOpen = false;
+
+                    const select = document.getElementById('componentSelect');
+                    if (select) {
+                        select.value = comp.id;
+                    }
+
+                    // Smart Suggest Routing: Sesuaikan stasiun pertama dengan nama part
+                    this.smartSuggestRouting(this.selectedName);
+                },
+
+                clearSelection() {
+                    this.selectedComponentId = '';
+                    this.searchQuery = '';
+                    this.selectedPartNumber = '';
+                    this.selectedName = '';
+                    this.selectedImage = '';
+                    this.selectedDimensions = '';
+                    this.lengthMm = '';
+                    this.widthMm = '';
+                    this.thicknessMm = '';
+                    this.totalStock = 0;
+                    this.minimumStock = 0;
+                    this.rackCode = '';
+                    const select = document.getElementById('componentSelect');
+                    if (select) {
+                        select.value = '';
+                    }
+                    this.isSearchOpen = true;
+                },
+
                 updateComponentDetails() {
                     const select = document.getElementById('componentSelect');
-                    const opt = select.options[select.selectedIndex];
+                    const opt = select?.options[select.selectedIndex];
                     if (opt && opt.value) {
-                        this.selectedPartNumber = opt.dataset.part || '';
-                        this.selectedName = opt.dataset.name || '';
-                        this.selectedUom = opt.dataset.uom || 'PCS';
-                        this.selectedSpecs = opt.dataset.specs || '';
-                        this.selectedImage = opt.dataset.image || '{{ asset('images/placeholder_part.svg') }}';
-                        this.selectedDimensions = opt.dataset.dimensions || '-';
-                        this.lengthMm = opt.dataset.length || '';
-                        this.widthMm = opt.dataset.width || '';
-                        this.thicknessMm = opt.dataset.thickness || '';
-                        this.totalStock = opt.dataset.stock || '0';
-                        this.minimumStock = opt.dataset.minStock || '0';
-                        this.rackCode = opt.dataset.rack || '-';
-
-                        // Smart Suggest Routing: Sesuaikan stasiun pertama dengan nama part
-                        this.smartSuggestRouting(this.selectedName);
+                        const matched = this.componentsList.find(c => c.id == opt.value);
+                        if (matched) {
+                            this.selectComponent(matched);
+                        }
                     } else {
-                        this.selectedPartNumber = '';
-                        this.selectedName = '';
-                        this.selectedImage = '';
+                        this.clearSelection();
                     }
                 },
 
@@ -556,10 +750,15 @@
                     }
                 },
 
-                openQuickAddModal() {
+                openQuickAddModal(prefillName = '') {
+                    const queryText = (typeof prefillName === 'string' && prefillName.trim()) 
+                        ? prefillName.trim() 
+                        : (this.searchQuery && !this.selectedComponentId ? this.searchQuery.trim() : '');
+
                     this.newComp = {
-                        name: '',
+                        name: queryText,
                         part_number: '',
+                        category: '',
                         uom: 'PCS',
                         length_mm: '',
                         width_or_diameter_mm: '',
@@ -567,6 +766,7 @@
                         specification: '',
                         file: null
                     };
+                    this.isSearchOpen = false;
                     this.showQuickAddModal = true;
                 },
 
@@ -575,7 +775,7 @@
                 },
 
                 async submitQuickAdd() {
-                    if (!this.newComp.name) {
+                    if (!this.newComp.name || !this.newComp.name.trim()) {
                         alert('Nama komponen wajib diisi!');
                         return;
                     }
@@ -583,8 +783,9 @@
 
                     try {
                         const formData = new FormData();
-                        formData.append('name', this.newComp.name);
-                        if (this.newComp.part_number) formData.append('part_number', this.newComp.part_number);
+                        formData.append('name', this.newComp.name.trim());
+                        if (this.newComp.part_number) formData.append('part_number', this.newComp.part_number.trim());
+                        if (this.newComp.category) formData.append('category', this.newComp.category.trim());
                         formData.append('uom', this.newComp.uom || 'PCS');
                         if (this.newComp.length_mm) formData.append('length_mm', this.newComp.length_mm);
                         if (this.newComp.width_or_diameter_mm) formData.append('width_or_diameter_mm', this.newComp.width_or_diameter_mm);
@@ -604,29 +805,44 @@
                         const res = await response.json();
                         if (res.success && res.component) {
                             const comp = res.component;
-                            // Tambahkan ke dropdown select secara dinamis
-                            const select = document.getElementById('componentSelect');
-                            const newOpt = document.createElement('option');
-                            newOpt.value = comp.id;
-                            newOpt.text = `${comp.part_number} • ${comp.name} (${comp.uom})`;
-                            newOpt.dataset.part = comp.part_number;
-                            newOpt.dataset.name = comp.name;
-                            newOpt.dataset.uom = comp.uom;
-                            newOpt.dataset.specs = comp.specification;
-                            newOpt.dataset.image = comp.image_url;
-                            newOpt.dataset.length = comp.length_mm || '';
-                            newOpt.dataset.width = comp.width_or_diameter_mm || '';
-                            newOpt.dataset.thickness = comp.thickness_or_height_mm || '';
-                            newOpt.dataset.dimensions = comp.dimension_formatted || '-';
-                            newOpt.dataset.stock = comp.total_stock || 0;
-                            newOpt.dataset.minStock = comp.minimum_stock || 0;
-                            newOpt.dataset.rack = comp.rack_code || 'Belum di Rak';
+                            const formattedComp = {
+                                id: comp.id,
+                                part_number: comp.part_number || '-',
+                                name: comp.name,
+                                category: comp.category || 'subframe',
+                                uom: comp.uom || 'PCS',
+                                specs: comp.specification || '',
+                                image_url: comp.image_url || '{{ asset('images/placeholder_part.svg') }}',
+                                length_mm: comp.length_mm || '',
+                                width_mm: comp.width_or_diameter_mm || '',
+                                thickness_mm: comp.thickness_or_height_mm || '',
+                                dimensions: comp.dimension_formatted || '-',
+                                stock: comp.total_stock || 0,
+                                min_stock: comp.minimum_stock || 0,
+                                rack: comp.rack_code || 'Belum di Rak',
+                            };
 
-                            select.appendChild(newOpt);
-                            this.selectedComponentId = comp.id;
-                            select.value = comp.id;
-                            this.updateComponentDetails();
+                            // Masukkan ke daftar komponen Alpine di urutan paling awal
+                            this.componentsList.unshift(formattedComp);
+
+                            // Tambahkan ke dropdown select asli secara dinamis
+                            const select = document.getElementById('componentSelect');
+                            if (select) {
+                                const newOpt = document.createElement('option');
+                                newOpt.value = comp.id;
+                                newOpt.text = `${comp.part_number} • ${comp.name} (${comp.uom})`;
+                                select.appendChild(newOpt);
+                            }
+
+                            // Otomatis pilih komponen baru ini
+                            this.selectComponent(formattedComp);
                             this.showQuickAddModal = false;
+
+                            // Tampilkan feedback visual
+                            this.quickAddSuccessToast = true;
+                            setTimeout(() => {
+                                this.quickAddSuccessToast = false;
+                            }, 5000);
                         } else {
                             alert(res.message || 'Gagal mendaftarkan komponen baru');
                         }

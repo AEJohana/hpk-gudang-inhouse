@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Alpine.js Cloak Utility - Zero FOUC Flash Guarantee */
+[x-cloak] {
+  display: none !important;
+}
+
 :root {
   --hpk-red: #e11d48;       /* Rose Red */
   --hpk-blue: #0a2342;      /* Navy Blue (Primary Dark) */

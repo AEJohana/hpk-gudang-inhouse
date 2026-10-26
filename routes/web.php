@@ -28,11 +28,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // 2. Master Data Komponen
+    Route::post('/api/components/quick-store', [ComponentController::class, 'quickStore'])->name('api.components.quick-store');
+
     Route::middleware(['can:master-komponen.view'])->group(function () {
         Route::get('/components', [ComponentController::class, 'index'])->name('components.index');
         Route::get('/components/create', [ComponentController::class, 'create'])->middleware('can:master-komponen.create')->name('components.create');
         Route::post('/components', [ComponentController::class, 'store'])->middleware('can:master-komponen.create')->name('components.store');
-        Route::post('/api/components/quick-store', [ComponentController::class, 'quickStore'])->middleware('can:master-komponen.create')->name('api.components.quick-store');
         Route::get('/components/{component}', [ComponentController::class, 'show'])->name('components.show');
         Route::get('/components/{component}/edit', [ComponentController::class, 'edit'])->middleware('can:master-komponen.edit')->name('components.edit');
         Route::match(['put', 'patch'], '/components/{component}', [ComponentController::class, 'update'])->middleware('can:master-komponen.edit')->name('components.update');

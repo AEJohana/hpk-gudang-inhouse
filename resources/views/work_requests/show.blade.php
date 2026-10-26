@@ -306,6 +306,7 @@
             <!-- MODAL POP-UP KONFIRMASI PENGERJAAN, QTY PARSIAL & DEFECT -->
             <div x-show="actionModal" 
                  x-cloak 
+                 style="display: none;"
                  class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
                 <div @click.away="actionModal = false" 
                      class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200/80 transition-all text-slate-800">

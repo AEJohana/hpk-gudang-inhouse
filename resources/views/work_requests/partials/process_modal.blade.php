@@ -1,6 +1,7 @@
 <!-- MODAL POP-UP QUANTITY & STATUS WORK REQUEST (IN-PLACE POP-UP MINIMALIS & ERGONOMIS) -->
 <div x-show="processModalOpen" 
      x-cloak 
+     style="display: none;"
      class="fixed inset-0 z-50 overflow-y-auto" 
      aria-labelledby="modal-title" 
      role="dialog" 

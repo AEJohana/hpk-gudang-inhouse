@@ -1,6 +1,7 @@
 <!-- MODAL 3: VERIFIKASI PENERIMA & PENUGASAN OPERATOR MESIN (POP-UP) -->
 <div x-show="assignModalOpen" 
      x-cloak 
+     style="display: none;"
      class="fixed inset-0 z-50 overflow-y-auto" 
      aria-labelledby="modal-assign-title" 
      role="dialog" 

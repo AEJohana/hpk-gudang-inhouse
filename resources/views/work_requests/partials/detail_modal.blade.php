@@ -1,6 +1,7 @@
 <!-- MODAL 2: DETAIL TRACKING TIMELINE & RIWAYAT (IN-PLACE POP-UP) -->
 <div x-show="detailModalOpen" 
      x-cloak 
+     style="display: none;"
      class="fixed inset-0 z-50 overflow-y-auto" 
      aria-labelledby="modal-title" 
      role="dialog" 

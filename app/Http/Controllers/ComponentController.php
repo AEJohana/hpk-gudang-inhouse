@@ -331,9 +331,17 @@ class ComponentController extends Controller
      */
     public function quickStore(Request $request)
     {
+        if (!auth()->user()->can('master-komponen.create') && !auth()->user()->can('work-request.create')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki wewenang untuk mendaftarkan komponen baru.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'part_number' => 'nullable|string|max:50|unique:components,part_number',
+            'category' => 'nullable|string|max:50',
             'uom' => 'nullable|string|max:20',
             'length_mm' => 'nullable|string|max:100',
             'width_or_diameter_mm' => 'nullable|string|max:100',
@@ -346,6 +354,13 @@ class ComponentController extends Controller
         $partNumber = !empty($validated['part_number']) 
             ? trim($validated['part_number']) 
             : 'NEW-' . date('Ymd') . '-' . strtoupper(Str::random(4));
+
+        $rawCategory = !empty($validated['category']) ? strtolower(trim($validated['category'])) : 'subframe';
+        $categoryModel = \App\Models\ComponentCategory::where('code', $rawCategory)
+            ->orWhere('name', 'like', "%{$rawCategory}%")
+            ->first();
+        $categoryCode = $categoryModel?->code ?? $rawCategory;
+        $categoryId = $categoryModel?->id;
 
         $imagePath = null;
         if ($request->hasFile('image')) {
@@ -372,7 +387,8 @@ class ComponentController extends Controller
         $component = Component::create([
             'part_number' => $partNumber,
             'name' => $validated['name'],
-            'category' => 'subframe',
+            'category' => $categoryCode,
+            'component_category_id' => $categoryId,
             'uom' => $validated['uom'] ?: 'PCS',
             'length_mm' => $validated['length_mm'] ?? null,
             'width_or_diameter_mm' => $validated['width_or_diameter_mm'] ?? null,
@@ -393,6 +409,7 @@ class ComponentController extends Controller
                 'id' => $component->id,
                 'part_number' => $component->part_number,
                 'name' => $component->name,
+                'category' => $component->category,
                 'uom' => $component->uom,
                 'specification' => $component->specification,
                 'image_url' => $component->image_url,

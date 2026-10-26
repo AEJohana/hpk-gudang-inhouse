@@ -1,5 +1,6 @@
 <div x-show="imageModalOpen" 
      x-cloak
+     style="display: none;"
      class="fixed inset-0 z-50 overflow-y-auto"
      aria-labelledby="modal-image-title" role="dialog" aria-modal="true">
     <div class="flex items-center justify-center min-h-screen px-4 text-center sm:block sm:p-0">
