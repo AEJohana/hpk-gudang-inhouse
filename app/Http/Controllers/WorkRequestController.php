@@ -190,12 +190,13 @@ class WorkRequestController extends Controller
                         'name' => $s->process_name,
                         'status' => $s->status,
                     ])->values(),
-                    'logs' => $targetWr->logs->map(fn($l) => [
+                    'logs' => $targetWr->logs->sortBy('id')->values()->map(fn($l) => [
                         'time' => $l->created_at->format('d/m/Y H:i'),
                         'status' => $l->status_label,
                         'qty' => (float) $l->quantity,
                         'operator' => $l->operator_name ?: '-',
                         'notes' => $l->notes ?: '-',
+                        'action_type' => $l->action_type,
                         'is_defect' => $l->action_type === 'defect' || str_contains($l->status_label, 'Defect'),
                     ])->values(),
                     'printUrl' => route('work-requests.print-sheet', $targetWr),
@@ -552,7 +553,8 @@ class WorkRequestController extends Controller
         $reason = $request->input('reason', 'Dibatalkan oleh Kepala Bagian.');
 
         $workRequest->update([
-            'approval_pengaju' => 'Ditolak',
+            'approval_pengaju' => $workRequest->approval_pengaju === 'Menunggu' ? 'Ditolak' : $workRequest->approval_pengaju,
+            'approval_penerima' => $workRequest->approval_penerima === 'Menunggu' ? 'Ditolak' : $workRequest->approval_penerima,
             'status' => 'cancelled',
             'is_final' => true,
         ]);

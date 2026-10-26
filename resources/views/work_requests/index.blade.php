@@ -319,12 +319,13 @@
                             'name' => $s->process_name,
                             'status' => $s->status,
                         ])->values(),
-                        'logs' => $wri->logs->map(fn($l) => [
+                        'logs' => $wri->logs->sortBy('id')->values()->map(fn($l) => [
                             'time' => $l->created_at->format('d/m/Y H:i'),
                             'status' => $l->status_label,
                             'qty' => (float) $l->quantity,
                             'operator' => $l->operator_name ?: '-',
                             'notes' => $l->notes ?: '-',
+                            'action_type' => $l->action_type,
                             'is_defect' => $l->action_type === 'defect' || str_contains($l->status_label, 'Defect'),
                         ])->values(),
                         'printUrl' => route('work-requests.print-sheet', $wri),
@@ -409,13 +410,21 @@
                             @if(!$wri->is_final)
                                 @if($wri->approval_pengaju === 'Menunggu')
                                     @if($canApprovePengaju)
-                                        <form method="POST" action="{{ route('work-requests.approve-pengaju', $wri) }}" class="flex-1">
-                                            @csrf
-                                            <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center space-x-1">
-                                                <i class="fa-solid fa-check text-[10px]"></i>
-                                                <span>Setujui Pengaju</span>
+                                        <div class="flex-1 flex items-center gap-1.5">
+                                            <form method="POST" action="{{ route('work-requests.approve-pengaju', $wri) }}" class="flex-1">
+                                                @csrf
+                                                <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center space-x-1">
+                                                    <i class="fa-solid fa-check text-[10px]"></i>
+                                                    <span>Diterima</span>
+                                                </button>
+                                            </form>
+                                            <button type="button" 
+                                                    @click="openRejectModal('{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')" 
+                                                    class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold text-xs rounded-xl shadow-2xs flex items-center justify-center space-x-1">
+                                                <i class="fa-solid fa-ban text-[10px]"></i>
+                                                <span>Ditolak</span>
                                             </button>
-                                        </form>
+                                        </div>
                                     @else
                                         <span class="flex-1 py-1.5 text-center bg-amber-50 text-amber-800 border border-amber-300 rounded-xl text-[11px] font-bold">
                                             <i class="fa-solid fa-clock text-amber-500 me-1"></i> Menunggu Verifikasi Ka. {{ $wri->dept_pengaju ?: 'Pengaju' }}
@@ -423,12 +432,20 @@
                                     @endif
                                 @elseif($wri->approval_penerima === 'Menunggu')
                                     @if($canApprovePenerima)
-                                        <button type="button" 
-                                                @click='openAssignModal(@json($assignPayload))'
-                                                class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center space-x-1.5 transition">
-                                            <i class="fa-solid fa-user-check text-[10px]"></i>
-                                            <span>Verifikasi & Tugaskan</span>
-                                        </button>
+                                        <div class="flex-1 flex items-center gap-1.5">
+                                            <button type="button" 
+                                                    @click='openAssignModal(@json($assignPayload))'
+                                                    class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center space-x-1.5 transition">
+                                                <i class="fa-solid fa-user-check text-[10px]"></i>
+                                                <span>Diterima (Tugaskan)</span>
+                                            </button>
+                                            <button type="button" 
+                                                    @click="openRejectModal('{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')" 
+                                                    class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold text-xs rounded-xl shadow-2xs flex items-center justify-center space-x-1">
+                                                <i class="fa-solid fa-ban text-[10px]"></i>
+                                                <span>Ditolak</span>
+                                            </button>
+                                        </div>
                                     @else
                                         <span class="flex-1 py-1.5 text-center bg-blue-50 text-blue-800 border border-blue-300 rounded-xl text-[11px] font-bold">
                                             <i class="fa-solid fa-clock text-blue-500 me-1"></i> Menunggu Verifikasi Ka. {{ $wri->dept_penerima ?: 'Penerima' }}
@@ -616,12 +633,13 @@
                                     'name' => $s->process_name,
                                     'status' => $s->status,
                                 ])->values(),
-                                'logs' => $wri->logs->map(fn($l) => [
+                                'logs' => $wri->logs->sortBy('id')->values()->map(fn($l) => [
                                     'time' => $l->created_at->format('d/m/Y H:i'),
                                     'status' => $l->status_label,
                                     'qty' => (float) $l->quantity,
                                     'operator' => $l->operator_name ?: '-',
                                     'notes' => $l->notes ?: '-',
+                                    'action_type' => $l->action_type,
                                     'is_defect' => $l->action_type === 'defect' || str_contains($l->status_label, 'Defect'),
                                 ])->values(),
                                 'printUrl' => route('work-requests.print-sheet', $wri),
@@ -732,13 +750,14 @@
                             <td class="py-3 px-2 align-top text-center">
                                 @if($wri->approval_pengaju === 'Menunggu')
                                     @if($canApprovePengaju)
-                                        <form method="POST" action="{{ route('work-requests.approve-pengaju', $wri) }}" class="inline">
-                                            @csrf
-                                            <button type="submit" class="inline-flex items-center px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs transition space-x-1">
-                                                <i class="fa-solid fa-check text-[9px]"></i>
-                                                <span>Setujui</span>
-                                            </button>
-                                        </form>
+                                        <div class="inline-block relative">
+                                            <select @change="handlePengajuAction($event, '{{ route('work-requests.approve-pengaju', $wri) }}', '{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')"
+                                                    class="text-xs font-bold py-1 px-2 border border-amber-300 bg-amber-50 text-amber-900 rounded-lg focus:ring-2 focus:ring-amber-500 cursor-pointer shadow-2xs hover:bg-amber-100 transition">
+                                                <option value="" selected disabled>Pilih Status...</option>
+                                                <option value="terima" class="text-emerald-700 font-bold">Diterima</option>
+                                                <option value="tolak" class="text-rose-700 font-bold">Ditolak</option>
+                                            </select>
+                                        </div>
                                     @else
                                         <span class="inline-flex items-center px-2 py-1 text-amber-800 bg-amber-50 border border-amber-300 rounded-lg text-[11px] font-bold whitespace-nowrap">
                                             Menunggu
@@ -759,12 +778,14 @@
                             <td class="py-3 px-2 align-top text-center">
                                 @if($wri->approval_penerima === 'Menunggu')
                                     @if($canApprovePenerima)
-                                        <button type="button" 
-                                                @click='openAssignModal(@json($assignPayload))'
-                                                class="inline-flex items-center px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-xs transition space-x-1">
-                                            <i class="fa-solid fa-user-check text-[9px]"></i>
-                                            <span>Tugaskan</span>
-                                        </button>
+                                        <div class="inline-block relative">
+                                            <select @change="handlePenerimaAction($event, @json($assignPayload), '{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')"
+                                                    class="text-xs font-bold py-1 px-2 border border-blue-300 bg-blue-50 text-blue-900 rounded-lg focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs hover:bg-blue-100 transition">
+                                                <option value="" selected disabled>Pilih Status...</option>
+                                                <option value="terima" class="text-emerald-700 font-bold">Diterima</option>
+                                                <option value="tolak" class="text-rose-700 font-bold">Ditolak</option>
+                                            </select>
+                                        </div>
                                     @else
                                         <span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap">
                                             Belum Verifikasi
@@ -874,6 +895,8 @@
         @include('work_requests.partials.process_modal')
         @include('work_requests.partials.detail_modal')
         @include('work_requests.partials.image_preview_modal')
+        @include('work_requests.partials.reject_modal')
+        @include('work_requests.partials.qr_zoom_modal')
 
     </div>
 
@@ -884,6 +907,18 @@
                 detailModalOpen: false,
                 assignModalOpen: false,
                 imageModalOpen: false,
+                rejectModalOpen: false,
+                qrZoomModal: false,
+                rejectData: {
+                    actionUrl: '',
+                    wriNumber: '',
+                    reason: '',
+                },
+                qrZoomData: {
+                    qrUrl: '',
+                    wriNumber: '',
+                    componentName: '',
+                },
                 imageData: {
                     imageUrl: '',
                     componentName: '',
@@ -1038,14 +1073,67 @@
                 closeImageModal() {
                     this.imageModalOpen = false;
                 },
+                openRejectModal(actionUrl, wriNumber) {
+                    this.rejectData = {
+                        actionUrl: actionUrl,
+                        wriNumber: wriNumber,
+                        reason: '',
+                    };
+                    this.rejectModalOpen = true;
+                },
+                closeRejectModal() {
+                    this.rejectModalOpen = false;
+                },
+                openQrZoom(qrUrl, wriNumber, componentName) {
+                    this.qrZoomData = {
+                        qrUrl: qrUrl,
+                        wriNumber: wriNumber,
+                        componentName: componentName || '',
+                    };
+                    this.qrZoomModal = true;
+                },
+                closeQrZoom() {
+                    this.qrZoomModal = false;
+                },
+                handlePengajuAction(event, approveUrl, rejectUrl, wriNumber) {
+                    const val = event.target.value;
+                    event.target.value = '';
+                    if (val === 'terima') {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = approveUrl;
+                        const csrf = document.createElement('input');
+                        csrf.type = 'hidden';
+                        csrf.name = '_token';
+                        csrf.value = '{{ csrf_token() }}';
+                        form.appendChild(csrf);
+                        document.body.appendChild(form);
+                        form.submit();
+                    } else if (val === 'tolak') {
+                        this.openRejectModal(rejectUrl, wriNumber);
+                    }
+                },
+                handlePenerimaAction(event, assignPayload, rejectUrl, wriNumber) {
+                    const val = event.target.value;
+                    event.target.value = '';
+                    if (val === 'terima') {
+                        this.openAssignModal(assignPayload);
+                    } else if (val === 'tolak') {
+                        this.openRejectModal(rejectUrl, wriNumber);
+                    }
+                },
                 getStepLogs(stepName, stepIndex) {
                     if (!this.detailData || !this.detailData.logs) return [];
                     const cleanName = (stepName || '').replace(/^Dept\s+/i, '').trim().toLowerCase();
                     const sLower = (stepName || '').toLowerCase();
                     const isLastStep = Boolean(this.detailData.steps && stepIndex === this.detailData.steps.length - 1);
                     return this.detailData.logs.filter(l => {
+                        // Abaikan log approval / reject agar stasiun mesin dimulai bersih dari event MASUK
+                        if (l.action_type === 'approval' || l.action_type === 'reject') return false;
                         const status = (l.status || '').toLowerCase();
                         const notes = (l.notes || '').toLowerCase();
+                        if (status.includes('otorisasi') || notes.includes('otorisasi disetujui')) return false;
+
                         if (status.includes(sLower) || status.includes(cleanName) || notes.includes(sLower) || notes.includes(cleanName)) {
                             return true;
                         }
@@ -1059,7 +1147,17 @@
                     if (!this.detailData || !this.detailData.logs) return [];
                     return this.detailData.logs.filter(l => {
                         const status = (l.status || '').toLowerCase();
-                        return status.includes('sudah diambil') || status.includes('menuju pengaju');
+                        const notes = (l.notes || '').toLowerCase();
+                        return status.includes('sudah diambil') || status.includes('menuju pengaju') || notes.includes('sudah diambil') || notes.includes('menuju pengaju');
+                    }).map(l => {
+                        const status = (l.status || '').toLowerCase();
+                        const notes = (l.notes || '').toLowerCase();
+                        const isMh = status.includes('menuju pengaju') || notes.includes('menuju pengaju') || status.includes('pickup') || notes.includes('pickup');
+                        return {
+                            ...l,
+                            is_mh: isMh,
+                            is_gudang: !isMh
+                        };
                     });
                 }
             };

@@ -63,23 +63,14 @@
                         <i class="fa-solid fa-id-badge text-indigo-600 text-sm"></i>
                         <h3 class="font-bold text-sm text-slate-900">1. Identitas Pemohon, Waktu & Tujuan Penggunaan</h3>
                     </div>
-                    <span class="text-[10px] text-amber-800 bg-amber-100/80 px-2.5 py-0.5 rounded-full font-bold border border-amber-200 flex items-center space-x-1">
-                        <i class="fa-solid fa-shield-halved text-[9px]"></i>
-                        <span>Anti-Manipulasi Sistem</span>
-                    </span>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <!-- 1. Dept Pengaju (Terkunci Penuh) -->
                     <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                Departemen Pengaju (Pemohon)
-                            </label>
-                            <span class="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-bold border border-amber-200 flex items-center">
-                                <i class="fa-solid fa-lock me-1 text-[9px]"></i> Terkunci
-                            </span>
-                        </div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            Departemen Pengaju (Pemohon)
+                        </label>
                         <div class="relative">
                             <input type="text" 
                                    readonly 
@@ -94,14 +85,9 @@
 
                     <!-- 2. Tanggal Pengajuan (Aktual Terkunci) -->
                     <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                Tanggal Pengajuan (Aktual)
-                            </label>
-                            <span class="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold border border-emerald-200 flex items-center">
-                                <i class="fa-solid fa-clock me-1 text-[9px]"></i> Real-Time
-                            </span>
-                        </div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            Tanggal Pengajuan (Aktual)
+                        </label>
                         <div class="relative">
                             <input type="text" 
                                    readonly 
@@ -142,7 +128,7 @@
                             @click="openQuickAddModal()" 
                             class="px-2.5 py-1 text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-lg transition shadow-2xs flex items-center space-x-1">
                         <i class="fa-solid fa-plus text-[10px] text-amber-600"></i>
-                        <span>+ Daftarkan Komponen Baru</span>
+                        <span>Daftarkan Komponen Baru</span>
                     </button>
                 </div>
 
@@ -177,8 +163,8 @@
                                    x-model="searchQuery" 
                                    @focus="isSearchOpen = true" 
                                    @input="isSearchOpen = true; if(!searchQuery) clearSelection()"
-                                   placeholder="Ketik Nama atau Kode Part Karoseri (misal: BUMPER, ADR, UNP)..." 
-                                   class="w-full px-3.5 py-2 pl-9 pr-9 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-bold text-slate-900 transition shadow-2xs">
+                                   placeholder="Cari nama atau kode part (contoh: BUMPER, ADR)..." 
+                                   class="w-full px-3.5 py-2 pl-9 pr-9 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-medium text-slate-900 transition shadow-2xs">
                             
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
 
@@ -248,7 +234,7 @@
                                         @click="openQuickAddModal(searchQuery)" 
                                         class="mt-1 inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition shadow-xs">
                                     <i class="fa-solid fa-plus text-[10px]"></i>
-                                    <span>+ Daftarkan Part Baru Ini</span>
+                                    <span>Daftarkan Part Baru Ini</span>
                                 </button>
                             </div>
                         </div>
@@ -279,7 +265,7 @@
                                 </option>
                             @endforeach
                         </select>
-                        <p class="text-[10px] text-slate-400 mt-1">Ketik kata kunci untuk mencari part karoseri atau daftarkan part baru jika belum ada.</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Pilih part karoseri atau daftarkan baru jika belum ada.</p>
                     </div>
 
                     <!-- Jumlah Permintaan & UoM (Integrated Anti-Overflow Input Group) -->
@@ -392,41 +378,41 @@
                 </div>
 
                 <p class="text-xs text-slate-500">
-                    Urutkan stasiun mesin fabrikasi. Material Handling (MH) mentransfer part antar-mesin dan mengantar barang jadi kembali ke Pengaju / Gudang.
+                    Tentukan urutan stasiun mesin pengerjaan part.
                 </p>
 
-                <!-- LIVE ROUTING PREVIEW BADGE -->
-                <div class="p-3 bg-white rounded-xl border border-purple-200 shadow-2xs space-y-2">
+                <!-- LIVE ROUTING PREVIEW BADGE (SERAGAM MONOKROM SLATE) -->
+                <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-2">
                     <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center">
-                        <i class="fa-solid fa-diagram-project me-1 text-purple-600"></i> Alur Fabrikasi & Logistik MH:
+                        <i class="fa-solid fa-diagram-project me-1 text-slate-600"></i> Alur Fabrikasi & Logistik MH:
                     </span>
                     <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
                         <template x-for="(dept, idx) in targetDepartments" :key="idx">
                             <div class="flex items-center">
-                                <span class="font-mono text-xs font-bold text-purple-900 bg-purple-100 px-2.5 py-1 rounded-lg border border-purple-300 flex items-center space-x-1">
-                                    <span class="w-4 h-4 rounded-full bg-purple-700 text-white text-[10px] flex items-center justify-center me-1" x-text="idx + 1"></span>
+                                <span class="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-300 flex items-center space-x-1">
+                                    <span class="w-4 h-4 rounded-full bg-slate-700 text-white text-[10px] flex items-center justify-center me-1" x-text="idx + 1"></span>
                                     <span x-text="dept.department_name ? dept.department_name.replace('Dept ', '') : 'Pilih Mesin'"></span>
                                 </span>
                                 <span x-show="idx < targetDepartments.length - 1" class="text-slate-400 mx-1.5 text-xs flex items-center">
-                                    <i class="fa-solid fa-arrow-right text-[10px] text-purple-500 me-1"></i>
-                                    <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">MH Transfer</span>
-                                    <i class="fa-solid fa-arrow-right text-[10px] text-purple-500 ms-1"></i>
+                                    <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 me-1"></i>
+                                    <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold border border-slate-200">MH Transfer</span>
+                                    <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 ms-1"></i>
                                 </span>
                             </div>
                         </template>
 
                         <!-- MH Pengantaran Kembali ke Pengaju / Gudang -->
                         <span class="text-slate-400 mx-1 text-xs flex items-center">
-                            <i class="fa-solid fa-arrow-right text-[10px] text-blue-500 me-1"></i>
-                            <span class="text-[9px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded font-bold flex items-center">
-                                <i class="fa-solid fa-truck-ramp-box me-1"></i> MH Antar ke Pengaju
+                            <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 me-1"></i>
+                            <span class="text-[9px] bg-slate-100 text-slate-700 border border-slate-300 px-2 py-0.5 rounded font-bold flex items-center">
+                                <i class="fa-solid fa-truck-ramp-box me-1 text-slate-500"></i> MH Antar ke Pengaju
                             </span>
-                            <i class="fa-solid fa-arrow-right text-[10px] text-emerald-500 ms-1"></i>
+                            <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 ms-1"></i>
                         </span>
 
                         <!-- Titik Akhir: Gudang / Selesai -->
-                        <span class="font-mono text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 flex items-center">
-                            <i class="fa-solid fa-warehouse me-1 text-emerald-600"></i> Gudang (Diterima)
+                        <span class="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-300 flex items-center">
+                            <i class="fa-solid fa-warehouse me-1 text-slate-600"></i> Gudang (Diterima)
                         </span>
                     </div>
                 </div>
@@ -485,7 +471,7 @@
                 </label>
                 <textarea name="notes" 
                           rows="2" 
-                          placeholder="Contoh: Menggunakan plat baja SS400 tebal 8mm, toleransi bending sudut 90 derajat ±0.5mm, mohon prioritaskan sebelum shift 2 berakhir..." 
+                          placeholder="Tuliskan catatan atau instruksi khusus pengerjaan (opsional)..." 
                           class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-800"></textarea>
             </div>
 

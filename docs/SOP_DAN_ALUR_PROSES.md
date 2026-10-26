@@ -16,12 +16,12 @@ Dokumen ini adalah acuan operasional resmi untuk seluruh proses pergerakan baran
 ```mermaid
 flowchart TD
     subgraph FASE_1["1. INISIASI & APPROVAL PENGAJU"]
-        A([Pemohon / Operator Asal]) -->|Cari Komponen / Scan QR| B[Isi Form Buat WRI]
+        A([Pemohon / Operator Asal]) -->|Cari Komponen / Scan QR| B[Isi Form Buat WRI (Minimalis & Ringkas)]
         B --> C{Pangkat / Tipe Tiket?}
         C -->|Operator Biasa| D[Status Pengaju: Menunggu]
         C -->|Supervisor / Admin / Urgent Line Stop| E[Status Pengaju: Diterima]
-        D -->|Ka. Bagian Pengaju Review| F{Keputusan Ka. Bagian}
-        F -->|Tolak| G([Tiket Dibatalkan / Selesai])
+        D -->|Ka. Bagian Pengaju Review (Dropdown Aksi)| F{Keputusan Ka. Bagian}
+        F -->|Tolak (Alasan Wajib)| G([Tiket Dibatalkan / Selesai])
         F -->|Terima| E
     end
 
@@ -79,9 +79,14 @@ Seluruh logika bisnis dari sistem lama telah diimplementasikan secara terstruktu
 ## 4. Siklus Hidup Status Tiket (*Ticket Status Lifecycle*)
 
 ### A. Status Persetujuan (Approval)
-1. **Menunggu:** Status awal saat operator mengajukan tiket. Membutuhkan verifikasi kepala bagian pemohon.
-2. **Diterima:** Pengajuan disahkan dan otomatis diteruskan ke antrian departemen penerima.
-3. **Ditolak:** Pengajuan dibatalkan secara permanen dengan alasan penolakan tercatat di log audit.
+1. **Menunggu:** Status awal saat operator mengajukan tiket. Verifikator disajikan dropdown aksi (*Pilih Status... &rarr; Diterima / Ditolak*).
+2. **Diterima:** 
+   - **Pada Sts Pengaju:** Pengajuan disahkan dan otomatis diteruskan ke antrian departemen penerima.
+   - **Pada Sts Penerima:** Memilih opsi *Diterima* langsung membuka modal penugasan operator mesin pelaksana (`assign_operator_modal`) secara instan.
+3. **Ditolak:** Verifikator diarahkan ke modal konfirmasi penolakan tiket dengan isian alasan wajib. Pengajuan dibatalkan secara permanen (`is_final = true`) dengan catatan alasan tersimpan di log audit.
+4. **Visualisasi Tracking Modal:** Log otorisasi verifikator diletakkan transparan pada kartu *Dual Verifikator* di bagian atas modal detail. Timeline tahapan fisik stasiun mesin dimulai murni dari status **MASUK (In)** dengan urutan kronologis alami (atas ke bawah).
+5. **Pemisahan Logistik MH vs Gudang:** Log transit kurir Material Handling (*Menuju Pengaju*) ditandai dengan balok warna Biru dan ikon kurir (`fa-truck-ramp-box`), sedangkan penerimaan fisik di rak gudang (*Sudah Diambil*) ditandai dengan balok warna Hijau dan ikon gudang (`fa-warehouse`).
+6. **QR Code Interaktif:** Gambar QR Code tiket pada modal detail dapat diklik untuk membuka modal zoom resolusi tinggi guna mempermudah pemindaian via smartphone atau barcode gun. Strip kuota pesanan menggunakan teks hitam bersih dengan hanya kuota cacat (*Defect*) yang berwarna merah mencolok.
 
 ### B. Status Operasional Mesin Center
 1. **Dalam antrian:** Tiket telah tiba di stasiun mesin tujuan dan siap dieksekusi.
