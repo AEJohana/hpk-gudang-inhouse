@@ -837,6 +837,32 @@ class WorkRequest extends Model
     }
 
     /**
+     * Scope query untuk penyaringan rentang waktu pembuatan Work Request.
+     * Mendukung rentang kustom (startDate - endDate) atau preset cepat (today, 3days, 7days, this_month).
+     */
+    public function scopeDateRange(Builder $query, ?string $preset = null, ?string $startDate = null, ?string $endDate = null): Builder
+    {
+        if (!empty($startDate) && !empty($endDate)) {
+            return $query->whereBetween('created_at', [
+                \Carbon\Carbon::parse($startDate)->startOfDay(),
+                \Carbon\Carbon::parse($endDate)->endOfDay(),
+            ]);
+        } elseif (!empty($startDate)) {
+            return $query->where('created_at', '>=', \Carbon\Carbon::parse($startDate)->startOfDay());
+        } elseif (!empty($endDate)) {
+            return $query->where('created_at', '<=', \Carbon\Carbon::parse($endDate)->endOfDay());
+        }
+
+        return match ($preset) {
+            'today' => $query->whereDate('created_at', today()),
+            '3days' => $query->where('created_at', '>=', now()->subDays(3)->startOfDay()),
+            '7days' => $query->where('created_at', '>=', now()->subDays(7)->startOfDay()),
+            'this_month' => $query->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]),
+            default => $query,
+        };
+    }
+
+    /**
      * Hitung berapa kali tiket ini telah dicetak berdasarkan riwayat log
      */
     public function getPrintCountAttribute(): int

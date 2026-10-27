@@ -32,63 +32,78 @@
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-        <!-- Search & Filter Bar -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
-            <form method="GET" action="{{ route('components.index') }}" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                <div class="sm:col-span-5 relative">
+        <!-- Search, Filter & Quick Status Bar (Sejajar dalam 1 Baris Terpadu) -->
+        <div class="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200/80 shadow-xs flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+            <!-- Left: Quick Status Buttons (Semua Part & Peringatan Status) -->
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 flex-shrink-0">
+                <a href="{{ route('components.index') }}" class="super-nav-pill whitespace-nowrap {{ !request('category') && !request('low_stock') && !request('unallocated') && !request('uncategorized') ? 'active' : '' }}">
+                    Semua Part
+                </a>
+                <a href="{{ route('components.index', ['uncategorized' => 1]) }}" class="super-nav-pill whitespace-nowrap {{ request('uncategorized') ? 'active' : '' }} text-amber-700">
+                    <i class="fa-solid fa-tags me-1 text-[11px]"></i> Perlu Kategori ({{ $uncategorizedCount }})
+                </a>
+                <a href="{{ route('components.index', ['unallocated' => 1]) }}" class="super-nav-pill whitespace-nowrap {{ request('unallocated') ? 'active' : '' }} text-amber-700">
+                    <i class="fa-solid fa-triangle-exclamation me-1 text-[11px]"></i> Perlu Alokasi Rak ({{ $unallocatedCount }})
+                </a>
+                <a href="{{ route('components.index', ['low_stock' => 1]) }}" class="super-nav-pill whitespace-nowrap {{ request('low_stock') ? 'active' : '' }} text-rose-600">
+                    <i class="fa-solid fa-triangle-exclamation me-1 text-[11px]"></i> Stok Kritis
+                </a>
+            </div>
+
+            <!-- Right: Search Input, Category Select & Compact Filter Button (Sejajar) -->
+            <form method="GET" action="{{ route('components.index') }}" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full xl:w-auto">
+                @if(request('uncategorized'))
+                    <input type="hidden" name="uncategorized" value="1">
+                @endif
+                @if(request('unallocated'))
+                    <input type="hidden" name="unallocated" value="1">
+                @endif
+                @if(request('low_stock'))
+                    <input type="hidden" name="low_stock" value="1">
+                @endif
+
+                <!-- Search Input -->
+                <div class="relative flex-1 sm:w-56 md:w-64 min-w-[170px]">
                     <input type="text" 
                            name="search" 
                            value="{{ request('search') }}" 
-                           placeholder="Cari Kode Part, Nama Komponen, atau Spek..." 
-                           class="w-full pl-10 pr-4 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                    <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-3.5 top-3 text-xs"></i>
+                           placeholder="Cari Kode Part, Nama, Spek..." 
+                           class="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none transition">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 text-xs"></i>
                 </div>
 
-                <div class="sm:col-span-4">
-                    <select name="category" class="w-full py-2 px-3 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-700">
-                        <option value="">-- Semua Kategori Komponen --</option>
+                <!-- Category Select Dropdown -->
+                <div class="w-full sm:w-44 flex-shrink-0">
+                    <select name="category" class="w-full py-2 px-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-700 font-medium">
+                        <option value="">-- Semua Kategori --</option>
                         @foreach ($categories as $catKey => $catLabel)
                             <option value="{{ $catKey }}" {{ request('category') == $catKey ? 'selected' : '' }}>{{ $catLabel }}</option>
                         @endforeach
                     </select>
                 </div>
 
-                <div class="sm:col-span-3 flex space-x-2">
-                    <button type="submit" class="flex-1 py-2 px-4 bg-[#0a2342] hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-sm transition">
-                        <i class="fa-solid fa-filter me-1.5 text-teal-400"></i> Filter
+                <!-- Tombol Filter (Diperkecil) & Reset -->
+                <div class="flex items-center space-x-1 flex-shrink-0">
+                    <button type="submit" 
+                            class="py-2 px-3 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center space-x-1 cursor-pointer"
+                            title="Terapkan Filter">
+                        <i class="fa-solid fa-filter text-teal-400 text-xs"></i>
+                        <span>Filter</span>
                     </button>
-                    @if (request()->hasAny(['search', 'category', 'low_stock']))
-                        <a href="{{ route('components.index') }}" class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs rounded-xl flex items-center justify-center font-semibold">
-                            Reset
+                    @if (request()->hasAny(['search', 'category', 'low_stock', 'unallocated', 'uncategorized']))
+                        <a href="{{ route('components.index') }}" 
+                           class="py-2 px-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-xs rounded-xl inline-flex items-center justify-center font-bold transition cursor-pointer"
+                           title="Reset Seluruh Filter">
+                            <i class="fa-solid fa-rotate-left text-xs"></i>
                         </a>
                     @endif
                 </div>
+
+                <!-- Total Count -->
+                <span class="text-xs text-slate-400 font-medium whitespace-nowrap hidden 2xl:inline-block ms-1">
+                    ({{ $components->total() }})
+                </span>
             </form>
-
-            <!-- Quick Filter Pills (Smooth Touch Horizontal Scroll) -->
-            <div class="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 w-full sm:w-auto -mx-1 px-1">
-                    <a href="{{ route('components.index') }}" class="super-nav-pill whitespace-nowrap {{ !request('category') && !request('low_stock') && !request('unallocated') && !request('uncategorized') ? 'active' : '' }}">
-                        Semua Part
-                    </a>
-                    <a href="{{ route('components.index', ['uncategorized' => 1]) }}" class="super-nav-pill whitespace-nowrap {{ request('uncategorized') ? 'active' : '' }} text-amber-700">
-                        <i class="fa-solid fa-tags me-1"></i> Perlu Kategori ({{ $uncategorizedCount }})
-                    </a>
-                    <a href="{{ route('components.index', ['unallocated' => 1]) }}" class="super-nav-pill whitespace-nowrap {{ request('unallocated') ? 'active' : '' }} text-amber-700">
-                        <i class="fa-solid fa-triangle-exclamation me-1"></i> Perlu Alokasi Rak ({{ $unallocatedCount }})
-                    </a>
-                    <a href="{{ route('components.index', ['low_stock' => 1]) }}" class="super-nav-pill whitespace-nowrap {{ request('low_stock') ? 'active' : '' }} text-rose-600">
-                        <i class="fa-solid fa-triangle-exclamation me-1"></i> Stok Kritis
-                    </a>
-                    @foreach($categories as $catKey => $catLabel)
-                        <a href="{{ route('components.index', ['category' => $catKey]) }}" class="super-nav-pill whitespace-nowrap {{ request('category') == $catKey ? 'active' : '' }}">
-                            {{ $catLabel }}
-                        </a>
-                    @endforeach
-                </div>
-
-                <span class="text-xs text-slate-400 font-medium whitespace-nowrap">Menampilkan {{ $components->total() }} komponen</span>
-            </div>
         </div>
 
         <!-- 1. Mobile Card List View (< md screens) -->

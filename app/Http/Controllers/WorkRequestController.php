@@ -684,6 +684,17 @@ class WorkRequestController extends Controller
             $query->whereHas('logs', fn($q) => $q->where('action_type', 'printed'));
         }
 
+        // Filter rentang waktu pembuatan WR (preset / kustom)
+        $datePreset = $request->input('date_preset', 'all');
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        if ($request->filled('start_date') || $request->filled('end_date')) {
+            $datePreset = 'custom';
+        }
+
+        $query->dateRange($datePreset, $startDate, $endDate);
+
         // Pencarian
         if ($request->filled('search')) {
             $s = $request->search;
@@ -700,11 +711,13 @@ class WorkRequestController extends Controller
             });
         }
 
-        // Statistik
+        // Statistik (Tersinkronisasi dengan scope & rentang waktu yang aktif)
         $baseStat = WorkRequest::printable();
         if ($scope === 'my_dept' || !$user->canAccessAllDepartments()) {
             $baseStat->forUser($user);
         }
+        $baseStat->dateRange($datePreset, $startDate, $endDate);
+
         $totalPrintable = (clone $baseStat)->count();
         $totalUnprinted = (clone $baseStat)->whereDoesntHave('logs', fn($q) => $q->where('action_type', 'printed'))->count();
         $totalPrinted = (clone $baseStat)->whereHas('logs', fn($q) => $q->where('action_type', 'printed'))->count();
@@ -715,6 +728,9 @@ class WorkRequestController extends Controller
             'workRequests',
             'scope',
             'printStatus',
+            'datePreset',
+            'startDate',
+            'endDate',
             'totalPrintable',
             'totalUnprinted',
             'totalPrinted'

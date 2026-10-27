@@ -27,6 +27,7 @@ Users have specific roles and departmental scopes that dictate their permissions
 - Manages parts and materials categorized by types (e.g., `hydraulic`, `raw_material`, `fastener`, `accessories`, `electrical`, `chemical_paint`).
 - Tracks specifications, Units of Measure (UOM), and minimum/maximum stock thresholds to prevent stockouts.
 - Generates and stores QR Code payloads for easy physical tracking and labeling.
+- **Unified & Streamlined Single-Row Toolbar:** Bilah pencarian, dropdown kategori, dan tombol filter yang diperkecil disejajarkan dalam satu baris terpadu bersama tombol status (*Semua Part*, *Perlu Kategori*, *Perlu Alokasi Rak*, *Stok Kritis*), mengeliminasi tombol kategori redundan (*Subframe s/d SPO*) untuk menghemat ruang vertikal dan menyajikan tampilan yang ringkas dan bersih.
 
 ### 4. Inventory Transactions (Transaksi Komponen)
 - Handles core inventory movements: `inbound`, `outbound`, `transfer`, and `return`.
@@ -115,7 +116,8 @@ Users have specific roles and departmental scopes that dictate their permissions
 - **Lokal & Offline QR Code (SVG Base64):** Pembangkitan kode QR lokal tanpa dependensi internet dan tanpa ekstensi PHP GD, menghasilkan kualitas cetak vektor tajam (*razor-sharp*) untuk pemindaian scanner barcode.
 - **4 Kolom Otorisasi Tanda Tangan & Nama Jelas:** Menampilkan nama Pemohon, Ka. Bagian Pemohon, Penerima (Operator Pengerjaan), dan Ka. Bagian Penerima.
 - **Audit Trail & Penanda Cetak Ulang:** Mendukung pencetakan ulang dengan label otomatis `[Cetak Ulang]`, penghitung `print_count`, dan pencatatan audit log `action_type: 'printed'`.
-- **Antrean Cetak & Bulk Printing (`/work-requests/print-queue`):** Menu navigasi tab `[ 🖨️ Cetak Dokumen WR ]` menyediakan daftar tiket siap cetak, filter (*Semua Siap Cetak*, *Belum Dicetak*, *Sudah Dicetak*), kotak centang multi-pilih, dan tombol *Cetak Masal Terpilih* multi-halaman.
+- **Antrean Cetak & Bulk Printing (`/work-requests/print-queue`):** Menu navigasi tab `[ 🖨️ Cetak Dokumen WR ]` menyediakan daftar tiket siap cetak, filter status (*Semua Siap Cetak*, *Belum Dicetak*, *Sudah Dicetak*), kotak centang multi-pilih, tombol *Cetak Masal Terpilih* multi-halaman, serta penggabungan kolom terpadu (*Aksi / Status*) untuk merampingkan lebar tabel.
+- **Filter Rentang Waktu Fleksibel & Dropdown Mobile-Friendly:** Menyematkan dropdown filter waktu ringkas persis di samping kotak pencarian (bebas dari baris panjang yang memakan ruang layar ponsel). Menyediakan pilihan cepat (*Semua Waktu*, *Hari Ini*, *3 Hari Terakhir* sesuai batas SLA 72 jam, *7 Hari Terakhir*, *Bulan Ini*) serta pemilih rentang tanggal kustom (*Custom Date Range*) `start_date` & `end_date` yang tersinkronisasi otomatis dengan kartu ringkasan KPI dan formulir pencarian.
 - **Otoritas Hak Akses Cetak (`work-request.print`):** Diberikan secara bawaan kepada Staf Gudang, Admin Gudang, Supervisor, dan Operator Mesin.
 
 ## Summary

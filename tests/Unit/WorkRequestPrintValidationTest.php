@@ -231,4 +231,95 @@ class WorkRequestPrintValidationTest extends TestCase
         $this->assertEquals('Pak Panji', $fetched->approval_pengaju_log?->operator_name);
         $this->assertEquals('Pak Andreas', $fetched->approval_penerima_log?->operator_name);
     }
+
+    public function test_date_range_preset_filtering(): void
+    {
+        $todayWr = WorkRequest::create([
+            'wri_number' => 'WRI/20261027/TODAY',
+        ]);
+
+        $twoDaysAgoWr = WorkRequest::create([
+            'wri_number' => 'WRI/20261027/2DAYS',
+        ]);
+        WorkRequest::where('id', $twoDaysAgoWr->id)->update(['created_at' => now()->subDays(2)]);
+
+        $fiveDaysAgoWr = WorkRequest::create([
+            'wri_number' => 'WRI/20261027/5DAYS',
+        ]);
+        WorkRequest::where('id', $fiveDaysAgoWr->id)->update(['created_at' => now()->subDays(5)]);
+
+        $fortyDaysAgoWr = WorkRequest::create([
+            'wri_number' => 'WRI/20261027/40DAYS',
+        ]);
+        WorkRequest::where('id', $fortyDaysAgoWr->id)->update(['created_at' => now()->subDays(40)]);
+
+        // Preset 'today'
+        $todayResults = WorkRequest::dateRange('today')->pluck('id')->toArray();
+        $this->assertContains($todayWr->id, $todayResults);
+        $this->assertNotContains($twoDaysAgoWr->id, $todayResults);
+        $this->assertNotContains($fiveDaysAgoWr->id, $todayResults);
+        $this->assertNotContains($fortyDaysAgoWr->id, $todayResults);
+
+        // Preset '3days'
+        $threeDaysResults = WorkRequest::dateRange('3days')->pluck('id')->toArray();
+        $this->assertContains($todayWr->id, $threeDaysResults);
+        $this->assertContains($twoDaysAgoWr->id, $threeDaysResults);
+        $this->assertNotContains($fiveDaysAgoWr->id, $threeDaysResults);
+        $this->assertNotContains($fortyDaysAgoWr->id, $threeDaysResults);
+
+        // Preset '7days'
+        $sevenDaysResults = WorkRequest::dateRange('7days')->pluck('id')->toArray();
+        $this->assertContains($todayWr->id, $sevenDaysResults);
+        $this->assertContains($twoDaysAgoWr->id, $sevenDaysResults);
+        $this->assertContains($fiveDaysAgoWr->id, $sevenDaysResults);
+        $this->assertNotContains($fortyDaysAgoWr->id, $sevenDaysResults);
+
+        // Preset 'all'
+        $allResults = WorkRequest::dateRange('all')->pluck('id')->toArray();
+        $this->assertContains($todayWr->id, $allResults);
+        $this->assertContains($twoDaysAgoWr->id, $allResults);
+        $this->assertContains($fiveDaysAgoWr->id, $allResults);
+        $this->assertContains($fortyDaysAgoWr->id, $allResults);
+    }
+
+    public function test_custom_date_range_filtering(): void
+    {
+        $todayWr = WorkRequest::create([
+            'wri_number' => 'WRI/20261027/CUSTOM-01',
+        ]);
+
+        $threeDaysAgoWr = WorkRequest::create([
+            'wri_number' => 'WRI/20261027/CUSTOM-02',
+        ]);
+        WorkRequest::where('id', $threeDaysAgoWr->id)->update(['created_at' => now()->subDays(3)]);
+
+        $tenDaysAgoWr = WorkRequest::create([
+            'wri_number' => 'WRI/20261027/CUSTOM-03',
+        ]);
+        WorkRequest::where('id', $tenDaysAgoWr->id)->update(['created_at' => now()->subDays(10)]);
+
+        // Range between 5 days ago and 2 days ago
+        $customResults = WorkRequest::dateRange('custom', now()->subDays(5)->toDateString(), now()->subDays(2)->toDateString())
+            ->pluck('id')
+            ->toArray();
+
+        $this->assertNotContains($todayWr->id, $customResults);
+        $this->assertContains($threeDaysAgoWr->id, $customResults);
+        $this->assertNotContains($tenDaysAgoWr->id, $customResults);
+
+        // Start date only
+        $startOnlyResults = WorkRequest::dateRange('custom', now()->subDays(2)->toDateString(), null)
+            ->pluck('id')
+            ->toArray();
+        $this->assertContains($todayWr->id, $startOnlyResults);
+        $this->assertNotContains($threeDaysAgoWr->id, $startOnlyResults);
+
+        // End date only
+        $endOnlyResults = WorkRequest::dateRange('custom', null, now()->subDays(4)->toDateString())
+            ->pluck('id')
+            ->toArray();
+        $this->assertNotContains($todayWr->id, $endOnlyResults);
+        $this->assertNotContains($threeDaysAgoWr->id, $endOnlyResults);
+        $this->assertContains($tenDaysAgoWr->id, $endOnlyResults);
+    }
 }
