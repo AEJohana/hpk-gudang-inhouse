@@ -156,6 +156,7 @@ class WorkRequestController extends Controller
 
         $partialCount = (clone $baseStatQuery)->where('status', 'like', '%Parsial%')->count();
         $overdueSlaCount = (clone $baseStatQuery)->overdueSla()->count();
+        $printableCount = (clone $baseStatQuery)->printable()->count();
 
         $openDetailPayload = null;
         if ($request->filled('open_detail')) {
@@ -243,6 +244,7 @@ class WorkRequestController extends Controller
             'partialCount',
             'needsApprovalCount',
             'overdueSlaCount',
+            'printableCount',
             'openDetailPayload'
         ));
     }
@@ -653,12 +655,148 @@ class WorkRequestController extends Controller
     }
 
     /**
-     * Printable Kanban / Card Format with QR Code and Signatures.
+     * Antrean Dokumen Cetak WRI (Sub-Navigasi di Samping Safety Stock).
+     * Hanya menampilkan tiket yang telah memenuhi 3 syarat mutlak:
+     * - Disetujui Ka. Pengaju
+     * - Disetujui Ka. Penerima
+     * - Operator telah ditugaskan
+     */
+    public function printQueue(Request $request)
+    {
+        $user = auth()->user();
+        $query = WorkRequest::with(['component', 'requestedBy', 'targetLocation', 'steps.machine', 'logs'])->printable();
+
+        $scope = $request->input('scope', ($user->canAccessAllDepartments() ? 'all' : 'my_dept'));
+        if ($scope === 'my_dept') {
+            $query->forUser($user);
+        } elseif ($scope === 'all') {
+            if (!$user->canAccessAllDepartments()) {
+                $query->forUser($user);
+                $scope = 'my_dept';
+            }
+        }
+
+        // Filter status cetak (semua, belum, sudah)
+        $printStatus = $request->input('print_status', 'all');
+        if ($printStatus === 'belum') {
+            $query->whereDoesntHave('logs', fn($q) => $q->where('action_type', 'printed'));
+        } elseif ($printStatus === 'sudah') {
+            $query->whereHas('logs', fn($q) => $q->where('action_type', 'printed'));
+        }
+
+        // Pencarian
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('wri_number', 'like', "%{$s}%")
+                  ->orWhere('spk_reference', 'like', "%{$s}%")
+                  ->orWhere('assigned_operator_name', 'like', "%{$s}%")
+                  ->orWhere('dept_pengaju', 'like', "%{$s}%")
+                  ->orWhere('dept_penerima', 'like', "%{$s}%")
+                  ->orWhereHas('component', function ($cq) use ($s) {
+                      $cq->where('name', 'like', "%{$s}%")
+                         ->orWhere('part_number', 'like', "%{$s}%");
+                  });
+            });
+        }
+
+        // Statistik
+        $baseStat = WorkRequest::printable();
+        if ($scope === 'my_dept' || !$user->canAccessAllDepartments()) {
+            $baseStat->forUser($user);
+        }
+        $totalPrintable = (clone $baseStat)->count();
+        $totalUnprinted = (clone $baseStat)->whereDoesntHave('logs', fn($q) => $q->where('action_type', 'printed'))->count();
+        $totalPrinted = (clone $baseStat)->whereHas('logs', fn($q) => $q->where('action_type', 'printed'))->count();
+
+        $workRequests = $query->latest('id')->paginate(15)->withQueryString();
+
+        return view('work_requests.print_queue', compact(
+            'workRequests',
+            'scope',
+            'printStatus',
+            'totalPrintable',
+            'totalUnprinted',
+            'totalPrinted'
+        ));
+    }
+
+    /**
+     * Cetak Lembar Dokumen WRI Resmi (3 Duplikat dalam 1 Kertas HVS A4).
+     * Memvalidasi 3 kriteria mutlak: Pengaju disetujui, Penerima disetujui, & Operator ditugaskan.
      */
     public function printSheet(WorkRequest $workRequest)
     {
-        $workRequest->load(['component', 'requestedBy', 'targetLocation', 'steps.machine']);
-        return view('work_requests.print_sheet', compact('workRequest'));
+        if (!$workRequest->isPrintable()) {
+            return redirect()->route('work-requests.index')
+                ->with('error', 'Dokumen WR #' . $workRequest->wri_number . ' belum dapat dicetak. ' . $workRequest->getPrintValidationMessage());
+        }
+
+        $workRequest->load(['component', 'requestedBy', 'targetLocation', 'steps.machine', 'logs']);
+
+        $user = auth()->user();
+        $printCount = $workRequest->logs()->where('action_type', 'printed')->count();
+        $isReprint = ($printCount > 0);
+
+        // Catat log riwayat pencetakan untuk audit trail resmi
+        \App\Models\WorkRequestLog::create([
+            'work_request_id' => $workRequest->id,
+            'action_type' => 'printed',
+            'status_label' => $isReprint ? "Cetak Ulang (#" . ($printCount + 1) . ")" : "Dokumen Dicetak",
+            'quantity' => $workRequest->quantity_requested,
+            'quantity_accumulated' => 0,
+            'operator_name' => $user->name,
+            'notes' => ($isReprint ? "Cetak ulang ke-" . ($printCount + 1) : "Pencetakan perdana") . " oleh " . $user->name . " (" . $user->effective_department_name . ")",
+        ]);
+
+        $printableTickets = collect([$workRequest]);
+
+        return view('work_requests.print_sheet', [
+            'workRequests' => $printableTickets,
+            'isBulk' => false,
+        ]);
+    }
+
+    /**
+     * Cetak Massal (Bulk Print) Multiple Dokumen WR Terpilih Sekaligus.
+     */
+    public function bulkPrint(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:work_requests,id',
+        ]);
+
+        $workRequests = WorkRequest::with(['component', 'requestedBy', 'targetLocation', 'steps.machine', 'logs'])
+            ->whereIn('id', $validated['ids'])
+            ->get();
+
+        $printableTickets = $workRequests->filter(fn($w) => $w->isPrintable());
+
+        if ($printableTickets->isEmpty()) {
+            return redirect()->back()->with('error', 'Tidak ada tiket terpilih yang memenuhi syarat lengkap untuk dicetak.');
+        }
+
+        $user = auth()->user();
+        foreach ($printableTickets as $wr) {
+            $printCount = $wr->logs()->where('action_type', 'printed')->count();
+            $isReprint = ($printCount > 0);
+
+            \App\Models\WorkRequestLog::create([
+                'work_request_id' => $wr->id,
+                'action_type' => 'printed',
+                'status_label' => $isReprint ? "Cetak Ulang (#" . ($printCount + 1) . ")" : "Dokumen Dicetak",
+                'quantity' => $wr->quantity_requested,
+                'quantity_accumulated' => 0,
+                'operator_name' => $user->name,
+                'notes' => "Cetak massal (" . count($printableTickets) . " dokumen) oleh " . $user->name,
+            ]);
+        }
+
+        return view('work_requests.print_sheet', [
+            'workRequests' => $printableTickets,
+            'isBulk' => true,
+        ]);
     }
 
     /**

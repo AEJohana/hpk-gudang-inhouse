@@ -106,5 +106,17 @@ Users have specific roles and departmental scopes that dictate their permissions
 - **Horizontal Swipe Protection for Data Tables:** Tabel pratinjau import data lebar (10 kolom) dilengkapi batas lebar minimum (`min-w-[720px]`) dan indikator visual geser samping, menjamin font dan badge status tetap terbaca jelas tanpa terhimpit sempit.
 - **Full-Width Hero Modal Actions:** Tombol simpan/konfirmasi pada modal dialog dan formulir WRI otomatis melebar penuh (*full-width*) di layar HP sehingga mudah dijangkau jempol operator di lantai bengkel karoseri.
 
+### 14. Official Work Request Triplicate Printing & Print Queue Management (Cetak WRI Resmi 3 Rangkap)
+- **3 Syarat Mutlak Cetak (Gatekeeper):** Dokumen WRI hanya dapat dicetak apabila memenuhi 3 kriteria: Status Pengaju disetujui (`Diterima`), Status Penerima disetujui (`Diterima`), dan Operator pelaksana pengerjaan telah dipilih / ditugaskan (`assigned_operator_name`).
+- **Format Cetak Resmi 3 Rangkap (Triplicate Slip in 1 A4 Page):** 1 nomor WRI dicetak menjadi 3 slip identik dalam 1 lembar kertas HVS A4 portrait dengan garis potong bergunting (`✂ Potong di sini`):
+  1. *Lembar 1 (Pemohon / Putih):* Disimpan sebagai arsip departemen pengaju.
+  2. *Lembar 2 (Mesin / Pelaksana / Kuning):* Dibawa bersama fisik benda kerja ke mesin fabrikasi.
+  3. *Lembar 3 (Gudang / MH / Merah):* Bukti serah terima fisik material handling ke gudang.
+- **Lokal & Offline QR Code (SVG Base64):** Pembangkitan kode QR lokal tanpa dependensi internet dan tanpa ekstensi PHP GD, menghasilkan kualitas cetak vektor tajam (*razor-sharp*) untuk pemindaian scanner barcode.
+- **4 Kolom Otorisasi Tanda Tangan & Nama Jelas:** Menampilkan nama Pemohon, Ka. Bagian Pemohon, Penerima (Operator Pengerjaan), dan Ka. Bagian Penerima.
+- **Audit Trail & Penanda Cetak Ulang:** Mendukung pencetakan ulang dengan label otomatis `[Cetak Ulang]`, penghitung `print_count`, dan pencatatan audit log `action_type: 'printed'`.
+- **Antrean Cetak & Bulk Printing (`/work-requests/print-queue`):** Menu navigasi tab `[ 🖨️ Cetak Dokumen WR ]` menyediakan daftar tiket siap cetak, filter (*Semua Siap Cetak*, *Belum Dicetak*, *Sudah Dicetak*), kotak centang multi-pilih, dan tombol *Cetak Masal Terpilih* multi-halaman.
+- **Otoritas Hak Akses Cetak (`work-request.print`):** Diberikan secara bawaan kepada Staf Gudang, Admin Gudang, Supervisor, dan Operator Mesin.
+
 ## Summary
 The system is an enterprise-grade, unified Warehouse Management System (WMS) and Work Request (WRI) platform. It seamlessly connects raw material warehouse storage (Zones A-F), multi-station production machine routing (Laser, M1, UNP, CNC, etc.), internal logistics transit (Material Handling), quality engineering control (ECR & Disposal), and inventory reconciliation into a single cohesive, auditable, and QR-driven ecosystem.

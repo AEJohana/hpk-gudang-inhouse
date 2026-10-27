@@ -65,6 +65,7 @@ Sistem mengadopsi 15 departemen standar pabrik yang termigrasi dari basis data a
    - Auto-Update Saldo Fisik: Saat tiket berstatus `Sudah Diambil`, stok di rak tujuan otomatis bertambah dan transaksi `inbound` resmi tercatat.
    - Peringatan SLA 3 Hari & Filter Interaktif: Badge `[ ⚠️ X Tiket Melewati SLA > 72 Jam ]` interaktif untuk menyaring dan menyortir tiket terlambat dari yang tertunda paling lama.
    - Unified 4-Status Control Bar: Perampingan antrean tiket menjadi 4 kategori operasional (*Perlu Verifikasi, Sedang Proses, Siap Ambil, Selesai*) dengan eliminasi kontrol dobel dan sinkronisasi 5 kartu KPI interaktif.
+   - Cetak Dokumen WR Resmi 3 Rangkap: Pemicu cetak mutlak (Approval Pengaju & Penerima Diterima + Operator pengerjaan ditugaskan) dengan format triplicate slip (Pemohon, Mesin, Gudang) dalam 1 lembar kertas A4, QR Code lokal vektor SVG, 4 kolom tanda tangan resmi, dan antrean cetak massal (*Bulk Print*) di `/work-requests/print-queue`.
 6. **Material Handling (Command Center):** 4 Tab operasional (*Tasks Pickup*, *Tasks Transit*, *Tasks Distribution*, *Tasks History*) dilengkapi pemindai kamera QR Code langsung.
 7. **Engineering Change Request (ECR):** Workflow pengajuan dan persetujuan perubahan spesifikasi komponen oleh QC dan Kepala Departemen.
 8. **Disposal & Scrap:** Pengajuan afkir material dengan pelacakan estimasi berat (kg), nilai sisa (*salvage value*), dan bukti foto.

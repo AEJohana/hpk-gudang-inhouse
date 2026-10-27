@@ -514,12 +514,21 @@
 
             <!-- Sticky Footer -->
             <div class="p-4 bg-white border-t border-slate-200 flex items-center justify-between flex-shrink-0">
-                <a :href="detailData.printUrl" 
-                   target="_blank" 
-                   class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold text-xs transition flex items-center space-x-1.5 shadow-2xs">
-                    <i class="fa-solid fa-print text-slate-600"></i>
-                    <span>Cetak Lembar WR / Kanban</span>
-                </a>
+                <template x-if="detailData.isPrintable">
+                    <a :href="detailData.printUrl" 
+                       target="_blank" 
+                       class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition flex items-center space-x-1.5 shadow-xs">
+                        <i class="fa-solid fa-print"></i>
+                        <span>Cetak Dokumen WR (3 Rangkap)</span>
+                    </a>
+                </template>
+                <template x-if="!detailData.isPrintable">
+                    <div class="px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 font-semibold text-xs flex items-center space-x-1.5 cursor-not-allowed"
+                         :title="detailData.printValidationMessage || 'Dokumen belum dapat dicetak: Butuh verifikasi pengaju, penerima, dan penugasan operator'">
+                        <i class="fa-solid fa-lock text-slate-400"></i>
+                        <span>Cetak Terkunci (Belum Lengkap)</span>
+                    </div>
+                </template>
                 <button type="button" 
                         @click="closeDetailModal()" 
                         class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs transition flex items-center space-x-1.5 cursor-pointer">

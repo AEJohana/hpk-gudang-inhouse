@@ -794,4 +794,76 @@ class WorkRequest extends Model
 
         return 10;
     }
+
+    /**
+     * Cek apakah dokumen Work Request telah memenuhi 3 syarat mutlak untuk dicetak:
+     * 1. Status Pengaju disetujui (Diterima)
+     * 2. Status Penerima disetujui (Diterima)
+     * 3. Operator pengerjaan telah dipilih / ditugaskan
+     */
+    public function isPrintable(): bool
+    {
+        return $this->approval_pengaju === 'Diterima'
+            && $this->approval_penerima === 'Diterima'
+            && !empty(trim($this->assigned_operator_name ?? ''));
+    }
+
+    /**
+     * Dapatkan pesan keterangan jika dokumen belum dapat dicetak
+     */
+    public function getPrintValidationMessage(): string
+    {
+        if ($this->approval_pengaju !== 'Diterima') {
+            return 'Menunggu verifikasi persetujuan Ka. Bagian Pengaju.';
+        }
+        if ($this->approval_penerima !== 'Diterima') {
+            return 'Menunggu verifikasi persetujuan Ka. Bagian Penerima.';
+        }
+        if (empty(trim($this->assigned_operator_name ?? ''))) {
+            return 'Operator pelaksana pengerjaan belum dipilih oleh Ka. Penerima.';
+        }
+        return 'Dokumen valid & siap dicetak.';
+    }
+
+    /**
+     * Scope query untuk tiket yang telah siap dicetak
+     */
+    public function scopePrintable(Builder $query): Builder
+    {
+        return $query->where('approval_pengaju', 'Diterima')
+                     ->where('approval_penerima', 'Diterima')
+                     ->whereNotNull('assigned_operator_name')
+                     ->where('assigned_operator_name', '!=', '');
+    }
+
+    /**
+     * Hitung berapa kali tiket ini telah dicetak berdasarkan riwayat log
+     */
+    public function getPrintCountAttribute(): int
+    {
+        return $this->logs()->where('action_type', 'printed')->count();
+    }
+
+    /**
+     * Pembangkitan QR Code WRI lokal (SVG) tanpa dependensi eksternal (BR-03)
+     */
+    public function getQrCodeSvgAttribute(): string
+    {
+        $options = new \chillerlan\QRCode\QROptions([
+            'outputType' => \chillerlan\QRCode\QRCode::OUTPUT_MARKUP_SVG,
+            'outputBase64' => false,
+            'svgUseFill' => true,
+            'addQuietzone' => false,
+        ]);
+        return (new \chillerlan\QRCode\QRCode($options))->render($this->wri_number);
+    }
+
+    /**
+     * Pembangkitan QR Code WRI lokal (SVG Data URI) untuk disematkan pada lembar cetak
+     */
+    public function getQrCodeDataUriAttribute(): string
+    {
+        $svg = $this->qr_code_svg;
+        return 'data:image/svg+xml;base64,' . base64_encode($svg);
+    }
 }

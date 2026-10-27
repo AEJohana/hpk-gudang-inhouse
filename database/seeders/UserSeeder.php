@@ -175,9 +175,10 @@ class UserSeeder extends Seeder
                 $user->syncRoles([$user->role]);
             }
 
-            // Default sync: Bagian Gudang dan Global User berhak membuat WR
+            // Default sync: Bagian Gudang dan Global User berhak membuat dan mencetak dokumen WR
             if ($user->work_area === 'gudang' || $user->can_access_all_departments) {
                 $user->givePermissionTo('work-request.create');
+                $user->givePermissionTo('work-request.print');
             }
         }
     }

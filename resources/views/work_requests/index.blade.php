@@ -62,9 +62,21 @@
                 </a>
                 @can('work-request.safety-stock')
                 <a href="{{ route('work-requests.safety-stock') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100">
+                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 whitespace-nowrap">
                     <i class="fa-solid fa-shield-halved text-xs text-rose-500"></i>
                     <span>Safety Stock Alert</span>
+                </a>
+                @endcan
+                @can('work-request.print')
+                <a href="{{ route('work-requests.print-queue') }}" 
+                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+                    <i class="fa-solid fa-print text-xs text-indigo-500"></i>
+                    <span>Cetak Dokumen WR</span>
+                    @if(isset($printableCount) && $printableCount > 0)
+                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-indigo-600 text-white ml-1">
+                            {{ $printableCount }}
+                        </span>
+                    @endif
                 </a>
                 @endcan
             </div>
@@ -378,11 +390,12 @@
                             'is_defect' => $l->action_type === 'defect' || str_contains($l->status_label, 'Defect'),
                         ])->values(),
                         'printUrl' => route('work-requests.print-sheet', $wri),
+                        'isPrintable' => $wri->isPrintable(),
+                        'printValidationMessage' => $wri->getPrintValidationMessage(),
+                        'printCount' => $wri->print_count,
                         'remainingQty' => $remainingQty > 0 ? $remainingQty : (float) $wri->quantity_requested,
                         'nextStatus' => $nextStatus,
                         'canProcessAction' => $canProcessAction,
-                        'actionUrl' => route('work-requests.process-action', $wri),
-                        'isFinal' => (bool) $wri->is_final,
                         'actionUrl' => route('work-requests.process-action', $wri),
                         'isFinal' => (bool) $wri->is_final,
                     ];
@@ -533,6 +546,18 @@
                                     <i class="fa-solid fa-circle-check text-emerald-600 me-1"></i> Selesai Diterima {{ $wri->dept_pengaju ?: 'Gudang' }}
                                 </span>
                             @endif
+
+                            @can('work-request.print')
+                                @if($wri->isPrintable())
+                                    <a href="{{ route('work-requests.print-sheet', $wri) }}" 
+                                       target="_blank" 
+                                       class="px-2.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition flex items-center justify-center space-x-1"
+                                       title="Cetak lembar kerja resmi 3 duplikat">
+                                        <i class="fa-solid fa-print text-xs"></i>
+                                        <span>Cetak</span>
+                                    </a>
+                                @endif
+                            @endcan
 
                             <button type="button" 
                                     @click='openDetailModal(@json($detailPayload))'
@@ -700,6 +725,9 @@
                                     'is_defect' => $l->action_type === 'defect' || str_contains($l->status_label, 'Defect'),
                                 ])->values(),
                                 'printUrl' => route('work-requests.print-sheet', $wri),
+                                'isPrintable' => $wri->isPrintable(),
+                                'printValidationMessage' => $wri->getPrintValidationMessage(),
+                                'printCount' => $wri->print_count,
                                 'remainingQty' => $remainingQty > 0 ? $remainingQty : (float) $wri->quantity_requested,
                                 'nextStatus' => $nextStatus,
                                 'canProcessAction' => $canProcessAction,
@@ -727,6 +755,17 @@
                                     <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] {{ $wri->priority_badge['class'] }}">
                                         {{ $wri->priority_badge['label'] }}
                                     </span>
+                                    @can('work-request.print')
+                                        @if($wri->isPrintable())
+                                            <a href="{{ route('work-requests.print-sheet', $wri) }}" 
+                                               target="_blank" 
+                                               class="inline-flex items-center space-x-1 px-1.5 py-0.2 rounded text-[9px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 font-bold transition"
+                                               title="Cetak formulir resmi 3 duplikat">
+                                                <i class="fa-solid fa-print text-[8.5px]"></i>
+                                                <span>Cetak</span>
+                                            </a>
+                                        @endif
+                                    @endcan
                                 </div>
 
                                 <!-- Tombol Aksi Status / Lencana Status -->
@@ -1057,6 +1096,9 @@
                     steps: [],
                     logs: [],
                     printUrl: '#',
+                    isPrintable: false,
+                    printValidationMessage: '',
+                    printCount: 0,
                 },
                 openAssignModal(data) {
                     this.assignData = {

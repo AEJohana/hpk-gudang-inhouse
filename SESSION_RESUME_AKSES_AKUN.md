@@ -94,6 +94,31 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Fase Mulai Mesin `(In)` Terkunci Rapi:** Menampilkan kuantitas pengerjaan terkunci dengan badge gembok informatif tanpa membebani layar dengan formulir defect yang belum diperlukan.
 - **Integritas Fungsi & Zero Regression 100%:** Seluruh 7 parameter form (`action_type`, `target_status`, `operator_name`, `process_qty`, `defect_qty`, `defect_reason`, `notes`), validasi parsial, dan backend handling tetap berjalan tanpa perubahan fungsi. Unit tests lolos 100%.
 
+### J. Penyederhanaan SLA Peringatan & Filter Antrean 4 Kategori (Baru Selesai & Teruji 100%)
+- **Filter Interaktif Peringatan SLA 3 Hari (72 Jam):** Badge peringatan merah `[ ⚠️ X Tiket Melewati SLA > 72 Jam ]` kini menjadi tombol filter dinamis. Saat diklik, sistem langsung memfilter dan menyortir tiket dari yang tertunda paling lama (`created_at ASC`) lengkap dengan tombol reset toggle 1-klik.
+- **Unified 4-Status Control Bar:** Merampingkan antrean tiket WRI yang sebelumnya bertumpuk ganda menjadi 4 kategori operasional intuitif (+ Semua): **Perlu Verifikasi**, **Sedang Proses**, **Siap Ambil**, dan **Selesai**. Redundansi baris filter dihilangkan seutuhnya dan 5 kartu KPI header disinkronkan sebagai tombol pintas filter instan.
+- **Pengujian Unit Otomatis:** Teruji 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestSlaAndStatusFilterTest.php`).
+
+### K. Modul Cetak Dokumen WR Resmi 3 Rangkap & Antrean Print (Baru Selesai & Teruji 100%)
+- **Gatekeeper Validasi 3 Syarat Mutlak Cetak:** Dokumen WRI hanya boleh dicetak jika:
+  1. `approval_pengaju === 'Diterima'` (Disetujui Ka. Pengaju)
+  2. `approval_penerima === 'Diterima'` (Disetujui Ka. Penerima)
+  3. `assigned_operator_name` terisi (Operator pengerjaan telah ditugaskan)
+  Jika belum terpenuhi, tombol cetak dinonaktifkan (`disabled`) dengan keterangan tooltip validasi yang informatif.
+- **Format Resmi Triplicate 3 Rangkap dalam 1 Lembar HVS A4:** 1 tiket WRI dicetak 3 slip identik vertikal dengan garis putus-putus (`✂ Potong di sini`):
+  - *Lembar Pemohon (Putih)*
+  - *Lembar Mesin/Pelaksana (Kuning)*
+  - *Lembar Gudang/MH (Merah)*
+- **Lokal & Offline QR Code Vektor SVG:** Menggunakan SVG Data URI lokal tanpa dependensi internet dan tanpa ekstensi PHP GD, menghasilkan kualitas cetak barcode tajam pada printer desktop dan barcode gun.
+- **4 Kolom Otorisasi Tanda Tangan & Nama Jelas:** Menampilkan nama Pemohon, Ka. Bagian Pemohon, Penerima (Operator), dan Ka. Bagian Penerima.
+- **Kebijakan Cetak Ulang & Audit Log:** Mendukung cetak ulang dengan tanda otomatis `[Cetak Ulang]`, tracking frekuensi cetak (`print_count`), dan pencatatan riwayat `action_type: 'printed'`.
+- **Menu Tab Antrean Cetak (`/work-requests/print-queue`) & Cetak Massal (*Bulk Print*):**
+  - Tab navigasi `[ 🖨️ Cetak Dokumen WR ]` di samping *Safety Stock Alert*.
+  - Menyediakan filter cepat (*Semua Siap Cetak*, *Belum Dicetak*, *Sudah Dicetak*).
+  - Checkbox multi-select dan aksi massal `[ 🖨️ Cetak Masal Terpilih ]` (`/work-requests/bulk-print`).
+- **Otoritas Izin Spatie (`work-request.print`):** Diberikan secara bawaan kepada Staf Gudang, Admin Gudang, Supervisor, dan Operator Mesin.
+- **Pengujian Unit Otomatis:** Teruji 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestPrintValidationTest.php` - 6 passed, 21 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

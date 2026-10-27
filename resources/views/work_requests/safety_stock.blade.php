@@ -36,10 +36,17 @@
                     <span>Antrian & Tiket WRI</span>
                 </a>
                 <a href="{{ route('work-requests.safety-stock') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 bg-[#0a2342] text-amber-400 shadow-md">
+                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 bg-[#0a2342] text-amber-400 shadow-md whitespace-nowrap">
                     <i class="fa-solid fa-shield-halved text-xs text-amber-400"></i>
                     <span>Safety Stock Alert</span>
                 </a>
+                @can('work-request.print')
+                <a href="{{ route('work-requests.print-queue') }}" 
+                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+                    <i class="fa-solid fa-print text-xs text-indigo-500"></i>
+                    <span>Cetak Dokumen WR</span>
+                </a>
+                @endcan
             </div>
 
             <div class="flex items-center space-x-2 text-xs">

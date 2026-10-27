@@ -114,13 +114,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // 8. Work Request Inhouse (Order ke Machine Center & Routing Multi-Mesin)
     Route::middleware(['can:work-request.view'])->group(function () {
-        // Tab Khusus Safety Stock & Monitoring SLA
+        // Tab Khusus Safety Stock, Monitoring SLA, dan Antrean Cetak Dokumen WR
         Route::get('/work-requests/safety-stock', [\App\Http\Controllers\WorkRequestController::class, 'safetyStock'])
             ->middleware('can:work-request.safety-stock')
             ->name('work-requests.safety-stock');
         Route::get('/work-requests/monitoring', [\App\Http\Controllers\WorkRequestController::class, 'monitoring'])
             ->middleware('can:work-request.monitoring')
             ->name('work-requests.monitoring');
+        Route::get('/work-requests/print-queue', [\App\Http\Controllers\WorkRequestController::class, 'printQueue'])
+            ->middleware('can:work-request.print')
+            ->name('work-requests.print-queue');
+        Route::post('/work-requests/bulk-print', [\App\Http\Controllers\WorkRequestController::class, 'bulkPrint'])
+            ->middleware('can:work-request.print')
+            ->name('work-requests.bulk-print');
 
         // CRUD Work Requests
         Route::get('/work-requests', [\App\Http\Controllers\WorkRequestController::class, 'index'])->name('work-requests.index');

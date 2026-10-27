@@ -74,6 +74,7 @@ Seluruh logika bisnis dari sistem lama telah diimplementasikan secara terstruktu
 | **BR-09** | **Sanitasi String Status** | Scope pembersihan status dan normalisasi nama status di Model `WorkRequest.php`. | String `Parsial >` dipisahkan secara otomatis saat evaluasi fase logika status dilakukan oleh sistem backend. |
 | **BR-10** | **Pemantauan SLA 3 Hari & Quick Filter Interaktif** | `scopeOverdueSla` di `WorkRequest.php` + query `overdue_sla=1` & `oldest('created_at')` di `WorkRequestController.php`. | Tiket yang belum berstatus `Sudah Diambil` setelah melewati batas waktu 72 jam (3 hari) otomatis diberi label merah peringatan darurat (*Urgent SLA Alert*). Badge ini berfungsi sebagai filter interaktif: jika diklik, sistem langsung menyaring dan menyortir tiket terlambat dari yang tertunda paling lama (`created_at ASC`) lengkap dengan tombol toggle reset 1-klik. |
 | **BR-11** | **Unified 4-Status Control Bar & Bebas Redundansi** | Mapping status di `WorkRequestController.php` & tab navigasi `index.blade.php`. | Mengeliminasi baris ganda bertumpuk dan kontrol dobel. Antrean WRI disederhanakan menjadi 4 kategori operasional fungsional (+ Semua): **Perlu Verifikasi**, **Sedang Proses**, **Siap Ambil**, dan **Selesai**, dengan 5 kartu KPI interaktif di header. |
+| **BR-12** | **Otorisasi Cetak Lembar WRI Resmi 3 Rangkap & Antrean Print** | `WorkRequest::isPrintable()`, `WorkRequestController::printSheet()`, `printQueue()`, dan `print_sheet.blade.php`. | Tiket hanya boleh dicetak jika: Approval Pengaju `Diterima`, Approval Penerima `Diterima`, dan Operator Pengerjaan telah dipilih (`assigned_operator_name`). Dicetak dalam format triplicate 3 rangkap (Pemohon, Mesin, Gudang) dalam 1 lembar HVS A4 dengan QR lokal SVG dan 4 kolom otorisasi tanda tangan resmi. Didukung fitur cetak ulang dengan log tracking dan cetak massal (*Bulk Print*). |
 
 ---
 
@@ -325,3 +326,44 @@ Untuk memastikan kelancaran operasional para operator mesin, kurir Material Hand
 4. **Navigasi & Tabel Lebar Geser Samping (Horizontal Swipe):**
    - Tabel pratinjau impor komponen (10 kolom) dan tabel data padat lainnya dilindungi batas lebar minimum (`min-w-[720px]`) disertai petunjuk gestur sentuh *"Geser tabel ke samping"*, menjamin tidak ada kolom atau badge status yang remuk atau terpotong pada layar ponsel.
    - Tombol konfirmasi pada modal dialog dialihkan ke susunan vertikal terbalik (`flex-col-reverse sm:flex-row`), memprioritaskan tombol aksi utama di bagian atas jangkauan jari.
+
+---
+
+## 13. Standar Operasional Cetak Dokumen Fisik Work Request (Triplicate Slip SOP)
+
+Untuk memfasilitasi kebutuhan tanda tangan fisik, instruksi kerja stasiun mesin, dan penelusuran perpindahan material secara resmi di lantai pabrik:
+
+1. **3 Syarat Mutlak Pemicu Cetak (Print Validation Gatekeeper):**
+   Dokumen Work Request Inhouse (WRI) **HANYA BISA DICETAK** jika telah memenuhi 3 syarat kumulatif:
+   - Status Pengajuan telah disetujui oleh Ka. Bagian Pengaju (`approval_pengaju === 'Diterima'`).
+   - Status Penerima telah disetujui oleh Ka. Bagian Penerima (`approval_penerima === 'Diterima'`).
+   - Operator pelaksana pengerjaan telah dipilih / ditugaskan (`assigned_operator_name` terisi).
+   *Jika salah satu syarat belum terpenuhi, tombol cetak di modal detail dan antrean akan dinonaktifkan (disabled) disertai keterangan validasi yang transparan.*
+
+2. **Format Standar Triplicate Slip (3 Rangkap dalam 1 Lembar HVS A4 Portrait):**
+   Setiap pencetakan tiket menghasilkan 3 salinan slip identik yang dipisahkan oleh garis putus-putus (`✂ Potong di sini`):
+   - **Lembar 1 (Pemohon / Putih):** Dipegang oleh departemen pengaju sebagai bukti pesanan resmi.
+   - **Lembar 2 (Mesin / Pelaksana / Kuning):** Diserahkan ke operator stasiun mesin dan ditempelkan pada wadah fisik material kerja.
+   - **Lembar 3 (Gudang / MH / Merah):** Digunakan oleh kurir Material Handling dan diserahkan ke gudang sebagai tanda terima barang jadi.
+
+3. **Komponen Resmi Formulir Cetak:**
+   - **Header Perusahaan & Nomor Tiket:** Logo resmi PT Hydraxle Perkasa, judul *WORK REQUEST PERMINTAAN PEKERJAAN*, dan nomor unik `WRI/...`.
+   - **Kotak "Scan Here" & QR Code Vektor Lokal (SVG):** Menghasilkan kode QR tajam berbasis SVG Data URI tanpa ketergantungan API eksternal dan tanpa PHP GD extension, mempermudah pemindaian via barcode gun.
+   - **Tabel Data Komponen:** Memuat Kode Komponen, Tanggal Order, Nama Komponen, Qty & Satuan, Dimensi, Dept Pengaju, dan Alur Routing/Dept Penerima.
+   - **4 Kotak Otorisasi Tanda Tangan & Nama Jelas:**
+     - `Pemohon`: Nama pembuat tiket pengajuan.
+     - `Ka. Bagian Pemohon`: Nama kepala bagian / supervisor yang menyetujui pengajuan.
+     - `Penerima`: Nama operator mesin yang ditugaskan mengerjakan komponen.
+     - `Ka. Bagian Penerima`: Nama kepala bagian / supervisor mesin yang memverifikasi order.
+
+4. **Kebijakan Cetak Ulang & Audit Trail:**
+   - Dokumen **DIPERBOLEHKAN** untuk dicetak ulang jika lembar fisik rusak atau hilang di lantai pabrik.
+   - Setiap cetak ulang diberi penanda khusus `[Cetak Ulang]` pada header slip dan frekuensi cetak (`print_count`) dilacak otomatis di log audit (`action_type: 'printed'`).
+
+5. **Antrean Cetak & Fitur Cetak Massal (Bulk Printing):**
+   - Akses cepat antrean cetak melalui menu tab `[ 🖨️ Cetak Dokumen WR ]` di samping *Safety Stock Alert*.
+   - Menyediakan filter cepat: *Semua Siap Cetak*, *Belum Dicetak*, dan *Sudah Dicetak*.
+   - Fitur *Bulk Print*: Petugas dapat mencentang beberapa tiket sekaligus dan mencetaknya dalam satu perintah cetak multi-halaman (`/work-requests/bulk-print`).
+
+6. **Hak Akses Otoritas Cetak (`work-request.print`):**
+   - Diberikan secara bawaan kepada Staf Gudang (`work_area: 'gudang'`), Administrator Gudang (`admin_gudang`), Supervisor (`supervisor`), dan Operator Mesin (`operator_mesin`).
