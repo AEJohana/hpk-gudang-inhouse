@@ -98,6 +98,7 @@ Users have specific roles and departmental scopes that dictate their permissions
 - Implemented using Spatie Laravel Permission with granular abilities (`work-request.view`, `work-request.process`, `material-handling.view`, `material-handling.manage`, etc.).
 - **Dynamic Beranda & Navigation:** Non-authorized modules are completely omitted from the UI, preventing unauthorized clicks or route access.
 - **Intelligent Presets:** New or edited users assigned to Machine Center roles automatically receive Work Request permissions, while Material Handling roles receive logistics permissions.
+- **Streamlined Minimalist Dashboard:** Beranda utama disederhanakan dengan mengeliminasi widget tracker mesin fabrikasi yang redundan, kotak grafis denah gedung 2D yang berat, dan antrean tugas panjang. Tata letak ditata ulang dengan hierarki informasi eksekutif yang logis: 4 kartu metrik KPI ringkas (*Total SKU*, *Stok Menipis Kritis*, *Transaksi Hari Ini*, *Menunggu Approval*) diletakkan langsung di bagian atas tepat di bawah hero wave banner dan di atas judul *Modul Aplikasi Pergudangan HPK*, diikuti 8 kartu modul navigasi utama dengan badge counter real-time. Hal ini menghemat 10+ query database per pemuatan halaman sehingga beranda terbuka secara instan.
 
 ### 13. Mobile Ergonomics & Responsive Smartphone Optimization (Layar Ramah HP)
 - **Universal Zero-Collision Layout:** Seluruh halaman, modal dialog, formulir input, dan antrean kartu data dioptimasi untuk resolusi layar smartphone (360px – 430px) tanpa teks yang bertumpuk (*collision-free*).
