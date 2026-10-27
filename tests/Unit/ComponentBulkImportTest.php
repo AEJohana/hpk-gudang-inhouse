@@ -203,6 +203,59 @@ class ComponentBulkImportTest extends TestCase
     }
 
     /**
+     * Test header detection correctly ignores introductory titles and notes containing "kode".
+     */
+    public function test_header_detection_ignores_introductory_titles_and_instruction_notes(): void
+    {
+        $csvContent = implode("\n", [
+            'PT HYDRAXLE PERKASA - TEMPLATE IMPORT MASTER KOMPONEN KAROSERI',
+            'Petunjuk: Kolom bertanda (*) WAJIB diisi. Lihat Sheet PEDOMAN untuk daftar kategori satuan dan kode rak aktif.',
+            '',
+            'Kode Komponen (*Wajib),Nama Komponen (*Wajib),Kategori,Satuan,Panjang (mm),Lebar/Diameter (mm),Tebal/Tinggi (mm),Spesifikasi Teknis,Stok Minimum,Stok Awal,Kode Rak,Tautan Foto',
+            '000000000000,UJI COBA KOMPONE,subframe,BATANG,6000,100,5,Material Baja UNP,0,50,A-01,',
+        ]);
+
+        $tempCsv = tempnam(sys_get_temp_dir(), 'test_header_') . '.csv';
+        file_put_contents($tempCsv, $csvContent);
+
+        $service = new ComponentBulkImportService();
+        $preview = $service->parseAndPreview($tempCsv, 'csv', 'skip');
+
+        $this->assertEquals(1, $preview['summary']['total_rows'], 'Only 1 actual component row must be parsed, header should not be treated as data');
+        $this->assertEquals(1, $preview['summary']['new_items']);
+        $this->assertEquals(0, $preview['summary']['errors']);
+        $this->assertEquals('000000000000', $preview['rows'][0]['part_number']);
+        $this->assertEquals('UJI COBA KOMPONE', $preview['rows'][0]['name']);
+        $this->assertEquals('new', $preview['rows'][0]['status']);
+
+        @unlink($tempCsv);
+    }
+
+    /**
+     * Test fail-safe guard automatically skips lingering header rows duplicated in data.
+     */
+    public function test_fail_safe_ignores_lingering_duplicate_headers_in_data(): void
+    {
+        $csvContent = implode("\n", [
+            'Kode Komponen (*Wajib),Nama Komponen (*Wajib),Kategori,Satuan,Panjang (mm),Lebar/Diameter (mm),Tebal/Tinggi (mm),Spesifikasi Teknis,Stok Minimum,Stok Awal,Kode Rak,Tautan Foto',
+            'PART-REAL-01,Part Asli Karoseri,subframe,PCS,100,50,3,Spek Asli,5,10,,',
+            'Kode Komponen (*Wajib),Nama Komponen (*Wajib),Kategori,Satuan,Panjang (mm),Lebar/Diameter (mm),Tebal/Tinggi (mm),Spesifikasi Teknis,Stok Minimum,Stok Awal,Kode Rak,Tautan Foto',
+        ]);
+
+        $tempCsv = tempnam(sys_get_temp_dir(), 'test_failsafe_') . '.csv';
+        file_put_contents($tempCsv, $csvContent);
+
+        $service = new ComponentBulkImportService();
+        $preview = $service->parseAndPreview($tempCsv, 'csv', 'skip');
+
+        $this->assertEquals(1, $preview['summary']['total_rows'], 'Lingering duplicate header in data must be skipped by fail-safe');
+        $this->assertEquals(1, $preview['summary']['new_items']);
+        $this->assertEquals('PART-REAL-01', $preview['rows'][0]['part_number']);
+
+        @unlink($tempCsv);
+    }
+
+    /**
      * Test execute import persists components and updates them in database.
      */
     public function test_bulk_import_service_execute_persists_to_database(): void

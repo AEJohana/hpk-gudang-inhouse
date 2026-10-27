@@ -24,22 +24,22 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto self-start sm:self-auto">
                 <button type="button" 
                         onclick="window.location.reload()" 
-                        class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs transition flex items-center space-x-1.5 cursor-pointer active:scale-95"
+                        class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
                         title="Segarkan antrean tiket WRI">
                     <i class="fa-solid fa-arrows-rotate text-xs text-amber-600"></i>
                     <span>Refresh</span>
                 </button>
-                <a href="{{ route('work-station-supplies.index') }}" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center">
+                <a href="{{ route('work-station-supplies.index') }}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center text-center">
                     <i class="fa-solid fa-truck-ramp-box me-1.5 text-sm"></i>
-                    Material Handling Center
+                    <span>Material Handling</span>
                 </a>
                 @can('work-request.create')
-                <a href="{{ route('work-requests.create') }}" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center">
+                <a href="{{ route('work-requests.create') }}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center text-center">
                     <i class="fa-solid fa-plus me-1.5"></i>
-                    Membuat WR
+                    <span>Membuat WR</span>
                 </a>
                 @endcan
             </div>
@@ -81,10 +81,12 @@
             </div>
         </div>
 
-        <!-- 1. KPI SUMMARY STATS CARDS -->
+        <!-- 1. KPI SUMMARY STATS CARDS (INTERACTIVE QUICK FILTERS) -->
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center space-x-3">
-                <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center flex-shrink-0 text-lg font-bold">
+            <a href="{{ route('work-requests.index', ['scope' => $scope]) }}" 
+               class="bg-white hover:bg-slate-50 rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center space-x-3 transition group active:scale-[0.99] cursor-pointer"
+               title="Klik untuk menampilkan semua tiket">
+                <div class="w-11 h-11 rounded-xl bg-slate-100 group-hover:bg-[#0a2342] group-hover:text-amber-400 text-slate-700 flex items-center justify-center flex-shrink-0 text-lg font-bold transition">
                     <i class="fa-solid fa-file-invoice"></i>
                 </div>
                 <div>
@@ -92,132 +94,164 @@
                     <h3 class="text-xl font-black text-slate-900 leading-tight mt-0.5">{{ $totalWri }}</h3>
                     <span class="text-[10px] text-slate-500">Semua tiket order</span>
                 </div>
-            </div>
+            </a>
 
-            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center space-x-3">
-                <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center flex-shrink-0 text-lg font-bold">
-                    <i class="fa-solid fa-clock"></i>
+            <a href="{{ route('work-requests.index', ['scope' => $scope, 'status' => 'verifikasi']) }}" 
+               class="bg-white hover:bg-amber-50/50 rounded-2xl p-4 border {{ $needsApprovalCount > 0 ? 'border-amber-300 bg-amber-50/20' : 'border-slate-200' }} shadow-xs flex items-center space-x-3 transition group active:scale-[0.99] cursor-pointer"
+               title="Klik untuk menyaring tiket yang butuh verifikasi">
+                <div class="w-11 h-11 rounded-xl {{ $needsApprovalCount > 0 ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-100 text-slate-600' }} flex items-center justify-center flex-shrink-0 text-lg font-bold transition">
+                    <i class="fa-solid fa-stamp"></i>
                 </div>
                 <div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Antrian Mesin</span>
-                    <h3 class="text-xl font-black text-slate-900 leading-tight mt-0.5">{{ $inAntrianCount }}</h3>
-                    <span class="text-[10px] text-slate-500">Menunggu diproses</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800">Perlu Verifikasi</span>
+                    <h3 class="text-xl font-black text-amber-950 leading-tight mt-0.5">{{ $needsApprovalCount }}</h3>
+                    <span class="text-[10px] text-amber-700 font-medium">Pengaju & Penerima</span>
                 </div>
-            </div>
+            </a>
 
-            <div class="bg-white rounded-2xl p-4 border border-blue-200 shadow-xs flex items-center space-x-3">
-                <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0 text-lg font-bold">
+            <a href="{{ route('work-requests.index', ['scope' => $scope, 'status' => 'proses']) }}" 
+               class="bg-white hover:bg-blue-50/50 rounded-2xl p-4 border border-blue-200 shadow-xs flex items-center space-x-3 transition group active:scale-[0.99] cursor-pointer"
+               title="Klik untuk menyaring tiket yang sedang dalam proses / antrian">
+                <div class="w-11 h-11 rounded-xl bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-700 flex items-center justify-center flex-shrink-0 text-lg font-bold transition">
                     <i class="fa-solid fa-gears animate-spin" style="animation-duration: 6s;"></i>
                 </div>
                 <div>
                     <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600">Sedang Proses</span>
-                    <h3 class="text-xl font-black text-blue-700 leading-tight mt-0.5">{{ $inProductionCount }}</h3>
-                    <span class="text-[10px] text-blue-500">In / Out / MH Pickup</span>
+                    <h3 class="text-xl font-black text-blue-700 leading-tight mt-0.5">{{ $inProcessCount }}</h3>
+                    <span class="text-[10px] text-blue-500">Antrian, Mesin, MH</span>
                 </div>
-            </div>
+            </a>
 
-            <div class="bg-white rounded-2xl p-4 border border-amber-300 bg-amber-50/40 shadow-xs flex items-center space-x-3">
-                <div class="w-11 h-11 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center flex-shrink-0 text-lg font-bold">
+            <a href="{{ route('work-requests.index', ['scope' => $scope, 'status' => 'siap']) }}" 
+               class="bg-white hover:bg-teal-50/50 rounded-2xl p-4 border border-teal-200 bg-teal-50/20 shadow-xs flex items-center space-x-3 transition group active:scale-[0.99] cursor-pointer"
+               title="Klik untuk menyaring tiket siap diambil / menuju pengaju">
+                <div class="w-11 h-11 rounded-xl bg-teal-500 group-hover:bg-teal-600 text-white flex items-center justify-center flex-shrink-0 text-lg font-bold transition">
                     <i class="fa-solid fa-dolly"></i>
                 </div>
                 <div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800">Siap Diambil</span>
-                    <h3 class="text-xl font-black text-amber-900 leading-tight mt-0.5">{{ $readyForWarehouseCount }}</h3>
-                    <span class="text-[10px] text-amber-700 font-semibold">Siap Diantar</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-teal-800">Siap Diambil</span>
+                    <h3 class="text-xl font-black text-teal-900 leading-tight mt-0.5">{{ $readyForWarehouseCount }}</h3>
+                    <span class="text-[10px] text-teal-700 font-semibold">Menuju Pengaju</span>
                 </div>
-            </div>
+            </a>
 
-            <div class="bg-white rounded-2xl p-4 border border-emerald-200 shadow-xs flex items-center space-x-3 col-span-2 sm:col-span-1">
-                <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 text-lg font-bold">
+            <a href="{{ route('work-requests.index', ['scope' => $scope, 'status' => 'selesai']) }}" 
+               class="bg-white hover:bg-emerald-50/50 rounded-2xl p-4 border border-emerald-200 shadow-xs flex items-center space-x-3 col-span-2 sm:col-span-1 transition group active:scale-[0.99] cursor-pointer"
+               title="Klik untuk menyaring tiket yang sudah selesai">
+                <div class="w-11 h-11 rounded-xl bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-700 flex items-center justify-center flex-shrink-0 text-lg font-bold transition">
                     <i class="fa-solid fa-circle-check"></i>
                 </div>
                 <div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Sudah Diambil</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Selesai</span>
                     <h3 class="text-xl font-black text-emerald-700 leading-tight mt-0.5">{{ $receivedCount }}</h3>
-                    <span class="text-[10px] text-emerald-600">Stok Fisik Masuk</span>
+                    <span class="text-[10px] text-emerald-600">Diterima Pengaju</span>
                 </div>
-            </div>
+            </a>
         </div>
 
-        <!-- 2. SCOPE SELECTOR & STATUS FILTER TABS -->
-        <div class="space-y-3">
-            <!-- Scope Switcher: Departemen Saya vs Perlu Verifikasi vs Semua Dept -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200">
-                <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 sm:pb-0">
-                    <a href="{{ route('work-requests.index', ['scope' => 'my_dept']) }}" 
-                       class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap {{ $scope === 'my_dept' ? 'bg-white text-slate-900 shadow-xs border border-slate-300' : 'text-slate-600 hover:text-slate-900' }}">
-                        <i class="fa-solid fa-user-tag text-xs text-amber-500"></i>
-                        <span>Tiket Departemen Saya</span>
-                    </a>
+        <!-- 2. UNIFIED WORK REQUEST CONTROL BAR (BEBAS DARI INPUT DOBEL) -->
+        <div class="bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200 shadow-xs flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <!-- Left: 5 Status Tabs & Interactive SLA Alert -->
+            <div class="flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
+                <!-- Tab: Semua -->
+                <a href="{{ route('work-requests.index', ['scope' => $scope]) }}" 
+                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ (!request()->filled('status') || request()->status === 'all') && !request()->boolean('overdue_sla') ? 'bg-[#0a2342] text-amber-400 shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                    <span>Semua</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ (!request()->filled('status') || request()->status === 'all') && !request()->boolean('overdue_sla') ? 'bg-amber-400 text-slate-950' : 'bg-slate-200 text-slate-700' }}">
+                        {{ $totalWri }}
+                    </span>
+                </a>
 
-                    <a href="{{ route('work-requests.index', ['scope' => 'needs_approval']) }}" 
-                       class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap {{ $scope === 'needs_approval' ? 'bg-amber-400 text-slate-950 font-black shadow-xs' : 'text-slate-600 hover:text-slate-900' }}">
-                        <i class="fa-solid fa-stamp text-xs"></i>
-                        <span>Perlu Verifikasi Saya</span>
-                        @if($needsApprovalCount > 0)
-                            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-600 text-white ml-1">
-                                {{ $needsApprovalCount }}
-                            </span>
-                        @endif
-                    </a>
-
-                    @if(Auth::user()->canAccessAllDepartments())
-                    <a href="{{ route('work-requests.index', ['scope' => 'all']) }}" 
-                       class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap {{ $scope === 'all' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900' }}">
-                        <i class="fa-solid fa-globe text-xs text-teal-400"></i>
-                        <span>Semua 15 Departemen (*)</span>
-                    </a>
+                <!-- Tab: Perlu Verifikasi -->
+                <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'verifikasi', 'overdue_sla' => null])) }}" 
+                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ request()->status === 'verifikasi' ? 'bg-amber-400 text-slate-950 font-black shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                    <i class="fa-solid fa-stamp text-[11px]"></i>
+                    <span>Perlu Verifikasi</span>
+                    @if($needsApprovalCount > 0)
+                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ request()->status === 'verifikasi' ? 'bg-slate-950 text-white' : 'bg-rose-600 text-white animate-pulse' }}">
+                            {{ $needsApprovalCount }}
+                        </span>
                     @endif
-                </div>
+                </a>
 
+                <!-- Tab: Sedang Proses -->
+                <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'proses', 'overdue_sla' => null])) }}" 
+                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ request()->status === 'proses' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                    <i class="fa-solid fa-gears text-[11px]"></i>
+                    <span>Sedang Proses</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ request()->status === 'proses' ? 'bg-blue-800 text-white' : 'bg-slate-200 text-slate-700' }}">
+                        {{ $inProcessCount }}
+                    </span>
+                </a>
+
+                <!-- Tab: Siap Ambil -->
+                <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'siap', 'overdue_sla' => null])) }}" 
+                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ request()->status === 'siap' ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                    <i class="fa-solid fa-dolly text-[11px]"></i>
+                    <span>Siap Ambil</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ request()->status === 'siap' ? 'bg-teal-800 text-white' : 'bg-slate-200 text-slate-700' }}">
+                        {{ $readyForWarehouseCount }}
+                    </span>
+                </a>
+
+                <!-- Tab: Selesai -->
+                <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'selesai', 'overdue_sla' => null])) }}" 
+                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ request()->status === 'selesai' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                    <i class="fa-solid fa-circle-check text-[11px]"></i>
+                    <span>Selesai</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ request()->status === 'selesai' ? 'bg-emerald-800 text-white' : 'bg-slate-200 text-slate-700' }}">
+                        {{ $receivedCount }}
+                    </span>
+                </a>
+
+                <!-- Separator Divider -->
+                <div class="hidden sm:block h-5 w-px bg-slate-200 mx-1"></div>
+
+                <!-- Interactive SLA Alert Filter Button -->
                 @if($overdueSlaCount > 0)
-                <div class="flex items-center space-x-1.5 px-3 py-1 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-bold self-start sm:self-auto">
-                    <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
-                    <span>{{ $overdueSlaCount }} Tiket Melewati SLA > 72 Jam</span>
-                </div>
+                <a href="{{ route('work-requests.index', array_merge(request()->query(), ['overdue_sla' => request()->boolean('overdue_sla') ? null : 1])) }}"
+                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap {{ request()->boolean('overdue_sla') ? 'bg-rose-600 text-white ring-2 ring-rose-400 font-black shadow-xs' : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200' }}"
+                   title="{{ request()->boolean('overdue_sla') ? 'Filter aktif: Klik untuk mematikan filter SLA' : 'Klik untuk menyaring tiket terlambat > 72 jam' }}">
+                    <i class="fa-solid fa-triangle-exclamation {{ request()->boolean('overdue_sla') ? 'text-white' : 'text-rose-600' }}"></i>
+                    <span>{{ $overdueSlaCount }} Melewati SLA > 72 Jam</span>
+                    @if(request()->boolean('overdue_sla'))
+                        <i class="fa-solid fa-xmark ml-1 text-[11px] bg-rose-700 hover:bg-rose-800 rounded-full w-4 h-4 inline-flex items-center justify-center"></i>
+                    @endif
+                </a>
                 @endif
             </div>
 
-            <!-- Status Tabs & Search -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
-                <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 sm:pb-0">
-                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'all'])) }}" 
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {{ !request()->filled('status') || request()->status === 'all' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                        Semua ({{ $totalWri }})
+            <!-- Right: Global Scope Switcher (if admin) & Search Input -->
+            <div class="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto">
+                @if(Auth::user()->canAccessAllDepartments())
+                <div class="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs w-full sm:w-auto justify-center">
+                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['scope' => 'my_dept'])) }}" 
+                       class="px-2.5 py-1 rounded-lg font-bold transition {{ $scope === 'my_dept' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
+                       title="Tampilkan hanya tiket departemen Anda">
+                        <i class="fa-solid fa-user-tag text-xs text-amber-500 mr-1"></i> Dept Saya
                     </a>
-                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'antrian'])) }}" 
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {{ request()->status === 'antrian' ? 'bg-slate-700 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                        <i class="fa-solid fa-clock me-1 text-[10px]"></i> Antrian ({{ $inAntrianCount }})
-                    </a>
-                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'proses'])) }}" 
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {{ request()->status === 'proses' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                        <i class="fa-solid fa-gears me-1"></i> Sedang Proses ({{ $inProductionCount }})
-                    </a>
-                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'siap'])) }}" 
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {{ request()->status === 'siap' ? 'bg-amber-500 text-slate-950 font-black shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                        <i class="fa-solid fa-dolly me-1"></i> Siap Diambil ({{ $readyForWarehouseCount }})
-                    </a>
-                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'parsial'])) }}" 
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {{ request()->status === 'parsial' ? 'bg-orange-500 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                        <i class="fa-solid fa-layer-group me-1"></i> Parsial ({{ $partialCount }})
-                    </a>
-                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'selesai'])) }}" 
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {{ request()->status === 'selesai' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                        <i class="fa-solid fa-check-double me-1"></i> Selesai ({{ $receivedCount }})
+                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['scope' => 'all'])) }}" 
+                       class="px-2.5 py-1 rounded-lg font-bold transition {{ $scope === 'all' ? 'bg-[#0a2342] text-amber-400 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
+                       title="Tampilkan tiket dari seluruh 15 departemen">
+                        <i class="fa-solid fa-globe text-xs mr-1"></i> Semua Dept (*)
                     </a>
                 </div>
+                @endif
 
                 <!-- Search Form -->
-                <form method="GET" action="{{ route('work-requests.index') }}" class="relative w-full sm:w-72">
+                <form method="GET" action="{{ route('work-requests.index') }}" class="relative w-full sm:w-64">
                     <input type="hidden" name="scope" value="{{ $scope }}">
                     @if(request()->filled('status'))
                         <input type="hidden" name="status" value="{{ request()->status }}">
+                    @endif
+                    @if(request()->boolean('overdue_sla'))
+                        <input type="hidden" name="overdue_sla" value="1">
                     @endif
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                     <input type="text" 
                            name="search" 
                            value="{{ request()->search }}" 
-                           placeholder="Cari No. WRI, komponen, SPK, Dept..." 
+                           placeholder="Cari No. WRI, komponen, SPK..." 
                            class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
                 </form>
             </div>
@@ -512,7 +546,15 @@
                 @empty
                 <div class="py-10 text-center text-slate-400">
                     <i class="fa-solid fa-industry text-3xl mb-2 text-slate-300 block"></i>
-                    Belum ada data Work Request Inhouse.
+                    @if(request()->filled('status') || request()->boolean('overdue_sla') || request()->filled('search'))
+                        <p class="text-xs font-bold text-slate-700">Tidak ada tiket yang sesuai kriteria filter.</p>
+                        <a href="{{ route('work-requests.index', ['scope' => $scope]) }}" class="inline-flex items-center space-x-1 mt-2.5 px-3 py-1 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-lg text-xs transition shadow-xs">
+                            <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
+                            <span>Reset Semua Filter</span>
+                        </a>
+                    @else
+                        <p class="text-xs font-bold text-slate-600">Belum ada data Work Request Inhouse.</p>
+                    @endif
                 </div>
                 @endforelse
             </div>
@@ -888,8 +930,17 @@
                                 <div class="w-16 h-16 rounded-full bg-slate-100 text-slate-300 flex items-center justify-center mx-auto mb-3 text-2xl">
                                     <i class="fa-solid fa-industry"></i>
                                 </div>
-                                <p class="text-sm font-bold text-slate-700">Belum ada data Work Request Inhouse</p>
-                                <p class="text-xs text-slate-400 mt-1">Buat tiket order komponen baru dengan tombol di atas.</p>
+                                @if(request()->filled('status') || request()->boolean('overdue_sla') || request()->filled('search'))
+                                    <p class="text-sm font-bold text-slate-700">Tidak ada tiket yang sesuai kriteria filter aktif</p>
+                                    <p class="text-xs text-slate-400 mt-1">Coba sesuaikan tab status atau klik tombol di bawah untuk menampilkan seluruh tiket.</p>
+                                    <a href="{{ route('work-requests.index', ['scope' => $scope]) }}" class="inline-flex items-center space-x-1.5 mt-3 px-3.5 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-xl text-xs transition shadow-xs">
+                                        <i class="fa-solid fa-arrows-rotate text-[11px]"></i>
+                                        <span>Reset Semua Filter</span>
+                                    </a>
+                                @else
+                                    <p class="text-sm font-bold text-slate-700">Belum ada data Work Request Inhouse</p>
+                                    <p class="text-xs text-slate-400 mt-1">Buat tiket order komponen baru dengan tombol di atas.</p>
+                                @endif
                             </td>
                         </tr>
                         @endforelse

@@ -13,13 +13,13 @@
                 </button>
 
                 <!-- Brand Logo & Title -->
-                <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 group">
-                    <div class="w-10 h-10 p-1 bg-white rounded-xl shadow-sm border border-slate-700/50 flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
+                <a href="{{ route('dashboard') }}" class="flex items-center space-x-2.5 sm:space-x-3 group min-w-0">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 p-1 bg-white rounded-xl shadow-sm border border-slate-700/50 flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
                         <img src="{{ asset('images/logo_hpk.webp') }}" alt="HPK Logo" class="w-full h-full object-contain">
                     </div>
-                    <div class="flex flex-col">
-                        <span class="font-extrabold text-sm tracking-wide text-white leading-tight">HYDRAXLE PERKASA</span>
-                        <span class="text-[10px] font-semibold text-teal-400 tracking-wider uppercase">WMS In-House Karoseri</span>
+                    <div class="flex flex-col min-w-0">
+                        <span class="font-extrabold text-xs sm:text-sm tracking-wide text-white leading-tight truncate max-w-[125px] sm:max-w-none">HYDRAXLE PERKASA</span>
+                        <span class="text-[9px] sm:text-[10px] font-semibold text-teal-400 tracking-wider uppercase truncate max-w-[125px] sm:max-w-none">WMS In-House</span>
                     </div>
                 </a>
 

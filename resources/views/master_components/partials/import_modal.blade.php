@@ -31,54 +31,54 @@
         <div class="relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden text-left pointer-events-auto">
 
             {{-- Modal Header --}}
-            <div class="px-6 py-4.5 bg-gradient-to-r from-[#0a2342] to-[#123966] text-white flex items-center justify-between shrink-0">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-teal-400 text-lg border border-white/10">
+            <div class="px-4 sm:px-6 py-3.5 sm:py-4.5 bg-gradient-to-r from-[#0a2342] to-[#123966] text-white flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 flex items-center justify-center text-teal-400 text-base sm:text-lg border border-white/10 shrink-0">
                         <i class="fa-solid fa-file-excel"></i>
                     </div>
-                    <div>
-                        <h3 class="text-base font-black tracking-wide text-white">Import Massal Komponen Karoseri</h3>
-                        <p class="text-xs text-slate-300 font-medium">Tambah atau perbarui katalog komponen sekaligus via template Excel</p>
+                    <div class="min-w-0">
+                        <h3 class="text-sm sm:text-base font-black tracking-wide text-white truncate">Import Massal Komponen</h3>
+                        <p class="text-[11px] sm:text-xs text-slate-300 font-medium truncate">Tambah atau perbarui katalog via Excel</p>
                     </div>
                 </div>
                 <button type="button" 
                         @click="closeModal()" 
                         :disabled="isProcessing"
-                        class="text-slate-300 hover:text-white p-2 rounded-xl hover:bg-white/10 transition cursor-pointer disabled:opacity-40">
+                        class="text-slate-300 hover:text-white p-2 rounded-xl hover:bg-white/10 transition cursor-pointer disabled:opacity-40 shrink-0">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
 
             {{-- Stepper Progress Bar --}}
-            <div class="px-6 py-2.5 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between text-xs font-semibold shrink-0">
-                <div class="flex items-center space-x-2" :class="step >= 1 ? 'text-[#0a2342]' : 'text-slate-400'">
-                    <span class="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold"
+            <div class="px-3 sm:px-6 py-2 sm:py-2.5 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between text-[11px] sm:text-xs font-semibold shrink-0">
+                <div class="flex items-center space-x-1.5 sm:space-x-2" :class="step >= 1 ? 'text-[#0a2342]' : 'text-slate-400'">
+                    <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] font-bold"
                           :class="step > 1 ? 'bg-teal-600 text-white' : (step === 1 ? 'bg-[#0a2342] text-white' : 'bg-slate-200 text-slate-600')">
                         <template x-if="step > 1">
-                            <i class="fa-solid fa-check text-[10px]"></i>
+                            <i class="fa-solid fa-check text-[9px]"></i>
                         </template>
                         <template x-if="step <= 1">
                             <span>1</span>
                         </template>
                     </span>
-                    <span>Upload & Opsi</span>
+                    <span>Upload</span>
                 </div>
-                <div class="h-0.5 w-12 sm:w-20 bg-slate-200" :class="{ 'bg-teal-600': step > 1 }"></div>
-                <div class="flex items-center space-x-2" :class="step >= 2 ? 'text-[#0a2342]' : 'text-slate-400'">
-                    <span class="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold"
+                <div class="h-0.5 w-6 sm:w-16 bg-slate-200" :class="{ 'bg-teal-600': step > 1 }"></div>
+                <div class="flex items-center space-x-1.5 sm:space-x-2" :class="step >= 2 ? 'text-[#0a2342]' : 'text-slate-400'">
+                    <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] font-bold"
                           :class="step > 2 ? 'bg-teal-600 text-white' : (step === 2 ? 'bg-[#0a2342] text-white' : 'bg-slate-200 text-slate-600')">
                         <template x-if="step > 2">
-                            <i class="fa-solid fa-check text-[10px]"></i>
+                            <i class="fa-solid fa-check text-[9px]"></i>
                         </template>
                         <template x-if="step <= 2">
                             <span>2</span>
                         </template>
                     </span>
-                    <span>Tinjau Preview</span>
+                    <span>Preview</span>
                 </div>
-                <div class="h-0.5 w-12 sm:w-20 bg-slate-200" :class="{ 'bg-teal-600': step > 2 }"></div>
-                <div class="flex items-center space-x-2" :class="step >= 3 ? 'text-[#0a2342]' : 'text-slate-400'">
-                    <span class="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold"
+                <div class="h-0.5 w-6 sm:w-16 bg-slate-200" :class="{ 'bg-teal-600': step > 2 }"></div>
+                <div class="flex items-center space-x-1.5 sm:space-x-2" :class="step >= 3 ? 'text-[#0a2342]' : 'text-slate-400'">
+                    <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] font-bold"
                           :class="step === 3 ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'">
                         <span>3</span>
                     </span>
@@ -231,9 +231,16 @@
                     </div>
 
                     {{-- Table Container --}}
-                    <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-                        <div class="max-h-72 sm:max-h-80 overflow-x-auto overflow-y-auto">
-                            <table class="w-full text-left text-xs">
+                    <div>
+                        <div class="sm:hidden flex items-center justify-between text-[10px] text-slate-500 mb-1.5 px-1">
+                            <span class="inline-flex items-center gap-1 font-medium text-slate-600">
+                                <i class="fa-solid fa-arrows-left-right text-teal-600"></i> Geser tabel ke samping
+                            </span>
+                            <span class="font-mono font-bold text-slate-400" x-text="(previewData?.rows?.length || 0) + ' Baris'"></span>
+                        </div>
+                        <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                            <div class="max-h-72 sm:max-h-80 overflow-x-auto overflow-y-auto">
+                                <table class="w-full text-left text-xs min-w-[720px]">
                                 <thead class="bg-slate-100 text-slate-600 font-bold border-b border-slate-200 sticky top-0 z-10 text-[11px]">
                                     <tr>
                                         <th class="py-2.5 px-3">No</th>
@@ -350,7 +357,7 @@
             </div>
 
             {{-- Modal Footer --}}
-            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200/80 flex items-center justify-between shrink-0">
+            <div class="px-4 py-3 sm:px-6 sm:py-4 bg-slate-50 border-t border-slate-200/80 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
                 
                 {{-- Left Actions --}}
                 <div>
@@ -358,7 +365,7 @@
                         <button type="button" 
                                 @click="step = 1; errorMessage = ''" 
                                 :disabled="isProcessing"
-                                class="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                                class="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50">
                             <i class="fa-solid fa-arrow-left text-xs"></i>
                             <span>Ganti File / Opsi</span>
                         </button>
@@ -366,20 +373,20 @@
                 </div>
 
                 {{-- Right Actions --}}
-                <div class="flex items-center space-x-2">
+                <div>
                     {{-- Step 1 Buttons --}}
                     <template x-if="step === 1">
                         <div class="flex items-center space-x-2">
                             <button type="button" 
                                     @click="closeModal()" 
                                     :disabled="isProcessing"
-                                    class="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition cursor-pointer disabled:opacity-50">
+                                    class="flex-1 sm:flex-initial px-4 py-2.5 sm:py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition cursor-pointer disabled:opacity-50 text-center">
                                 Batal
                             </button>
                             <button type="button" 
                                     @click="submitPreview()" 
                                     :disabled="!file || isProcessing"
-                                    class="inline-flex items-center px-5 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer disabled:opacity-50">
+                                    class="flex-1 sm:flex-initial inline-flex items-center justify-center px-5 py-2.5 sm:py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer disabled:opacity-50">
                                 <span x-show="!isProcessing" class="inline-flex items-center gap-1.5">
                                     <span>Tampilkan Preview</span>
                                     <i class="fa-solid fa-arrow-right text-teal-400"></i>
@@ -398,20 +405,20 @@
                             <button type="button" 
                                     @click="closeModal()" 
                                     :disabled="isProcessing"
-                                    class="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition cursor-pointer disabled:opacity-50">
+                                    class="px-3.5 sm:px-4 py-2.5 sm:py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition cursor-pointer disabled:opacity-50 text-center">
                                 Batal
                             </button>
                             <button type="button" 
                                     @click="submitConfirm()" 
                                     :disabled="isProcessing || !previewData || previewData.summary.valid_rows === 0"
-                                    class="inline-flex items-center px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer disabled:opacity-50">
-                                <span x-show="!isProcessing" class="inline-flex items-center gap-1.5">
+                                    class="flex-1 sm:flex-initial inline-flex items-center justify-center px-4 sm:px-5 py-2.5 sm:py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer disabled:opacity-50">
+                                <span x-show="!isProcessing" class="inline-flex items-center gap-1.5 text-center">
                                     <i class="fa-solid fa-cloud-arrow-up"></i>
-                                    <span>Konfirmasi & Simpan ke Database</span>
+                                    <span>Konfirmasi & Simpan</span>
                                 </span>
                                 <span x-show="isProcessing" class="inline-flex items-center gap-1.5">
                                     <i class="fa-solid fa-circle-notch fa-spin"></i>
-                                    <span>Menyimpan ke Database...</span>
+                                    <span>Menyimpan...</span>
                                 </span>
                             </button>
                         </div>
@@ -421,7 +428,7 @@
                     <template x-if="step === 3">
                         <button type="button" 
                                 @click="finishAndReload()" 
-                                class="px-5 py-2 bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer">
+                                class="w-full sm:w-auto px-5 py-2.5 sm:py-2 bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer text-center">
                             <i class="fa-solid fa-rotate-right me-1.5"></i>
                             Selesai & Muat Ulang Halaman
                         </button>

@@ -41,27 +41,27 @@ class WorkRequestController extends Controller
             }
         }
 
-        // 2. Lifecycle Status Filter
+        // 2. Lifecycle Status Filter (4 Kategori Baru: verifikasi, proses, siap, selesai)
         if ($request->filled('status') && $request->status !== 'all') {
             $st = $request->status;
-            if ($st === 'antrian') {
+            if ($st === 'verifikasi') {
+                $query->needsApproval();
+            } elseif ($st === 'proses' || $st === 'antrian' || $st === 'mh') {
                 $query->where(function ($q) {
                     $q->where('status', 'like', '%antrian%')
-                      ->orWhere('status', 'submitted');
-                });
-            } elseif ($st === 'proses') {
-                $query->where(function ($q) {
-                    $q->where('status', 'like', '%Proses:%')
-                      ->orWhere('status', 'in_production');
-                });
-            } elseif ($st === 'mh') {
-                $query->where('status', 'like', '%MH Pickup%');
+                      ->orWhere('status', 'submitted')
+                      ->orWhere('status', 'like', '%Proses:%')
+                      ->orWhere('status', 'in_production')
+                      ->orWhere('status', 'like', '%MH Pickup%');
+                })->where('is_final', false)
+                  ->where('status', 'not like', '%Siap Diambil%')
+                  ->where('status', 'not like', '%Menuju Pengaju%');
             } elseif ($st === 'siap') {
                 $query->where(function ($q) {
                     $q->where('status', 'like', '%Siap Diambil%')
                       ->orWhere('status', 'like', '%Menuju Pengaju%')
                       ->orWhere('status', 'ready_for_warehouse');
-                });
+                })->where('is_final', false);
             } elseif ($st === 'selesai') {
                 $query->where(function ($q) {
                     $q->where('is_final', true)
@@ -79,7 +79,13 @@ class WorkRequestController extends Controller
             }
         }
 
-        // 3. Search Filter
+        // 3. Interactive SLA > 72 Jam Filter & Prioritized Sorting
+        if ($request->boolean('overdue_sla')) {
+            $query->overdueSla();
+            $query->reorder()->oldest('created_at');
+        }
+
+        // 4. Search Filter
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
@@ -94,9 +100,13 @@ class WorkRequestController extends Controller
             });
         }
 
-        $workRequests = $query->latest('id')->paginate(12)->withQueryString();
+        if (!$request->boolean('overdue_sla')) {
+            $query->latest('id');
+        }
 
-        // 4. Scoped Summary Statistics
+        $workRequests = $query->paginate(12)->withQueryString();
+
+        // 5. Scoped Summary Statistics
         $baseStatQuery = WorkRequest::query();
         if ($scope === 'my_dept') {
             $baseStatQuery->forUser($user);
@@ -109,19 +119,31 @@ class WorkRequestController extends Controller
         }
 
         $totalWri = (clone $baseStatQuery)->count();
+        $needsApprovalCount = (clone $baseStatQuery)->needsApproval()->count();
+        
+        $inProcessCount = (clone $baseStatQuery)->where(function ($q) {
+            $q->where('status', 'like', '%antrian%')
+              ->orWhere('status', 'submitted')
+              ->orWhere('status', 'like', '%Proses:%')
+              ->orWhere('status', 'in_production')
+              ->orWhere('status', 'like', '%MH Pickup%');
+        })->where('is_final', false)
+          ->where('status', 'not like', '%Siap Diambil%')
+          ->where('status', 'not like', '%Menuju Pengaju%')
+          ->count();
+
+        // Backward compatibility for existing views
         $inAntrianCount = (clone $baseStatQuery)->where(function ($q) {
             $q->where('status', 'like', '%antrian%')->orWhere('status', 'submitted');
         })->count();
-        $inProductionCount = (clone $baseStatQuery)->where(function ($q) {
-            $q->where('status', 'like', '%Proses:%')
-              ->orWhere('status', 'like', '%MH Pickup%')
-              ->orWhere('status', 'in_production');
-        })->count();
+        $inProductionCount = $inProcessCount;
+
         $readyForWarehouseCount = (clone $baseStatQuery)->where(function ($q) {
             $q->where('status', 'like', '%Siap Diambil%')
               ->orWhere('status', 'like', '%Menuju Pengaju%')
               ->orWhere('status', 'ready_for_warehouse');
-        })->count();
+        })->where('is_final', false)->count();
+
         $receivedCount = (clone $baseStatQuery)->where(function ($q) {
             $q->where('is_final', true)
               ->orWhere(function ($sub) {
@@ -131,8 +153,8 @@ class WorkRequestController extends Controller
                   })->where('status', 'not like', '%Parsial%');
               });
         })->count();
+
         $partialCount = (clone $baseStatQuery)->where('status', 'like', '%Parsial%')->count();
-        $needsApprovalCount = (clone $baseStatQuery)->needsApproval()->count();
         $overdueSlaCount = (clone $baseStatQuery)->overdueSla()->count();
 
         $openDetailPayload = null;
@@ -213,6 +235,7 @@ class WorkRequestController extends Controller
             'workRequests',
             'scope',
             'totalWri',
+            'inProcessCount',
             'inAntrianCount',
             'inProductionCount',
             'readyForWarehouseCount',

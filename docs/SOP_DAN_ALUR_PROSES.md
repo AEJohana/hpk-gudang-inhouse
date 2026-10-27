@@ -72,7 +72,8 @@ Seluruh logika bisnis dari sistem lama telah diimplementasikan secara terstruktu
 | **BR-07** | **Pengerjaan Parsial, Defect Reaktif & Multi-Batch** | Handler `processAction` di `WorkRequestController.php`, `WorkRequest.php`, dan modal Blade. | Jika pemohon memesan 20 pcs dan mesin menyelesaikan 15 pcs unit bagus serta melaporkan 5 pcs defect mesin, sistem secara reaktif membatasi batas unit bagus maksimal 15 pcs (`20 - 5`). Karena 15 bagus + 5 defect = 20 (seluruh bahan tuntas), tahapan mesin **SEKETIKA BERHENTI TUNTAS** (`saldo_out = 0`) dan beralih ke MH (15 pcs). Tiket **TETAP TERBUKA AKTIF** (`is_final = false`) sampai seluruh kuantitas terpenuhi (100%), dan tombol pengerjaan sisa hanya muncul jika memang masih ada saldo fisik yang belum diproses. |
 | **BR-08** | **Auto-Update Saldo Fisik Gudang** | Logika event `Sudah Diambil` di `WorkRequestController.php` (baris 709-760). | Begitu tiket berstatus `Sudah Diambil`, saldo kuantitas pada rak tujuan di `stock_balances` **OTOMATIS BERTAMBAH** dan transaksi masuk resmi terbit di tabel `transactions`. |
 | **BR-09** | **Sanitasi String Status** | Scope pembersihan status dan normalisasi nama status di Model `WorkRequest.php`. | String `Parsial >` dipisahkan secara otomatis saat evaluasi fase logika status dilakukan oleh sistem backend. |
-| **BR-10** | **Pemantauan SLA 3 Hari (Red Alert)** | `scopeOverdueSla` di `WorkRequest.php`: `where('created_at', '<=', now()->subDays(3))`. | Tiket yang belum berstatus `Sudah Diambil` setelah melewati batas waktu 72 jam (3 hari) otomatis diberi label merah peringatan darurat (*Urgent SLA Alert*). |
+| **BR-10** | **Pemantauan SLA 3 Hari & Quick Filter Interaktif** | `scopeOverdueSla` di `WorkRequest.php` + query `overdue_sla=1` & `oldest('created_at')` di `WorkRequestController.php`. | Tiket yang belum berstatus `Sudah Diambil` setelah melewati batas waktu 72 jam (3 hari) otomatis diberi label merah peringatan darurat (*Urgent SLA Alert*). Badge ini berfungsi sebagai filter interaktif: jika diklik, sistem langsung menyaring dan menyortir tiket terlambat dari yang tertunda paling lama (`created_at ASC`) lengkap dengan tombol toggle reset 1-klik. |
+| **BR-11** | **Unified 4-Status Control Bar & Bebas Redundansi** | Mapping status di `WorkRequestController.php` & tab navigasi `index.blade.php`. | Mengeliminasi baris ganda bertumpuk dan kontrol dobel. Antrean WRI disederhanakan menjadi 4 kategori operasional fungsional (+ Semua): **Perlu Verifikasi**, **Sedang Proses**, **Siap Ambil**, dan **Selesai**, dengan 5 kartu KPI interaktif di header. |
 
 ---
 
@@ -100,6 +101,14 @@ Seluruh logika bisnis dari sistem lama telah diimplementasikan secara terstruktu
 3. **Menuju Pengaju:** Kurir sedang dalam perjalanan mengantarkan barang ke departemen pemohon.
 4. **Sudah Diambil (Parsial):** Serah terima batch cicilan divalidasi oleh gudang. Kuantitas fisik batch masuk stok, sementara tiket tetap terbuka aktif (`is_final = false`) dengan rekomendasi pengerjaan kembali ke mesin sisa.
 5. **Sudah Diambil (Final):** Serah terima fisik telah tuntas 100% divalidasi oleh pemohon/gudang. Memicu eksekusi penambahan stok otomatis (BR-08) dan tiket resmi ditutup (*Closed*, `is_final = true`).
+
+### D. Pengelompokan 4 Tab Antrean Operasional WRI (Unified Control Bar)
+Untuk mempercepat navigasi operator dan supervisor di lapangan tanpa redundansi tombol kontrol ganda, antrean WRI disederhanakan menjadi 4 kategori status operasional utama (+ Semua):
+1. **Semua:** Menampilkan seluruh tiket pada lingkup departemen user tanpa filter status.
+2. **Perlu Verifikasi:** Tiket yang statusnya masih membutuhkan persetujuan (`approval_pengaju = 'Menunggu'` atau `approval_penerima = 'Menunggu'`).
+3. **Sedang Proses:** Tiket yang telah masuk siklus produksi, mencakup antrian mesin (`Dalam antrian`, `submitted`), pengerjaan mesin (`Proses: ... (In/Out)`), dan penjemputan logistik kurir antar stasiun mesin (`MH Pickup: ...`).
+4. **Siap Ambil:** Tiket yang tahapan mesin terakhirnya telah selesai dan barang siap diambil kurir MH (`Siap Diambil`) atau sedang dalam perjalanan diantar kurir menuju pengaju/gudang (`Menuju Pengaju`).
+5. **Selesai:** Tiket yang seluruh kuotanya telah tuntas diverifikasi dan diterima fisik di rak gudang/pengaju (`Sudah Diambil`, `is_final = true`).
 
 ---
 
@@ -294,3 +303,25 @@ Untuk mengakomodasi kebutuhan penginputan data master komponen karoseri dalam ju
      - *Perbarui Duplikat (Update):* Menimpa spesifikasi, kategori, rak, dan stok dengan data terbaru dari Excel.
    - **Langkah 2 (Pratinjau Live):** Sistem menampilkan kartu ringkasan KPI (Total Baris, Komponen Baru, Duplikat Dilewati/Diupdate, Error) dan tabel baris lengkap dengan badge warna status. Baris error dapat ditinjau tanpa merusak baris valid lainnya.
    - **Langkah 3 (Eksekusi Atomik):** Pengguna menekan tombol `[ Konfirmasi & Simpan ke Database ]`. Seluruh data valid disimpan dalam transaksi database terisolasi (`DB::beginTransaction` / `commit` / `rollBack`), memunculkan ringkasan audit hasil impor, dan menyajikan tombol muat ulang halaman.
+
+---
+
+## 12. Standar Operasional & Ergonomi Antarmuka Ponsel (Mobile Smartphone UX)
+
+Untuk memastikan kelancaran operasional para operator mesin, kurir Material Handling, dan petugas gudang saat mengakses sistem menggunakan smartphone/tablet lapangan:
+
+1. **Prinsip Bebas Tabrakan (Zero-Collision Layout):**
+   - Seluruh baris judul dan tombol aksi header menggunakan pembungkus fleksibel (`flex-wrap gap-2 w-full sm:w-auto`), mencegah teks dan tombol saling mendesak atau meluap dari tepi layar.
+   - Pada judul navbar atas, teks brand perusahaan dibatasi secara proporsional (`truncate max-w-[125px] sm:max-w-none`) agar tombol pintas scanner kamera dan avatar profil akun tetap memiliki ruang sentuh yang lega.
+
+2. **Tata Letak Kartu Data & Tombol Aksi Simetris:**
+   - Kartu katalog komponen pada tampilan ponsel menyematkan baris aksi 4-kolom berjarak seragam (`QR`, `Edit`, `Detail`, `Transaksi`), memberikan kemudahan pemilihan aksi tanpa risiko salah tekan (*misclick*).
+   - Seluruh elemen sentuh memenuhi batas ergonomis minimal 42px – 44px (`touch-target`) yang nyaman untuk jempol tangan.
+
+3. **Kemudahan Input Formulir & Tombol Aksi Penuh (Full-Width Submit):**
+   - Formulir pembuatan pesanan produksi (`/work-requests/create`) memisahkan judul seksi dengan tombol pendaftaran part baru secara vertikal adaptif pada layar sempit, mencegah elemen saling bertumpuk.
+   - Tombol pengiriman formulir (*Kirim & Terbitkan WR*) diubah menjadi tombol berukuran penuh (*full-width*) di bagian bawah layar ponsel untuk memudahkan pengiriman pesanan dalam satu kali sentuhan.
+
+4. **Navigasi & Tabel Lebar Geser Samping (Horizontal Swipe):**
+   - Tabel pratinjau impor komponen (10 kolom) dan tabel data padat lainnya dilindungi batas lebar minimum (`min-w-[720px]`) disertai petunjuk gestur sentuh *"Geser tabel ke samping"*, menjamin tidak ada kolom atau badge status yang remuk atau terpotong pada layar ponsel.
+   - Tombol konfirmasi pada modal dialog dialihkan ke susunan vertikal terbalik (`flex-col-reverse sm:flex-row`), memprioritaskan tombol aksi utama di bagian atas jangkauan jari.

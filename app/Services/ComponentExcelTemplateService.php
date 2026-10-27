@@ -64,20 +64,7 @@ class ComponentExcelTemplateService
         $sheet1 = $writer->getCurrentSheet();
         $sheet1->setName('INPUT DATA KOMPONEN');
 
-        // Baris 1: Judul
-        $writer->addRow(Row::fromValues([
-            'PT HYDRAXLE PERKASA - TEMPLATE IMPORT MASTER KOMPONEN KAROSERI'
-        ], $titleStyle));
-
-        // Baris 2: Panduan Singkat
-        $writer->addRow(Row::fromValues([
-            'Petunjuk: Kolom bertanda (*) WAJIB diisi. Kolom lainnya OPSIONAL (boleh dikosongkan). Lihat Sheet "PEDOMAN & REFERENSI DROPDOWN" untuk daftar kategori, satuan, dan kode rak aktif.'
-        ], $subtitleStyle));
-
-        // Baris 3: Kosong
-        $writer->addRow(Row::fromValues(['']));
-
-        // Baris 4: Header Kolom
+        // Baris 1: Header Kolom Langsung (Siap Diisi Mulai Baris 2)
         $headers = [
             'Kode Komponen (*Wajib)',
             'Nama Komponen (*Wajib)',
@@ -94,7 +81,25 @@ class ComponentExcelTemplateService
         ];
         $writer->addRow(Row::fromValues($headers, $headerStyle));
 
-        // Baris 5: Contoh 1 (Lengkap)
+        // ==========================================
+        // SHEET 2: PEDOMAN & REFERENSI DROPDOWN
+        // ==========================================
+        $sheet2 = $writer->addNewSheetAndMakeItCurrent();
+        $sheet2->setName('PEDOMAN & REFERENSI DROPDOWN');
+
+        // Judul Sheet 2
+        $writer->addRow(Row::fromValues([
+            'KAMUS DATA & PEDOMAN PENGISIAN IMPORT KOMPONEN HPK'
+        ], $titleStyle));
+        $writer->addRow(Row::fromValues(['Gunakan daftar nilai di bawah ini untuk mengisi kolom Kategori, Satuan (UoM), dan Lokasi Rak.'], $subtitleStyle));
+        $writer->addRow(Row::fromValues(['']));
+
+        // TABEL 1: CONTOH PENGISIAN DATA KOMPONEN (SAMPEL RIIL)
+        $writer->addRow(Row::fromValues(['1. CONTOH PENGISIAN DATA KOMPONEN (SAMPLE EXAMPLES)'], $sectionHeaderStyle));
+        $writer->addRow(Row::fromValues([
+            'Kode Komponen', 'Nama Komponen', 'Kategori', 'Satuan', 'Panjang (mm)', 'Lebar (mm)', 'Tebal (mm)', 'Spesifikasi', 'Min Stok', 'Stok Awal', 'Kode Rak', 'Tautan Foto'
+        ], $subHeaderStyle));
+
         $sample1 = [
             'UNP100-STD-01',
             'UNP 100 KANAL STANDAR KAROSERI',
@@ -111,7 +116,6 @@ class ComponentExcelTemplateService
         ];
         $writer->addRow(Row::fromValues($sample1, $sampleStyle1));
 
-        // Baris 6: Contoh 2 (Aksesoris)
         $sample2 = [
             'CLOP10260190110',
             'LODGE ENGSEL ADR7 BESAR',
@@ -128,7 +132,6 @@ class ComponentExcelTemplateService
         ];
         $writer->addRow(Row::fromValues($sample2, $sampleStyle2));
 
-        // Baris 7: Contoh 3 (Minimalis - Hanya Kode & Nama, Kolom Lain Kosong)
         $sample3 = [
             'BRKT-STOP-99',
             'BRACKET STOP LAMP KAROSERI TIPE R',
@@ -145,21 +148,10 @@ class ComponentExcelTemplateService
         ];
         $writer->addRow(Row::fromValues($sample3, $sampleStyle1));
 
-        // ==========================================
-        // SHEET 2: PEDOMAN & REFERENSI DROPDOWN
-        // ==========================================
-        $sheet2 = $writer->addNewSheetAndMakeItCurrent();
-        $sheet2->setName('PEDOMAN & REFERENSI DROPDOWN');
-
-        // Judul Sheet 2
-        $writer->addRow(Row::fromValues([
-            'KAMUS DATA & PEDOMAN PENGISIAN IMPORT KOMPONEN HPK'
-        ], $titleStyle));
-        $writer->addRow(Row::fromValues(['Gunakan daftar nilai di bawah ini untuk mengisi kolom Kategori, Satuan (UoM), dan Lokasi Rak.'], $subtitleStyle));
         $writer->addRow(Row::fromValues(['']));
 
-        // TABEL 1: KATEGORI KOMPONEN
-        $writer->addRow(Row::fromValues(['1. DAFTAR KATEGORI VALID SISTEM'], $sectionHeaderStyle));
+        // TABEL 2: KATEGORI KOMPONEN
+        $writer->addRow(Row::fromValues(['2. DAFTAR KATEGORI VALID SISTEM'], $sectionHeaderStyle));
         $writer->addRow(Row::fromValues(['Nilai Kategori (Input Excel)', 'Nama Kategori Karoseri', 'Keterangan'], $subHeaderStyle));
         
         $categories = [
@@ -177,8 +169,8 @@ class ComponentExcelTemplateService
 
         $writer->addRow(Row::fromValues(['']));
 
-        // TABEL 2: SATUAN UKUR (UoM)
-        $writer->addRow(Row::fromValues(['2. DAFTAR SATUAN UKUR (UoM) RESMI'], $sectionHeaderStyle));
+        // TABEL 3: SATUAN UKUR (UoM)
+        $writer->addRow(Row::fromValues(['3. DAFTAR SATUAN UKUR (UoM) RESMI'], $sectionHeaderStyle));
         $writer->addRow(Row::fromValues(['Nilai Satuan (Input Excel)', 'Nama Satuan', 'Keterangan'], $subHeaderStyle));
 
         $uoms = [
@@ -197,8 +189,8 @@ class ComponentExcelTemplateService
 
         $writer->addRow(Row::fromValues(['']));
 
-        // TABEL 3: KODE RAK AKTIF GUDANG
-        $writer->addRow(Row::fromValues(['3. DAFTAR KODE RAK FISIK AKTIF GUDANG HPK (ZONA A - F)'], $sectionHeaderStyle));
+        // TABEL 4: KODE RAK AKTIF GUDANG
+        $writer->addRow(Row::fromValues(['4. DAFTAR KODE RAK FISIK AKTIF GUDANG HPK (ZONA A - F)'], $sectionHeaderStyle));
         $writer->addRow(Row::fromValues(['Kode Rak', 'Zona Gudang', 'Nomor Rak', 'Keterangan'], $subHeaderStyle));
 
         $locations = Location::where('rack_code', '!=', 'HOLDING')
@@ -222,8 +214,8 @@ class ComponentExcelTemplateService
 
         $writer->addRow(Row::fromValues(['']));
 
-        // TABEL 4: ATURAN PENGISIAN & KOLOM KOSONG
-        $writer->addRow(Row::fromValues(['4. ATURAN PENGISIAN & PENANGANAN KOLOM KOSONG'], $sectionHeaderStyle));
+        // TABEL 5: ATURAN PENGISIAN & KOLOM KOSONG
+        $writer->addRow(Row::fromValues(['5. ATURAN PENGISIAN & PENANGANAN KOLOM KOSONG'], $sectionHeaderStyle));
         $writer->addRow(Row::fromValues(['Pertanyaan / Kasus', 'Penjelasan & Penanganan Sistem'], $subHeaderStyle));
 
         $rules = [

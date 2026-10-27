@@ -50,8 +50,26 @@
         </div>
 
         <!-- Form Count Items Table -->
-        <form method="POST" action="{{ route('cycle-counts.submit-count', $cycleCount) }}">
+        <form method="POST" 
+              action="{{ route('cycle-counts.submit-count', $cycleCount) }}"
+              x-data="{
+                  counts: {
+                      @foreach ($cycleCount->items as $item)
+                          {{ $item->id }}: {
+                              sysQty: {{ (float) $item->system_qty }},
+                              physQty: {{ (float) $item->physical_qty }},
+                              reason: @js($item->variance_reason ?? '')
+                          },
+                      @endforeach
+                  }
+              }">
             @csrf
+
+            <!-- Hidden Inputs for actual form submission -->
+            @foreach ($cycleCount->items as $item)
+                <input type="hidden" name="items[{{ $item->id }}][physical_qty]" :value="counts[{{ $item->id }}].physQty">
+                <input type="hidden" name="items[{{ $item->id }}][variance_reason]" :value="counts[{{ $item->id }}].reason">
+            @endforeach
 
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
@@ -61,7 +79,95 @@
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
+                <!-- 1. Mobile Card List View (< md screens) -->
+                <div class="block md:hidden p-3.5 space-y-4">
+                    @foreach ($cycleCount->items as $item)
+                    <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                        <!-- Part info & Rack badge -->
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center space-x-2.5">
+                                <img src="{{ $item->component->image_url }}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 bg-white shrink-0">
+                                <div class="min-w-0">
+                                    <span class="font-mono font-bold text-xs text-slate-900 block truncate">{{ $item->component->part_number }}</span>
+                                    <span class="font-bold text-slate-800 text-xs line-clamp-1">{{ $item->component->name }}</span>
+                                    <span class="text-[10px] text-slate-400">Satuan: {{ $item->component->uom }}</span>
+                                </div>
+                            </div>
+                            <span class="font-mono font-bold text-xs text-blue-900 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg shrink-0">
+                                <i class="fa-solid fa-location-dot text-rose-500 me-1"></i>{{ $item->location->full_location_code }}
+                            </span>
+                        </div>
+
+                        <!-- Stok Sistem vs Selisih -->
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 grid grid-cols-2 gap-3 items-center">
+                            <div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Stok Sistem:</span>
+                                <span class="text-base font-black text-slate-800">
+                                    {{ number_format($item->system_qty, 0) }} <span class="text-xs font-normal text-slate-500">{{ $item->component->uom }}</span>
+                                </span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Selisih:</span>
+                                <span class="text-sm font-extrabold flex items-center gap-1"
+                                      :class="(counts[{{ $item->id }}].physQty - counts[{{ $item->id }}].sysQty) === 0 ? 'text-emerald-600' : ((counts[{{ $item->id }}].physQty - counts[{{ $item->id }}].sysQty) < 0 ? 'text-rose-600' : 'text-blue-600')">
+                                    <span x-text="((counts[{{ $item->id }}].physQty - counts[{{ $item->id }}].sysQty) > 0 ? '+' : '') + (counts[{{ $item->id }}].physQty - counts[{{ $item->id }}].sysQty)"></span>
+                                    <span class="text-[10px] font-normal" x-text="(counts[{{ $item->id }}].physQty - counts[{{ $item->id }}].sysQty) === 0 ? '(Sesuai)' : '{{ $item->component->uom }}'"></span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Stepper / Input Hitung Fisik -->
+                        @if ($cycleCount->status === 'reconciled')
+                            <div class="flex items-center justify-between text-xs pt-1">
+                                <span class="font-bold text-slate-700">Hasil Fisik Terkunci:</span>
+                                <span class="font-black text-base text-slate-900">{{ number_format($item->physical_qty, 0) }} {{ $item->component->uom }}</span>
+                            </div>
+                            @if($item->variance_reason)
+                                <div class="text-[11px] text-slate-600 bg-slate-100 p-2 rounded-lg">
+                                    <span class="font-bold text-slate-700">Alasan:</span> {{ $item->variance_reason }}
+                                </div>
+                            @endif
+                        @else
+                            <div>
+                                <label class="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-1">
+                                    Hitung Fisik Aktual <span class="text-rose-500">*</span>
+                                </label>
+                                <div class="flex items-center rounded-xl border-2 border-slate-200 bg-white focus-within:border-amber-500 p-1">
+                                    <button type="button" 
+                                            @click="if(counts[{{ $item->id }}].physQty > 0) counts[{{ $item->id }}].physQty--"
+                                            class="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-sm">
+                                        <i class="fa-solid fa-minus"></i>
+                                    </button>
+                                    <input type="number" 
+                                           step="any" 
+                                           inputmode="decimal"
+                                           x-model.number="counts[{{ $item->id }}].physQty" 
+                                           class="flex-1 text-center text-xl font-black text-slate-900 border-0 focus:ring-0 p-0 font-mono">
+                                    <button type="button" 
+                                            @click="counts[{{ $item->id }}].physQty++"
+                                            class="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-sm">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Variance Reason Input (Visible if variance != 0) -->
+                            <div x-show="(counts[{{ $item->id }}].physQty - counts[{{ $item->id }}].sysQty) !== 0" x-transition>
+                                <label class="block text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1">
+                                    Keterangan / Alasan Selisih:
+                                </label>
+                                <input type="text" 
+                                       x-model="counts[{{ $item->id }}].reason" 
+                                       placeholder="Contoh: Salah hitung lot lama, barang tercecer..."
+                                       class="w-full px-3 py-1.5 text-xs border border-amber-300 bg-amber-50/40 rounded-xl focus:ring-2 focus:ring-amber-500 focus:bg-white">
+                            </div>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+
+                <!-- 2. Desktop Table View (>= md screens) -->
+                <div class="hidden md:block overflow-x-auto">
                     <table class="w-full min-w-[700px] text-left text-xs text-slate-600">
                         <thead class="bg-slate-50/50 text-[10px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-200">
                             <tr>
@@ -76,13 +182,7 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @foreach ($cycleCount->items as $item)
-                                <tr class="hover:bg-slate-50/60 transition" x-data="{
-                                     sysQty: {{ (float) $item->system_qty }},
-                                     physQty: {{ (float) $item->physical_qty }},
-                                     get variance() {
-                                         return this.physQty - this.sysQty;
-                                     }
-                                 }">
+                                <tr class="hover:bg-slate-50/60 transition">
                                     <!-- Photo & Part Number -->
                                     <td class="py-3 px-4">
                                         <div class="flex items-center space-x-2.5">
@@ -113,10 +213,9 @@
                                             <span class="font-extrabold text-slate-900 text-sm">{{ number_format($item->physical_qty, 0) }}</span>
                                         @else
                                             <input type="number" 
-                                                   step="0.01" 
+                                                   step="any" 
                                                    inputmode="decimal"
-                                                   x-model.number="physQty" 
-                                                   name="items[{{ $item->id }}][physical_qty]" 
+                                                   x-model.number="counts[{{ $item->id }}].physQty" 
                                                    class="w-24 text-center px-2 py-1.5 text-xs font-bold border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-slate-900">
                                         @endif
                                     </td>
@@ -124,8 +223,8 @@
                                     <!-- Variance -->
                                     <td class="py-3 px-4 text-center">
                                         <span class="font-bold text-sm" 
-                                              :class="variance === 0 ? 'text-emerald-600' : (variance < 0 ? 'text-rose-600' : 'text-blue-600')"
-                                              x-text="(variance > 0 ? '+' : '') + variance">
+                                              :class="(counts[{{ $item->id }}].physQty - counts[{{ $item->id }}].sysQty) === 0 ? 'text-emerald-600' : ((counts[{{ $item->id }}].physQty - counts[{{ $item->id }}].sysQty) < 0 ? 'text-rose-600' : 'text-blue-600')"
+                                              x-text="((counts[{{ $item->id }}].physQty - counts[{{ $item->id }}].sysQty) > 0 ? '+' : '') + (counts[{{ $item->id }}].physQty - counts[{{ $item->id }}].sysQty)">
                                         </span>
                                     </td>
 
@@ -135,8 +234,7 @@
                                             <span class="text-slate-600 text-[11px]">{{ $item->variance_reason ?: '-' }}</span>
                                         @else
                                             <input type="text" 
-                                                   name="items[{{ $item->id }}][variance_reason]" 
-                                                   value="{{ $item->variance_reason }}"
+                                                   x-model="counts[{{ $item->id }}].reason" 
                                                    placeholder="Alasan selisih (bila ada)..." 
                                                    class="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg">
                                         @endif

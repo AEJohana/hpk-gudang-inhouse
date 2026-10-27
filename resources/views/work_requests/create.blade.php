@@ -120,7 +120,7 @@
 
             <!-- Bagian 2: Pemilihan Komponen & Kotak Identitas Visual -->
             <div class="p-5 bg-white rounded-xl border border-slate-200 space-y-4 shadow-xs">
-                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2">
                     <div class="flex items-center space-x-2">
                         <i class="fa-solid fa-cubes-stacked text-amber-600 text-sm"></i>
                         <h3 class="font-bold text-sm text-slate-900">2. Komponen & Kuantitas Pesanan</h3>
@@ -129,7 +129,7 @@
                     <!-- Tombol Cepat Tambah Komponen Baru (Modal) -->
                     <button type="button" 
                             @click="openQuickAddModal()" 
-                            class="px-2.5 py-1 text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-lg transition shadow-2xs flex items-center space-x-1">
+                            class="self-start sm:self-auto px-2.5 py-1 text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-lg transition shadow-2xs flex items-center space-x-1 cursor-pointer">
                         <i class="fa-solid fa-plus text-[10px] text-amber-600"></i>
                         <span>Daftarkan Komponen Baru</span>
                     </button>
@@ -479,12 +479,12 @@
             </div>
 
             <!-- Tombol Aksi Submit -->
-            <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
-                <a href="{{ route('work-requests.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center space-x-1.5">
+            <div class="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
+                <a href="{{ route('work-requests.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 text-center">
                     <i class="fa-solid fa-arrow-left text-xs"></i>
                     <span>Kembali / Batal</span>
                 </a>
-                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl shadow-md transition flex items-center space-x-2">
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl shadow-md transition flex items-center justify-center space-x-2 text-center cursor-pointer">
                     <i class="fa-solid fa-paper-plane"></i>
                     <span>Kirim & Terbitkan WR</span>
                 </button>

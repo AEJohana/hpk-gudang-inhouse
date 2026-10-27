@@ -75,18 +75,61 @@ class ComponentBulkImportService
 
                 // Detect Header Row
                 if (!$headerFound) {
-                    $firstCell = strtoupper((string) ($cells[0] ?? ''));
-                    if (str_contains($firstCell, 'KODE') || str_contains($firstCell, 'PART_NUMBER') || str_contains($firstCell, 'PART NUMBER')) {
-                        $headerFound = true;
-                        $headerMap = $this->mapHeaders($cells);
+                    $nonEmptyCells = array_filter($cells, fn($v) => !is_null($v) && trim((string)$v) !== '');
+                    if (count($nonEmptyCells) >= 2) {
+                        $hasPartHeader = false;
+                        $hasNameHeader = false;
+
+                        foreach ($cells as $c) {
+                            $cText = strtoupper(trim((string)$c));
+                            if (
+                                str_contains($cText, 'KODE KOMPONEN') ||
+                                str_contains($cText, 'KODE PART') ||
+                                str_contains($cText, 'PART_NUMBER') ||
+                                str_contains($cText, 'PART NUMBER') ||
+                                (str_starts_with($cText, 'KODE') && !str_contains($cText, 'RAK') && !str_contains($cText, 'LOKASI'))
+                            ) {
+                                $hasPartHeader = true;
+                            }
+
+                            if (str_contains($cText, 'NAMA KOMPONEN') || str_contains($cText, 'NAMA PART') || str_contains($cText, 'NAMA BARANG') || $cText === 'NAMA') {
+                                $hasNameHeader = true;
+                            }
+                        }
+
+                        if ($hasPartHeader && $hasNameHeader) {
+                            $headerFound = true;
+                            $headerMap = $this->mapHeaders($cells);
+                            continue;
+                        }
                     }
+
+                    // Skip introductory title or note lines before actual table header
                     continue;
                 }
 
                 // If header already found, process data row
-                $rowCounter++;
                 $pn = trim((string) ($cells[$headerMap['part_number'] ?? 0] ?? ''));
                 $name = trim((string) ($cells[$headerMap['name'] ?? 1] ?? ''));
+
+                // Fail-safe: Skip any lingering header rows that may appear in data rows
+                $pnUpper = strtoupper($pn);
+                $nameUpper = strtoupper($name);
+                if (
+                    str_contains($pnUpper, 'KODE KOMPONEN') ||
+                    str_contains($pnUpper, 'KODE PART') ||
+                    str_contains($pnUpper, 'PART_NUMBER') ||
+                    str_contains($pnUpper, 'PART NUMBER') ||
+                    str_contains($nameUpper, 'NAMA KOMPONEN') ||
+                    str_contains($nameUpper, 'NAMA PART') ||
+                    str_contains($nameUpper, 'NAMA BARANG') ||
+                    $pnUpper === 'KODE' ||
+                    $nameUpper === 'NAMA'
+                ) {
+                    continue;
+                }
+
+                $rowCounter++;
                 $catRaw = strtolower(trim((string) ($cells[$headerMap['category'] ?? 2] ?? '')));
                 $uomRaw = strtoupper(trim((string) ($cells[$headerMap['uom'] ?? 3] ?? '')));
                 $length = trim((string) ($cells[$headerMap['length_mm'] ?? 4] ?? ''));

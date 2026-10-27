@@ -45,21 +45,21 @@
                 </div>
             </div>
 
-            <div class="flex items-center space-x-2">
+            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto self-start sm:self-auto">
                 @can('work-request.print')
-                <a href="{{ route('work-requests.print-sheet', $workRequest) }}" target="_blank" class="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition flex items-center">
+                <a href="{{ route('work-requests.print-sheet', $workRequest) }}" target="_blank" class="flex-1 sm:flex-initial px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center">
                     <i class="fa-solid fa-print me-1.5"></i>
-                    Cetak Kartu WRI
+                    <span>Cetak Kartu WRI</span>
                 </a>
                 @endcan
-                <a href="{{ route('work-station-supplies.index') }}" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center">
+                <a href="{{ route('work-station-supplies.index') }}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center">
                     <i class="fa-solid fa-truck-ramp-box me-1.5 text-blue-600"></i>
-                    Material Handling
+                    <span>Material Handling</span>
                 </a>
                 @if($workRequest->targetLocation)
-                    <a href="{{ route('warehouse-map.index') }}" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center">
+                    <a href="{{ route('warehouse-map.index') }}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center">
                         <i class="fa-solid fa-map-location-dot me-1.5"></i>
-                        Slot Rak Gudang
+                        <span>Slot Rak Gudang</span>
                     </a>
                 @endif
             </div>
@@ -786,17 +786,53 @@
                     </div>
                 </div>
 
-                <!-- AUDIT TRAIL LOG REAL-TIME (Tabel Riwayat Lengkap) -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
+                <!-- AUDIT TRAIL LOG REAL-TIME (Dual Mode: Mobile Timeline Cards & Desktop Table) -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-6 space-y-4">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                         <div class="flex items-center space-x-2">
                             <i class="fa-solid fa-clock-rotate-left text-slate-800"></i>
-                            <h3 class="font-extrabold text-base text-slate-900">Riwayat Log Transaksi & Defect (Audit Trail)</h3>
+                            <h3 class="font-extrabold text-sm sm:text-base text-slate-900">Riwayat Log Transaksi & Defect (Audit Trail)</h3>
                         </div>
                         <span class="text-xs text-slate-400 font-semibold">{{ $workRequest->logs->count() }} Entri Log</span>
                     </div>
 
-                    <div class="overflow-x-auto">
+                    <!-- 1. Mobile Timeline List (< md screens) -->
+                    <div class="block md:hidden space-y-3">
+                        @forelse($workRequest->logs as $log)
+                        <div class="p-3.5 rounded-xl border {{ $log->action_type === 'defect' ? 'bg-rose-50/60 border-rose-200' : 'bg-slate-50/80 border-slate-200' }} space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="font-mono text-[11px] text-slate-500 font-semibold">
+                                    <i class="fa-regular fa-clock me-1 text-slate-400"></i>{{ $log->created_at->format('d/m/Y H:i') }}
+                                </span>
+                                <span class="font-black text-xs {{ $log->action_type === 'defect' ? 'text-rose-600' : 'text-slate-900' }}">
+                                    {{ number_format($log->quantity, 0) }} pcs
+                                </span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                @if($log->action_type === 'defect')
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                                        <i class="fa-solid fa-triangle-exclamation me-1"></i> {{ $log->status_label }}
+                                    </span>
+                                @else
+                                    <span class="font-bold text-slate-800 text-xs">{{ $log->status_label }}</span>
+                                @endif
+                            </div>
+                            <div class="pt-1.5 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-600">
+                                <span><span class="text-slate-400">Operator:</span> <strong class="text-slate-700">{{ $log->operator_name ?: '-' }}</strong></span>
+                                @if($log->notes)
+                                    <span class="italic text-slate-500 truncate max-w-[160px]">{{ $log->notes }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        @empty
+                        <div class="py-6 text-center text-slate-400 italic text-xs">
+                            Belum ada riwayat aktivitas pada tiket ini.
+                        </div>
+                        @endforelse
+                    </div>
+
+                    <!-- 2. Desktop Table View (>= md screens) -->
+                    <div class="hidden md:block overflow-x-auto">
                         <table class="w-full text-left text-xs text-slate-600">
                             <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
                                 <tr>

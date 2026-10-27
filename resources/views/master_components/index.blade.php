@@ -15,16 +15,16 @@
                     <p class="text-xs text-slate-500 mt-0.5">Katalog material, spesifikasi teknis, batas stok & posisi rak fisik HPK</p>
                 </div>
             </div>
-            <div class="flex items-center space-x-2 self-start sm:self-auto">
+            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto self-start sm:self-auto">
                 <button type="button" 
                         @click="$dispatch('open-import-modal')" 
-                        class="inline-flex items-center px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition touch-target cursor-pointer">
+                        class="flex-1 sm:flex-initial inline-flex items-center justify-center px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition touch-target cursor-pointer">
                     <i class="fa-solid fa-file-excel me-1.5 text-emerald-200"></i>
-                    Import Excel
+                    <span>Import Excel</span>
                 </button>
-                <a href="{{ route('components.create') }}" class="inline-flex items-center px-4 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition touch-target">
+                <a href="{{ route('components.create') }}" class="flex-1 sm:flex-initial inline-flex items-center justify-center px-3.5 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition touch-target whitespace-nowrap">
                     <i class="fa-solid fa-plus me-1.5 text-teal-400"></i>
-                    Tambah Komponen Baru
+                    <span>+ Komponen Baru</span>
                 </a>
             </div>
         </div>
@@ -147,18 +147,18 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
-                        <a href="{{ route('components.qr-label', $component) }}" target="_blank" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center">
-                            <i class="fa-solid fa-qrcode me-1"></i> QR
+                    <div class="grid grid-cols-4 gap-1.5 pt-2 border-t border-slate-100 text-center">
+                        <a href="{{ route('components.qr-label', $component) }}" target="_blank" class="py-1.5 px-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-qrcode text-[11px]"></i> <span>QR</span>
                         </a>
-                        <a href="{{ route('components.edit', $component) }}" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center">
-                            <i class="fa-solid fa-pen me-1"></i> Edit
+                        <a href="{{ route('components.edit', $component) }}" class="py-1.5 px-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-pen text-[10px]"></i> <span>Edit</span>
                         </a>
-                        <a href="{{ route('components.show', $component) }}" class="px-3 py-1.5 bg-[#0a2342] text-white text-xs font-bold rounded-lg flex items-center">
-                            <i class="fa-solid fa-eye me-1 text-teal-400"></i> Detail
+                        <a href="{{ route('components.show', $component) }}" class="py-1.5 px-1 bg-[#0a2342] text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-eye text-[10px] text-teal-400"></i> <span>Detail</span>
                         </a>
-                        <a href="{{ route('transactions.create', ['component_id' => $component->id]) }}" class="px-3 py-1.5 bg-amber-500 text-slate-950 text-xs font-bold rounded-lg flex items-center">
-                            <i class="fa-solid fa-plus me-1"></i> Transaksi
+                        <a href="{{ route('transactions.create', ['component_id' => $component->id]) }}" class="py-1.5 px-1 bg-amber-500 text-slate-950 text-xs font-bold rounded-lg flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-plus text-[10px]"></i> <span>Trans.</span>
                         </a>
                     </div>
                 </div>

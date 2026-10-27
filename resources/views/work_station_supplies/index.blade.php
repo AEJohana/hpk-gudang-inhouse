@@ -31,23 +31,23 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto self-start sm:self-auto">
                 <button type="button" 
                         onclick="window.location.reload()" 
-                        class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs transition flex items-center space-x-1.5 cursor-pointer active:scale-95"
+                        class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
                         title="Segarkan antrean tugas MH">
                     <i class="fa-solid fa-arrows-rotate text-xs text-teal-600"></i>
                     <span>Refresh</span>
                 </button>
                 <button type="button" 
                         @click="$dispatch('open-mh-scanner')" 
-                        class="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center">
+                        class="flex-1 sm:flex-initial px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center text-center cursor-pointer">
                     <i class="fa-solid fa-qrcode me-1.5 text-sm"></i>
-                    Scan QR Tiket WRI
+                    <span>Scan QR Tiket</span>
                 </button>
-                <a href="{{ route('work-requests.index') }}" class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center">
+                <a href="{{ route('work-requests.index') }}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center text-center">
                     <i class="fa-solid fa-list-check me-1.5"></i>
-                    Semua Tiket WRI
+                    <span>Semua WRI</span>
                 </a>
             </div>
         </div>
@@ -132,12 +132,12 @@
                 </div>
 
                 <!-- Filter Panel Antar Mesin -->
-                <div class="p-4 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                    <span class="px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full text-xs font-bold">
+                <div class="p-3 sm:p-4 bg-white border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span class="px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full text-xs font-bold self-start sm:self-auto">
                         <span x-text="transferSubTab === 'waiting' ? '{{ count($transferWaiting) }} Item Menunggu Ambil' : (transferSubTab === 'transit' ? '{{ count($transferTransit) }} Item Dalam Perjalanan' : '{{ count($transferHistory) }} Riwayat')"></span>
                     </span>
 
-                    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full md:w-auto">
                         <select x-model="filterDate" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
                             <option value="all">Semua Tgl</option>
                             <option value="today">Hari Ini</option>
@@ -152,7 +152,7 @@
                             @endforeach
                         </select>
 
-                        <select x-model="filterDestination" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
+                        <select x-model="filterDestination" class="col-span-2 sm:col-span-1 text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
                             <option value="all">Semua Tujuan</option>
                             @foreach($filterDestinations as $dest)
                             <option value="{{ $dest }}">{{ $dest }}</option>
@@ -162,174 +162,321 @@
                         <input type="text" 
                                x-model="searchQuery" 
                                placeholder="Cari No WR / Komponen..." 
-                               class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 px-3 w-full sm:w-48">
+                               class="col-span-2 sm:col-span-1 text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 px-3 w-full sm:w-48">
                     </div>
                 </div>
 
                 <!-- SUB-TAB 1: MENUNGGU AMBIL (ANTAR MESIN) -->
-                <div x-show="transferSubTab === 'waiting'" class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-600">
-                        <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
-                            <tr>
-                                <th class="py-3 px-4">No WR / Tanggal</th>
-                                <th class="py-3 px-4">Komponen & Dimensi</th>
-                                <th class="py-3 px-4">Tujuan Mesin</th>
-                                <th class="py-3 px-4">Status & Qty</th>
-                                <th class="py-3 px-4 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @forelse($transferWaiting as $t)
-                            <tr class="hover:bg-slate-50/80 transition"
-                                x-show="matchesFilter('{{ $t['tgl_raw'] }}', '{{ $t['origin'] }}', '{{ $t['destination'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
-                                <td class="py-3.5 px-4">
-                                    <div class="font-mono font-black text-slate-900 text-xs">{{ $t['wri_number'] }}</div>
-                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
-                                    <div class="text-[10px] text-slate-400 font-mono">Kode: {{ $t['part_number'] }} | Dim: {{ $t['dimension'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <div class="font-bold text-slate-800"><i class="fa-solid fa-location-dot text-rose-500 me-1"></i> Asal: {{ $t['origin'] }}</div>
-                                    <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-bullseye text-blue-500 me-1"></i> Tujuan: {{ $t['destination'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                                        Menunggu Ambil
-                                    </span>
-                                    <div class="text-xs font-black text-slate-900 mt-1">Qty: <b>{{ $t['qty'] }}</b> pcs</div>
-                                </td>
-                                <td class="py-3.5 px-4 text-right">
-                                    <button type="button" 
-                                            @click="openActionModal({{ json_encode($t) }})"
-                                            class="inline-flex items-center justify-center px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-full shadow-xs transition">
-                                        <i class="fa-solid fa-qrcode me-1.5 text-[10px]"></i> Ambil
-                                    </button>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="5" class="py-12 text-center text-slate-400 italic">
-                                    <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
-                                        <i class="fa-solid fa-check"></i>
-                                    </div>
-                                    <p class="font-bold text-slate-700 text-xs">Beres! Semua komponen antar stasiun sudah di-pickup.</p>
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div x-show="transferSubTab === 'waiting'">
+                    <!-- Mobile Card List View (< md screens) -->
+                    <div class="block md:hidden p-3.5 space-y-3">
+                        @forelse($transferWaiting as $t)
+                        <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3"
+                             x-show="matchesFilter('{{ $t['tgl_raw'] }}', '{{ $t['origin'] }}', '{{ $t['destination'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                            <div class="flex items-center justify-between">
+                                <span class="font-mono font-bold text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{{ $t['wri_number'] }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                    Menunggu Ambil
+                                </span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-indigo-900 text-sm">{{ $t['component_name'] }}</h4>
+                                <div class="text-[11px] text-slate-500 font-mono mt-0.5">Kode: {{ $t['part_number'] }} | Dim: {{ $t['dimension'] }}</div>
+                            </div>
+                            <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1.5 text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500"><i class="fa-solid fa-location-dot text-rose-500 me-1.5"></i>Asal:</span>
+                                    <span class="font-bold text-slate-800">{{ $t['origin'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500"><i class="fa-solid fa-bullseye text-blue-500 me-1.5"></i>Tujuan:</span>
+                                    <span class="font-bold text-blue-700">{{ $t['destination'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                                    <span class="text-slate-500">Jumlah:</span>
+                                    <span class="font-extrabold text-sm text-slate-900">{{ $t['qty'] }} <span class="text-xs font-normal text-slate-500">pcs</span></span>
+                                </div>
+                            </div>
+                            <button type="button" 
+                                    @click="openActionModal({{ json_encode($t) }})"
+                                    class="w-full py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-98 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center space-x-1.5 cursor-pointer touch-target">
+                                <i class="fa-solid fa-qrcode text-sm"></i>
+                                <span>Ambil Material (Pickup)</span>
+                            </button>
+                        </div>
+                        @empty
+                        <div class="py-10 text-center text-slate-400 italic bg-white rounded-2xl border border-slate-200">
+                            <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                            <p class="font-bold text-slate-700 text-xs">Beres! Semua komponen antar stasiun sudah di-pickup.</p>
+                        </div>
+                        @endforelse
+                    </div>
+
+                    <!-- Desktop Table View (>= md screens) -->
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600">
+                            <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4">No WR / Tanggal</th>
+                                    <th class="py-3 px-4">Komponen & Dimensi</th>
+                                    <th class="py-3 px-4">Tujuan Mesin</th>
+                                    <th class="py-3 px-4">Status & Qty</th>
+                                    <th class="py-3 px-4 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @forelse($transferWaiting as $t)
+                                <tr class="hover:bg-slate-50/80 transition"
+                                    x-show="matchesFilter('{{ $t['tgl_raw'] }}', '{{ $t['origin'] }}', '{{ $t['destination'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-mono font-black text-slate-900 text-xs">{{ $t['wri_number'] }}</div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
+                                        <div class="text-[10px] text-slate-400 font-mono">Kode: {{ $t['part_number'] }} | Dim: {{ $t['dimension'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-bold text-slate-800"><i class="fa-solid fa-location-dot text-rose-500 me-1"></i> Asal: {{ $t['origin'] }}</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-bullseye text-blue-500 me-1"></i> Tujuan: {{ $t['destination'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                            Menunggu Ambil
+                                        </span>
+                                        <div class="text-xs font-black text-slate-900 mt-1">Qty: <b>{{ $t['qty'] }}</b> pcs</div>
+                                    </td>
+                                    <td class="py-3.5 px-4 text-right">
+                                        <button type="button" 
+                                                @click="openActionModal({{ json_encode($t) }})"
+                                                class="inline-flex items-center justify-center px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-full shadow-xs transition cursor-pointer">
+                                            <i class="fa-solid fa-qrcode me-1.5 text-[10px]"></i> Ambil
+                                        </button>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="5" class="py-12 text-center text-slate-400 italic">
+                                        <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                            <i class="fa-solid fa-check"></i>
+                                        </div>
+                                        <p class="font-bold text-slate-700 text-xs">Beres! Semua komponen antar stasiun sudah di-pickup.</p>
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- SUB-TAB 2: DALAM PERJALANAN (ANTAR MESIN) -->
-                <div x-show="transferSubTab === 'transit'" class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-600">
-                        <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
-                            <tr>
-                                <th class="py-3 px-4">No WR / Tanggal</th>
-                                <th class="py-3 px-4">Komponen & Dimensi</th>
-                                <th class="py-3 px-4">Rute Transfer</th>
-                                <th class="py-3 px-4">Status & Qty</th>
-                                <th class="py-3 px-4 text-right">Info Logistik</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @forelse($transferTransit as $t)
-                            <tr class="hover:bg-slate-50/80 transition"
-                                x-show="matchesFilter('{{ $t['tgl_raw'] }}', '{{ $t['origin'] }}', '{{ $t['destination'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
-                                <td class="py-3.5 px-4">
-                                    <div class="font-mono font-black text-slate-900 text-xs">{{ $t['wri_number'] }}</div>
-                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
-                                    <div class="text-[10px] text-slate-400 font-mono">Kode: {{ $t['part_number'] }} | Dim: {{ $t['dimension'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <div class="font-bold text-slate-800"><i class="fa-solid fa-location-dot text-rose-500 me-1"></i> Asal: {{ $t['origin'] }}</div>
-                                    <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-bullseye text-blue-500 me-1"></i> Tujuan: {{ $t['destination'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-900 border border-sky-300">
-                                        Sedang Dibawa MH
-                                    </span>
-                                    <div class="text-xs font-black text-slate-900 mt-1">Qty: <b>{{ $t['qty'] }}</b> pcs</div>
-                                </td>
-                                <td class="py-3.5 px-4 text-right">
-                                    <span class="inline-flex items-center px-3 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">
-                                        <i class="fa-solid fa-truck-fast text-sky-600 me-1"></i> Perjalanan
-                                    </span>
-                                    <div class="text-[10px] text-slate-400 mt-1"><i class="fa-regular fa-clock me-1"></i> Diambil: <b>{{ $t['pickup_time'] }}</b></div>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="5" class="py-12 text-center text-slate-400 italic">
-                                    <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
-                                        <i class="fa-solid fa-truck"></i>
-                                    </div>
-                                    <p class="font-bold text-slate-600 text-xs">Kosong. Tidak ada barang dalam perjalanan antar mesin.</p>
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div x-show="transferSubTab === 'transit'">
+                    <!-- Mobile Card List View (< md screens) -->
+                    <div class="block md:hidden p-3.5 space-y-3">
+                        @forelse($transferTransit as $t)
+                        <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3"
+                             x-show="matchesFilter('{{ $t['tgl_raw'] }}', '{{ $t['origin'] }}', '{{ $t['destination'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                            <div class="flex items-center justify-between">
+                                <span class="font-mono font-bold text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{{ $t['wri_number'] }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-900 border border-sky-300">
+                                    Sedang Dibawa MH
+                                </span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-indigo-900 text-sm">{{ $t['component_name'] }}</h4>
+                                <div class="text-[11px] text-slate-500 font-mono mt-0.5">Kode: {{ $t['part_number'] }} | Dim: {{ $t['dimension'] }}</div>
+                            </div>
+                            <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1.5 text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500"><i class="fa-solid fa-location-dot text-rose-500 me-1.5"></i>Asal:</span>
+                                    <span class="font-bold text-slate-800">{{ $t['origin'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500"><i class="fa-solid fa-bullseye text-blue-500 me-1.5"></i>Tujuan:</span>
+                                    <span class="font-bold text-blue-700">{{ $t['destination'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                                    <span class="text-slate-500">Jumlah:</span>
+                                    <span class="font-extrabold text-sm text-slate-900">{{ $t['qty'] }} <span class="text-xs font-normal text-slate-500">pcs</span></span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+                                <span class="inline-flex items-center px-2.5 py-0.5 bg-sky-50 text-sky-700 rounded-full font-bold">
+                                    <i class="fa-solid fa-truck-fast text-sky-600 me-1"></i> Perjalanan
+                                </span>
+                                <span><i class="fa-regular fa-clock me-1 text-slate-400"></i> Diambil: <b>{{ $t['pickup_time'] }}</b></span>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="py-10 text-center text-slate-400 italic bg-white rounded-2xl border border-slate-200">
+                            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                <i class="fa-solid fa-truck"></i>
+                            </div>
+                            <p class="font-bold text-slate-600 text-xs">Kosong. Tidak ada barang dalam perjalanan antar mesin.</p>
+                        </div>
+                        @endforelse
+                    </div>
+
+                    <!-- Desktop Table View (>= md screens) -->
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600">
+                            <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4">No WR / Tanggal</th>
+                                    <th class="py-3 px-4">Komponen & Dimensi</th>
+                                    <th class="py-3 px-4">Rute Transfer</th>
+                                    <th class="py-3 px-4">Status & Qty</th>
+                                    <th class="py-3 px-4 text-right">Info Logistik</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @forelse($transferTransit as $t)
+                                <tr class="hover:bg-slate-50/80 transition"
+                                    x-show="matchesFilter('{{ $t['tgl_raw'] }}', '{{ $t['origin'] }}', '{{ $t['destination'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-mono font-black text-slate-900 text-xs">{{ $t['wri_number'] }}</div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
+                                        <div class="text-[10px] text-slate-400 font-mono">Kode: {{ $t['part_number'] }} | Dim: {{ $t['dimension'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-bold text-slate-800"><i class="fa-solid fa-location-dot text-rose-500 me-1"></i> Asal: {{ $t['origin'] }}</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-bullseye text-blue-500 me-1"></i> Tujuan: {{ $t['destination'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-900 border border-sky-300">
+                                            Sedang Dibawa MH
+                                        </span>
+                                        <div class="text-xs font-black text-slate-900 mt-1">Qty: <b>{{ $t['qty'] }}</b> pcs</div>
+                                    </td>
+                                    <td class="py-3.5 px-4 text-right">
+                                        <span class="inline-flex items-center px-3 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">
+                                            <i class="fa-solid fa-truck-fast text-sky-600 me-1"></i> Perjalanan
+                                        </span>
+                                        <div class="text-[10px] text-slate-400 mt-1"><i class="fa-regular fa-clock me-1"></i> Diambil: <b>{{ $t['pickup_time'] }}</b></div>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="5" class="py-12 text-center text-slate-400 italic">
+                                        <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                            <i class="fa-solid fa-truck"></i>
+                                        </div>
+                                        <p class="font-bold text-slate-600 text-xs">Kosong. Tidak ada barang dalam perjalanan antar mesin.</p>
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- SUB-TAB 3: RIWAYAT TRANSFER (ANTAR MESIN) -->
-                <div x-show="transferSubTab === 'history'" class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-600">
-                        <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
-                            <tr>
-                                <th class="py-3 px-4">No WR / Tanggal</th>
-                                <th class="py-3 px-4">Komponen & Dimensi</th>
-                                <th class="py-3 px-4">Rute Transfer</th>
-                                <th class="py-3 px-4">Status</th>
-                                <th class="py-3 px-4 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @forelse($transferHistory as $t)
-                            <tr class="hover:bg-slate-50/80 transition"
-                                x-show="matchesFilter('{{ $t['tgl_raw'] }}', '{{ $t['origin'] }}', '{{ $t['destination'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
-                                <td class="py-3.5 px-4">
-                                    <div class="font-mono font-bold text-slate-800 text-xs">{{ $t['wri_number'] }}</div>
-                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
-                                    <div class="text-[10px] text-slate-400 font-mono">Qty: <b>{{ $t['qty'] }}</b> | Dim: {{ $t['dimension'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <div class="font-medium text-slate-700"><i class="fa-solid fa-location-dot text-rose-500 me-1"></i> Asal: {{ $t['origin'] }}</div>
-                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-solid fa-bullseye text-blue-500 me-1"></i> Tujuan: {{ $t['destination'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                        {{ $t['status'] }}
-                                    </span>
-                                </td>
-                                <td class="py-3.5 px-4 text-right">
-                                    <button type="button" 
-                                            @click="openDetailModal({{ json_encode($t) }})"
-                                            class="inline-flex items-center px-3 py-1 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs shadow-xs transition">
-                                        <i class="fa-solid fa-circle-info me-1 text-blue-500"></i> Detail
-                                    </button>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="5" class="py-12 text-center text-slate-400 italic">
-                                    <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
-                                        <i class="fa-solid fa-clock-rotate-left"></i>
-                                    </div>
-                                    <p class="font-bold text-slate-600 text-xs">Belum ada riwayat transfer antar mesin yang tercatat.</p>
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div x-show="transferSubTab === 'history'">
+                    <!-- Mobile Card List View (< md screens) -->
+                    <div class="block md:hidden p-3.5 space-y-3">
+                        @forelse($transferHistory as $t)
+                        <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3"
+                             x-show="matchesFilter('{{ $t['tgl_raw'] }}', '{{ $t['origin'] }}', '{{ $t['destination'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                            <div class="flex items-center justify-between">
+                                <span class="font-mono font-bold text-xs text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{{ $t['wri_number'] }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    {{ $t['status'] }}
+                                </span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-indigo-900 text-sm">{{ $t['component_name'] }}</h4>
+                                <div class="text-[11px] text-slate-500 font-mono mt-0.5">Kode: {{ $t['part_number'] }} | Dim: {{ $t['dimension'] }}</div>
+                            </div>
+                            <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1.5 text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500"><i class="fa-solid fa-location-dot text-rose-500 me-1.5"></i>Asal:</span>
+                                    <span class="font-medium text-slate-700">{{ $t['origin'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500"><i class="fa-solid fa-bullseye text-blue-500 me-1.5"></i>Tujuan:</span>
+                                    <span class="font-medium text-slate-700">{{ $t['destination'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                                    <span class="text-slate-500">Jumlah:</span>
+                                    <span class="font-bold text-slate-900">{{ $t['qty'] }} pcs</span>
+                                </div>
+                            </div>
+                            <button type="button" 
+                                    @click="openDetailModal({{ json_encode($t) }})"
+                                    class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl border border-slate-200 transition flex items-center justify-center space-x-1.5 cursor-pointer touch-target">
+                                <i class="fa-solid fa-circle-info text-blue-500"></i>
+                                <span>Lihat Rincian Alur</span>
+                            </button>
+                        </div>
+                        @empty
+                        <div class="py-10 text-center text-slate-400 italic bg-white rounded-2xl border border-slate-200">
+                            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                            </div>
+                            <p class="font-bold text-slate-600 text-xs">Belum ada riwayat transfer antar mesin yang tercatat.</p>
+                        </div>
+                        @endforelse
+                    </div>
+
+                    <!-- Desktop Table View (>= md screens) -->
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600">
+                            <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4">No WR / Tanggal</th>
+                                    <th class="py-3 px-4">Komponen & Dimensi</th>
+                                    <th class="py-3 px-4">Rute Transfer</th>
+                                    <th class="py-3 px-4">Status</th>
+                                    <th class="py-3 px-4 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @forelse($transferHistory as $t)
+                                <tr class="hover:bg-slate-50/80 transition"
+                                    x-show="matchesFilter('{{ $t['tgl_raw'] }}', '{{ $t['origin'] }}', '{{ $t['destination'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-mono font-bold text-slate-800 text-xs">{{ $t['wri_number'] }}</div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
+                                        <div class="text-[10px] text-slate-400 font-mono">Qty: <b>{{ $t['qty'] }}</b> | Dim: {{ $t['dimension'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-medium text-slate-700"><i class="fa-solid fa-location-dot text-rose-500 me-1"></i> Asal: {{ $t['origin'] }}</div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-solid fa-bullseye text-blue-500 me-1"></i> Tujuan: {{ $t['destination'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                            {{ $t['status'] }}
+                                        </span>
+                                    </td>
+                                    <td class="py-3.5 px-4 text-right">
+                                        <button type="button" 
+                                                @click="openDetailModal({{ json_encode($t) }})"
+                                                class="inline-flex items-center px-3 py-1 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs shadow-xs transition">
+                                            <i class="fa-solid fa-circle-info me-1 text-blue-500"></i> Detail
+                                        </button>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="5" class="py-12 text-center text-slate-400 italic">
+                                        <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                            <i class="fa-solid fa-clock-rotate-left"></i>
+                                        </div>
+                                        <p class="font-bold text-slate-600 text-xs">Belum ada riwayat transfer antar mesin yang tercatat.</p>
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -370,12 +517,12 @@
                 </div>
 
                 <!-- Filter Panel Siap Diambil -->
-                <div class="p-4 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                    <span class="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold">
+                <div class="p-3 sm:p-4 bg-white border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span class="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold self-start sm:self-auto">
                         <span x-text="finalSubTab === 'waiting' ? '{{ count($finalWaiting) }} Item Siap Diambil' : (finalSubTab === 'transit' ? '{{ count($finalTransit) }} Item Dalam Perjalanan ke Pengaju' : '{{ count($finalHistory) }} Riwayat Selesai')"></span>
                     </span>
 
-                    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full md:w-auto">
                         <select x-model="filterDate" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
                             <option value="all">Semua Tgl</option>
                             <option value="today">Hari Ini</option>
@@ -383,7 +530,7 @@
                             <option value="week">Minggu Ini</option>
                         </select>
 
-                        <select x-model="filterFinalLocation" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
+                        <select x-model="filterFinalLocation" class="col-span-1 text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
                             <option value="all">Semua Lokasi Selesai</option>
                             @foreach($filterFinalLocations as $floc)
                             <option value="{{ $floc }}">{{ $floc }}</option>
@@ -393,174 +540,317 @@
                         <input type="text" 
                                x-model="searchQuery" 
                                placeholder="Cari No WR / Komponen..." 
-                               class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 px-3 w-full sm:w-48">
+                               class="col-span-2 sm:col-span-1 text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 px-3 w-full sm:w-48">
                     </div>
                 </div>
 
                 <!-- SUB-TAB 1: SIAP DIAMBIL (FINAL) -->
-                <div x-show="finalSubTab === 'waiting'" class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-600">
-                        <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
-                            <tr>
-                                <th class="py-3 px-4">No WR / Tanggal</th>
-                                <th class="py-3 px-4">Komponen & Dimensi</th>
-                                <th class="py-3 px-4">Lokasi Selesai</th>
-                                <th class="py-3 px-4">Status & Qty</th>
-                                <th class="py-3 px-4 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @forelse($finalWaiting as $t)
-                            <tr class="hover:bg-slate-50/80 transition"
-                                x-show="matchesFilterFinal('{{ $t['tgl_raw'] }}', '{{ $t['location'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
-                                <td class="py-3.5 px-4">
-                                    <div class="font-mono font-black text-slate-900 text-xs">{{ $t['wri_number'] }}</div>
-                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
-                                    <div class="text-[10px] text-slate-400 font-mono">Kode: {{ $t['part_number'] }} | Dim: {{ $t['dimension'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <div class="font-bold text-slate-800"><i class="fa-solid fa-map-pin text-emerald-600 me-1"></i> Selesai di: {{ $t['location'] }}</div>
-                                    <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-warehouse text-teal-600 me-1"></i> Tujuan: {{ $t['destination'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
-                                        Siap Distribusi
-                                    </span>
-                                    <div class="text-xs font-black text-slate-900 mt-1">Qty: <b>{{ $t['qty'] }}</b> pcs</div>
-                                </td>
-                                <td class="py-3.5 px-4 text-right">
-                                    <button type="button" 
-                                            @click="openActionModal({{ json_encode($t) }})"
-                                            class="inline-flex items-center justify-center px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-full shadow-xs transition">
-                                        <i class="fa-solid fa-truck-fast me-1.5 text-[10px]"></i> Ambil
-                                    </button>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="5" class="py-12 text-center text-slate-400 italic">
-                                    <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
-                                        <i class="fa-solid fa-check-double"></i>
-                                    </div>
-                                    <p class="font-bold text-slate-600 text-xs">Aman! Tidak ada barang menunggu pengambilan akhir ke gudang.</p>
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div x-show="finalSubTab === 'waiting'">
+                    <!-- Mobile Card List View (< md screens) -->
+                    <div class="block md:hidden p-3.5 space-y-3">
+                        @forelse($finalWaiting as $t)
+                        <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3"
+                             x-show="matchesFilterFinal('{{ $t['tgl_raw'] }}', '{{ $t['location'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                            <div class="flex items-center justify-between">
+                                <span class="font-mono font-bold text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{{ $t['wri_number'] }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                    Siap Distribusi
+                                </span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-indigo-900 text-sm">{{ $t['component_name'] }}</h4>
+                                <div class="text-[11px] text-slate-500 font-mono mt-0.5">Kode: {{ $t['part_number'] }} | Dim: {{ $t['dimension'] }}</div>
+                            </div>
+                            <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1.5 text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500"><i class="fa-solid fa-map-pin text-emerald-600 me-1.5"></i>Selesai di:</span>
+                                    <span class="font-bold text-slate-800">{{ $t['location'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500"><i class="fa-solid fa-warehouse text-teal-600 me-1.5"></i>Tujuan:</span>
+                                    <span class="font-bold text-teal-700">{{ $t['destination'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                                    <span class="text-slate-500">Jumlah:</span>
+                                    <span class="font-extrabold text-sm text-slate-900">{{ $t['qty'] }} <span class="text-xs font-normal text-slate-500">pcs</span></span>
+                                </div>
+                            </div>
+                            <button type="button" 
+                                    @click="openActionModal({{ json_encode($t) }})"
+                                    class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center space-x-1.5 cursor-pointer touch-target">
+                                <i class="fa-solid fa-truck-fast text-sm"></i>
+                                <span>Ambil Menuju Pengaju</span>
+                            </button>
+                        </div>
+                        @empty
+                        <div class="py-10 text-center text-slate-400 italic bg-white rounded-2xl border border-slate-200">
+                            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                <i class="fa-solid fa-check-double"></i>
+                            </div>
+                            <p class="font-bold text-slate-600 text-xs">Aman! Tidak ada barang menunggu pengambilan akhir ke gudang.</p>
+                        </div>
+                        @endforelse
+                    </div>
+
+                    <!-- Desktop Table View (>= md screens) -->
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600">
+                            <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4">No WR / Tanggal</th>
+                                    <th class="py-3 px-4">Komponen & Dimensi</th>
+                                    <th class="py-3 px-4">Lokasi Selesai</th>
+                                    <th class="py-3 px-4">Status & Qty</th>
+                                    <th class="py-3 px-4 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @forelse($finalWaiting as $t)
+                                <tr class="hover:bg-slate-50/80 transition"
+                                    x-show="matchesFilterFinal('{{ $t['tgl_raw'] }}', '{{ $t['location'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-mono font-black text-slate-900 text-xs">{{ $t['wri_number'] }}</div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
+                                        <div class="text-[10px] text-slate-400 font-mono">Kode: {{ $t['part_number'] }} | Dim: {{ $t['dimension'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-bold text-slate-800"><i class="fa-solid fa-map-pin text-emerald-600 me-1"></i> Selesai di: {{ $t['location'] }}</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-warehouse text-teal-600 me-1"></i> Tujuan: {{ $t['destination'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                            Siap Distribusi
+                                        </span>
+                                        <div class="text-xs font-black text-slate-900 mt-1">Qty: <b>{{ $t['qty'] }}</b> pcs</div>
+                                    </td>
+                                    <td class="py-3.5 px-4 text-right">
+                                        <button type="button" 
+                                                @click="openActionModal({{ json_encode($t) }})"
+                                                class="inline-flex items-center justify-center px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-full shadow-xs transition cursor-pointer">
+                                            <i class="fa-solid fa-truck-fast me-1.5 text-[10px]"></i> Ambil
+                                        </button>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="5" class="py-12 text-center text-slate-400 italic">
+                                        <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                            <i class="fa-solid fa-check-double"></i>
+                                        </div>
+                                        <p class="font-bold text-slate-600 text-xs">Aman! Tidak ada barang menunggu pengambilan akhir ke gudang.</p>
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- SUB-TAB 2: DALAM PERJALANAN (FINAL KE PENGAJU) -->
-                <div x-show="finalSubTab === 'transit'" class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-600">
-                        <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
-                            <tr>
-                                <th class="py-3 px-4">No WR / Tanggal</th>
-                                <th class="py-3 px-4">Komponen & Dimensi</th>
-                                <th class="py-3 px-4">Lokasi & Tujuan</th>
-                                <th class="py-3 px-4">Status & Qty</th>
-                                <th class="py-3 px-4 text-right">Status Penyerahan</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @forelse($finalTransit as $t)
-                            <tr class="hover:bg-slate-50/80 transition"
-                                x-show="matchesFilterFinal('{{ $t['tgl_raw'] }}', '{{ $t['location'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
-                                <td class="py-3.5 px-4">
-                                    <div class="font-mono font-black text-slate-900 text-xs">{{ $t['wri_number'] }}</div>
-                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
-                                    <div class="text-[10px] text-slate-400 font-mono">Kode: {{ $t['part_number'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <div class="font-bold text-slate-800"><i class="fa-solid fa-location-dot text-rose-500 me-1"></i> Dari: {{ $t['location'] }}</div>
-                                    <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-bullseye text-blue-500 me-1"></i> Menuju: {{ $t['destination'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-900 border border-sky-300">
-                                        Perjalanan (Final)
-                                    </span>
-                                    <div class="text-xs font-black text-slate-900 mt-1">Qty: <b>{{ $t['qty'] }}</b> pcs</div>
-                                </td>
-                                <td class="py-3.5 px-4 text-right">
-                                    <span class="inline-flex items-center px-3 py-1 bg-amber-50 text-amber-800 border border-amber-300 rounded-full text-[10px] font-bold">
-                                        <i class="fa-solid fa-hourglass-half text-amber-500 me-1.5"></i> Menunggu Penerimaan {{ $t['destination'] }}
-                                    </span>
-                                    <div class="text-[10px] text-slate-400 mt-1"><i class="fa-regular fa-clock me-1"></i> Diambil: <b>{{ $t['pickup_time'] }}</b></div>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="5" class="py-12 text-center text-slate-400 italic">
-                                    <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
-                                        <i class="fa-solid fa-truck"></i>
-                                    </div>
-                                    <p class="font-bold text-slate-600 text-xs">Kosong. Tidak ada barang dalam perjalanan ke pengaju/gudang.</p>
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div x-show="finalSubTab === 'transit'">
+                    <!-- Mobile Card List View (< md screens) -->
+                    <div class="block md:hidden p-3.5 space-y-3">
+                        @forelse($finalTransit as $t)
+                        <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3"
+                             x-show="matchesFilterFinal('{{ $t['tgl_raw'] }}', '{{ $t['location'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                            <div class="flex items-center justify-between">
+                                <span class="font-mono font-bold text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{{ $t['wri_number'] }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-900 border border-sky-300">
+                                    Perjalanan (Final)
+                                </span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-indigo-900 text-sm">{{ $t['component_name'] }}</h4>
+                                <div class="text-[11px] text-slate-500 font-mono mt-0.5">Kode: {{ $t['part_number'] }}</div>
+                            </div>
+                            <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1.5 text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500"><i class="fa-solid fa-location-dot text-rose-500 me-1.5"></i>Dari:</span>
+                                    <span class="font-bold text-slate-800">{{ $t['location'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500"><i class="fa-solid fa-bullseye text-blue-500 me-1.5"></i>Menuju:</span>
+                                    <span class="font-bold text-blue-700">{{ $t['destination'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                                    <span class="text-slate-500">Jumlah:</span>
+                                    <span class="font-extrabold text-sm text-slate-900">{{ $t['qty'] }} pcs</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500 gap-1.5">
+                                <span class="inline-flex items-center px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-full font-bold self-start sm:self-auto">
+                                    <i class="fa-solid fa-hourglass-half text-amber-500 me-1.5"></i> Menunggu Penerimaan {{ $t['destination'] }}
+                                </span>
+                                <span><i class="fa-regular fa-clock me-1 text-slate-400"></i> Diambil: <b>{{ $t['pickup_time'] }}</b></span>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="py-10 text-center text-slate-400 italic bg-white rounded-2xl border border-slate-200">
+                            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                <i class="fa-solid fa-truck"></i>
+                            </div>
+                            <p class="font-bold text-slate-600 text-xs">Kosong. Tidak ada barang dalam perjalanan ke pengaju/gudang.</p>
+                        </div>
+                        @endforelse
+                    </div>
+
+                    <!-- Desktop Table View (>= md screens) -->
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600">
+                            <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4">No WR / Tanggal</th>
+                                    <th class="py-3 px-4">Komponen & Dimensi</th>
+                                    <th class="py-3 px-4">Lokasi & Tujuan</th>
+                                    <th class="py-3 px-4">Status & Qty</th>
+                                    <th class="py-3 px-4 text-right">Status Penyerahan</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @forelse($finalTransit as $t)
+                                <tr class="hover:bg-slate-50/80 transition"
+                                    x-show="matchesFilterFinal('{{ $t['tgl_raw'] }}', '{{ $t['location'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-mono font-black text-slate-900 text-xs">{{ $t['wri_number'] }}</div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
+                                        <div class="text-[10px] text-slate-400 font-mono">Kode: {{ $t['part_number'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-bold text-slate-800"><i class="fa-solid fa-location-dot text-rose-500 me-1"></i> Dari: {{ $t['location'] }}</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-bullseye text-blue-500 me-1"></i> Menuju: {{ $t['destination'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-900 border border-sky-300">
+                                            Perjalanan (Final)
+                                        </span>
+                                        <div class="text-xs font-black text-slate-900 mt-1">Qty: <b>{{ $t['qty'] }}</b> pcs</div>
+                                    </td>
+                                    <td class="py-3.5 px-4 text-right">
+                                        <span class="inline-flex items-center px-3 py-1 bg-amber-50 text-amber-800 border border-amber-300 rounded-full text-[10px] font-bold">
+                                            <i class="fa-solid fa-hourglass-half text-amber-500 me-1.5"></i> Menunggu Penerimaan {{ $t['destination'] }}
+                                        </span>
+                                        <div class="text-[10px] text-slate-400 mt-1"><i class="fa-regular fa-clock me-1"></i> Diambil: <b>{{ $t['pickup_time'] }}</b></div>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="5" class="py-12 text-center text-slate-400 italic">
+                                        <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                            <i class="fa-solid fa-truck"></i>
+                                        </div>
+                                        <p class="font-bold text-slate-600 text-xs">Kosong. Tidak ada barang dalam perjalanan ke pengaju/gudang.</p>
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- SUB-TAB 3: RIWAYAT SELESAI (FINAL) -->
-                <div x-show="finalSubTab === 'history'" class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-600">
-                        <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
-                            <tr>
-                                <th class="py-3 px-4">No WR / Tanggal</th>
-                                <th class="py-3 px-4">Komponen & Dimensi</th>
-                                <th class="py-3 px-4">Penerima Akhir</th>
-                                <th class="py-3 px-4">Status</th>
-                                <th class="py-3 px-4 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @forelse($finalHistory as $t)
-                            <tr class="hover:bg-slate-50/80 transition"
-                                x-show="matchesFilterFinal('{{ $t['tgl_raw'] }}', '{{ $t['location'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
-                                <td class="py-3.5 px-4">
-                                    <div class="font-mono font-bold text-slate-800 text-xs">{{ $t['wri_number'] }}</div>
-                                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
-                                    <div class="text-[10px] text-slate-400 font-mono">Qty: <b>{{ $t['qty'] }}</b> | Dim: {{ $t['dimension'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <div class="font-bold text-slate-800"><i class="fa-solid fa-warehouse text-emerald-600 me-1"></i> {{ $t['destination'] }}</div>
-                                    <div class="text-[10px] text-slate-400 mt-0.5">Diterima: {{ $t['received_time'] }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                        {{ $t['status'] }}
-                                    </span>
-                                </td>
-                                <td class="py-3.5 px-4 text-right">
-                                    <button type="button" 
-                                            @click="openDetailModal({{ json_encode($t) }})"
-                                            class="inline-flex items-center px-3 py-1 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs shadow-xs transition">
-                                        <i class="fa-solid fa-circle-info me-1 text-emerald-600"></i> Detail
-                                    </button>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="5" class="py-12 text-center text-slate-400 italic">
-                                    <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
-                                        <i class="fa-solid fa-circle-check"></i>
-                                    </div>
-                                    <p class="font-bold text-slate-600 text-xs">Belum ada riwayat serah terima yang tercatat.</p>
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div x-show="finalSubTab === 'history'">
+                    <!-- Mobile Card List View (< md screens) -->
+                    <div class="block md:hidden p-3.5 space-y-3">
+                        @forelse($finalHistory as $t)
+                        <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3"
+                             x-show="matchesFilterFinal('{{ $t['tgl_raw'] }}', '{{ $t['location'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                            <div class="flex items-center justify-between">
+                                <span class="font-mono font-bold text-xs text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{{ $t['wri_number'] }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    {{ $t['status'] }}
+                                </span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-indigo-900 text-sm">{{ $t['component_name'] }}</h4>
+                                <div class="text-[11px] text-slate-500 font-mono mt-0.5">Qty: <b>{{ $t['qty'] }}</b> | Dim: {{ $t['dimension'] }}</div>
+                            </div>
+                            <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1.5 text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500"><i class="fa-solid fa-warehouse text-emerald-600 me-1.5"></i>Penerima:</span>
+                                    <span class="font-bold text-slate-800">{{ $t['destination'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500"><i class="fa-regular fa-clock text-slate-400 me-1.5"></i>Waktu:</span>
+                                    <span class="text-slate-600 font-medium">Diterima {{ $t['received_time'] }}</span>
+                                </div>
+                            </div>
+                            <button type="button" 
+                                    @click="openDetailModal({{ json_encode($t) }})"
+                                    class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl border border-slate-200 transition flex items-center justify-center space-x-1.5 cursor-pointer touch-target">
+                                <i class="fa-solid fa-circle-info text-emerald-600"></i>
+                                <span>Lihat Rincian Selesai</span>
+                            </button>
+                        </div>
+                        @empty
+                        <div class="py-10 text-center text-slate-400 italic bg-white rounded-2xl border border-slate-200">
+                            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                            <p class="font-bold text-slate-600 text-xs">Belum ada riwayat serah terima yang tercatat.</p>
+                        </div>
+                        @endforelse
+                    </div>
+
+                    <!-- Desktop Table View (>= md screens) -->
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600">
+                            <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4">No WR / Tanggal</th>
+                                    <th class="py-3 px-4">Komponen & Dimensi</th>
+                                    <th class="py-3 px-4">Penerima Akhir</th>
+                                    <th class="py-3 px-4">Status</th>
+                                    <th class="py-3 px-4 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @forelse($finalHistory as $t)
+                                <tr class="hover:bg-slate-50/80 transition"
+                                    x-show="matchesFilterFinal('{{ $t['tgl_raw'] }}', '{{ $t['location'] }}', '{{ strtolower($t['wri_number'] . ' ' . $t['component_name']) }}')">
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-mono font-bold text-slate-800 text-xs">{{ $t['wri_number'] }}</div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-calendar me-1"></i>{{ $t['tgl'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-bold text-indigo-700 text-xs">{{ $t['component_name'] }}</div>
+                                        <div class="text-[10px] text-slate-400 font-mono">Qty: <b>{{ $t['qty'] }}</b> | Dim: {{ $t['dimension'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-bold text-slate-800"><i class="fa-solid fa-warehouse text-emerald-600 me-1"></i> {{ $t['destination'] }}</div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5">Diterima: {{ $t['received_time'] }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                            {{ $t['status'] }}
+                                        </span>
+                                    </td>
+                                    <td class="py-3.5 px-4 text-right">
+                                        <button type="button" 
+                                                @click="openDetailModal({{ json_encode($t) }})"
+                                                class="inline-flex items-center px-3 py-1 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs shadow-xs transition">
+                                            <i class="fa-solid fa-circle-info me-1 text-emerald-600"></i> Detail
+                                        </button>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="5" class="py-12 text-center text-slate-400 italic">
+                                        <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                        </div>
+                                        <p class="font-bold text-slate-600 text-xs">Belum ada riwayat serah terima yang tercatat.</p>
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
