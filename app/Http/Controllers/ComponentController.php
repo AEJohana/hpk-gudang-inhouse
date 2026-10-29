@@ -266,6 +266,45 @@ class ComponentController extends Controller
     }
 
     /**
+     * Stream foto komponen dari folder lokal D:\ atau NAS secara aman ke browser klien (HP/Laptop)
+     */
+    public function photoStream(Component $component)
+    {
+        $filePath = $component->local_photo_file_path;
+
+        if ($filePath && file_exists($filePath)) {
+            $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+            $mimeType = match($ext) {
+                'png' => 'image/png',
+                'webp' => 'image/webp',
+                'svg' => 'image/svg+xml',
+                default => 'image/jpeg',
+            };
+
+            return response()->file($filePath, [
+                'Content-Type' => $mimeType,
+                'Cache-Control' => 'public, max-age=86400',
+            ]);
+        }
+
+        // Fallback: jika berupa URL eksternal (Google Drive), redirect
+        if ($component->image_path && (str_starts_with($component->image_path, 'http://') || str_starts_with($component->image_path, 'https://'))) {
+            return redirect()->away($component->image_url);
+        }
+
+        // Default placeholder
+        $placeholder = public_path('images/placeholder_part.svg');
+        if (file_exists($placeholder)) {
+            return response()->file($placeholder, [
+                'Content-Type' => 'image/svg+xml',
+                'Cache-Control' => 'public, max-age=86400',
+            ]);
+        }
+
+        return abort(404);
+    }
+
+    /**
      * Search API for Camera Scanner, Barcode Gun, and Autocomplete Input
      */
     public function searchApi(Request $request)

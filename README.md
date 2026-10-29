@@ -54,7 +54,7 @@ Sistem mengadopsi 15 departemen standar pabrik yang termigrasi dari basis data a
 
 1. **Dashboard (Beranda Dinamis):** Menampilkan modul-modul kartu yang hanya diizinkan untuk peran yang sedang login.
 2. **Peta Gudang & Lokasi:** Visualisasi tata letak rak fisik (Zona A s/d F, Aisle, Rack, Bin, Level, dan kapasitas muat).
-3. **Master Data Komponen:** Database material dengan tipe spesifikasi, min/max stok, payload QR code, dan rute pengerjaan mesin (`process_route`).
+3. **Master Data Komponen:** Database material dengan tipe spesifikasi, min/max stok, payload QR code, rute pengerjaan mesin (`process_route`), dan penyimpanan foto luring (*offline on-premise* terpusat di `D:\Ali Magang\KOMPONEN` atau Network Share) dengan artisan command `php artisan components:export-to-local` serta streaming gateway HTTP terisolasi (`/components/{component}/photo-stream`).
 4. **Transaksi Komponen:** Pencatatan arus barang (*Inbound*, *Outbound*, *Transfer*, *Return*) terhubung ke nomor SPK dan saldo rak (`stock_balances`).
 5. **Work Request Inhouse (WRI):**
    - Penomoran otomatis `WRI/YYYYMMDD/...`.

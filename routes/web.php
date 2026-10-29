@@ -30,6 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // 2. Master Data Komponen
     Route::post('/api/components/quick-store', [ComponentController::class, 'quickStore'])->name('api.components.quick-store');
+    Route::get('/components/{component}/photo-stream', [ComponentController::class, 'photoStream'])->name('components.photo-stream');
 
     Route::middleware(['can:master-komponen.view'])->group(function () {
         Route::get('/components', [ComponentController::class, 'index'])->name('components.index');

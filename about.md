@@ -28,6 +28,7 @@ Users have specific roles and departmental scopes that dictate their permissions
 - Tracks specifications, Units of Measure (UOM), and minimum/maximum stock thresholds to prevent stockouts.
 - Generates and stores QR Code payloads for easy physical tracking and labeling.
 - **Unified & Streamlined Single-Row Toolbar:** Bilah pencarian, dropdown kategori, dan tombol filter yang diperkecil disejajarkan dalam satu baris terpadu bersama tombol status (*Semua Part*, *Perlu Kategori*, *Perlu Alokasi Rak*, *Stok Kritis*), mengeliminasi tombol kategori redundan (*Subframe s/d SPO*) untuk menghemat ruang vertikal dan menyajikan tampilan yang ringkas dan bersih.
+- **Penyimpanan Foto Komponen Lokal & Gateway Streaming Terpusat:** Mendukung migrasi foto dari Google Drive ke penyimpanan direktori luring (*on-premise*) seperti folder lokal/drive bersama (misal `D:\Ali Magang\KOMPONEN` atau Network Share Drive). Dilengkapi artisan command `components:export-to-local` untuk ekspor otomatis dengan penamaan standar kode part (`[part_number].jpg`) beserta arsip `foto_komponen_hpk.zip`. Controller menyediakan streaming gateway `/components/{component}/photo-stream` dengan HTTP response caching terisolasi sehingga browser klien (HP, tablet, desktop) dapat memuat foto langsung tanpa batasan sandbox browser dan tanpa ketergantungan koneksi Google Drive.
 
 ### 4. Inventory Transactions (Transaksi Komponen)
 - Handles core inventory movements: `inbound`, `outbound`, `transfer`, and `return`.

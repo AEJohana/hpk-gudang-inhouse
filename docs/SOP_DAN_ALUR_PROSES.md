@@ -57,7 +57,7 @@ flowchart TD
 
 ---
 
-## 3. Matriks Aturan Bisnis Resmi (BR-01 s/d BR-10)
+## 3. Matriks Aturan Bisnis Resmi (BR-01 s/d BR-14)
 
 Seluruh logika bisnis dari sistem lama telah diimplementasikan secara terstruktur ke dalam framework Laravel:
 
@@ -76,6 +76,7 @@ Seluruh logika bisnis dari sistem lama telah diimplementasikan secara terstruktu
 | **BR-11** | **Unified 4-Status Control Bar & Bebas Redundansi** | Mapping status di `WorkRequestController.php` & tab navigasi `index.blade.php`. | Mengeliminasi baris ganda bertumpuk dan kontrol dobel. Antrean WRI disederhanakan menjadi 4 kategori operasional fungsional (+ Semua): **Perlu Verifikasi**, **Sedang Proses**, **Siap Ambil**, dan **Selesai**, dengan 5 kartu KPI interaktif di header. |
 | **BR-12** | **Otorisasi Cetak Lembar WRI Resmi 3 Rangkap & Antrean Print** | `WorkRequest::isPrintable()`, `WorkRequestController::printSheet()`, `printQueue()`, dan `print_sheet.blade.php`. | Tiket hanya boleh dicetak jika: Approval Pengaju `Diterima`, Approval Penerima `Diterima`, dan Operator Pengerjaan telah dipilih (`assigned_operator_name`). Dicetak dalam format triplicate 3 rangkap (Pemohon, Mesin, Gudang) dalam 1 lembar HVS A4 dengan QR lokal SVG dan 4 kolom otorisasi tanda tangan resmi. Didukung fitur cetak ulang dengan log tracking dan cetak massal (*Bulk Print*). |
 | **BR-13** | **Format QR Komposit 3-in-1 (`Nama;Kode;Rak`) & Parser Multi-Token** | `Component::getQrCompositePayloadAttribute()`, `ComponentController::searchApi()`, `WorkStationSupplyController::scanLookup()`, dan view cetak label QR. | Seluruh kode QR komponen memuat format komposit `Nama Komponen ; Kode Komponen ; Kode Rak` yang dapat dibaca offline oleh kamera apapun. Parser scanner otomatis mengekstrak part number dengan delimiter titik koma (`;`) tanpa merusak barcode lama (`backward-compatible`). |
+| **BR-14** | **Penyimpanan Foto Komponen Lokal & Gateway Streaming Terpusat** | `COMPONENT_EXTERNAL_PHOTO_DIR` (.env), `Component::getLocalPhotoFilePathAttribute()`, `Component::getImageUrlAttribute()`, `ComponentController::photoStream()`, dan artisan command `components:export-to-local`. | Seluruh foto komponen dari Google Drive dapat diekspor ke folder lokal on-premise atau Network Share (`D:\Ali Magang\KOMPONEN`) berformat `[part_number].jpg` beserta arsip `foto_komponen_hpk.zip`. Sistem secara otomatis mengalihkan tautan gambar ke gateway streaming internal `/components/{id}/photo-stream` dengan HTTP response caching, sehingga browser klien (HP, tablet, desktop) dapat memuat gambar secara lokal/luring tanpa batasan sandbox browser dan tanpa ketergantungan koneksi internet Google Drive. |
 
 ---
 

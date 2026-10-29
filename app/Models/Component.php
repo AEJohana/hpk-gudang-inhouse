@@ -181,8 +181,54 @@ class Component extends Model
         return 'data:image/svg+xml;base64,' . base64_encode($svg);
     }
 
+    /**
+     * Cari path file foto lokal fisik (di D:\Ali Magang\KOMPONEN atau uploads/)
+     */
+    public function getLocalPhotoFilePathAttribute(): ?string
+    {
+        if (empty($this->part_number)) {
+            return null;
+        }
+
+        $cleanPn = preg_replace('/[^a-zA-Z0-9_-]/', '-', $this->part_number);
+
+        // 1. Cek folder eksternal (D:\Ali Magang\KOMPONEN atau setting .env)
+        $extDir = env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN');
+        if (!empty($extDir) && file_exists($extDir)) {
+            foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+                $fullPath = rtrim($extDir, '\\/') . DIRECTORY_SEPARATOR . "{$cleanPn}.{$ext}";
+                if (file_exists($fullPath) && filesize($fullPath) > 100) {
+                    return $fullPath;
+                }
+            }
+        }
+
+        // 2. Cek folder lokal public/uploads/components/
+        foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+            $localRel = "uploads/components/{$cleanPn}.{$ext}";
+            if (file_exists(public_path($localRel))) {
+                return public_path($localRel);
+            }
+        }
+
+        // 3. Cek image_path jika menunjuk file lokal
+        if ($this->image_path && !str_starts_with($this->image_path, 'http') && file_exists(public_path($this->image_path))) {
+            return public_path($this->image_path);
+        }
+
+        return null;
+    }
+
     public function getImageUrlAttribute(): string
     {
+        // 1. Prioritas Utama: Jika file foto lokal / folder D:\ tersedia
+        if ($this->local_photo_file_path) {
+            if ($this->id && \Illuminate\Support\Facades\Route::has('components.photo-stream')) {
+                return route('components.photo-stream', ['component' => $this->id]);
+            }
+        }
+
+        // 2. Fallback: Google Drive URL lama
         if ($this->image_path) {
             if (str_starts_with($this->image_path, 'http://') || str_starts_with($this->image_path, 'https://')) {
                 // If Google Drive link, convert to direct thumbnail URL
@@ -197,6 +243,7 @@ class Component extends Model
             }
         }
 
+        // 3. Default placeholder SVG
         return asset('images/placeholder_part.svg');
     }
 }

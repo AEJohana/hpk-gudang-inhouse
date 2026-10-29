@@ -125,6 +125,13 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Tampilan Stiker Thermal (70x45mm) & Lembar A4 Dipertegas:** Menyematkan `.rack-badge` berbingkai kontras tinggi untuk memperjelas posisi rak fisik bagi operator gudang.
 - **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/ComponentQrCodeTest.php` - 4 passed, 7 assertions).
 
+### M. Migrasi Foto Komponen Lokal `D:\Ali Magang\KOMPONEN` & Streaming Gateway (Baru Selesai & Teruji 100%)
+- **Migrasi 611 Foto Google Drive ke Offline On-Premise:** Artisan command `components:export-to-local --path="D:\Ali Magang\KOMPONEN"` berhasil mengunduh 611/611 foto (100% berhasil, 0 gagal) dengan penamaan file standar kode part (`[part_number].jpg`).
+- **Paket Arsip ZIP Otomatis:** Menghasilkan arsip kompresi `foto_komponen_hpk.zip` (~138 MB) di dalam direktori `D:\Ali Magang\KOMPONEN` yang siap disinkronisasikan ke Network Share Drive (misal `Y:\...` atau `Z:\01.Drawing`).
+- **Resolusi Jalur Luring & Fallback:** Model `Component` memiliki accessor `local_photo_file_path` dan pembaruan `image_url` yang dipandu oleh environment variable `COMPONENT_EXTERNAL_PHOTO_DIR`. Jika file offline ditemukan di disk lokal, tautan langsung diarahkan ke gateway streaming internal.
+- **Gateway Streaming Terpusat (`/components/{component}/photo-stream`):** `ComponentController::photoStream` melayani file gambar ke browser klien (HP, tablet, desktop) dengan HTTP cache header (`max-age=86400`), melintasi batasan sandbox browser tanpa perlu mengekspos folder fisik ke publik.
+- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/ComponentQrCodeTest.php` - 5 passed, 10 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

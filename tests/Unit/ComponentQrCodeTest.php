@@ -78,4 +78,21 @@ class ComponentQrCodeTest extends TestCase
 
         $this->assertStringStartsWith('data:image/svg+xml;base64,', $dataUri);
     }
+
+    /**
+     * Test local photo file path resolves file from D:\Ali Magang\KOMPONEN.
+     */
+    public function test_local_photo_file_path_resolves_downloaded_file(): void
+    {
+        $component = new Component([
+            'part_number' => 'ASPET1061330700',
+            'name' => 'Test Part',
+        ]);
+
+        $localPath = $component->local_photo_file_path;
+
+        $this->assertNotNull($localPath);
+        $this->assertFileExists($localPath);
+        $this->assertStringContainsString('ASPET1061330700.jpg', $localPath);
+    }
 }
