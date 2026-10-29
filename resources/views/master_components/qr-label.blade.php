@@ -83,6 +83,17 @@
             max-height: 8mm;
             overflow: hidden;
         }
+        .rack-badge {
+            font-family: 'Courier New', monospace;
+            font-size: 7pt;
+            font-weight: 900;
+            border: 1px solid #000;
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 0.3mm 1mm;
+            display: inline-block;
+            border-radius: 2px;
+        }
         .footer {
             border-top: 1px solid #000;
             padding-top: 1mm;
@@ -130,8 +141,10 @@
             <div class="info-box">
                 <div class="part-num">{{ $component->part_number }}</div>
                 <div class="part-name">{{ $component->name }}</div>
-                <div><strong>Rak:</strong> {{ $component->defaultLocation ? $component->defaultLocation->full_location_code : 'HOLDING (BELUM ADA RAK)' }}</div>
-                <div><strong>UoM:</strong> {{ $component->uom }}</div>
+                <div style="margin-top: 0.5mm;">
+                    <span class="rack-badge">RAK: {{ $component->default_full_location_code !== '-' ? $component->default_full_location_code : ($component->defaultLocation ? $component->defaultLocation->full_location_code : 'HOLDING (BELUM ADA RAK)') }}</span>
+                </div>
+                <div style="font-size: 6pt; color: #444; margin-top: 0.5mm;">Satuan: <strong>{{ $component->uom }}</strong></div>
             </div>
         </div>
 

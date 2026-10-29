@@ -69,7 +69,7 @@ Sistem mengadopsi 15 departemen standar pabrik yang termigrasi dari basis data a
 6. **Material Handling (Command Center):** 4 Tab operasional (*Tasks Pickup*, *Tasks Transit*, *Tasks Distribution*, *Tasks History*) dilengkapi pemindai kamera QR Code langsung.
 7. **Engineering Change Request (ECR):** Workflow pengajuan dan persetujuan perubahan spesifikasi komponen oleh QC dan Kepala Departemen.
 8. **Disposal & Scrap:** Pengajuan afkir material dengan pelacakan estimasi berat (kg), nilai sisa (*salvage value*), dan bukti foto.
-9. **Cetak Label QR:** Pembangkit dan pencetak label barcode/QR untuk barang, boks, maupun rak fisik (mendukung printer Thermal & Sheet).
+9. **Cetak Label QR:** Pembangkit dan pencetak label barcode/QR untuk barang, boks, maupun rak fisik (mendukung printer Thermal 70x45mm & Sheet A4). Memuat payload komposit cerdas 3-in-1 (`Nama Komponen ; Kode Komponen ; Kode Rak`) yang dapat dibaca offline oleh kamera apapun serta parser multi-token otomatis pada seluruh modul scanner.
 10. **Cycle Counting (Stok Opname):** Rekonsiliasi fisik vs sistem dengan pencatatan deviasi kuantitas dan persetujuan penyesuaian.
 11. **Manajemen Pengguna & Otoritas (RBAC):** Pengaturan akun, penetapan peran/departemen, hak akses menu granular, dan reset cache izin otomatis.
 

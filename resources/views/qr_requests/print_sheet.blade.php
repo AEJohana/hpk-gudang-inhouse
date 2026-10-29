@@ -86,6 +86,17 @@
             max-height: 7mm;
             overflow: hidden;
         }
+        .rack-badge {
+            font-family: 'Courier New', monospace;
+            font-size: 6.5pt;
+            font-weight: 900;
+            border: 1px solid #000;
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 0.2mm 0.8mm;
+            display: inline-block;
+            border-radius: 2px;
+        }
         .footer {
             border-top: 1px solid #000;
             padding-top: 0.8mm;
@@ -137,8 +148,10 @@
                     <div class="info-box">
                         <div class="part-num">{{ $qrRequest->component->part_number }}</div>
                         <div class="part-name">{{ $qrRequest->component->name }}</div>
-                        <div><strong>Rak:</strong> {{ $qrRequest->component->defaultLocation ? $qrRequest->component->defaultLocation->rack_number : 'Gudang' }}</div>
-                        <div><strong>Satuan:</strong> {{ $qrRequest->component->uom }}</div>
+                        <div style="margin-top: 0.5mm;">
+                            <span class="rack-badge">RAK: {{ $qrRequest->component->default_full_location_code !== '-' ? $qrRequest->component->default_full_location_code : ($qrRequest->component->defaultLocation ? $qrRequest->component->defaultLocation->clean_rack_code : 'Gudang') }}</span>
+                        </div>
+                        <div style="font-size: 5pt; color: #444; margin-top: 0.5mm;">Satuan: <strong>{{ $qrRequest->component->uom }}</strong></div>
                     </div>
                 </div>
 

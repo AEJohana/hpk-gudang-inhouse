@@ -272,13 +272,26 @@ class ComponentController extends Controller
     {
         $code = trim($request->get('q', ''));
         
-        // Strip common prefix if scanned as full payload
+        // Strip common prefix if scanned as legacy payload
         $cleanCode = str_replace('HPK-PART|', '', $code);
 
+        // Parse composite QR payload: "Nama Komponen ; Kode Komponen ; Kode Rak" or "Kode ; Nama ; Rak"
+        $tokens = [];
+        $searchCandidates = [$code, $cleanCode];
+        if (str_contains($cleanCode, ';')) {
+            $tokens = array_values(array_filter(array_map('trim', explode(';', $cleanCode))));
+            $searchCandidates = array_unique(array_merge($searchCandidates, $tokens));
+        }
+
         $component = Component::with(['defaultLocation', 'stockBalances.location'])
-            ->where('part_number', $cleanCode)
-            ->orWhere('part_number', $code)
-            ->orWhere('name', 'like', "%{$code}%")
+            ->whereIn('part_number', $searchCandidates)
+            ->orWhere(function ($q) use ($searchCandidates) {
+                foreach ($searchCandidates as $candidate) {
+                    if (strlen($candidate) >= 3) {
+                        $q->orWhere('name', 'like', "%{$candidate}%");
+                    }
+                }
+            })
             ->first();
 
         if ($component) {

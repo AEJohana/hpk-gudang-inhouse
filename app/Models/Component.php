@@ -109,6 +109,9 @@ class Component extends Model
 
     public function getDefaultFullLocationCodeAttribute(): string
     {
+        if (!$this->default_location_id && !$this->relationLoaded('defaultLocation')) {
+            return '-';
+        }
         $loc = $this->defaultLocation;
         if (!$loc) return '-';
         $area = $loc->zone_code ?: '1';
@@ -142,9 +145,27 @@ class Component extends Model
         };
     }
 
+    /**
+     * Payload komposit QR Code: Nama Komponen ; Kode Komponen ; Kode Rak
+     */
+    public function getQrCompositePayloadAttribute(): string
+    {
+        $rackCode = 'Gudang HPK';
+        if ($this->default_location_id || $this->relationLoaded('defaultLocation')) {
+            $locCode = $this->default_full_location_code;
+            if ($locCode !== '-') {
+                $rackCode = $locCode;
+            } elseif ($this->defaultLocation) {
+                $rackCode = $this->defaultLocation->clean_rack_code ?: 'Gudang HPK';
+            }
+        }
+
+        return "{$this->name};{$this->part_number};{$rackCode}";
+    }
+
     public function getQrCodeSvgAttribute(): string
     {
-        $payload = $this->qr_code_payload ?: $this->part_number;
+        $payload = $this->qr_composite_payload;
         $options = new QROptions([
             'outputType' => QRCode::OUTPUT_MARKUP_SVG,
             'outputBase64' => false,
@@ -152,6 +173,12 @@ class Component extends Model
             'addQuietzone' => true,
         ]);
         return (new QRCode($options))->render($payload);
+    }
+
+    public function getQrCodeDataUriAttribute(): string
+    {
+        $svg = $this->qr_code_svg;
+        return 'data:image/svg+xml;base64,' . base64_encode($svg);
     }
 
     public function getImageUrlAttribute(): string

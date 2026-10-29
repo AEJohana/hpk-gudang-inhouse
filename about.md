@@ -45,8 +45,11 @@ Users have specific roles and departmental scopes that dictate their permissions
 - Includes a multi-level approval workflow (QC, Manager) and supports attaching photo proofs of the condition.
 
 ### 7. QR Label Management (Permintaan Label QR)
-- A dedicated queue/module to request and print QR/Barcode labels.
-- Supports printing for individual items, boxes, or entire warehouse racks.
+- A dedicated queue/module to request and print QR/Barcode labels for parts, packaging boxes, and warehouse racks.
+- **Composite 3-in-1 QR Payload (`Nama Komponen ; Kode Komponen ; Kode Rak`):** Kode QR meng-encode nama part, part number, dan kode rak penyimpanan fisik secara dinamis, sehingga saat dipindai oleh pemindai/kamera apapun secara luring (*offline*), ketiga data vital langsung terbaca jelas tanpa perlu akses internet.
+- **Multi-Token Scanner Parsing:** Endpoint pencarian API (`searchApi`) dan pemindai kamera kurir logistik (`scanLookup`) otomatis memilah delimiter titik koma (`;`) untuk mengekstraksi part number secara instan, dengan dukungan penuh terhadap format lama (`HPK-PART|...`).
+- **High-Visibility Thermal & Sheet Print Layouts:** Desain cetak stiker Thermal (70mm x 45mm) dan kertas lembar A4 menyematkan kotak *RAK* berbingkai kontras tinggi (`.rack-badge`), part number monospace tebal, nama part, dan satuan (*UoM*).
+- Supports printing for individual items (`item`), boxes (`box`), or entire warehouse racks (`rack`).
 - Dedicated routes for different printer types (Thermal printers vs. standard Sheet printers).
 
 ### 8. Cycle Counting (Stok Opname)

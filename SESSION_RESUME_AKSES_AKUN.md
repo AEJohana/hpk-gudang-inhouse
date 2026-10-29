@@ -119,6 +119,12 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Otoritas Izin Spatie (`work-request.print`):** Diberikan secara bawaan kepada Staf Gudang, Admin Gudang, Supervisor, dan Operator Mesin.
 - **Pengujian Unit Otomatis:** Teruji 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestPrintValidationTest.php` - 6 passed, 21 assertions).
 
+### L. Format Label QR Komposit 3-in-1 & Scanner Multi-Token (Baru Selesai & Teruji 100%)
+- **Payload Komposit Dinamis:** Model `Component` mengimplementasikan accessor `qr_composite_payload` dengan format `Nama Komponen ; Kode Komponen ; Kode Rak` (BR-13), dievaluasi dinamis terhadap `default_full_location_code` dengan fallback aman `Gudang HPK`.
+- **Ekstraksi Cerdas pada Scanner:** `ComponentController::searchApi` dan `WorkStationSupplyController::scanLookup` mengenali delimiter titik koma (`;`), mengekstrak kandidat kode/nama secara simultan, dan tetap mendukung format lama (`HPK-PART|...` dan plain part number) secara transparan.
+- **Tampilan Stiker Thermal (70x45mm) & Lembar A4 Dipertegas:** Menyematkan `.rack-badge` berbingkai kontras tinggi untuk memperjelas posisi rak fisik bagi operator gudang.
+- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/ComponentQrCodeTest.php` - 4 passed, 7 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

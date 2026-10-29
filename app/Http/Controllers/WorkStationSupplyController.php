@@ -247,13 +247,30 @@ class WorkStationSupplyController extends Controller
             return response()->json(['success' => false, 'message' => 'Kode scan kosong.'], 400);
         }
 
-        // Cari berdasarkan wri_number persis, like wri_number, atau part_number komponen
+        // Cari berdasarkan wri_number persis, like wri_number, atau part_number komponen (termasuk format komposit QR: Nama;Kode;Rak)
+        $cleanCode = str_replace('HPK-PART|', '', $code);
+        $searchCandidates = [$code, $cleanCode];
+        if (str_contains($cleanCode, ';')) {
+            $tokens = array_values(array_filter(array_map('trim', explode(';', $cleanCode))));
+            $searchCandidates = array_unique(array_merge($searchCandidates, $tokens));
+        }
+
         $wr = WorkRequest::with(['component', 'targetLocation', 'steps.machine'])
-            ->where('wri_number', $code)
-            ->orWhere('wri_number', 'like', "%{$code}%")
-            ->orWhereHas('component', function ($q) use ($code) {
-                $q->where('part_number', $code)
-                  ->orWhere('name', 'like', "%{$code}%");
+            ->whereIn('wri_number', $searchCandidates)
+            ->orWhere(function ($q) use ($searchCandidates) {
+                foreach ($searchCandidates as $c) {
+                    $q->orWhere('wri_number', 'like', "%{$c}%");
+                }
+            })
+            ->orWhereHas('component', function ($q) use ($searchCandidates) {
+                $q->whereIn('part_number', $searchCandidates)
+                  ->orWhere(function ($sub) use ($searchCandidates) {
+                      foreach ($searchCandidates as $c) {
+                          if (strlen($c) >= 3) {
+                              $sub->orWhere('name', 'like', "%{$c}%");
+                          }
+                      }
+                  });
             })
             ->latest('id')
             ->first();
