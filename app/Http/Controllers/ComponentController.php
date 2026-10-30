@@ -91,33 +91,25 @@ class ComponentController extends Controller
             'minimum_stock' => 'nullable|integer|min:0',
             'default_location_id' => 'nullable|exists:locations,id',
             'initial_stock' => 'nullable|numeric|min:0',
-            'image' => 'nullable|image|max:5120', // max 5MB
+            'image' => 'nullable|file|mimes:jpg,jpeg,png,webp,svg,pdf|max:15360', // max 15MB gambar atau dokumen CAD PDF
             'camera_snapshot' => 'nullable|string', // base64 string from camera
         ], [
             'part_number.required' => 'Kode Komponen wajib diisi sesuai pengesahan Engineering HPK.',
             'part_number.unique' => 'Kode Komponen ini sudah terdaftar di sistem.',
             'name.required' => 'Nama lengkap komponen wajib diisi sesuai standar Engineering.',
+            'image.mimes' => 'Format file harus berupa gambar (JPG, PNG, WEBP, SVG) atau dokumen CAD (PDF).',
+            'image.max' => 'Ukuran file gambar teknik / foto maksimal 15MB.',
         ]);
 
-        // Handle image upload or camera snapshot
+        // Handle file upload or camera snapshot via unified storage service (D:\Ali Magang\KOMPONEN)
         $imagePath = null;
+        /** @var \App\Services\ComponentPhotoStorageService $storageService */
+        $storageService = app(\App\Services\ComponentPhotoStorageService::class);
+
         if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            $fileName = 'comp_' . time() . '_' . Str::slug($validated['part_number']) . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/components'), $fileName);
-            $imagePath = 'uploads/components/' . $fileName;
+            $imagePath = $storageService->storeUploadedFile($request->file('image'), $validated['part_number']);
         } elseif (!empty($request->camera_snapshot)) {
-            // Process base64 from live camera snapshot
-            $image_parts = explode(";base64,", $request->camera_snapshot);
-            if (count($image_parts) === 2) {
-                $image_base64 = base64_decode($image_parts[1]);
-                $fileName = 'comp_cam_' . time() . '_' . Str::slug($validated['part_number']) . '.jpg';
-                if (!file_exists(public_path('uploads/components'))) {
-                    mkdir(public_path('uploads/components'), 0777, true);
-                }
-                file_put_contents(public_path('uploads/components/' . $fileName), $image_base64);
-                $imagePath = 'uploads/components/' . $fileName;
-            }
+            $imagePath = $storageService->storeBase64($request->camera_snapshot, $validated['part_number']);
         }
 
         $component = Component::create([
@@ -204,29 +196,24 @@ class ComponentController extends Controller
             'specification' => 'nullable|string',
             'minimum_stock' => 'nullable|integer|min:0',
             'default_location_id' => 'nullable|exists:locations,id',
-            'image' => 'nullable|image|max:5120',
+            'image' => 'nullable|file|mimes:jpg,jpeg,png,webp,svg,pdf|max:15360',
             'camera_snapshot' => 'nullable|string',
         ], [
             'name.required' => 'Nama lengkap komponen wajib diisi sesuai standar Engineering.',
+            'image.mimes' => 'Format file harus berupa gambar (JPG, PNG, WEBP, SVG) atau dokumen CAD (PDF).',
+            'image.max' => 'Ukuran file gambar teknik / foto maksimal 15MB.',
         ]);
 
         $imagePath = $component->image_path;
+        /** @var \App\Services\ComponentPhotoStorageService $storageService */
+        $storageService = app(\App\Services\ComponentPhotoStorageService::class);
 
         if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            $fileName = 'comp_' . time() . '_' . Str::slug($component->part_number) . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/components'), $fileName);
-            $imagePath = 'uploads/components/' . $fileName;
+            $imagePath = $storageService->storeUploadedFile($request->file('image'), $component->part_number);
         } elseif (!empty($request->camera_snapshot)) {
-            $image_parts = explode(";base64,", $request->camera_snapshot);
-            if (count($image_parts) === 2) {
-                $image_base64 = base64_decode($image_parts[1]);
-                $fileName = 'comp_cam_' . time() . '_' . Str::slug($component->part_number) . '.jpg';
-                if (!file_exists(public_path('uploads/components'))) {
-                    mkdir(public_path('uploads/components'), 0777, true);
-                }
-                file_put_contents(public_path('uploads/components/' . $fileName), $image_base64);
-                $imagePath = 'uploads/components/' . $fileName;
+            $newPath = $storageService->storeBase64($request->camera_snapshot, $component->part_number);
+            if ($newPath) {
+                $imagePath = $newPath;
             }
         }
 
@@ -278,21 +265,30 @@ class ComponentController extends Controller
                 'png' => 'image/png',
                 'webp' => 'image/webp',
                 'svg' => 'image/svg+xml',
+                'pdf' => 'application/pdf',
                 default => 'image/jpeg',
             };
 
-            return response()->file($filePath, [
+            $headers = [
                 'Content-Type' => $mimeType,
                 'Cache-Control' => 'public, max-age=86400',
-            ]);
+            ];
+
+            if ($ext === 'pdf') {
+                $cleanPn = preg_replace('/[^a-zA-Z0-9_-]/', '-', $component->part_number);
+                $headers['Content-Disposition'] = 'inline; filename="drawing-' . $cleanPn . '.pdf"';
+            }
+
+            return response()->file($filePath, $headers);
         }
 
-        // Fallback: jika berupa URL eksternal (Google Drive), redirect
-        if ($component->image_path && (str_starts_with($component->image_path, 'http://') || str_starts_with($component->image_path, 'https://'))) {
+        // Fallback: jika berupa URL eksternal (Google Drive), hanya redirect jika fallback diizinkan (.env)
+        $enableGdriveFallback = config('services.components.enable_gdrive_fallback', false);
+        if ($enableGdriveFallback && $component->image_path && (str_starts_with($component->image_path, 'http://') || str_starts_with($component->image_path, 'https://'))) {
             return redirect()->away($component->image_url);
         }
 
-        // Default placeholder
+        // Default placeholder jika file tidak ditemukan fisik (Pure Local Mode)
         $placeholder = public_path('images/placeholder_part.svg');
         if (file_exists($placeholder)) {
             return response()->file($placeholder, [
@@ -349,6 +345,7 @@ class ComponentController extends Controller
                     'default_location_id' => $component->default_location_id,
                     'dimension_formatted' => $component->dimension_formatted,
                     'image_url' => $component->image_url,
+                    'is_pdf_drawing' => $component->is_pdf_drawing,
                     'is_low_stock' => $component->is_low_stock,
                 ]
             ]);
@@ -368,6 +365,7 @@ class ComponentController extends Controller
                     'uom' => $c->uom,
                     'total_stock' => $c->total_stock,
                     'image_url' => $c->image_url,
+                    'is_pdf_drawing' => $c->is_pdf_drawing,
                 ];
             });
 
@@ -399,7 +397,7 @@ class ComponentController extends Controller
             'width_or_diameter_mm' => 'nullable|string|max:100',
             'thickness_or_height_mm' => 'nullable|string|max:100',
             'specification' => 'nullable|string',
-            'image' => 'nullable|image|max:5120',
+            'image' => 'nullable|file|mimes:jpg,jpeg,png,webp,svg,pdf|max:15360',
             'camera_snapshot' => 'nullable|string',
         ]);
 
@@ -415,25 +413,13 @@ class ComponentController extends Controller
         $categoryId = $categoryModel?->id;
 
         $imagePath = null;
+        /** @var \App\Services\ComponentPhotoStorageService $storageService */
+        $storageService = app(\App\Services\ComponentPhotoStorageService::class);
+
         if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            $fileName = 'comp_' . time() . '_' . Str::slug($partNumber) . '.' . $file->getClientOriginalExtension();
-            if (!file_exists(public_path('uploads/components'))) {
-                mkdir(public_path('uploads/components'), 0777, true);
-            }
-            $file->move(public_path('uploads/components'), $fileName);
-            $imagePath = 'uploads/components/' . $fileName;
+            $imagePath = $storageService->storeUploadedFile($request->file('image'), $partNumber);
         } elseif (!empty($request->camera_snapshot)) {
-            $image_parts = explode(";base64,", $request->camera_snapshot);
-            if (count($image_parts) === 2) {
-                $image_base64 = base64_decode($image_parts[1]);
-                $fileName = 'comp_cam_' . time() . '_' . Str::slug($partNumber) . '.jpg';
-                if (!file_exists(public_path('uploads/components'))) {
-                    mkdir(public_path('uploads/components'), 0777, true);
-                }
-                file_put_contents(public_path('uploads/components/' . $fileName), $image_base64);
-                $imagePath = 'uploads/components/' . $fileName;
-            }
+            $imagePath = $storageService->storeBase64($request->camera_snapshot, $partNumber);
         }
 
         $component = Component::create([
@@ -465,6 +451,7 @@ class ComponentController extends Controller
                 'uom' => $component->uom,
                 'specification' => $component->specification,
                 'image_url' => $component->image_url,
+                'is_pdf_drawing' => $component->is_pdf_drawing,
                 'length_mm' => $component->length_mm,
                 'width_or_diameter_mm' => $component->width_or_diameter_mm,
                 'thickness_or_height_mm' => $component->thickness_or_height_mm,

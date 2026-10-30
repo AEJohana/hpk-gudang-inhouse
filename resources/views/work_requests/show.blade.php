@@ -885,14 +885,153 @@
             <!-- COL 3: COMPONENT INFO & ORDER DETAILS CARD -->
             <div class="space-y-6">
 
-                <!-- Component Card -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">
-                        Rincian Komponen
-                    </h3>
+                <!-- Component Card with Interactive Drawing & PDF Modal -->
+                <div x-data="{ zoomModalOpen: false, zoomLevel: 1.0 }" class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                            Rincian Komponen
+                        </h3>
+                        @if($workRequest->component->is_pdf_drawing)
+                            <span class="px-2 py-0.5 bg-rose-100 text-rose-700 text-[10px] font-bold rounded-md flex items-center">
+                                <i class="fa-solid fa-file-pdf me-1"></i> CAD PDF
+                            </span>
+                        @else
+                            <span class="text-[10px] text-slate-400 flex items-center">
+                                <i class="fa-solid fa-magnifying-glass me-1"></i> Klik untuk zoom
+                            </span>
+                        @endif
+                    </div>
 
-                    <div class="w-full aspect-video rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
-                        <img src="{{ $workRequest->component->image_url }}" alt="{{ $workRequest->component->name }}" class="w-full h-full object-cover">
+                    @if($workRequest->component->is_pdf_drawing)
+                        <!-- PDF Drawing Trigger Card -->
+                        <div class="w-full p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-center space-y-2 cursor-pointer hover:bg-slate-850 transition group"
+                             @click="zoomModalOpen = true">
+                            <div class="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 text-2xl group-hover:scale-110 transition">
+                                <i class="fa-solid fa-file-pdf"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-white block">Gambar Teknik CAD (PDF)</span>
+                                <span class="text-[10px] text-slate-400">Klik untuk membuka lembar kerja CAD interaktif</span>
+                            </div>
+                            <button type="button" class="mt-1 px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] rounded-lg shadow transition flex items-center space-x-1 cursor-pointer">
+                                <i class="fa-solid fa-expand text-[10px]"></i>
+                                <span>Buka Drawing PDF</span>
+                            </button>
+                        </div>
+                    @else
+                        <!-- Image Drawing Trigger Container (Object Contain) -->
+                        <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center group cursor-pointer"
+                             @click="zoomModalOpen = true"
+                             title="Klik untuk memperbesar gambar teknik">
+                            <img src="{{ $workRequest->component->image_url }}" alt="{{ $workRequest->component->name }}" class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-200">
+                            <div class="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                <span class="px-3 py-1.5 bg-slate-900/80 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 backdrop-blur-xs">
+                                    <i class="fa-solid fa-magnifying-glass-plus text-xs"></i>
+                                    <span>Perbesar Dimensi</span>
+                                </span>
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Modal Lightbox / PDF Viewer -->
+                    <div x-show="zoomModalOpen" 
+                         x-cloak
+                         style="display: none;"
+                         class="fixed inset-0 z-50 overflow-y-auto"
+                         role="dialog" aria-modal="true">
+                        <div class="flex items-center justify-center min-h-screen px-4 text-center sm:block sm:p-0">
+                            <div class="fixed inset-0 bg-slate-900/70 backdrop-blur-xs transition-opacity" 
+                                 @click="zoomModalOpen = false; zoomLevel = 1.0"></div>
+
+                            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+                            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:w-full border border-slate-200 @if($workRequest->component->is_pdf_drawing) sm:max-w-4xl @else sm:max-w-2xl @endif">
+                                <!-- Modal Header -->
+                                <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        @if($workRequest->component->is_pdf_drawing)
+                                            <span class="px-2 py-0.5 bg-rose-100 text-rose-700 text-[10px] font-bold rounded-md uppercase">
+                                                <i class="fa-solid fa-file-pdf me-1"></i> CAD PDF
+                                            </span>
+                                        @else
+                                            <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-md uppercase">
+                                                <i class="fa-solid fa-image me-1"></i> Gambar Teknik
+                                            </span>
+                                        @endif
+                                        <div>
+                                            <h3 class="text-sm font-bold text-slate-900">{{ $workRequest->component->name }}</h3>
+                                            <p class="font-mono text-xs text-slate-500 font-semibold">{{ $workRequest->component->part_number }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-1.5">
+                                        <a href="{{ $workRequest->component->image_url }}" target="_blank" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-lg text-xs font-semibold transition flex items-center space-x-1 shadow-2xs" title="Buka di Tab Baru">
+                                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                            <span class="hidden sm:inline">Tab Baru</span>
+                                        </a>
+                                        <button type="button" @click="zoomModalOpen = false; zoomLevel = 1.0" class="text-slate-400 hover:text-slate-600 rounded-lg p-1.5 transition cursor-pointer">
+                                            <i class="fa-solid fa-xmark text-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Modal Content -->
+                                <div class="p-4 sm:p-6 text-center bg-slate-50/50">
+                                    @if($workRequest->component->is_pdf_drawing)
+                                        <div class="w-full h-[65vh] rounded-xl border border-slate-300 bg-white shadow-inner overflow-hidden">
+                                            <iframe src="{{ $workRequest->component->image_url }}" class="w-full h-full border-0 rounded-xl" title="Drawing PDF Viewer"></iframe>
+                                        </div>
+                                    @else
+                                        <div class="flex items-center justify-between mb-3 px-1">
+                                            <span class="text-[11px] font-medium text-slate-500">
+                                                Kontrol pembesaran gambar teknik:
+                                            </span>
+                                            <div class="inline-flex items-center bg-white border border-slate-200 rounded-xl p-1 shadow-2xs space-x-1">
+                                                <button type="button" 
+                                                        @click="if(zoomLevel > 0.6) zoomLevel -= 0.2"
+                                                        class="px-2.5 py-1 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-bold transition cursor-pointer"
+                                                        title="Perkecil (-)">
+                                                    <i class="fa-solid fa-magnifying-glass-minus"></i>
+                                                </button>
+                                                <span class="px-2 text-xs font-mono font-bold text-slate-600" x-text="Math.round(zoomLevel * 100) + '%'"></span>
+                                                <button type="button" 
+                                                        @click="if(zoomLevel < 3.0) zoomLevel += 0.2"
+                                                        class="px-2.5 py-1 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-bold transition cursor-pointer"
+                                                        title="Perbesar (+)">
+                                                    <i class="fa-solid fa-magnifying-glass-plus"></i>
+                                                </button>
+                                                <button type="button" 
+                                                        @click="zoomLevel = 1.0"
+                                                        class="px-2 py-1 text-[11px] text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg font-semibold transition cursor-pointer"
+                                                        title="Reset Ukuran">
+                                                    Reset
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="max-h-[60vh] overflow-auto rounded-xl border border-slate-200 bg-white flex items-center justify-center p-3 shadow-inner">
+                                            <img src="{{ $workRequest->component->image_url }}" 
+                                                 alt="{{ $workRequest->component->name }}" 
+                                                 :style="'transform: scale(' + zoomLevel + '); transform-origin: center center; transition: transform 0.15s ease-out;'"
+                                                 class="max-h-[55vh] max-w-full object-contain mx-auto rounded-lg select-none">
+                                        </div>
+                                    @endif
+
+                                    <div class="mt-3.5 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-600">
+                                        <span class="px-3 py-1 bg-white border border-slate-200 rounded-lg font-mono font-medium shadow-2xs">
+                                            Dimensi: {{ $workRequest->component->dimension_formatted ?: '-' }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Modal Footer -->
+                                <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex items-center justify-between">
+                                    <span class="text-[11px] text-slate-400 italic">Pratinjau gambar teknik luring (D:\Ali Magang\KOMPONEN)</span>
+                                    <button type="button" @click="zoomModalOpen = false; zoomLevel = 1.0" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer">
+                                        Tutup
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div>

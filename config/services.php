@@ -31,4 +31,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'components' => [
+        'photo_dir' => env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN'),
+        'enable_gdrive_fallback' => filter_var(env('COMPONENT_ENABLE_GDRIVE_FALLBACK', false), FILTER_VALIDATE_BOOLEAN),
+    ],
+
 ];

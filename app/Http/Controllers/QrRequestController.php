@@ -10,15 +10,35 @@ class QrRequestController extends Controller
 {
     public function index(Request $request)
     {
+        $status = $request->get('status');
+        $currentStatus = in_array($status, ['pending', 'printed', 'all'], true) ? $status : 'pending';
+
+        $counts = QrRequest::selectRaw("
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+            COUNT(CASE WHEN status = 'printed' THEN 1 END) as printed
+        ")->first() ?? (object) ['total' => 0, 'pending' => 0, 'printed' => 0];
+
         $query = QrRequest::with(['component.defaultLocation', 'requestedBy']);
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        if ($currentStatus !== 'all') {
+            $query->where('status', $currentStatus);
+        }
+
+        if ($request->filled('q')) {
+            $searchTerm = '%' . trim($request->q) . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('request_number', 'like', $searchTerm)
+                    ->orWhereHas('component', function ($cq) use ($searchTerm) {
+                        $cq->where('part_number', 'like', $searchTerm)
+                            ->orWhere('name', 'like', $searchTerm);
+                    });
+            });
         }
 
         $qrRequests = $query->latest()->paginate(15)->withQueryString();
 
-        return view('qr_requests.index', compact('qrRequests'));
+        return view('qr_requests.index', compact('qrRequests', 'currentStatus', 'counts'));
     }
 
     public function create(Request $request)

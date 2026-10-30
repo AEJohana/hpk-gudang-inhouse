@@ -54,7 +54,7 @@ Sistem mengadopsi 15 departemen standar pabrik yang termigrasi dari basis data a
 
 1. **Dashboard (Beranda Dinamis):** Menampilkan modul-modul kartu yang hanya diizinkan untuk peran yang sedang login.
 2. **Peta Gudang & Lokasi:** Visualisasi tata letak rak fisik (Zona A s/d F, Aisle, Rack, Bin, Level, dan kapasitas muat).
-3. **Master Data Komponen:** Database material dengan tipe spesifikasi, min/max stok, payload QR code, rute pengerjaan mesin (`process_route`), dan penyimpanan foto luring (*offline on-premise* terpusat di `D:\Ali Magang\KOMPONEN` atau Network Share) dengan artisan command `php artisan components:export-to-local` serta streaming gateway HTTP terisolasi (`/components/{component}/photo-stream`).
+3. **Master Data Komponen:** Database material dengan tipe spesifikasi, min/max stok, payload QR code, rute pengerjaan mesin (`process_route`), dan penyimpanan foto/gambar teknik luring (*pure local offline on-premise* terpusat di `D:\Ali Magang\KOMPONEN` via `ComponentPhotoStorageService`) dengan toggle lingkungan `COMPONENT_ENABLE_GDRIVE_FALLBACK=false`, dukungan dokumen cetak biru CAD (`.pdf`) hingga 15MB, interactive zoom lightbox & PDF modal viewer di stasiun kerja (*work center*), artisan command `components:export-to-local`, perintah pembersihan dummy aman `components:clean-dummies`, serta streaming gateway HTTP terisolasi (`/components/{component}/photo-stream`).
 4. **Transaksi Komponen:** Pencatatan arus barang (*Inbound*, *Outbound*, *Transfer*, *Return*) terhubung ke nomor SPK dan saldo rak (`stock_balances`).
 5. **Work Request Inhouse (WRI):**
    - Penomoran otomatis `WRI/YYYYMMDD/...`.
@@ -69,7 +69,7 @@ Sistem mengadopsi 15 departemen standar pabrik yang termigrasi dari basis data a
 6. **Material Handling (Command Center):** 4 Tab operasional (*Tasks Pickup*, *Tasks Transit*, *Tasks Distribution*, *Tasks History*) dilengkapi pemindai kamera QR Code langsung.
 7. **Engineering Change Request (ECR):** Workflow pengajuan dan persetujuan perubahan spesifikasi komponen oleh QC dan Kepala Departemen.
 8. **Disposal & Scrap:** Pengajuan afkir material dengan pelacakan estimasi berat (kg), nilai sisa (*salvage value*), dan bukti foto.
-9. **Cetak Label QR:** Pembangkit dan pencetak label barcode/QR untuk barang, boks, maupun rak fisik (mendukung printer Thermal 70x45mm & Sheet A4). Memuat payload komposit cerdas 3-in-1 (`Nama Komponen ; Kode Komponen ; Kode Rak`) yang dapat dibaca offline oleh kamera apapun serta parser multi-token otomatis pada seluruh modul scanner.
+9. **Cetak Label QR:** Pembangkit dan pencetak label barcode/QR untuk barang, boks, maupun rak fisik (mendukung printer Thermal 70x45mm & Sheet A4). Memuat payload komposit cerdas 3-in-1 (`Nama Komponen ; Kode Komponen ; Kode Rak`) yang dapat dibaca offline oleh kamera apapun, antrean kerja otomatis fokus ke tab **Menunggu Dicetak** (*default* `status=pending`), 3 kartu indikator KPI interaktif (*Menunggu Dicetak*, *Selesai Dicetak*, *Total Permintaan*), lencana kuantitas riil (*count badges*), serta pencarian cepat terpadu.
 10. **Cycle Counting (Stok Opname):** Rekonsiliasi fisik vs sistem dengan pencatatan deviasi kuantitas dan persetujuan penyesuaian.
 11. **Manajemen Pengguna & Otoritas (RBAC):** Pengaturan akun, penetapan peran/departemen, hak akses menu granular, dan reset cache izin otomatis.
 

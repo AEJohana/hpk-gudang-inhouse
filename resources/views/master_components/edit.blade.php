@@ -52,16 +52,34 @@
 
                 <!-- Mode 1: Upload -->
                 <div x-show="mode === 'upload'" class="flex items-center space-x-4">
-                    <div class="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
-                        <img :src="imagePreview || '{{ $componentItem->image_url }}'" class="w-full h-full object-cover">
+                    <div class="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
+                        <template x-if="isPdf">
+                            <div class="text-center">
+                                <i class="fa-solid fa-file-pdf text-rose-500 text-2xl"></i>
+                                <span class="text-[9px] font-bold text-slate-600 block truncate max-w-[80px]" x-text="pdfFileName"></span>
+                            </div>
+                        </template>
+                        <template x-if="!isPdf && imagePreview">
+                            <img :src="imagePreview" class="w-full h-full object-contain">
+                        </template>
+                        <template x-if="!isPdf && !imagePreview">
+                            @if($componentItem->is_pdf_drawing)
+                                <div class="text-center">
+                                    <i class="fa-solid fa-file-pdf text-rose-500 text-2xl"></i>
+                                    <span class="text-[9px] font-bold text-slate-600 block">CAD PDF Aktif</span>
+                                </div>
+                            @else
+                                <img src="{{ $componentItem->image_url }}" class="w-full h-full object-contain">
+                            @endif
+                        </template>
                     </div>
                     <div class="flex-1">
                         <input type="file" 
                                name="image" 
-                               accept="image/*" 
+                               accept="image/*,application/pdf" 
                                @change="previewFile($event)"
                                class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer">
-                        <p class="text-[11px] text-slate-400 mt-1">Biarkan kosong jika tidak ingin mengubah foto yang ada saat ini</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Mendukung format gambar (JPEG, PNG, WEBP, SVG) atau Dokumen CAD (PDF) hingga 15MB. Biarkan kosong jika tidak ingin mengubah.</p>
                     </div>
                 </div>
 
@@ -272,13 +290,17 @@
             return {
                 mode: 'upload',
                 imagePreview: null,
+                isPdf: false,
+                pdfFileName: '',
                 cameraSnapshot: '',
                 mediaStream: null,
 
                 previewFile(e) {
                     const file = e.target.files[0];
                     if (file) {
-                        this.imagePreview = URL.createObjectURL(file);
+                        this.isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+                        this.pdfFileName = this.isPdf ? file.name : '';
+                        this.imagePreview = this.isPdf ? null : URL.createObjectURL(file);
                         this.cameraSnapshot = '';
                     }
                 },

@@ -24,17 +24,116 @@
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-        <!-- Status Filter Pills (Super Nav Pills) -->
-        <div class="super-nav-pills flex-nowrap overflow-x-auto no-scrollbar sm:flex-wrap pb-1">
-            <a href="{{ route('qr-requests.index') }}" class="super-nav-pill {{ !request('status') ? 'active' : '' }} whitespace-nowrap flex-shrink-0">
-                Semua Antrian
+        <!-- 3 Kartu Indikator KPI Interaktif -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- Kartu 1: Menunggu Dicetak -->
+            <a href="{{ route('qr-requests.index', ['status' => 'pending'] + (request('q') ? ['q' => request('q')] : [])) }}"
+               class="group relative overflow-hidden rounded-2xl p-5 bg-white border transition-all duration-200 shadow-xs hover:shadow-md {{ $currentStatus === 'pending' ? 'border-amber-400 ring-2 ring-amber-400/30 bg-amber-50/20' : 'border-slate-200 hover:border-amber-300' }}">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wider text-amber-700">Menunggu Dicetak</p>
+                        <h3 class="text-3xl font-extrabold text-slate-900 mt-1">{{ number_format($counts->pending ?? 0) }}</h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Antrean stiker yang perlu segera dicetak</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 {{ $currentStatus === 'pending' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'bg-amber-100 text-amber-700' }}">
+                        <i class="fa-solid fa-clock text-xl"></i>
+                    </div>
+                </div>
+                @if ($currentStatus === 'pending')
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-amber-500"></div>
+                @endif
             </a>
-            <a href="{{ route('qr-requests.index', ['status' => 'pending']) }}" class="super-nav-pill {{ request('status') == 'pending' ? 'active bg-amber-500 text-slate-950 font-bold' : '' }} whitespace-nowrap flex-shrink-0">
-                <i class="fa-solid fa-clock me-1 text-amber-500"></i> Menunggu Dicetak
+
+            <!-- Kartu 2: Selesai Dicetak -->
+            <a href="{{ route('qr-requests.index', ['status' => 'printed'] + (request('q') ? ['q' => request('q')] : [])) }}"
+               class="group relative overflow-hidden rounded-2xl p-5 bg-white border transition-all duration-200 shadow-xs hover:shadow-md {{ $currentStatus === 'printed' ? 'border-emerald-400 ring-2 ring-emerald-400/30 bg-emerald-50/20' : 'border-slate-200 hover:border-emerald-300' }}">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wider text-emerald-700">Selesai Dicetak</p>
+                        <h3 class="text-3xl font-extrabold text-slate-900 mt-1">{{ number_format($counts->printed ?? 0) }}</h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Label yang sudah dicetak thermal / A4</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 {{ $currentStatus === 'printed' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-emerald-100 text-emerald-700' }}">
+                        <i class="fa-solid fa-circle-check text-xl"></i>
+                    </div>
+                </div>
+                @if ($currentStatus === 'printed')
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
+                @endif
             </a>
-            <a href="{{ route('qr-requests.index', ['status' => 'printed']) }}" class="super-nav-pill {{ request('status') == 'printed' ? 'active bg-emerald-600 text-white' : '' }} whitespace-nowrap flex-shrink-0">
-                <i class="fa-solid fa-check-circle me-1 text-emerald-500"></i> Selesai Dicetak
+
+            <!-- Kartu 3: Total Permintaan -->
+            <a href="{{ route('qr-requests.index', ['status' => 'all'] + (request('q') ? ['q' => request('q')] : [])) }}"
+               class="group relative overflow-hidden rounded-2xl p-5 bg-white border transition-all duration-200 shadow-xs hover:shadow-md {{ $currentStatus === 'all' ? 'border-cyan-500 ring-2 ring-cyan-500/30 bg-cyan-50/20' : 'border-slate-200 hover:border-cyan-300' }}">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wider text-cyan-800">Total Permintaan</p>
+                        <h3 class="text-3xl font-extrabold text-slate-900 mt-1">{{ number_format($counts->total ?? 0) }}</h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Semua riwayat pengajuan label QR</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 {{ $currentStatus === 'all' ? 'bg-cyan-700 text-white shadow-sm' : 'bg-cyan-100 text-cyan-800' }}">
+                        <i class="fa-solid fa-tags text-xl"></i>
+                    </div>
+                </div>
+                @if ($currentStatus === 'all')
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-cyan-600"></div>
+                @endif
             </a>
+        </div>
+
+        <!-- Status Filter Pills & Quick Search -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div class="super-nav-pills flex-nowrap overflow-x-auto no-scrollbar sm:flex-wrap pb-1">
+                <a href="{{ route('qr-requests.index', ['status' => 'pending'] + (request('q') ? ['q' => request('q')] : [])) }}" 
+                   class="super-nav-pill {{ $currentStatus === 'pending' ? 'active bg-amber-500 text-slate-950 font-bold' : '' }} whitespace-nowrap flex-shrink-0 inline-flex items-center gap-1.5">
+                    <i class="fa-solid fa-clock {{ $currentStatus === 'pending' ? 'text-slate-950' : 'text-amber-500' }}"></i>
+                    <span>Menunggu Dicetak</span>
+                    <span class="ms-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold {{ $currentStatus === 'pending' ? 'bg-slate-950 text-white' : 'bg-amber-100 text-amber-800' }}">
+                        {{ $counts->pending ?? 0 }}
+                    </span>
+                </a>
+                <a href="{{ route('qr-requests.index', ['status' => 'printed'] + (request('q') ? ['q' => request('q')] : [])) }}" 
+                   class="super-nav-pill {{ $currentStatus === 'printed' ? 'active bg-emerald-600 text-white font-bold' : '' }} whitespace-nowrap flex-shrink-0 inline-flex items-center gap-1.5">
+                    <i class="fa-solid fa-check-circle {{ $currentStatus === 'printed' ? 'text-white' : 'text-emerald-500' }}"></i>
+                    <span>Selesai Dicetak</span>
+                    <span class="ms-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold {{ $currentStatus === 'printed' ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-800' }}">
+                        {{ $counts->printed ?? 0 }}
+                    </span>
+                </a>
+                <a href="{{ route('qr-requests.index', ['status' => 'all'] + (request('q') ? ['q' => request('q')] : [])) }}" 
+                   class="super-nav-pill {{ $currentStatus === 'all' ? 'active bg-cyan-700 text-white font-bold' : '' }} whitespace-nowrap flex-shrink-0 inline-flex items-center gap-1.5">
+                    <i class="fa-solid fa-layer-group {{ $currentStatus === 'all' ? 'text-white' : 'text-slate-500' }}"></i>
+                    <span>Semua Antrian</span>
+                    <span class="ms-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold {{ $currentStatus === 'all' ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-700' }}">
+                        {{ $counts->total ?? 0 }}
+                    </span>
+                </a>
+            </div>
+
+            <!-- Quick Search Form -->
+            <form method="GET" action="{{ route('qr-requests.index') }}" class="w-full md:w-80 flex items-center gap-1.5">
+                <input type="hidden" name="status" value="{{ $currentStatus }}">
+                <div class="relative w-full">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </div>
+                    <input type="text" 
+                           name="q" 
+                           value="{{ request('q') }}" 
+                           placeholder="Cari no. request, part, atau nama..." 
+                           class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 bg-white">
+                    @if (request('q'))
+                        <a href="{{ route('qr-requests.index', ['status' => $currentStatus]) }}" 
+                           class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-rose-600"
+                           title="Hapus Pencarian">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </a>
+                    @endif
+                </div>
+                <button type="submit" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-xs transition">
+                    Cari
+                </button>
+            </form>
         </div>
 
         <!-- Mobile Card View (< md) -->
@@ -85,7 +184,15 @@
             @empty
                 <div class="py-10 text-center text-slate-400 bg-white rounded-2xl border border-slate-200 p-6">
                     <i class="fa-solid fa-qrcode text-3xl mb-2 text-slate-300 block"></i>
-                    Belum ada permintaan pencetakan label QR.
+                    @if (request('q'))
+                        Tidak ada permintaan label yang sesuai dengan pencarian "<span class="font-semibold text-slate-600">{{ request('q') }}</span>".
+                    @elseif ($currentStatus === 'pending')
+                        Tidak ada antrean label yang menunggu dicetak saat ini.
+                    @elseif ($currentStatus === 'printed')
+                        Belum ada riwayat label yang sudah dicetak.
+                    @else
+                        Belum ada permintaan pencetakan label QR.
+                    @endif
                 </div>
             @endforelse
         </div>
@@ -156,7 +263,15 @@
                         <tr>
                             <td colspan="6" class="py-12 text-center text-slate-400 bg-white rounded-2xl shadow-sm">
                                 <i class="fa-solid fa-qrcode text-3xl mb-2 text-slate-300 block"></i>
-                                Belum ada permintaan pencetakan label QR.
+                                @if (request('q'))
+                                    Tidak ada permintaan label yang sesuai dengan pencarian "<span class="font-semibold text-slate-600">{{ request('q') }}</span>".
+                                @elseif ($currentStatus === 'pending')
+                                    Tidak ada antrean label yang menunggu dicetak saat ini.
+                                @elseif ($currentStatus === 'printed')
+                                    Belum ada riwayat label yang sudah dicetak.
+                                @else
+                                    Belum ada permintaan pencetakan label QR.
+                                @endif
                             </td>
                         </tr>
                     @endforelse

@@ -678,6 +678,7 @@
                                 'componentName' => $wri->component?->name ?? 'Komponen',
                                 'partNumber' => $wri->component?->part_number ?? '-',
                                 'dimension' => $wri->component?->dimension_formatted ?? ($wri->component?->specification ?? '-'),
+                                'isPdf' => (bool) ($wri->component?->is_pdf_drawing ?? false),
                             ];
 
                             $detailPayload = [
@@ -1029,6 +1030,8 @@
                     componentName: '',
                     partNumber: '',
                     dimension: '',
+                    isPdf: false,
+                    zoomLevel: 1.0,
                 },
                 assignData: {
                     id: null,
@@ -1175,7 +1178,11 @@
                     this.detailModalOpen = false;
                 },
                 openImageModal(data) {
-                    this.imageData = { ...data };
+                    this.imageData = { 
+                        ...data, 
+                        isPdf: Boolean(data.isPdf || (data.imageUrl && data.imageUrl.includes('.pdf'))),
+                        zoomLevel: 1.0 
+                    };
                     this.imageModalOpen = true;
                 },
                 closeImageModal() {

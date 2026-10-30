@@ -132,6 +132,24 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Gateway Streaming Terpusat (`/components/{component}/photo-stream`):** `ComponentController::photoStream` melayani file gambar ke browser klien (HP, tablet, desktop) dengan HTTP cache header (`max-age=86400`), melintasi batasan sandbox browser tanpa perlu mengekspos folder fisik ke publik.
 - **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/ComponentQrCodeTest.php` - 5 passed, 10 assertions).
 
+### N. Penyatuan Storage Gambar Teknik CAD PDF, Pure Local Mode & Pembersihan Dummy (Baru Selesai & Teruji 100%)
+- **Pure Local Mode (Tutup Fallback Google Drive):** Menambahkan `COMPONENT_ENABLE_GDRIVE_FALLBACK=false` di `.env`. Sistem 100% luring membaca folder master `D:\Ali Magang\KOMPONEN`. Jika file belum ada di disk lokal, sistem langsung menyajikan placeholder SVG resmi karoseri tanpa pernah menghubungi Google Drive (kolom database `image_path` tetap aman).
+- **Layanan Penyimpanan Terpadu (`ComponentPhotoStorageService`):** Seluruh aksi tambah baru/edit via Form Input, Edit, Quick Store Work Request, dan Impor Excel massal langsung disimpan ke `D:\Ali Magang\KOMPONEN\[part_number].[ext]` dengan cermin ke `public/uploads/components/`. Nama file distandarisasi bersih dan menimpa revisi lama secara bersih (*clean overwrite*).
+- **Dukungan Dokumen Gambar Teknik CAD Format `.PDF` hingga 15MB:** Memperluas validasi controller untuk menerima `.pdf` dan format gambar (`.jpg, .png, .webp, .svg`) hingga 15MB. Gateway streaming menyajikan file PDF secara inline (`Content-Type: application/pdf`).
+- **Interactive Zoom Lightbox & Native PDF Modal Viewer di Work Center:** Pada `image_preview_modal.blade.php`, detail WRI (`work_requests/show.blade.php`), dan Master Komponen (`master_components/show.blade.php`), gambar ditampilkan `object-contain` dan dilengkapi kontrol zoom in/out/reset untuk gambar teknik serta penampil PDF layar penuh (*fullscreen iframe*) dengan fitur zoom 500%, navigasi lembar CAD, rotasi, dan cetak langsung.
+- **Pembersihan Aman 15 Part Dummy Seeder (`components:clean-dummies`):** Berhasil menghapus 15 part dummy seeder (`HYD-...`, `RAW-...`, `ACC-...`, `CSFP10300250082`) dan 1 part tes manual `NEW-20261026-LAGL` ("cek cek") dalam transaksi database. Seluruh komponen asli karoseri HPK (termasuk part tanpa foto seperti `CSBA10320130000` dan `CRDA10200390000L`) 100% aman tersimpan.
+- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/ComponentPhotoStorageTest.php` dan `tests/Unit/ComponentQrCodeTest.php` - 39 passed, 159 assertions).
+
+### O. Pembaruan Menu Permintaan Label QR (Default Menunggu Dicetak & Indikator KPI) (Baru Selesai & Teruji 100%)
+- **Default Antrean Otomatis ke "Menunggu Dicetak":** Saat pengguna membuka URL `/qr-requests` tanpa parameter status, sistem otomatis memfilter data dengan status `pending` (`Menunggu Dicetak`). Operator dan tim gudang langsung dihadapkan pada tiket label yang perlu dicetak tanpa perlu memilah manual dari riwayat masa lalu. Seluruh antrean riwayat tetap dapat diakses via opsi `?status=all` (*Semua Antrian*).
+- **3 Kartu Indikator KPI Interaktif:** Bagian atas antrean dilengkapi 3 panel statistik dinamis:
+  - ⏳ **Menunggu Dicetak (`pending`):** Total tiket label yang belum dicetak (aksen Amber).
+  - ✅ **Selesai Dicetak (`printed`):** Akumulasi label yang telah selesai dicetak (aksen Emerald).
+  - 🏷️ **Total Permintaan (`all`):** Seluruh riwayat pengajuan label QR (aksen Cyan).
+  - Masing-masing kartu KPI interaktif (dapat diklik langsung untuk filter antrean) dan memiliki indikator cincin fokus (*ring active*) saat dipilih.
+- **Lencana Kuantitas (Count Badges) & Pencarian Cepat Multi-Kriteria:** Tab navigasi status menyematkan badge angka riil (`counts->pending`, dll.) serta form pencarian instan berdasarkan nomor tiket request (`request_number`), kode part (`part_number`), atau nama komponen dengan pelestarian status aktif.
+- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/QrRequestQueueTest.php` - 4 passed, 17 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

@@ -190,33 +190,21 @@ class Component extends Model
             return null;
         }
 
-        $cleanPn = preg_replace('/[^a-zA-Z0-9_-]/', '-', $this->part_number);
+        $storageService = new \App\Services\ComponentPhotoStorageService();
+        return $storageService->findLocalPhoto($this->part_number, $this->image_path);
+    }
 
-        // 1. Cek folder eksternal (D:\Ali Magang\KOMPONEN atau setting .env)
-        $extDir = env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN');
-        if (!empty($extDir) && file_exists($extDir)) {
-            foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
-                $fullPath = rtrim($extDir, '\\/') . DIRECTORY_SEPARATOR . "{$cleanPn}.{$ext}";
-                if (file_exists($fullPath) && filesize($fullPath) > 100) {
-                    return $fullPath;
-                }
-            }
+    /**
+     * Cek apakah gambar teknik berupa dokumen CAD PDF
+     */
+    public function getIsPdfDrawingAttribute(): bool
+    {
+        $path = $this->local_photo_file_path ?: $this->image_path;
+        if (!$path) {
+            return false;
         }
-
-        // 2. Cek folder lokal public/uploads/components/
-        foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
-            $localRel = "uploads/components/{$cleanPn}.{$ext}";
-            if (file_exists(public_path($localRel))) {
-                return public_path($localRel);
-            }
-        }
-
-        // 3. Cek image_path jika menunjuk file lokal
-        if ($this->image_path && !str_starts_with($this->image_path, 'http') && file_exists(public_path($this->image_path))) {
-            return public_path($this->image_path);
-        }
-
-        return null;
+        $ext = strtolower(pathinfo(parse_url($path, PHP_URL_PATH), PATHINFO_EXTENSION));
+        return $ext === 'pdf';
     }
 
     public function getImageUrlAttribute(): string
@@ -228,8 +216,15 @@ class Component extends Model
             }
         }
 
-        // 2. Fallback: Google Drive URL lama
-        if ($this->image_path) {
+        // 2. Fallback: Google Drive URL lama (Hanya aktif jika COMPONENT_ENABLE_GDRIVE_FALLBACK=true)
+        $enableGdriveFallback = false;
+        if (function_exists('config') && app()->has('config')) {
+            $enableGdriveFallback = (bool) config('services.components.enable_gdrive_fallback', false);
+        } else {
+            $enableGdriveFallback = filter_var(env('COMPONENT_ENABLE_GDRIVE_FALLBACK', false), FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if ($enableGdriveFallback && $this->image_path) {
             if (str_starts_with($this->image_path, 'http://') || str_starts_with($this->image_path, 'https://')) {
                 // If Google Drive link, convert to direct thumbnail URL
                 if (preg_match('/(?:id=|file\/d\/)([a-zA-Z0-9_-]+)/', $this->image_path, $matches)) {
@@ -243,7 +238,7 @@ class Component extends Model
             }
         }
 
-        // 3. Default placeholder SVG
+        // 3. Default placeholder SVG (Pure Local Mode jika file fisik belum ada)
         return asset('images/placeholder_part.svg');
     }
 }

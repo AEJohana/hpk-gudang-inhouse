@@ -448,20 +448,15 @@ class ComponentBulkImportService
             ])->get($targetUrl);
 
             if ($response->successful() && strlen($response->body()) > 100) {
-                $dir = public_path('uploads/components');
-                if (!file_exists($dir)) {
-                    mkdir($dir, 0777, true);
-                }
-
                 $ext = 'jpg';
                 $contentType = strtolower($response->header('Content-Type') ?? '');
                 if (str_contains($contentType, 'png')) $ext = 'png';
                 elseif (str_contains($contentType, 'webp')) $ext = 'webp';
+                elseif (str_contains($contentType, 'pdf')) $ext = 'pdf';
 
-                $filename = 'comp_import_' . time() . '_' . Str::slug($partNumber) . '.' . $ext;
-                file_put_contents($dir . '/' . $filename, $response->body());
-
-                return 'uploads/components/' . $filename;
+                /** @var \App\Services\ComponentPhotoStorageService $storageService */
+                $storageService = app(\App\Services\ComponentPhotoStorageService::class);
+                return $storageService->storeBinary($response->body(), $partNumber, $ext);
             }
         } catch (\Throwable $e) {
             Log::warning("Failed to download image from URL [{$url}] for part [{$partNumber}]: " . $e->getMessage());
