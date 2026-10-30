@@ -106,7 +106,7 @@
                     <i class="fa-solid fa-gears"></i>
                     <span>Pengaturan Sistem</span>
                 </a>
-                <a href="{{ route('admin.audit-logs.index') }}" class="hpk-sidebar-item {{ request()->routeIs('admin.audit-logs.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.audit-logs.index') }}" class="hpk-sidebar-item {{ request()->routeIs('admin.audit-logs.*', 'activities.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-clipboard-list"></i>
                     <span>Audit Log</span>
                 </a>

@@ -130,6 +130,13 @@
                     <span>Peta Denah Gudang</span>
                 </a>
                 @endcan
+
+                @if(Auth::user()->hasAnyRole(['admin_gudang', 'supervisor', 'qc', 'engineering']))
+                <a href="{{ route('activities.index') }}" class="hpk-sidebar-item {{ request()->routeIs('activities.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                    <span>Log Aktivitas Sistem</span>
+                </a>
+                @endif
                 
                 @if(Auth::user()->hasRole('admin_gudang'))
                 <div class="my-2 border-t border-white/10"></div>

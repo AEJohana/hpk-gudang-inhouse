@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Component;
 use App\Models\Location;
 use App\Models\StockBalance;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -146,6 +147,13 @@ class ComponentController extends Controller
             ]);
         }
 
+        ActivityLogger::component(
+            'created',
+            "Menambahkan master komponen baru: {$component->name} [{$component->part_number}].",
+            $component,
+            ['part_number' => $component->part_number, 'category' => $component->category]
+        );
+
         return redirect()->route('components.show', $component)->with('success', "Komponen {$component->name} ({$component->part_number}) berhasil ditambahkan!");
     }
 
@@ -243,6 +251,13 @@ class ComponentController extends Controller
                     ->update(['location_id' => $newLocationId]);
             }
         }
+
+        ActivityLogger::component(
+            'updated',
+            "Memperbarui data komponen {$component->name} [{$component->part_number}].",
+            $component,
+            ['part_number' => $component->part_number]
+        );
 
         return redirect()->route('components.show', $component)->with('success', 'Data komponen berhasil diperbarui!');
     }
@@ -439,6 +454,13 @@ class ComponentController extends Controller
             'qr_code_payload' => 'HPK-PART|' . $partNumber,
             'is_active' => true,
         ]);
+
+        ActivityLogger::component(
+            'created',
+            "Mendaftarkan komponen cepat via WR: {$component->name} [{$component->part_number}].",
+            $component,
+            ['part_number' => $component->part_number, 'category' => $component->category]
+        );
 
         return response()->json([
             'success' => true,

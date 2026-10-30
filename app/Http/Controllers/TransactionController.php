@@ -7,6 +7,7 @@ use App\Models\Location;
 use App\Models\StockBalance;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -146,6 +147,13 @@ class TransactionController extends Controller
                     $balance->save();
                 }
             }
+
+            ActivityLogger::transaction(
+                $validated['type'],
+                "Mencatat transaksi {$validated['type']} {$transaction->transaction_number} (SPK: " . ($transaction->spk_number ?: '-') . ") sejumlah " . count($validated['items']) . " item.",
+                $transaction,
+                ['type' => $validated['type'], 'spk_number' => $transaction->spk_number, 'item_count' => count($validated['items'])]
+            );
 
             return redirect()->route('transactions.show', $transaction)
                 ->with('success', "Transaksi {$transaction->transaction_number} berhasil diproses!");

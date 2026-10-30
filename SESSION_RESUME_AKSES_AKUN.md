@@ -150,6 +150,12 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Lencana Kuantitas (Count Badges) & Pencarian Cepat Multi-Kriteria:** Tab navigasi status menyematkan badge angka riil (`counts->pending`, dll.) serta form pencarian instan berdasarkan nomor tiket request (`request_number`), kode part (`part_number`), atau nama komponen dengan pelestarian status aktif.
 - **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/QrRequestQueueTest.php` - 4 passed, 17 assertions).
 
+### P. Pusat Log Aktivitas Pengguna & Audit Trail Terpadu (Baru Selesai & Teruji 100%)
+- **Perekam Otomatis Lintas Modul (`ActivityLogger`):** Service terpusat yang secara otomatis merekam login/logout, penerbitan & approval WRI, pengerjaan mesin, defect/reject, material handling, transaksi stok gudang, penambahan/edit master komponen/CAD, dan cetak label QR.
+- **Revitalisasi Halaman Audit Log (`/activities` & `/admin/audit-logs`):** Menghidupkan halaman audit log (yang sebelumnya kosong) menjadi pusat monitoring interaktif dengan 4 kartu KPI (*Total Hari Ini*, *Pengguna Aktif*, *Defect & Penolakan Kritis*, *Modul Teraktif*), toolbar filter multi-kriteria (rentang waktu, modul, pengguna, event), dan modal JSON diff.
+- **Navigasi Resmi Terbuka:** Ditambahkan ke navbar dropdown 'Kontrol & Audit', drawer sidebar mobile/tablet, dan kartu dashboard untuk role pengawas: `admin_gudang`, `supervisor`, `qc`, dan `engineering`.
+- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/ActivityLoggerTest.php` - 4 passed, 23 assertions; total suite 47 passed, 199 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

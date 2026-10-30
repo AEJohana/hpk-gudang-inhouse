@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Component;
 use App\Models\QrRequest;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class QrRequestController extends Controller
@@ -70,6 +71,13 @@ class QrRequestController extends Controller
             'requested_by' => auth()->id(),
         ]);
 
+        ActivityLogger::qr(
+            'created',
+            "Membuat permintaan label QR {$qrRequest->request_number} untuk part [{$qrRequest->component?->part_number}] ({$qrRequest->print_qty} label {$qrRequest->label_type}).",
+            $qrRequest,
+            ['label_type' => $qrRequest->label_type, 'print_qty' => $qrRequest->print_qty]
+        );
+
         return redirect()->route('qr-requests.index')->with('success', "Permintaan label QR {$qrRequest->request_number} berhasil dibuat!");
     }
 
@@ -81,6 +89,12 @@ class QrRequestController extends Controller
             'printed_at' => now(),
         ]);
 
+        ActivityLogger::qr(
+            'printed',
+            "Mencetak label thermal 70x45mm untuk request {$qrRequest->request_number} [{$qrRequest->component?->part_number}].",
+            $qrRequest
+        );
+
         return view('qr_requests.print_thermal', compact('qrRequest'));
     }
 
@@ -91,6 +105,12 @@ class QrRequestController extends Controller
             'status' => 'printed',
             'printed_at' => now(),
         ]);
+
+        ActivityLogger::qr(
+            'printed',
+            "Mencetak label lembar A4 untuk request {$qrRequest->request_number} [{$qrRequest->component?->part_number}].",
+            $qrRequest
+        );
 
         return view('qr_requests.print_sheet', compact('qrRequest'));
     }

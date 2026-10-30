@@ -13,6 +13,7 @@ use App\Models\Warehouse;
 use App\Models\WorkRequest;
 use App\Models\WorkRequestLog;
 use App\Models\WorkRequestStep;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -466,6 +467,13 @@ class WorkRequestController extends Controller
                 'notes' => $logNotes,
             ]);
 
+            ActivityLogger::workRequest(
+                'created',
+                "Menerbitkan tiket Work Request {$workRequest->wri_number} untuk part [{$component->part_number}] {$component->name} sejumlah {$validated['quantity_requested']} {$component->uom}.",
+                $workRequest,
+                ['wri_number' => $workRequest->wri_number, 'part_number' => $component->part_number, 'quantity' => $validated['quantity_requested']]
+            );
+
             return redirect()->route('work-requests.index', ['open_detail' => $workRequest->id])
                 ->with('success', "Work Request {$workRequest->wri_number} berhasil diterbitkan!");
         });
@@ -519,6 +527,13 @@ class WorkRequestController extends Controller
             'notes' => 'Otorisasi disetujui oleh Ka. Pengaju: ' . $user->name . ' (' . $user->effective_department_name . '). Tiket diteruskan ke antrian ' . $workRequest->dept_penerima . '.',
         ]);
 
+        ActivityLogger::workRequest(
+            'approved',
+            "Menyetujui otorisasi pengaju tiket {$workRequest->wri_number} ({$workRequest->component?->part_number}). Diteruskan ke {$workRequest->dept_penerima}.",
+            $workRequest,
+            ['dept_pengaju' => $workRequest->dept_pengaju, 'dept_penerima' => $workRequest->dept_penerima]
+        );
+
         return back()->with('success', "Tiket {$workRequest->wri_number} telah disetujui oleh Ka. Pengaju dan diteruskan ke {$workRequest->dept_penerima}!");
     }
 
@@ -562,6 +577,13 @@ class WorkRequestController extends Controller
             'notes' => $notes . " (Ditugaskan ke Operator: {$operatorName})",
         ]);
 
+        ActivityLogger::workRequest(
+            'approved',
+            "Menyetujui kesanggupan mesin tiket {$workRequest->wri_number} ({$workRequest->component?->part_number}) dan menugaskan Operator: {$operatorName}.",
+            $workRequest,
+            ['operator_name' => $operatorName, 'notes' => $notes]
+        );
+
         return back()->with('success', "Tiket {$workRequest->wri_number} telah disetujui untuk pengerjaan mesin! Ditugaskan ke Operator: {$operatorName}.");
     }
 
@@ -593,6 +615,13 @@ class WorkRequestController extends Controller
             'operator_name' => $user->name,
             'notes' => "Ditolak oleh {$user->name} ({$user->effective_department_name}): {$reason}",
         ]);
+
+        ActivityLogger::workRequest(
+            'rejected',
+            "Menolak/membatalkan tiket {$workRequest->wri_number} ({$workRequest->component?->part_number}). Alasan: {$reason}",
+            $workRequest,
+            ['reason' => $reason]
+        );
 
         return back()->with('error', "Tiket {$workRequest->wri_number} berhasil ditolak.");
     }
@@ -765,6 +794,13 @@ class WorkRequestController extends Controller
             'notes' => ($isReprint ? "Cetak ulang ke-" . ($printCount + 1) : "Pencetakan perdana") . " oleh " . $user->name . " (" . $user->effective_department_name . ")",
         ]);
 
+        ActivityLogger::workRequest(
+            'printed',
+            "Mencetak Dokumen Triplicate Work Request {$workRequest->wri_number} (" . ($isReprint ? "Cetak Ulang #" . ($printCount + 1) : "Perdana") . ").",
+            $workRequest,
+            ['is_reprint' => $isReprint, 'print_count' => $printCount + 1]
+        );
+
         $printableTickets = collect([$workRequest]);
 
         return view('work_requests.print_sheet', [
@@ -808,6 +844,13 @@ class WorkRequestController extends Controller
                 'notes' => "Cetak massal (" . count($printableTickets) . " dokumen) oleh " . $user->name,
             ]);
         }
+
+        ActivityLogger::workRequest(
+            'printed',
+            "Mencetak massal (bulk print) " . count($printableTickets) . " dokumen Work Request terpilih.",
+            null,
+            ['count' => count($printableTickets), 'wri_numbers' => $printableTickets->pluck('wri_number')->all()]
+        );
 
         return view('work_requests.print_sheet', [
             'workRequests' => $printableTickets,
@@ -905,6 +948,13 @@ class WorkRequestController extends Controller
                     'operator_name' => $operator,
                     'notes' => "Reject/Defect pada tahap {$cleanTarget}" . ($activeStepName ? " ({$activeStepName})" : '') . ": {$reason}. Kuota total tiket dipotong {$defectQty} pcs menjadi {$totalReq} pcs.",
                 ]);
+
+                ActivityLogger::workRequest(
+                    'defect',
+                    "Melaporkan reject/defect pada {$cleanTarget}: {$defectQty} pcs untuk tiket {$workRequest->wri_number} [{$workRequest->component?->part_number}]. Alasan: {$reason}.",
+                    $workRequest,
+                    ['defect_qty' => $defectQty, 'reason' => $reason, 'operator' => $operator]
+                );
             }
 
             // Pada Proses (In): kuantitas dipaksa penuh sesuai sisa kebutuhan
@@ -1034,6 +1084,13 @@ class WorkRequestController extends Controller
                     'notes' => "Inbound WRI #{$workRequest->wri_number} ke slot rak {$workRequest->target_specific_location_code}",
                 ]);
             }
+
+            ActivityLogger::workRequest(
+                'process',
+                "Memperbarui alur tiket {$workRequest->wri_number} [{$workRequest->component?->part_number}] ke status '{$effectiveStatus}' sejumlah {$processQty} pcs oleh {$operator}.",
+                $workRequest,
+                ['status' => $effectiveStatus, 'process_qty' => $processQty, 'operator' => $operator]
+            );
 
             return redirect()->back()
                 ->with('success', "Status WRI berhasil diperbarui menjadi: {$effectiveStatus} ({$processQty} pcs).");

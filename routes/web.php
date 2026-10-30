@@ -174,6 +174,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('work-station-supplies.store');
     });
 
+    // 10. Menu Aktivitas & Riwayat Audit Sistem (Pusat Jejak Aktivitas Pengguna)
+    Route::get('/activities', [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])
+        ->middleware(['role:admin_gudang|supervisor|qc|engineering'])
+        ->name('activities.index');
+
     // User Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

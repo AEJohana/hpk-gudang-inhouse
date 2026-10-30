@@ -288,6 +288,24 @@
                     </div>
                 </a>
                 @endcan
+
+                <!-- 10. Log Aktivitas Sistem (Audit Trail) -->
+                @if(Auth::user()->hasAnyRole(['admin_gudang', 'supervisor', 'qc', 'engineering']))
+                <a href="{{ route('activities.index') }}" class="dash-card group border-amber-200 bg-amber-50/10">
+                    <i class="fa-solid fa-arrow-right arrow-action"></i>
+                    <i class="fa-solid fa-clipboard-list card-icon-bg"></i>
+                    <div class="icon-box text-amber-700 bg-amber-100">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-amber-800 transition">Log Aktivitas Sistem</h4>
+                            <span class="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">Audit Trail</span>
+                        </div>
+                        <p class="text-xs text-slate-500 leading-relaxed">Jejak aktivitas pengguna, transaksi fisik, approval, pengerjaan mesin & mutasi</p>
+                    </div>
+                </a>
+                @endif
             </div>
         </div>
 

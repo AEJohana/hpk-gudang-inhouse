@@ -11,6 +11,7 @@ use App\Models\Warehouse;
 use App\Models\WorkRequest;
 use App\Models\WorkRequestLog;
 use App\Models\WorkStation;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -425,6 +426,13 @@ class WorkStationSupplyController extends Controller
                     $balance->save();
                 }
             }
+
+            ActivityLogger::materialHandling(
+                'supply',
+                "Supply material ke stasiun {$workStation->name} (SPK: {$validated['spk_number']}) dengan transaksi {$transaction->transaction_number}.",
+                $transaction,
+                ['spk_number' => $validated['spk_number'], 'recipient' => $validated['recipient_name'], 'item_count' => count($validated['items'])]
+            );
 
             return redirect()->route('transactions.show', $transaction)
                 ->with('success', "Supply komponen ke {$workStation->name} (SPK: {$validated['spk_number']}) berhasil diproses! Stok gudang telah dipotong.");

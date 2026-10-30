@@ -72,6 +72,7 @@ Sistem mengadopsi 15 departemen standar pabrik yang termigrasi dari basis data a
 9. **Cetak Label QR:** Pembangkit dan pencetak label barcode/QR untuk barang, boks, maupun rak fisik (mendukung printer Thermal 70x45mm & Sheet A4). Memuat payload komposit cerdas 3-in-1 (`Nama Komponen ; Kode Komponen ; Kode Rak`) yang dapat dibaca offline oleh kamera apapun, antrean kerja otomatis fokus ke tab **Menunggu Dicetak** (*default* `status=pending`), 3 kartu indikator KPI interaktif (*Menunggu Dicetak*, *Selesai Dicetak*, *Total Permintaan*), lencana kuantitas riil (*count badges*), serta pencarian cepat terpadu.
 10. **Cycle Counting (Stok Opname):** Rekonsiliasi fisik vs sistem dengan pencatatan deviasi kuantitas dan persetujuan penyesuaian.
 11. **Manajemen Pengguna & Otoritas (RBAC):** Pengaturan akun, penetapan peran/departemen, hak akses menu granular, dan reset cache izin otomatis.
+12. **Log Aktivitas & Audit Trail Sistem (`/activities` & `/admin/audit-logs`):** Pusat pemantauan jejak operasional pengguna terpadu dengan perekam otomatis `ActivityLogger` (mencatat login/logout, penerbitan & approval WRI, pengerjaan mesin, defect/reject, material handling, transaksi stok, upload master komponen/CAD, dan cetak QR), dilengkapi 4 kartu indikator KPI interaktif, filter multi-kriteria (rentang waktu, modul, user, event), pencarian teks bebas, dan modal viewer payload JSON diff.
 
 ---
 
