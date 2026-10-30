@@ -156,6 +156,17 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Navigasi Resmi Terbuka:** Ditambahkan ke navbar dropdown 'Kontrol & Audit', drawer sidebar mobile/tablet, dan kartu dashboard untuk role pengawas: `admin_gudang`, `supervisor`, `qc`, dan `engineering`.
 - **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/ActivityLoggerTest.php` - 4 passed, 23 assertions; total suite 47 passed, 199 assertions).
 
+### Q. Standardisasi Hierarki Navigasi Tombol Kembali Menu Admin (Baru Selesai & Teruji 100%)
+- **Penyelarasan Rute Kembali Submenu Admin:** Tombol `[ < Kembali ]` pada seluruh 6 submenu admin (`admin/users`, `admin/roles`, `admin/component-categories`, `admin/uoms`, `admin/locations-master`, `admin/settings`) diarahkan secara konsisten ke **Pusat Kendali Administrator** (`route('admin.dashboard')`), mencegah admin keluar mendadak ke dashboard umum pergudangan saat berpindah konfigurasi.
+- **Navigasi Cerdas Halaman Audit Log:** Tombol kembali pada `audit_logs/index.blade.php` mendeteksi rute secara adaptif (`request()->routeIs('admin.*')` kembali ke `route('admin.dashboard')`, sedangkan akses via navbar atas `/activities` kembali ke `route('dashboard')`).
+- **Tombol Pintas Kembali ke WMS di Admin Dashboard:** Disematkan tombol `[ < Kembali ke WMS ]` di wave header `admin/dashboard.blade.php` menuju `route('dashboard')` untuk kemudahan navigasi 1-klik kembali ke operasional logistik utama.
+
+### R. Panel Geser Pratinjau Foto & Identitas Komponen Permintaan Label QR (Baru Selesai & Teruji 100%)
+- **Animasi Panel Geser Interaktif (Sliding Preview Card):** Pada formulir Buat Permintaan Label QR (`/qr-requests/create`), begitu komponen dipilih, panel visual bergeser turun secara mulus (*smooth transition*) menyajikan foto fisik komponen (atau indikator gambar CAD jika `.pdf`) dengan tombol perbesar ukuran penuh.
+- **Kartu Identitas Lengkap:** Menampilkan Kode Part (`font-mono font-bold`), Nama Komponen, Kategori, Lokasi Rak Simpan Default, Dimensi Fisik (P x L/D x T), dan Saldo Stok Gudang Terkini. Jika pilihan komponen dikosongkan, panel melipat kembali secara halus.
+- **Klarifikasi Format Label:** Mendokumentasikan status opsi Format / Jenis Label (`item`, `box`, `rack`) yang tersimpan riil di database dan audit trail.
+- **Pengujian Unit Otomatis Terisolasi:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/QrRequestQueueTest.php` - 5 passed, 25 assertions; total suite 48 passed, 207 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

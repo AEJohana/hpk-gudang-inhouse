@@ -44,10 +44,31 @@ class QrRequestController extends Controller
 
     public function create(Request $request)
     {
-        $components = Component::where('is_active', true)->orderBy('name')->get();
-        $selectedComponentId = $request->get('component_id');
+        $components = Component::where('is_active', true)
+            ->with(['defaultLocation', 'categoryRelation', 'uomRelation', 'stockBalances'])
+            ->orderBy('name')
+            ->get();
+        $selectedComponentId = (string) $request->get('component_id', '');
 
-        return view('qr_requests.create', compact('components', 'selectedComponentId'));
+        $componentsJson = $components->map(function ($comp) {
+            return [
+                'id' => (string) $comp->id,
+                'part_number' => $comp->part_number,
+                'name' => $comp->name,
+                'category' => $comp->category_label,
+                'uom' => $comp->uom ?: 'Pcs',
+                'location' => $comp->default_full_location_code !== '-' 
+                    ? $comp->default_full_location_code 
+                    : ($comp->defaultLocation ? $comp->defaultLocation->full_location_code : 'Belum diatur'),
+                'dimension' => $comp->dimension_formatted,
+                'total_stock' => (float) $comp->total_stock,
+                'image_url' => $comp->image_url,
+                'is_pdf' => (bool) $comp->is_pdf_drawing,
+                'specs' => $comp->description ?: '',
+            ];
+        });
+
+        return view('qr_requests.create', compact('components', 'selectedComponentId', 'componentsJson'));
     }
 
     public function store(Request $request)

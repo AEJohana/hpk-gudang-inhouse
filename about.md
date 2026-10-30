@@ -55,6 +55,7 @@ Users have specific roles and departmental scopes that dictate their permissions
 - **High-Visibility Thermal & Sheet Print Layouts:** Desain cetak stiker Thermal (70mm x 45mm) dan kertas lembar A4 menyematkan kotak *RAK* berbingkai kontras tinggi (`.rack-badge`), part number monospace tebal, nama part, dan satuan (*UoM*).
 - Supports printing for individual items (`item`), boxes (`box`), or entire warehouse racks (`rack`).
 - Dedicated routes for different printer types (Thermal printers vs. standard Sheet printers).
+- **Interactive Sliding Component Preview Panel (`/qr-requests/create`):** Formulir pengajuan cetak label dilengkapi panel geser interaktif bertenaga Alpine.js. Saat komponen dipilih dari dropdown atau query URL, panel bergeser turun secara mulus (*smooth slide & fade transition*) menampilkan thumbnail foto komponen asli (atau ikon/tautan CAD jika format PDF), part number tebal, kategori part, lokasi rak penyimpanan default, dimensi fisik lengkap (P x L/D x T), dan saldo sisa stok gudang terkini. Panel otomatis melipat kembali secara halus jika pilihan komponen dikosongkan.
 
 ### 8. Cycle Counting (Stok Opname)
 - Reconciles system database quantities with actual physical quantities in the warehouse.
@@ -134,6 +135,12 @@ Users have specific roles and departmental scopes that dictate their permissions
 - **Interactive Multi-Criteria Filter & KPI Analytics:** Halaman `/activities` dan `/admin/audit-logs` menyematkan 4 kartu indikator KPI (*Total Hari Ini*, *Pengguna Aktif*, *Defect & Penolakan Kritis*, *Modul Teraktif*), dropdown rentang waktu (*Hari Ini*, *7 Hari*, *30 Hari*, *Semua*), dropdown modul aplikasi, dropdown pengguna, dan pencarian kata kunci teks bebas.
 - **JSON Payload Diff Modal:** Modal pop-up modern untuk menginspeksi rincian data teknis yang diubah dengan tombol salin cepat ke clipboard (*Copy JSON*).
 - **Multi-Role Access:** Dapat diakses secara langsung oleh pengawas operasional: Admin Gudang, Supervisor, QC, dan Engineering melalui navigasi navbar atas, sidebar drawer, dan kartu modul dashboard.
+
+### 16. Hierarchical Admin Navigation & Control Panel Flow (Navigasi Panel Admin Terpadu)
+- **Two-Tier Administrative Hierarchy:** Menetapkan struktur navigasi hierarkis dua tingkat yang terisolasi antara area konfigurasi sistem dan operasional pergudangan fisik.
+- **Submenu Consistent Return:** Seluruh 6 submenu administrator (`Manajemen Pengguna`, `Role & Akses`, `Kategori Komponen`, `Satuan UOM`, `Master Lokasi Gudang`, `Pengaturan Sistem`) mengarahkan tombol `[ < Kembali ]` secara konsisten ke **Pusat Kendali Administrator** (`route('admin.dashboard')`), mencegah admin keluar secara tidak sengaja ke dashboard logistik umum saat sedang melakukan administrasi master data.
+- **Smart Adaptive Audit Log Return:** Tombol kembali pada modul riwayat audit log mendeteksi konteks rute pemanggil (`request()->routeIs('admin.*') ? route('admin.dashboard') : route('dashboard')`) sehingga administrator kembali ke Pusat Kendali Admin, sedangkan staf operasional pengawas kembali ke dashboard WMS.
+- **Dedicated Return Shortcut in Admin Dashboard:** Header wave pada Pusat Kendali Administrator menyematkan tombol `[ < Kembali ke WMS ]` menuju `route('dashboard')` untuk navigasi 1-klik yang mudah dan cepat kembali ke alur pergudangan utama.
 
 ## Summary
 The system is an enterprise-grade, unified Warehouse Management System (WMS) and Work Request (WRI) platform. It seamlessly connects raw material warehouse storage (Zones A-F), multi-station production machine routing (Laser, M1, UNP, CNC, etc.), internal logistics transit (Material Handling), quality engineering control (ECR & Disposal), and inventory reconciliation into a single cohesive, auditable, and QR-driven ecosystem.

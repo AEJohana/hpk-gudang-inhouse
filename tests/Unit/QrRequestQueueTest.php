@@ -33,6 +33,13 @@ class QrRequestQueueTest extends TestCase
             $table->timestamps();
         });
 
+        Schema::create('stock_balances', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('component_id');
+            $table->decimal('quantity', 10, 2)->default(0);
+            $table->timestamps();
+        });
+
         Schema::create('qr_requests', function (Blueprint $table) {
             $table->id();
             $table->string('request_number')->unique();
@@ -184,5 +191,45 @@ class QrRequestQueueTest extends TestCase
         $printedReq = new QrRequest(['status' => 'printed']);
         $this->assertEquals('Sudah Dicetak', $printedReq->status_badge['label']);
         $this->assertStringContainsString('emerald', $printedReq->status_badge['class']);
+    }
+
+    public function test_component_serialization_for_sliding_preview(): void
+    {
+        $comp = Component::create([
+            'part_number' => 'CSAA50310210000',
+            'name' => 'AS DRAT',
+            'category' => 'subframe',
+        ]);
+
+        $serialized = [
+            'id' => (string) $comp->id,
+            'part_number' => $comp->part_number,
+            'name' => $comp->name,
+            'category' => $comp->category_label,
+            'uom' => $comp->uom ?: 'Pcs',
+            'location' => $comp->default_full_location_code !== '-' 
+                ? $comp->default_full_location_code 
+                : ($comp->defaultLocation ? $comp->defaultLocation->full_location_code : 'Belum diatur'),
+            'dimension' => $comp->dimension_formatted,
+            'total_stock' => (float) $comp->total_stock,
+            'image_url' => $comp->image_url,
+            'is_pdf' => (bool) $comp->is_pdf_drawing,
+            'specs' => $comp->description ?: '',
+        ];
+
+        $this->assertEquals('CSAA50310210000', $serialized['part_number']);
+        $this->assertEquals('AS DRAT', $serialized['name']);
+        $this->assertEquals('Subframe', $serialized['category']);
+        $this->assertEquals('Belum diatur', $serialized['location']);
+        $this->assertEquals('Pcs', $serialized['uom']);
+        $this->assertNotEmpty($serialized['image_url']);
+        $this->assertFalse($serialized['is_pdf']);
+
+        // Non-existent part number should resolve to placeholder
+        $dummyComp = Component::create([
+            'part_number' => 'DUMMY-NO-PHOTO-XYZ-999',
+            'name' => 'Dummy Part',
+        ]);
+        $this->assertStringContainsString('placeholder_part.svg', $dummyComp->image_url);
     }
 }

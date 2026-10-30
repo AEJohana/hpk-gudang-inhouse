@@ -19,9 +19,9 @@
 
                 <div class="flex flex-col md:flex-row md:items-end md:justify-between">
                     <div class="flex items-start space-x-3">
-                        <a href="{{ route('dashboard') }}" 
+                        <a href="{{ route('admin.dashboard') }}" 
                            class="mt-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
-                           title="Kembali ke Beranda Utama">
+                           title="Kembali ke Pusat Kendali Administrator">
                             <i class="fa-solid fa-arrow-left text-xs text-amber-300"></i>
                             <span>Kembali</span>
                         </a>
