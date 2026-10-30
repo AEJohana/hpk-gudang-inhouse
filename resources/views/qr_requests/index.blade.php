@@ -156,12 +156,12 @@
                             <span class="font-mono font-bold text-slate-900 block text-xs truncate">{{ $qr->component?->part_number ?? '-' }}</span>
                             <span class="text-xs text-slate-600 block line-clamp-1 mt-0.5">{{ $qr->component?->name ?? 'Komponen' }}</span>
                             <div class="flex items-center gap-2 mt-1">
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold {{ $qr->label_type === 'rack' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-cyan-50 text-cyan-800 border border-cyan-200' }}">
                                     {{ match($qr->label_type) {
-                                        'item' => 'Stiker Part',
+                                        'rack' => 'Label QR Rak',
+                                        'card', 'item' => 'Label QR Kartu',
                                         'box' => 'Master Box',
-                                        'rack' => 'Identitas Rak',
-                                        default => $qr->label_type
+                                        default => ucfirst($qr->label_type)
                                     } }}
                                 </span>
                                 <span class="font-extrabold text-slate-900 text-xs">{{ $qr->print_qty }} Label</span>
@@ -229,12 +229,12 @@
                             </td>
 
                             <td class="py-4 px-4">
-                                <span class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-slate-100 text-slate-700">
+                                <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold {{ $qr->label_type === 'rack' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-cyan-50 text-cyan-800 border border-cyan-200' }}">
                                     {{ match($qr->label_type) {
-                                        'item' => 'Label Stiker Item/Part',
-                                        'box' => 'Label Master Box/Koli',
-                                        'rack' => 'Label Identitas Rak',
-                                        default => $qr->label_type
+                                        'rack' => 'Label QR Rak',
+                                        'card', 'item' => 'Label QR Kartu',
+                                        'box' => 'Label Master Box',
+                                        default => ucfirst($qr->label_type)
                                     } }}
                                 </span>
                             </td>

@@ -56,6 +56,7 @@ Users have specific roles and departmental scopes that dictate their permissions
 - Supports printing for individual items (`item`), boxes (`box`), or entire warehouse racks (`rack`).
 - Dedicated routes for different printer types (Thermal printers vs. standard Sheet printers).
 - **Interactive Sliding Component Preview Panel (`/qr-requests/create`):** Formulir pengajuan cetak label dilengkapi panel geser interaktif bertenaga Alpine.js. Saat komponen dipilih dari dropdown atau query URL, panel bergeser turun secara mulus (*smooth slide & fade transition*) menampilkan thumbnail foto komponen asli (atau ikon/tautan CAD jika format PDF), part number tebal, kategori part, lokasi rak penyimpanan default, dimensi fisik lengkap (P x L/D x T), dan saldo sisa stok gudang terkini. Panel otomatis melipat kembali secara halus jika pilihan komponen dikosongkan.
+- **Sistem Keranjang Pengajuan Massal (Cart Workflow) & 2 Format Label Mandiri:** Mengubah format label menjadi 2 kapsul (*Label QR Rak* & *Label QR Kartu*) yang dapat dipilih salah satu maupun keduanya sekaligus. Label rak dihitung 1:1 (1 lembar per slot), sedangkan label kartu dihitung kelipatan 10 (1 set = 10 lembar). Formulir dilengkapi keranjang belanja (*cart*) untuk mengumpulkan pengajuan dari berbagai komponen, sebelum dikirim sekaligus dan otomatis dipecah menjadi tiket `QrRequest` terpisah di antrean pending.
 
 ### 8. Cycle Counting (Stok Opname)
 - Reconciles system database quantities with actual physical quantities in the warehouse.

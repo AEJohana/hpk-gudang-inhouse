@@ -50,6 +50,11 @@ class Component extends Model
         return $this->belongsTo(ComponentCategory::class, 'component_category_id');
     }
 
+    public function categoryRelation(): BelongsTo
+    {
+        return $this->componentCategory();
+    }
+
     public function uomRelation(): BelongsTo
     {
         return $this->belongsTo(Uom::class, 'uom_id');

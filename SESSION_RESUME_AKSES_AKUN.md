@@ -167,6 +167,15 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Klarifikasi Format Label:** Mendokumentasikan status opsi Format / Jenis Label (`item`, `box`, `rack`) yang tersimpan riil di database dan audit trail.
 - **Pengujian Unit Otomatis Terisolasi:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/QrRequestQueueTest.php` - 5 passed, 25 assertions; total suite 48 passed, 207 assertions).
 
+### S. Konsep Keranjang Permintaan Cetak & 2 Format Label QR (Rak & Kartu) (Baru Selesai & Teruji 100%)
+- **2 Kapsul Pilihan Format Label (Pill Checkboxes):** Mengubah pilihan menjadi 2 jenis kapsul yang dapat dicentang salah satu maupun **keduanya sekaligus**: 🏷️ **Label QR Rak** (`rack`) dan 📇 **Label QR Kartu** (`card`).
+- **Aturan Multiplier Kuantitas Cetak:**
+  - Label QR Rak: 1 input qty = 1 lembar label rak fisik.
+  - Label QR Kartu: 1 input set = 10 lembar label stiker kartu part (kelipatan 10).
+- **Konsep Keranjang Draft Multi-Item (Cart Workflow):** Pengguna dapat memasukkan banyak komponen ke dalam tabel keranjang pengajuan sebelum dikirim. Jika kedua jenis label dicentang untuk 1 komponen, sistem otomatis memecahnya menjadi 2 baris terpisah di keranjang.
+- **Penyimpanan Batch & Pemisahan Tiket Independen:** Pengiriman massal memproses array `cart_data` di dalam transaksi database atomik (`DB::transaction`) dan menyimpan setiap item sebagai record tiket `QrRequest` terpisah berstatus `pending` lengkap dengan penomoran unik dan catatan audit log.
+- **Pengujian Unit Otomatis Terisolasi:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/QrRequestQueueTest.php` - 6 passed, 38 assertions; total suite 49 passed, 220 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

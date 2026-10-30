@@ -232,4 +232,82 @@ class QrRequestQueueTest extends TestCase
         ]);
         $this->assertStringContainsString('placeholder_part.svg', $dummyComp->image_url);
     }
+
+    public function test_cart_multi_item_batch_creation_and_label_multipliers(): void
+    {
+        $user = User::create([
+            'name' => 'Staf Cetak Label',
+            'email' => 'staflabel@hpk.test',
+            'password' => bcrypt('password'),
+        ]);
+
+        $compA = Component::create([
+            'part_number' => 'PART-KERANJANG-001',
+            'name' => 'Bracket Chassis',
+        ]);
+
+        $compB = Component::create([
+            'part_number' => 'PART-KERANJANG-002',
+            'name' => 'Pin Engsel',
+        ]);
+
+        // Simulasi cart dengan kedua jenis label untuk Part A, dan 1 label untuk Part B
+        // Label QR Rak: 1 input = 1 label (qty = 1)
+        // Label QR Kartu: 1 set = 10 label (qty = 1 set * 10 = 10)
+        // Part B: Label QR Kartu 3 set = 30 label
+        $cartItems = [
+            [
+                'component_id' => $compA->id,
+                'label_type' => 'rack',
+                'print_qty' => 1,
+                'notes' => 'Label slot rak A-01',
+            ],
+            [
+                'component_id' => $compA->id,
+                'label_type' => 'card',
+                'print_qty' => 10, // 1 set @ 10
+                'notes' => 'Stiker tempel part',
+            ],
+            [
+                'component_id' => $compB->id,
+                'label_type' => 'card',
+                'print_qty' => 30, // 3 set @ 10
+                'notes' => 'Stiker part 30 pcs',
+            ]
+        ];
+
+        $request = new \Illuminate\Http\Request([
+            'cart_data' => json_encode($cartItems)
+        ]);
+
+        $this->actingAs($user);
+        $controller = new \App\Http\Controllers\QrRequestController();
+        $response = $controller->store($request);
+
+        $this->assertTrue($response->isRedirection());
+        $this->assertEquals(route('qr-requests.index'), $response->headers->get('Location'));
+
+        // Harus menghasilkan 3 tiket terpisah di database
+        $created = QrRequest::whereIn('component_id', [$compA->id, $compB->id])->get();
+        $this->assertCount(3, $created);
+
+        // Verifikasi tiket Rak Part A
+        $ticketRackA = $created->where('component_id', $compA->id)->where('label_type', 'rack')->first();
+        $this->assertNotNull($ticketRackA);
+        $this->assertEquals(1, $ticketRackA->print_qty);
+        $this->assertEquals('pending', $ticketRackA->status);
+        $this->assertStringStartsWith('QR-REQ-', $ticketRackA->request_number);
+
+        // Verifikasi tiket Kartu Part A (10 pcs)
+        $ticketCardA = $created->where('component_id', $compA->id)->where('label_type', 'card')->first();
+        $this->assertNotNull($ticketCardA);
+        $this->assertEquals(10, $ticketCardA->print_qty);
+        $this->assertEquals('pending', $ticketCardA->status);
+
+        // Verifikasi tiket Kartu Part B (30 pcs)
+        $ticketCardB = $created->where('component_id', $compB->id)->where('label_type', 'card')->first();
+        $this->assertNotNull($ticketCardB);
+        $this->assertEquals(30, $ticketCardB->print_qty);
+        $this->assertEquals('pending', $ticketCardB->status);
+    }
 }

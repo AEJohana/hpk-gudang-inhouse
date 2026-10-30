@@ -45,7 +45,7 @@ class QrRequestController extends Controller
     public function create(Request $request)
     {
         $components = Component::where('is_active', true)
-            ->with(['defaultLocation', 'categoryRelation', 'uomRelation', 'stockBalances'])
+            ->with(['defaultLocation', 'componentCategory', 'uomRelation', 'stockBalances'])
             ->orderBy('name')
             ->get();
         $selectedComponentId = (string) $request->get('component_id', '');
@@ -73,33 +73,71 @@ class QrRequestController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'component_id' => 'required|exists:components,id',
-            'label_type' => 'required|in:item,box,rack',
-            'print_qty' => 'required|integer|min:1|max:500',
-            'notes' => 'nullable|string|max:255',
-        ]);
+        // Mendukung input multi-item keranjang (cart_data JSON string atau array items)
+        $items = [];
+        if ($request->filled('cart_data')) {
+            $decoded = json_decode($request->cart_data, true);
+            if (is_array($decoded)) {
+                $items = $decoded;
+            }
+        } elseif ($request->has('items') && is_array($request->items)) {
+            $items = $request->items;
+        } elseif ($request->filled('component_id')) {
+            // Fallback untuk single-item legacy
+            $items = [[
+                'component_id' => $request->component_id,
+                'label_type' => $request->label_type,
+                'print_qty' => $request->print_qty,
+                'notes' => $request->notes,
+            ]];
+        }
 
-        $requestNumber = 'QR-REQ-' . date('Ym') . '-' . rand(100, 999);
+        if (empty($items)) {
+            return back()->withErrors(['cart' => 'Keranjang permintaan cetak masih kosong.'])->withInput();
+        }
 
-        $qrRequest = QrRequest::create([
-            'request_number' => $requestNumber,
-            'component_id' => $validated['component_id'],
-            'label_type' => $validated['label_type'],
-            'print_qty' => $validated['print_qty'],
-            'notes' => $validated['notes'],
-            'status' => 'pending',
-            'requested_by' => auth()->id(),
-        ]);
+        $validatedData = validator(['items' => $items], [
+            'items' => 'required|array|min:1',
+            'items.*.component_id' => 'required|exists:components,id',
+            'items.*.label_type' => 'required|in:rack,card,item,box',
+            'items.*.print_qty' => 'required|integer|min:1|max:5000',
+            'items.*.notes' => 'nullable|string|max:255',
+        ])->validate();
 
-        ActivityLogger::qr(
-            'created',
-            "Membuat permintaan label QR {$qrRequest->request_number} untuk part [{$qrRequest->component?->part_number}] ({$qrRequest->print_qty} label {$qrRequest->label_type}).",
-            $qrRequest,
-            ['label_type' => $qrRequest->label_type, 'print_qty' => $qrRequest->print_qty]
-        );
+        $createdRequests = [];
+        \Illuminate\Support\Facades\DB::transaction(function () use ($validatedData, &$createdRequests) {
+            foreach ($validatedData['items'] as $item) {
+                // Generate nomor tiket unik
+                $randomSuffix = rand(100, 999) . strtoupper(\Illuminate\Support\Str::random(2));
+                $requestNumber = 'QR-REQ-' . date('Ym') . '-' . $randomSuffix;
 
-        return redirect()->route('qr-requests.index')->with('success', "Permintaan label QR {$qrRequest->request_number} berhasil dibuat!");
+                $qrRequest = QrRequest::create([
+                    'request_number' => $requestNumber,
+                    'component_id' => $item['component_id'],
+                    'label_type' => in_array($item['label_type'], ['card', 'item']) ? 'card' : $item['label_type'],
+                    'print_qty' => $item['print_qty'],
+                    'notes' => $item['notes'] ?? null,
+                    'status' => 'pending',
+                    'requested_by' => auth()->id() ?: 1,
+                ]);
+
+                ActivityLogger::qr(
+                    'created',
+                    "Membuat permintaan label QR {$qrRequest->request_number} untuk part [{$qrRequest->component?->part_number}] ({$qrRequest->print_qty} label {$qrRequest->label_type}).",
+                    $qrRequest,
+                    ['label_type' => $qrRequest->label_type, 'print_qty' => $qrRequest->print_qty]
+                );
+
+                $createdRequests[] = $qrRequest;
+            }
+        });
+
+        $count = count($createdRequests);
+        $message = $count > 1 
+            ? "Berhasil mengajukan {$count} permintaan cetak label QR ke dalam antrean!" 
+            : "Permintaan label QR {$createdRequests[0]->request_number} berhasil dibuat!";
+
+        return redirect()->route('qr-requests.index')->with('success', $message);
     }
 
     public function printThermal(QrRequest $qrRequest)
