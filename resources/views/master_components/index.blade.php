@@ -101,7 +101,7 @@
 
                 <!-- Total Count -->
                 <span class="text-xs text-slate-400 font-medium whitespace-nowrap hidden 2xl:inline-block ms-1">
-                    ({{ $components->total() }})
+                    ({{ method_exists($components, 'total') ? $components->total() : $components->count() }})
                 </span>
             </form>
         </div>

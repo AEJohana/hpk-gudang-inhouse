@@ -38,12 +38,11 @@ class ComponentController extends Controller
         }
 
         if ($request->filled('low_stock')) {
-            $components = $query->get()->filter(function ($c) {
-                return $c->is_low_stock;
-            });
-        } else {
-            $components = $query->latest()->paginate(15)->withQueryString();
+            $query->where('minimum_stock', '>', 0)
+                ->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) <= components.minimum_stock');
         }
+
+        $components = $query->latest()->paginate(15)->withQueryString();
 
         $unallocatedCount = Component::whereNull('default_location_id')->count();
         $uncategorizedCount = Component::whereNull('category')->count();

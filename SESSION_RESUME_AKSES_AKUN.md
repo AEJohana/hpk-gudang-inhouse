@@ -199,6 +199,13 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
     - Perbaikan `overflow-wrap: break-word` agar nama komponen tidak terpotong di tengah kata.
 - **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/QrRequestQueueTest.php` - 8 passed, 49 assertions; total suite unit tests 51 passed, 231 assertions).
 
+### U. Perbaikan Error Filter Safety Stock / Low Stock (Paginator Subquery & Blade Defensif) (Baru Selesai & Teruji 100%)
+- **Eliminasi BadMethodCallException (`Collection::total does not exist`):**
+  - Mengubah logika query `low_stock` pada `ComponentController::index()` dari in-memory collection filtering (`$query->get()->filter(...)`) menjadi query level database SQL langsung menggunakan subquery: `where('minimum_stock', '>', 0)->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) <= components.minimum_stock')`.
+  - Mengembalikan objek `LengthAwarePaginator` secara konsisten via `paginate(15)->withQueryString()`, sehingga pemanggilan `$components->total()` dan navigasi `$components->links()` berjalan 100% normal tanpa error.
+- **Proteksi Defensif Antarmuka Blade:** Menambahkan pengecekan `method_exists($components, 'total')` pada baris 104 `resources/views/master_components/index.blade.php` agar kebal dari kegagalan render bila tipe data berupa collection.
+- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/ComponentLowStockFilterTest.php` - 1 passed, 5 assertions; total suite unit tests 52 passed, 236 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi
