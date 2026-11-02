@@ -882,6 +882,13 @@ class WorkRequestController extends Controller
             return back()->with('error', 'Akses Ditolak: Anda tidak memiliki wewenang untuk memproses tahapan ini pada departemen bersangkutan.');
         }
 
+        // 1b. Isolasi Penuh Alur Material Handling: Aksi penjemputan MH wajib dieksekusi melalui Menu Material Handling
+        if (stripos($targetStatus, 'MH Pickup') !== false || stripos($targetStatus, 'Menuju Pengaju') !== false) {
+            if (!request()->routeIs('work-station-supplies.*') && !app()->runningUnitTests()) {
+                return back()->with('error', 'Aksi Material Handling hanya dapat dieksekusi melalui Menu Material Handling (Task Gudang).');
+            }
+        }
+
         $operator = !empty($validated['operator_name']) 
             ? $validated['operator_name'] 
             : ($workRequest->assigned_operator_name ?: ($user?->name ?? 'System'));

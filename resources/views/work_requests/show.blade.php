@@ -275,34 +275,43 @@
                 </div>
 
                 <div class="flex items-center space-x-2">
-                    <button type="button" 
-                            @click="actionModal = true"
-                            class="px-5 py-2.5 font-black text-xs rounded-xl shadow-lg transition flex items-center space-x-2 {{ stripos($nextStatus, 'Sudah Diambil') !== false ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950' : (stripos($nextStatus, 'Pickup') !== false ? 'bg-amber-400 hover:bg-amber-300 text-slate-950' : (stripos($nextStatus, '(Out)') !== false ? 'bg-indigo-500 hover:bg-indigo-400 text-white' : 'bg-teal-500 hover:bg-teal-400 text-slate-950')) }}">
-                        @if(stripos($nextStatus, 'Sudah Diambil') !== false)
-                            <i class="fa-solid fa-box-open text-base"></i>
-                            <span>Konfirmasi Serah Terima & Masuk Stok</span>
-                        @elseif(stripos($nextStatus, 'Pickup') !== false)
+                    @if(stripos($nextStatus, 'Pickup') !== false || stripos($nextStatus, 'Menuju Pengaju') !== false)
+                        @can('material-handling.view')
+                        <a href="{{ route('work-station-supplies.index') }}" 
+                           class="px-5 py-2.5 font-black text-xs rounded-xl shadow-lg transition flex items-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950">
                             <i class="fa-solid fa-truck-ramp-box text-base"></i>
-                            <span>Angkut Material Handling (Pickup)</span>
-                        @elseif(stripos($nextStatus, '(Out)') !== false)
-                            <i class="fa-solid fa-check text-base"></i>
-                            <span>Selesaikan Mesin: {{ $nextStatus }}</span>
-                        @elseif(stripos($nextStatus, 'Menuju Pengaju') !== false)
-                            <i class="fa-solid fa-truck-fast text-base"></i>
-                            <span>Kirim ke Pengaju / Gudang</span>
+                            <span>Buka Menu Material Handling &rarr;</span>
+                        </a>
                         @else
-                            <i class="fa-solid fa-play text-base"></i>
-                            <span>Mulai: {{ $nextStatus }}</span>
-                        @endif
-                    </button>
+                        <span class="px-4 py-2.5 bg-white/10 text-amber-300 font-bold text-xs rounded-xl border border-amber-400/20 flex items-center space-x-2">
+                            <i class="fa-solid fa-clock text-base"></i>
+                            <span>Menunggu Penjemputan oleh Kurir MH</span>
+                        </span>
+                        @endcan
+                    @else
+                        <button type="button" 
+                                @click="actionModal = true"
+                                class="px-5 py-2.5 font-black text-xs rounded-xl shadow-lg transition flex items-center space-x-2 {{ stripos($nextStatus, 'Sudah Diambil') !== false ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950' : (stripos($nextStatus, 'Pickup') !== false ? 'bg-amber-400 hover:bg-amber-300 text-slate-950' : (stripos($nextStatus, '(Out)') !== false ? 'bg-indigo-500 hover:bg-indigo-400 text-white' : 'bg-teal-500 hover:bg-teal-400 text-slate-950')) }}">
+                            @if(stripos($nextStatus, 'Sudah Diambil') !== false)
+                                <i class="fa-solid fa-box-open text-base"></i>
+                                <span>Konfirmasi Serah Terima & Masuk Stok</span>
+                            @elseif(stripos($nextStatus, '(Out)') !== false)
+                                <i class="fa-solid fa-check text-base"></i>
+                                <span>Selesaikan Mesin: {{ $nextStatus }}</span>
+                            @else
+                                <i class="fa-solid fa-play text-base"></i>
+                                <span>Mulai: {{ $nextStatus }}</span>
+                            @endif
+                        </button>
 
-                    <button type="button" 
-                            @click="showAdvancedForm = !showAdvancedForm" 
-                            class="px-3.5 py-2.5 bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold rounded-xl transition border border-white/20 flex items-center space-x-1" 
-                            title="Buka opsi parsial / defect / ubah status manual">
-                        <i class="fa-solid fa-sliders"></i>
-                        <span x-text="showAdvancedForm ? 'Tutup Opsi' : 'Opsi Lanjutan'"></span>
-                    </button>
+                        <button type="button" 
+                                @click="showAdvancedForm = !showAdvancedForm" 
+                                class="px-3.5 py-2.5 bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold rounded-xl transition border border-white/20 flex items-center space-x-1" 
+                                title="Buka opsi parsial / defect / ubah status manual">
+                            <i class="fa-solid fa-sliders"></i>
+                            <span x-text="showAdvancedForm ? 'Tutup Opsi' : 'Opsi Lanjutan'"></span>
+                        </button>
+                    @endif
                 </div>
             </div>
 

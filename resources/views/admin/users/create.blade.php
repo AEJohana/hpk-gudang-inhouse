@@ -527,7 +527,7 @@
                         <template x-if="isGlobalRole()">
                             <div>
                                 <span class="font-bold">Mode Penuh (All Permissions):</span>
-                                Seluruh 64 hak akses modul WMS diaktifkan secara otomatis untuk pimpinan / admin sistem.
+                                Seluruh 37 hak akses modul WMS diaktifkan secara otomatis untuk pimpinan / admin sistem.
                             </div>
                         </template>
                         <template x-if="role === 'staff'">
@@ -563,6 +563,7 @@
                                 'disposal' => 'fa-trash-can text-rose-600',
                                 'label-qr' => 'fa-qrcode text-amber-600',
                                 'cycle-count' => 'fa-clipboard-check text-indigo-600',
+                                'audit-log' => 'fa-clock-rotate-left text-cyan-600',
                                 'laporan' => 'fa-chart-pie text-cyan-600',
                                 'admin-panel' => 'fa-shield-halved text-amber-600',
                                 default => 'fa-folder text-slate-600',
@@ -577,7 +578,8 @@
                                 'disposal' => 'Disposal / Scrap',
                                 'label-qr' => 'Label & Cetak QR Code',
                                 'cycle-count' => 'Stock Opname / Cycle Count',
-                                'laporan' => 'Laporan & Analitik',
+                                'audit-log' => 'Log Aktivitas & Audit Sistem',
+                                'laporan' => 'Log Aktivitas & Laporan',
                                 'admin-panel' => 'Pengaturan & Admin Panel',
                                 default => ucwords(str_replace('-', ' ', $group)),
                             };
@@ -589,7 +591,7 @@
                                     <div class="flex items-center space-x-2">
                                         <i class="fa-solid {{ $moduleIcon }} text-sm"></i>
                                         <h4 class="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
-                                            {{ $moduleLabel }}
+                                             {{ $moduleLabel }}
                                         </h4>
                                     </div>
                                     <button type="button" 
@@ -605,17 +607,66 @@
                                         @php
                                             $actionRaw = explode('.', $perm->name)[1] ?? $perm->name;
                                             $friendlyTitle = match($perm->name) {
+                                                // WRI
                                                 'work-request.view' => 'Akses Menu WRI (Parent)',
                                                 'work-request.create' => 'Sub: Buat Tiket WRI Baru',
                                                 'work-request.process' => 'Sub: Eksekusi Pengerjaan Mesin',
-                                                'work-request.approve' => 'Sub: Approval Ka. Bagian',
+                                                'work-request.approve' => 'Sub: Approval (Ka. Pengaju & Penerima / Tugaskan Operator)',
                                                 'work-request.print' => 'Sub: Cetak Lembar WRI & QR',
                                                 'work-request.monitoring' => 'Sub: Monitoring SLA & Durasi',
                                                 'work-request.safety-stock' => 'Sub: Pantau Safety Stock',
                                                 'work-request.view-all' => 'Sub Khusus: Semua 15 Dept (*)',
-                                                'material-handling.view' => 'Lihat Logistik MH',
-                                                'material-handling.manage' => 'Kelola Pickup & Drop MH',
-                                                default => ucfirst($actionRaw),
+
+                                                // MH
+                                                'material-handling.view' => 'Lihat Dashboard MH & Task',
+                                                'material-handling.manage' => 'Kelola Task & Scan QR Lookup',
+                                                'material-handling.process' => 'Sub: Eksekusi Pickup & Drop',
+
+                                                // Peta Gudang
+                                                'peta-gudang.view' => 'Lihat Peta Denah 2D Rak/Pallet',
+                                                'peta-gudang.create' => 'Sub: Tambah Titik Rak Baru',
+                                                'peta-gudang.edit' => 'Sub: Drag-and-Drop & Konfigurasi Rak',
+
+                                                // Master Komponen
+                                                'master-komponen.view' => 'Lihat Katalog & Data Komponen',
+                                                'master-komponen.create' => 'Sub: Tambah Komponen & Import',
+                                                'master-komponen.edit' => 'Sub: Edit Komponen & Foto',
+                                                'master-komponen.delete' => 'Sub: Hapus Master Komponen',
+
+                                                // Transaksi Komponen
+                                                'transaksi-komponen.view' => 'Lihat Kartu Stok & Mutasi',
+                                                'transaksi-komponen.create' => 'Sub: Catat Mutasi In/Out/Retur',
+
+                                                // Label QR
+                                                'label-qr.view' => 'Lihat Antrean & Riwayat Label',
+                                                'label-qr.create' => 'Sub: Ajukan Cetak Label Baru',
+                                                'label-qr.print' => 'Sub: Cetak Label (Thermal/A4/Bulk)',
+
+                                                // ECR
+                                                'ecr.view' => 'Lihat Daftar Pengajuan ECR',
+                                                'ecr.create' => 'Sub: Ajukan Revisi Komponen',
+                                                'ecr.approve' => 'Sub: Otorisasi Approval/Reject ECR',
+
+                                                // Disposal
+                                                'disposal.view' => 'Lihat Pengajuan Disposal Scrap',
+                                                'disposal.create' => 'Sub: Ajukan Afkir Material Rusak',
+                                                'disposal.approve' => 'Sub: Otorisasi QC & Eksekusi Scrap',
+
+                                                // Cycle Count
+                                                'cycle-count.view' => 'Lihat Sesi & Riwayat Opname',
+                                                'cycle-count.create' => 'Sub: Buka Opname & Input Hitung',
+                                                'cycle-count.approve' => 'Sub: Rekonsiliasi Selisih Stok',
+
+                                                // Audit Log
+                                                'audit-log.view' => 'Lihat Rekam Jejak Audit Sistem',
+                                                'audit-log.export' => 'Sub: Ekspor / Unduh Log Audit',
+
+                                                // Admin Panel
+                                                'admin-panel.view' => 'Akses Masuk Admin Panel',
+                                                'admin-panel.users' => 'Sub: Manajemen Pengguna & Izin',
+                                                'admin-panel.settings' => 'Sub: Pengaturan & Master Data',
+
+                                                default => ucfirst(str_replace('-', ' ', $actionRaw)),
                                             };
                                             $actionBadge = match($actionRaw) {
                                                 'view' => 'text-slate-700 bg-slate-100',
@@ -629,6 +680,9 @@
                                                 'monitoring' => 'text-cyan-700 bg-cyan-100/70',
                                                 'safety-stock' => 'text-rose-700 bg-rose-100/70',
                                                 'view-all' => 'text-teal-700 bg-teal-100/70',
+                                                'users' => 'text-purple-700 bg-purple-100/70',
+                                                'settings' => 'text-blue-700 bg-blue-100/70',
+                                                'manage' => 'text-blue-700 bg-blue-100/70',
                                                 default => 'text-slate-700 bg-slate-100',
                                             };
                                         @endphp

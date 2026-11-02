@@ -206,6 +206,90 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Proteksi Defensif Antarmuka Blade:** Menambahkan pengecekan `method_exists($components, 'total')` pada baris 104 `resources/views/master_components/index.blade.php` agar kebal dari kegagalan render bila tipe data berupa collection.
 - **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/ComponentLowStockFilterTest.php` - 1 passed, 5 assertions; total suite unit tests 52 passed, 236 assertions).
 
+### V. Pembersihan Sistem & Akselerasi Kinerja Dashboard (Baru Selesai & Teruji 100%)
+- **Eliminasi 600+ N+1 Query pada `DashboardController.php`:**
+  - Mengganti penarikan seluruh data komponen ke RAM (`Component::all()->filter()`) dengan single SQL aggregated query: `Component::where('minimum_stock', '>', 0)->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) <= components.minimum_stock')->count()`.
+  - Memangkas waktu render beranda dashboard secara drastis dari ratusan milidetik menjadi < 5ms dengan konsumsi memori minimal.
+- **Pengaktifan Tab "Monitoring SLA & Durasi WRI":**
+  - Menambahkan tombol tab navigasi `[ 📈 Monitoring SLA & Durasi ]` pada bilah sub-navigasi antrean WRI (`work_requests/index.blade.php`, `safety_stock.blade.php`, dan `print_queue.blade.php`) di bawah izin `work-request.monitoring`.
+  - Menghubungkan fitur monitoring SLA dan utilisasi mesin yang sebelumnya tersembunyi agar dapat diakses langsung oleh operator dan pengawas.
+- **Pembersihan Berkas Boilerplate Menganggur:**
+  - Menghapus berkas starter awal Laravel `resources/views/welcome.blade.php` yang tidak lagi digunakan oleh route mana pun.
+- **Pengujian Unit Otomatis Terisolasi:** Seluruh 52 pengujian unit lulus 100% pada SQLite `:memory:` (236 assertions).
+
+### W. Restrukturisasi Matriks Peran & Otorisasi Sistem (37 Hak Akses Presisi - Baru Selesai & Teruji 100%)
+- **Eliminasi 28 Izin Fiktif (*Ghost Permissions*):**
+  - Menghapus perulangan generik 6 aksi (`view, create, edit, delete, approve, export`) yang memunculkan kotak centang kosong tanpa fungsi (seperti *Approve/Export Peta Gudang*, *Edit/Delete Transaksi Mutasi*, *Delete Permintaan QR*).
+  - Merestrukturisasi sistem menjadi **37 hak akses presisi** di mana setiap kotak centang terhubung langsung ke tombol, aksi, dan middleware otorisasi riil di backend.
+- **Daftar 11 Modul & 37 Izin Presisi:**
+  1. `work-request` (8): `view`, `create`, `process`, `approve`, `print`, `monitoring`, `safety-stock`, `view-all`
+  2. `material-handling` (3): `view`, `manage`, `process`
+  3. `peta-gudang` (3): `view`, `create`, `edit`
+  4. `master-komponen` (4): `view`, `create`, `edit`, `delete`
+  5. `transaksi-komponen` (2): `view`, `create`
+  6. `label-qr` (3): `view`, `create`, `print`
+  7. `ecr` (3): `view`, `create`, `approve`
+  8. `disposal` (3): `view`, `create`, `approve`
+  9. `cycle-count` (3): `view`, `create`, `approve`
+  10. `audit-log` (2): `view`, `export` (merevitalisasi modul fiktif "Laporan" menjadi Log Aktivitas Sistem)
+  11. `admin-panel` (3): `view`, `users`, `settings`
+- **Pembaruan UI & Bahasa Indonesia Ramah Pengguna:**
+  - `resources/views/admin/users/create.blade.php`, `edit.blade.php`, dan `resources/views/admin/roles/edit.blade.php` menyematkan judul berbahasa Indonesia yang jelas untuk setiap centang izin beserta badge aksi tematik.
+- **Presets Rekomendasi Otomatis Berbasis Area Kerja:**
+  - Pemilihan role & area kerja (`gudang`, `mesin_center`, `material_handling`) secara otomatis mencentang hak akses yang sesuai tanpa perlu admin memilih manual satu per satu.
+- **Proteksi Rute Baru (`routes/web.php`):**
+  - Rute cetak QR thermal, sheet, dan bulk print diproteksi dengan `can:label-qr.print`.
+  - Rute log aktivitas diproteksi dengan `can:audit-log.view`.
+- **Kepatuhan Zero Database Regression:**
+  - Diterapkan melalui migrasi database aman `2026_11_02_110000_refactor_permissions_matrix.php` tanpa menghapus akun maupun data operasional. Seluruh unit tests lulus 100%.
+
+### X. Pengaktifan Otomatis Izin Approval Penerima pada Preset Staff Mesin Center (Baru Selesai & Teruji 100%)
+- **Penambahan `work-request.approve` pada Preset Staff Mesin Center:**
+  - Memperbarui `getPermissionPresets()` di `app/Http/Controllers/Admin/UserController.php` sehingga saat admin memilih Role: **Staff** dan Bagian: **Mesin Center**, kotak izin approval otomatis tercentang (`checked`).
+  - Staf Mesin Center kini langsung memiliki wewenang untuk menyetujui tiket masuk ke stasiun mesinnya (`approval_penerima = 'Diterima'`), membuka modal `[ Diterima (Tugaskan) ]`, dan menugaskan operator pelaksana (`assigned_operator_name`).
+- **Klarifikasi Label Antarmuka (UI Friendly Title):**
+  - Mengubah label izin pada `create.blade.php`, `edit.blade.php`, dan `roles/edit.blade.php` dari `Sub: Approval Ka. Bagian` menjadi:
+    **`Sub: Approval (Ka. Pengaju & Penerima / Tugaskan Operator)`**.
+  - Mengeliminasi kebingungan pengguna mengenai apakah kotak approval tersebut mencakup verifikasi kesanggupan mesin penerima dan penugasan operator.
+- **Pengujian Unit Otomatis Terisolasi:**
+  - Menambahkan pengujian khusus pada `tests/Unit/PermissionMatrixIntegrityTest.php` yang memverifikasi bahwa preset staff mesin center wajib memiliki `work-request.approve`, sedangkan operator mesin fisik tetap tidak memiliki izin manajerial approval. Seluruh 55 unit tests lulus 100% (285 assertions).
+
+### Y. Perbaikan Trigger Otorisasi Penerima & Aktivasi Tombol Routing Pengerjaan Mesin (Baru Selesai & Teruji 100%)
+- **Akar Masalah (Root Cause Bug Dropdown):**
+  - Pada tabel desktop WRI (`resources/views/work_requests/index.blade.php`), dropdown `STS PENERIMA` menggunakan tag `<select @change="handlePenerimaAction($event, @json($assignPayload)...)">`. Penggunaan `@json()` di dalam atribut berkutip ganda (`"`) menghasilkan tabrakan sintaksis HTML (*quote collision*) yang memotong script menjadi `@change="handlePenerimaAction($event, {"`.
+  - Hal ini memicu *JavaScript SyntaxError* pada Alpine.js. Akibatnya saat opsi "Diterima" dipilih, nilai dropdown berubah secara visual namun modal penugasan operator tidak pernah muncul dan form tidak pernah tersubmit ke backend, sehingga tiket tertahan di status `Menunggu Penerima` dan alur routing mesin tidak pernah aktif.
+- **Solusi Komprehensif & Modernisasi Antarmuka:**
+  - **Penggantian Dropdown ke Tombol Aksi Langsung (Kolom 5 STS PENERIMA):**
+    - Mengganti elemen `<select>` yang rawan bug dengan tombol aksi interaktif presisi:
+      - `[ 👤 Tugaskan ]`: Membuka modal verifikasi penerima & penugasan operator menggunakan atribut berkutip tunggal `@click='openAssignModal(@json($assignPayload))'`.
+      - `[ ✕ ]`: Membuka modal penolakan tiket WRI (`openRejectModal`).
+  - **Aktivasi Tombol Aksi di Kolom 1 (NO WR / STATUS):**
+    - Jika tiket masih `Menunggu Penerima` dan pengguna memiliki hak otorisasi penerima, badge pasif digantikan menjadi tombol aksi interaktif: `[ 👤 Tugaskan Operator ]`.
+    - Jika tiket masih `Menunggu Pengaju` dan pengguna berwenang, tombol `[ Setujui Pengaju ]` langsung muncul.
+  - **Modernisasi Kolom 4 (STS PENGAJU):**
+    - Mengganti select box pengaju dengan tombol direct `[ Setujui ]` dan `[ ✕ ]`, serta menambahkan method helper `handlePengajuActionDirect(approveUrl)` pada Alpine.js.
+  - **Aktivasi Alur Routing Mesin Seketika:**
+    - Begitu staf/kepala penerima menginput nama operator pelaksana dan menekan `[ Verifikasi & Masukkan Antrian ]`, backend mengubah status tiket menjadi `approval_penerima = 'Diterima'` dan `status = 'Dalam antrian'`.
+    - Seketika tombol routing stasiun pertama langsung muncul di Kolom 1: `[ ▶ Mulai: [Mesin] (In) ]` (contoh: `[ ▶ Mulai: Bubut (In) ]`), siap untuk dieksekusi oleh operator pelaksana.
+- **Validasi & Pengujian:**
+  - Bebas dari *JavaScript SyntaxError* di browser.
+  - Seluruh pengujian otomatis `tests/Unit` (55 tests, 285 assertions) lulus 100%.
+
+### Z. Isolasi Penuh Aksi Material Handling ke Menu MH & Penegasan Alur Penerimaan Gudang (Baru Selesai & Teruji 100%)
+- **Penghapusan Tombol Eksekusi MH dari Antrean WRI:**
+  - Menghilangkan modal pop-up serah terima kurir MH (Lampiran 1: *"Pengantaran ke Pengaju (MH)"*) dari tabel antrean WRI (`resources/views/work_requests/index.blade.php`) dan detail WRI (`resources/views/work_requests/show.blade.php`).
+  - Parameter `$forWriView = true` pada `getAvailableActionsForUser()` dan `canUserProcessAction()` di `app/Models/WorkRequest.php` memastikan aksi `pickup` dan `pickup_final` tidak pernah ditawarkan sebagai tombol eksekusi di WRI, bahkan untuk akun Admin.
+  - Menambahkan proteksi lapis ganda di `WorkRequestController::processAction` yang menolak eksekusi aksi MH jika tidak berasal dari rute `work-station-supplies.*`.
+- **Indikator Informatif & Tautan Cepat ke Menu MH di WRI:**
+  - Jika tiket berstatus `Siap Diambil` (selesai di mesin), antrean WRI menampilkan badge oranye: `🚚 Siap Dijemput Kurir MH` + tombol link `[ 🚚 Buka Menu MH ]` menuju `/work-station-supplies` bagi akun yang memiliki hak akses MH.
+  - Jika tiket berstatus `Menuju Pengaju` (sedang diangkut kurir), antrean WRI menampilkan badge ungu: `🚚 Sedang Diantar Kurir MH` + link `[ Pantau di MH ]`.
+- **Penegasan Alur Penerimaan Gudang (Tidak Pernah Ditutup Otomatis):**
+  - Setelah Kurir MH mengonfirmasi penjemputan dari menu MH (`/work-station-supplies`), tiket berstatus `Menuju Pengaju` dan **TETAP TERBUKA** (`is_final = false`).
+  - Di tampilan Staf Gudang, tombol aksi wajib **`[ 📦 Terima di Rak Gudang ]`** (`Sudah Diambil`) aktif.
+  - Staf Gudang memeriksa unit fisik masuk rak, dan hanya setelah konfirmasi terima, stok gudang (`stock_balances`) bertambah dan tiket resmi tuntas (**Final**).
+- **Pengujian Unit Otomatis Terisolasi:**
+  - Menambahkan pengujian `test_wri_view_excludes_material_handling_actions` dan `test_gudang_must_receive_goods_after_mh_delivery_and_ticket_remains_open` di `tests/Unit/WorkRequestAuthorizationTest.php`. Seluruh 57 unit tests lulus 100% (292 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

@@ -199,7 +199,7 @@ class WorkRequest extends Model
     /**
      * Check if user is authorized to perform the next operational lifecycle action
      */
-    public function canUserProcessAction(?User $user = null, ?string $nextStatus = null): bool
+    public function canUserProcessAction(?User $user = null, ?string $nextStatus = null, bool $forWriView = false): bool
     {
         $user = $user ?? auth()->user();
         if (!$user) return false;
@@ -214,6 +214,12 @@ class WorkRequest extends Model
         }
 
         $next = $nextStatus ?? $this->getNextStatusLabel($user);
+
+        // Jika dalam konteks tampilan WRI, aksi Material Handling DILARANG dieksekusi dari WRI (wajib melalui menu MH)
+        if ($forWriView && (stripos($next, 'MH Pickup') !== false || stripos($next, 'Menuju Pengaju') !== false)) {
+            return false;
+        }
+
         $userDept = strtolower(trim($user->effective_department_name));
         $cleanUser = preg_replace('/[^a-z0-9]/', '', $userDept);
 
@@ -458,7 +464,7 @@ class WorkRequest extends Model
     /**
      * Get available operational actions for the specified user based on department balances (Legacy js_dashboard logic)
      */
-    public function getAvailableActionsForUser(?User $user = null): array
+    public function getAvailableActionsForUser(?User $user = null, bool $forWriView = false): array
     {
         $user = $user ?? auth()->user();
         if (!$user) return [];
@@ -517,8 +523,8 @@ class WorkRequest extends Model
             }
         }
 
-        // 2. Cek aksi Material Handling (Hanya untuk Material Handling, Mesin Center DILARANG)
-        if (($user->work_area === 'material_handling' || $user->hasRole('operator_mh') || $user->can('material-handling.process') || $user->can('material-handling.manage')) && $user->work_area !== 'mesin_center') {
+        // 2. Cek aksi Material Handling (Hanya untuk Material Handling, Mesin Center DILARANG, dan DILARANG dieksekusi di WRI view)
+        if (!$forWriView && ($user->work_area === 'material_handling' || $user->hasRole('operator_mh') || $user->can('material-handling.process') || $user->can('material-handling.manage')) && $user->work_area !== 'mesin_center') {
             foreach ($steps as $idx => $step) {
                 $bal = $this->getStepBalance($step, $idx);
                 if (!$bal['is_last_step']) {

@@ -62,6 +62,13 @@
                         </span>
                     @endif
                 </a>
+                @can('work-request.monitoring')
+                <a href="{{ route('work-requests.monitoring') }}" 
+                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+                    <i class="fa-solid fa-chart-line text-xs text-amber-500"></i>
+                    <span>Monitoring SLA & Durasi</span>
+                </a>
+                @endcan
             </div>
 
             <div class="flex items-center space-x-2 text-xs">

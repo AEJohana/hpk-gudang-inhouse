@@ -20,19 +20,9 @@ class AdminSeeder extends Seeder
         // Reset cached roles and permissions
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // 1. Generic Standard Module Permissions
-        $modules = ['Peta Gudang', 'Master Komponen', 'Transaksi Komponen', 'ECR', 'Disposal', 'Label QR', 'Cycle Count', 'Laporan', 'Admin Panel'];
-        $actions = ['view', 'create', 'edit', 'delete', 'approve', 'export'];
-
-        foreach ($modules as $module) {
-            $slug = Str::slug($module);
-            foreach ($actions as $action) {
-                Permission::firstOrCreate(['name' => "{$slug}.{$action}"]);
-            }
-        }
-
-        // 2. Dedicated Work Request Inhouse (WRI) Granular Permissions
-        $wriPermissions = [
+        // 1. The 34 Tailored Permissions (Presisi & Terhubung ke Fitur Riil)
+        $tailoredPermissions = [
+            // Work Request Inhouse (8)
             'work-request.view',        // Akses Utama Menu & Lihat Daftar WRI
             'work-request.create',      // Sub-Akses: Buat Tiket WRI Baru
             'work-request.process',     // Sub-Akses: Eksekusi Pengerjaan Mesin, Advance Step & Lapor Defect
@@ -41,24 +31,65 @@ class AdminSeeder extends Seeder
             'work-request.monitoring',  // Sub-Akses: Dashboard Monitoring SLA & Analitik Durasi Mesin
             'work-request.safety-stock',// Sub-Akses: Tab Pemantauan Part Kritis & Order Cepat
             'work-request.view-all',    // Sub-Akses Khusus: Akses Global Tiket Semua 15 Departemen (*)
-        ];
 
-        foreach ($wriPermissions as $perm) {
-            Permission::firstOrCreate(['name' => $perm]);
-        }
-
-        // 3. Dedicated Material Handling (MH) Permissions
-        $mhPermissions = [
+            // Material Handling (3)
             'material-handling.view',   // Lihat Dashboard & Logistik MH
             'material-handling.manage', // Eksekusi MH Pickup, Transit, Drop & Scan
             'material-handling.process', // Sub-Akses: Eksekusi Serah-Terima MH
+
+            // Peta Gudang (3)
+            'peta-gudang.view',         // Lihat Denah 2D & Lokasi Rak/Pallet
+            'peta-gudang.create',       // Tambah Titik Rak / Pallet Baru
+            'peta-gudang.edit',         // Drag-and-Drop Tata Letak & Konfigurasi Rak
+
+            // Master Komponen (4)
+            'master-komponen.view',     // Lihat Katalog & Detail Komponen
+            'master-komponen.create',   // Tambah Komponen & Import Data Excel/CSV
+            'master-komponen.edit',     // Edit Spesifikasi, Foto, & Safety Stock
+            'master-komponen.delete',   // Hapus Data Master Komponen
+
+            // Transaksi Komponen (2)
+            'transaksi-komponen.view',   // Lihat Riwayat Kartu Stok & Mutasi Barang
+            'transaksi-komponen.create', // Catat Mutasi Masuk, Keluar, Transfer, & Retur
+
+            // Label QR (3)
+            'label-qr.view',            // Lihat Antrean & Riwayat Pengajuan Label QR
+            'label-qr.create',          // Ajukan Permintaan Cetak Label QR Baru
+            'label-qr.print',           // Eksekusi Cetak Label (Thermal, A4 Rak/Kartu, & Bulk)
+
+            // ECR (3)
+            'ecr.view',                 // Lihat Daftar & Detail Pengajuan ECR
+            'ecr.create',               // Ajukan Form Revisi Desain Komponen (ECR)
+            'ecr.approve',              // Otorisasi Persetujuan / Penolakan ECR
+
+            // Disposal (3)
+            'disposal.view',            // Lihat Daftar Pengajuan Afkir / Scrap
+            'disposal.create',          // Ajukan Afkir Material Rusak
+            'disposal.approve',         // Otorisasi Verifikasi QC & Penyelesaian Pemusnahan
+
+            // Cycle Count (3)
+            'cycle-count.view',         // Lihat Sesi & Riwayat Stock Opname
+            'cycle-count.create',       // Buka Sesi Opname & Input Hasil Hitung Fisik
+            'cycle-count.approve',      // Otorisasi Rekonsiliasi & Penyesuaian Saldo Stok
+
+            // Log Aktivitas & Audit (2)
+            'audit-log.view',           // Akses Menu & Lihat Rekam Jejak Audit Sistem
+            'audit-log.export',         // Unduh Rekam Jejak Aktivitas & Audit Log Sistem
+
+            // Admin Panel (3)
+            'admin-panel.view',         // Akses Masuk ke Admin Panel & Dashboard Admin
+            'admin-panel.users',        // Kelola Akun Pengguna, Role, & Matriks Izin
+            'admin-panel.settings',     // Kelola Kategori, Satuan UoM, Lokasi, & Pengaturan Sistem
         ];
 
-        foreach ($mhPermissions as $perm) {
-            Permission::firstOrCreate(['name' => $perm]);
+        foreach ($tailoredPermissions as $perm) {
+            Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
-        // 4. Setup Roles & Sync Permissions
+        // Hapus izin lama yang tidak ada di daftar 34 permissions presisi
+        Permission::whereNotIn('name', $tailoredPermissions)->delete();
+
+        // 2. Setup Roles & Sync Permissions
         // Role: Admin Gudang (Super User)
         $roleAdmin = Role::firstOrCreate(['name' => 'admin_gudang', 'guard_name' => 'web']);
         $roleAdmin->syncPermissions(Permission::all());
@@ -67,13 +98,13 @@ class AdminSeeder extends Seeder
         $roleSupervisor = Role::firstOrCreate(['name' => 'supervisor', 'guard_name' => 'web']);
         $roleSupervisor->syncPermissions([
             'peta-gudang.view',
-            'master-komponen.view', 'master-komponen.export',
-            'transaksi-komponen.view', 'transaksi-komponen.export',
+            'master-komponen.view',
+            'transaksi-komponen.view',
             'ecr.view', 'ecr.approve',
             'disposal.view', 'disposal.approve',
-            'label-qr.view',
+            'label-qr.view', 'label-qr.print',
             'cycle-count.view', 'cycle-count.approve',
-            'laporan.view', 'laporan.export',
+            'audit-log.view', 'audit-log.export',
             // WRI & MH
             'work-request.view',
             'work-request.create',
@@ -82,8 +113,10 @@ class AdminSeeder extends Seeder
             'work-request.print',
             'work-request.monitoring',
             'work-request.safety-stock',
+            'work-request.view-all',
             'material-handling.view',
             'material-handling.manage',
+            'material-handling.process',
         ]);
 
         // Role: Operator (Hak akses spesifik diberikan per-user via checklist matrix berdasarkan area kerja)
@@ -107,9 +140,11 @@ class AdminSeeder extends Seeder
         $roleOperatorMH->syncPermissions([
             'peta-gudang.view',
             'label-qr.view',
+            'label-qr.print',
             'work-request.view',
             'material-handling.view',
             'material-handling.manage',
+            'material-handling.process',
         ]);
 
         // Role: Quality Control (QC)
@@ -124,8 +159,8 @@ class AdminSeeder extends Seeder
         // Role: Engineering Karoseri
         $roleEngineering = Role::firstOrCreate(['name' => 'engineering', 'guard_name' => 'web']);
         $roleEngineering->syncPermissions([
-            'master-komponen.view',
-            'ecr.view', 'ecr.create', 'ecr.edit',
+            'master-komponen.view', 'master-komponen.create', 'master-komponen.edit',
+            'ecr.view', 'ecr.create',
             'work-request.view',
             'work-request.monitoring',
         ]);

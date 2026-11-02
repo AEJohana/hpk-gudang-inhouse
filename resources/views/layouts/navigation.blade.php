@@ -84,7 +84,7 @@
                                 <i class="fa-solid fa-truck-ramp-box me-2 text-blue-600"></i> Material Handling (Task Gudang)
                             </x-dropdown-link>
                             @endcan
-                            @if(Auth::user()->hasAnyRole(['admin_gudang', 'supervisor', 'qc', 'engineering']))
+                            @if(Auth::user()->hasAnyRole(['admin_gudang', 'supervisor', 'qc', 'engineering']) || Auth::user()->can('audit-log.view'))
                             <x-dropdown-link :href="route('activities.index')" class="text-xs border-t border-slate-100">
                                 <i class="fa-solid fa-clock-rotate-left me-2 text-amber-500"></i> Log Aktivitas Sistem
                             </x-dropdown-link>

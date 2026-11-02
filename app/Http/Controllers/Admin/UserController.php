@@ -330,16 +330,20 @@ class UserController extends Controller
                     'master-komponen.view', 'master-komponen.create', 'master-komponen.edit',
                     'transaksi-komponen.view', 'transaksi-komponen.create',
                     'peta-gudang.view',
-                    'label-qr.view', 'label-qr.create',
+                    'label-qr.view', 'label-qr.create', 'label-qr.print',
                     'cycle-count.view', 'cycle-count.create',
-                    'laporan.view', 'laporan.export',
+                    'audit-log.view', 'audit-log.export',
                     'work-request.view', 'work-request.create', 'work-request.print',
                 ],
                 'mesin_center' => [
-                    'work-request.view', 'work-request.process', 'work-request.print',
+                    'work-request.view', 'work-request.approve', 'work-request.process', 'work-request.print',
+                    'master-komponen.view',
                 ],
                 'material_handling' => [
                     'material-handling.view', 'material-handling.manage', 'material-handling.process',
+                    'work-request.view',
+                    'peta-gudang.view',
+                    'label-qr.view', 'label-qr.print',
                 ],
             ],
             'operator' => [
@@ -348,14 +352,18 @@ class UserController extends Controller
                     'master-komponen.view',
                     'transaksi-komponen.view', 'transaksi-komponen.create',
                     'cycle-count.view', 'cycle-count.create',
-                    'label-qr.view', 'label-qr.create',
+                    'label-qr.view', 'label-qr.create', 'label-qr.print',
                     'work-request.view', 'work-request.create', 'work-request.print',
                 ],
                 'mesin_center' => [
                     'work-request.view', 'work-request.process', 'work-request.print',
+                    'master-komponen.view',
                 ],
                 'material_handling' => [
                     'material-handling.view', 'material-handling.manage', 'material-handling.process',
+                    'work-request.view',
+                    'peta-gudang.view',
+                    'label-qr.view', 'label-qr.print',
                 ],
             ],
         ];

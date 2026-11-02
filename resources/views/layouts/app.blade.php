@@ -131,7 +131,7 @@
                 </a>
                 @endcan
 
-                @if(Auth::user()->hasAnyRole(['admin_gudang', 'supervisor', 'qc', 'engineering']))
+                @if(Auth::user()->hasAnyRole(['admin_gudang', 'supervisor', 'qc', 'engineering']) || Auth::user()->can('audit-log.view'))
                 <a href="{{ route('activities.index') }}" class="hpk-sidebar-item {{ request()->routeIs('activities.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
                     <span>Log Aktivitas Sistem</span>

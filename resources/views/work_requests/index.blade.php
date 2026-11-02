@@ -49,7 +49,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6" 
          x-data="wriQueueManager()"
          @if(isset($openDetailPayload) && $openDetailPayload)
-             x-init="openDetailModal(@json($openDetailPayload))"
+             x-init='openDetailModal(@json($openDetailPayload))'
          @endif>
 
         <!-- 0. INTEGRATED WRI SUB-NAVIGATION TABS (Antrian, Safety Stock, Monitoring) -->
@@ -77,6 +77,13 @@
                             {{ $printableCount }}
                         </span>
                     @endif
+                </a>
+                @endcan
+                @can('work-request.monitoring')
+                <a href="{{ route('work-requests.monitoring') }}" 
+                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+                    <i class="fa-solid fa-chart-line text-xs text-amber-500"></i>
+                    <span>Monitoring SLA & Durasi</span>
                 </a>
                 @endcan
             </div>
@@ -275,7 +282,7 @@
             <div class="block md:hidden p-4 space-y-3">
                 @forelse($workRequests as $wri)
                 @php
-                    $userActions = $wri->getAvailableActionsForUser(auth()->user());
+                    $userActions = $wri->getAvailableActionsForUser(auth()->user(), true);
                     $hasUserAction = !empty($userActions);
                     $primaryAction = $hasUserAction ? $userActions[0] : null;
 
@@ -299,7 +306,7 @@
 
                     $canApprovePengaju = $wri->canUserApprovePengaju(auth()->user());
                     $canApprovePenerima = $wri->canUserApprovePenerima(auth()->user());
-                    $canProcessAction = $hasUserAction ? true : (auth()->user()->isAdmin() && $wri->canUserProcessAction(auth()->user(), $nextStatus));
+                    $canProcessAction = $hasUserAction ? true : (auth()->user()->isAdmin() && $wri->canUserProcessAction(auth()->user(), $nextStatus, true));
 
                     $assignPayload = [
                         'id' => $wri->id,
@@ -527,13 +534,29 @@
                                                 <i class="fa-solid fa-warehouse text-emerald-600 me-1"></i> Menunggu Penerimaan {{ $wri->dept_pengaju ?: 'Gudang' }}
                                             </span>
                                         @elseif($isMenuju)
-                                            <span class="flex-1 py-1.5 text-center bg-purple-50 text-purple-800 border border-purple-300 rounded-xl text-[10px] font-bold truncate px-2">
-                                                <i class="fa-solid fa-truck-fast text-purple-600 me-1"></i> Sedang Diantar ke {{ $wri->dept_pengaju ?: 'Pengaju' }}
-                                            </span>
+                                            <div class="flex-1 flex flex-col space-y-1">
+                                                <span class="py-1.5 text-center bg-purple-50 text-purple-800 border border-purple-300 rounded-xl text-[10px] font-bold truncate px-2">
+                                                    <i class="fa-solid fa-truck-fast text-purple-600 me-1"></i> Sedang Diantar Kurir MH
+                                                </span>
+                                                @can('material-handling.view')
+                                                <a href="{{ route('work-station-supplies.index') }}" 
+                                                   class="py-1 text-center bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold text-[10px] rounded-lg border border-purple-300 transition">
+                                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] me-1"></i> Pantau di MH
+                                                </a>
+                                                @endcan
+                                            </div>
                                         @elseif($isPickup || stripos($wri->status, 'Siap Diambil') !== false)
-                                            <span class="flex-1 py-1.5 text-center bg-amber-50 text-amber-900 border border-amber-300 rounded-xl text-[10px] font-bold truncate px-2">
-                                                <i class="fa-solid fa-dolly text-amber-600 me-1"></i> Siap Dijemput Material Handling
-                                            </span>
+                                            <div class="flex-1 flex flex-col space-y-1">
+                                                <span class="py-1.5 text-center bg-amber-50 text-amber-900 border border-amber-300 rounded-xl text-[10px] font-bold truncate px-2">
+                                                    <i class="fa-solid fa-truck-ramp-box text-amber-600 me-1"></i> Siap Dijemput Kurir MH
+                                                </span>
+                                                @can('material-handling.view')
+                                                <a href="{{ route('work-station-supplies.index') }}" 
+                                                   class="py-1 text-center bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[10px] rounded-lg shadow-2xs transition">
+                                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] me-1"></i> Buka Menu MH
+                                                </a>
+                                                @endcan
+                                            </div>
                                         @else
                                             <span class="flex-1 py-1.5 text-center bg-indigo-50 text-indigo-900 border border-indigo-200 rounded-xl text-[10px] font-bold truncate px-2">
                                                 <i class="fa-solid fa-gear fa-spin text-indigo-500 me-1"></i> Sedang dlm proses di Line {{ $wri->dept_penerima ?: 'Penerima' }}
@@ -603,7 +626,7 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse($workRequests as $wri)
                         @php
-                            $userActions = $wri->getAvailableActionsForUser(auth()->user());
+                            $userActions = $wri->getAvailableActionsForUser(auth()->user(), true);
                             $hasUserAction = !empty($userActions);
                             $primaryAction = $hasUserAction ? $userActions[0] : null;
 
@@ -627,7 +650,7 @@
 
                             $canApprovePengaju = $wri->canUserApprovePengaju(auth()->user());
                             $canApprovePenerima = $wri->canUserApprovePenerima(auth()->user());
-                            $canProcessAction = $hasUserAction ? true : (auth()->user()->isAdmin() && $wri->canUserProcessAction(auth()->user(), $nextStatus));
+                            $canProcessAction = $hasUserAction ? true : (auth()->user()->isAdmin() && $wri->canUserProcessAction(auth()->user(), $nextStatus, true));
 
                             $assignPayload = [
                                 'id' => $wri->id,
@@ -773,13 +796,33 @@
                                 <div class="mt-2">
                                     @if(!$wri->is_final)
                                         @if($wri->approval_pengaju === 'Menunggu')
-                                            <span class="inline-flex items-center px-2 py-1 text-amber-800 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
-                                                <i class="fa-solid fa-clock text-amber-500 me-1 text-[9px]"></i> Menunggu Pengaju
-                                            </span>
+                                            @if($canApprovePengaju)
+                                                <button type="button" 
+                                                        @click="handlePengajuActionDirect('{{ route('work-requests.approve-pengaju', $wri) }}')"
+                                                        class="w-full inline-flex items-center justify-center px-2 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold text-[11px] rounded-xl shadow-xs transition space-x-1 text-center"
+                                                        title="Setujui tiket pengajuan ini">
+                                                    <i class="fa-solid fa-check text-[10px]"></i>
+                                                    <span>Setujui Pengaju</span>
+                                                </button>
+                                            @else
+                                                <span class="inline-flex items-center px-2 py-1 text-amber-800 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                                    <i class="fa-solid fa-clock text-amber-500 me-1 text-[9px]"></i> Menunggu Pengaju
+                                                </span>
+                                            @endif
                                         @elseif($wri->approval_penerima === 'Menunggu')
-                                            <span class="inline-flex items-center px-2 py-1 text-blue-800 bg-blue-50 border border-blue-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
-                                                <i class="fa-solid fa-clock text-blue-500 me-1 text-[9px]"></i> Menunggu Penerima
-                                            </span>
+                                            @if($canApprovePenerima)
+                                                <button type="button" 
+                                                        @click='openAssignModal(@json($assignPayload))'
+                                                        class="w-full inline-flex items-center justify-center px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] rounded-xl shadow-xs hover:shadow-md transition space-x-1.5 text-center"
+                                                        title="Verifikasi kesanggupan mesin dan tugaskan operator">
+                                                    <i class="fa-solid fa-user-check text-[10px]"></i>
+                                                    <span class="truncate">Tugaskan Operator</span>
+                                                </button>
+                                            @else
+                                                <span class="inline-flex items-center px-2 py-1 text-blue-800 bg-blue-50 border border-blue-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                                    <i class="fa-solid fa-clock text-blue-500 me-1 text-[9px]"></i> Menunggu Penerima
+                                                </span>
+                                            @endif
                                         @else
                                             @if($canProcessAction)
                                                 <button type="button" 
@@ -794,13 +837,33 @@
                                                         <i class="fa-solid fa-warehouse text-emerald-600 me-1 text-[9px]"></i> Tunggu Terima {{ $wri->dept_pengaju ?: 'Gudang' }}
                                                     </span>
                                                 @elseif($isMenuju)
-                                                    <span class="inline-flex items-center px-2 py-1 text-purple-800 bg-purple-50 border border-purple-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
-                                                        <i class="fa-solid fa-truck-fast text-purple-600 me-1 text-[9px]"></i> Diantar ke {{ $wri->dept_pengaju ?: 'Pengaju' }}
-                                                    </span>
+                                                    <div class="space-y-1 w-full">
+                                                        <span class="inline-flex items-center px-2 py-1 text-purple-800 bg-purple-50 border border-purple-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                                            <i class="fa-solid fa-truck-fast text-purple-600 me-1 text-[9px]"></i> Sedang Diantar Kurir MH
+                                                        </span>
+                                                        @can('material-handling.view')
+                                                        <a href="{{ route('work-station-supplies.index') }}" 
+                                                           class="inline-flex items-center justify-center px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold text-[10px] rounded-lg border border-purple-300 transition w-full space-x-1"
+                                                           title="Buka menu Material Handling untuk memantau pengantaran">
+                                                            <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                                                            <span>Pantau di MH</span>
+                                                        </a>
+                                                        @endcan
+                                                    </div>
                                                 @elseif($isPickup || stripos($wri->status, 'Siap Diambil') !== false)
-                                                    <span class="inline-flex items-center px-2 py-1 text-amber-900 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
-                                                        <i class="fa-solid fa-dolly text-amber-600 me-1 text-[9px]"></i> Siap Dijemput MH
-                                                    </span>
+                                                    <div class="space-y-1 w-full">
+                                                        <span class="inline-flex items-center px-2 py-1 text-amber-900 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                                            <i class="fa-solid fa-truck-ramp-box text-amber-600 me-1 text-[9px]"></i> Siap Dijemput Kurir MH
+                                                        </span>
+                                                        @can('material-handling.view')
+                                                        <a href="{{ route('work-station-supplies.index') }}" 
+                                                           class="inline-flex items-center justify-center px-2 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[10px] rounded-lg shadow-2xs transition w-full space-x-1"
+                                                           title="Buka menu Material Handling untuk eksekusi penjemputan">
+                                                            <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                                                            <span>Buka Menu MH</span>
+                                                        </a>
+                                                        @endcan
+                                                    </div>
                                                 @else
                                                     <span class="inline-flex items-center px-2 py-1 text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
                                                         <i class="fa-solid fa-gear fa-spin text-indigo-500 me-1 text-[9px]"></i> Proses Line {{ $wri->dept_penerima ?: 'Penerima' }}
@@ -847,17 +910,24 @@
                             <td class="py-3 px-2 align-top text-center">
                                 @if($wri->approval_pengaju === 'Menunggu')
                                     @if($canApprovePengaju)
-                                        <div class="inline-block relative">
-                                            <select @change="handlePengajuAction($event, '{{ route('work-requests.approve-pengaju', $wri) }}', '{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')"
-                                                    class="text-xs font-bold py-1 px-2 border border-amber-300 bg-amber-50 text-amber-900 rounded-lg focus:ring-2 focus:ring-amber-500 cursor-pointer shadow-2xs hover:bg-amber-100 transition">
-                                                <option value="" selected disabled>Pilih Status...</option>
-                                                <option value="terima" class="text-emerald-700 font-bold">Diterima</option>
-                                                <option value="tolak" class="text-rose-700 font-bold">Ditolak</option>
-                                            </select>
+                                        <div class="inline-flex items-center space-x-1">
+                                            <button type="button" 
+                                                    @click="handlePengajuActionDirect('{{ route('work-requests.approve-pengaju', $wri) }}')"
+                                                    class="inline-flex items-center px-2.5 py-1 text-xs font-extrabold bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-lg shadow-2xs transition space-x-1"
+                                                    title="Setujui pengajuan tiket WRI ini">
+                                                <i class="fa-solid fa-check text-[10px]"></i>
+                                                <span>Setujui</span>
+                                            </button>
+                                            <button type="button" 
+                                                    @click="openRejectModal('{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')" 
+                                                    class="inline-flex items-center px-2 py-1 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg shadow-2xs transition"
+                                                    title="Tolak tiket ini">
+                                                <i class="fa-solid fa-ban text-[10px]"></i>
+                                            </button>
                                         </div>
                                     @else
                                         <span class="inline-flex items-center px-2 py-1 text-amber-800 bg-amber-50 border border-amber-300 rounded-lg text-[11px] font-bold whitespace-nowrap">
-                                            Menunggu
+                                            <i class="fa-solid fa-clock text-amber-500 me-1 text-[9px]"></i> Menunggu
                                         </span>
                                     @endif
                                 @elseif($wri->approval_pengaju === 'Diterima')
@@ -875,17 +945,24 @@
                             <td class="py-3 px-2 align-top text-center">
                                 @if($wri->approval_penerima === 'Menunggu')
                                     @if($canApprovePenerima)
-                                        <div class="inline-block relative">
-                                            <select @change="handlePenerimaAction($event, @json($assignPayload), '{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')"
-                                                    class="text-xs font-bold py-1 px-2 border border-blue-300 bg-blue-50 text-blue-900 rounded-lg focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs hover:bg-blue-100 transition">
-                                                <option value="" selected disabled>Pilih Status...</option>
-                                                <option value="terima" class="text-emerald-700 font-bold">Diterima</option>
-                                                <option value="tolak" class="text-rose-700 font-bold">Ditolak</option>
-                                            </select>
+                                        <div class="inline-flex items-center space-x-1">
+                                            <button type="button" 
+                                                    @click='openAssignModal(@json($assignPayload))'
+                                                    class="inline-flex items-center px-2.5 py-1 text-xs font-extrabold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-2xs transition space-x-1"
+                                                    title="Verifikasi kesanggupan mesin dan tugaskan operator pelaksana">
+                                                <i class="fa-solid fa-user-check text-[10px]"></i>
+                                                <span>Tugaskan</span>
+                                            </button>
+                                            <button type="button" 
+                                                    @click="openRejectModal('{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')" 
+                                                    class="inline-flex items-center px-2 py-1 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg shadow-2xs transition"
+                                                    title="Tolak pengerjaan mesin">
+                                                <i class="fa-solid fa-ban text-[10px]"></i>
+                                            </button>
                                         </div>
                                     @else
-                                        <span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap">
-                                            Belum Verifikasi
+                                        <span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Menunggu verifikasi oleh Ka. {{ $wri->dept_penerima ?: 'Penerima' }}">
+                                            <i class="fa-solid fa-clock text-slate-400 me-1 text-[9px]"></i> Belum Verifikasi
                                         </span>
                                     @endif
                                 @elseif($wri->approval_penerima === 'Diterima')
@@ -1209,6 +1286,18 @@
                 },
                 closeQrZoom() {
                     this.qrZoomModal = false;
+                },
+                handlePengajuActionDirect(approveUrl) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = approveUrl;
+                    const csrf = document.createElement('input');
+                    csrf.type = 'hidden';
+                    csrf.name = '_token';
+                    csrf.value = '{{ csrf_token() }}';
+                    form.appendChild(csrf);
+                    document.body.appendChild(form);
+                    form.submit();
                 },
                 handlePengajuAction(event, approveUrl, rejectUrl, wriNumber) {
                     const select = event.target;

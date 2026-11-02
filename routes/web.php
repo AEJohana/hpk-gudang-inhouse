@@ -86,9 +86,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/qr-requests', [QrRequestController::class, 'index'])->name('qr-requests.index');
         Route::get('/qr-requests/create', [QrRequestController::class, 'create'])->middleware('can:label-qr.create')->name('qr-requests.create');
         Route::post('/qr-requests', [QrRequestController::class, 'store'])->middleware('can:label-qr.create')->name('qr-requests.store');
-        Route::get('/qr-requests/{qrRequest}/print-thermal', [QrRequestController::class, 'printThermal'])->name('qr-requests.print-thermal');
-        Route::get('/qr-requests/{qrRequest}/print-sheet', [QrRequestController::class, 'printSheet'])->name('qr-requests.print-sheet');
-        Route::post('/qr-requests/bulk-print', [QrRequestController::class, 'bulkPrint'])->name('qr-requests.bulk-print');
+        Route::get('/qr-requests/{qrRequest}/print-thermal', [QrRequestController::class, 'printThermal'])->middleware('can:label-qr.print')->name('qr-requests.print-thermal');
+        Route::get('/qr-requests/{qrRequest}/print-sheet', [QrRequestController::class, 'printSheet'])->middleware('can:label-qr.print')->name('qr-requests.print-sheet');
+        Route::post('/qr-requests/bulk-print', [QrRequestController::class, 'bulkPrint'])->middleware('can:label-qr.print')->name('qr-requests.bulk-print');
     });
 
     // 7. Cycle Count (Stok Opname)
@@ -177,7 +177,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // 10. Menu Aktivitas & Riwayat Audit Sistem (Pusat Jejak Aktivitas Pengguna)
     Route::get('/activities', [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])
-        ->middleware(['role:admin_gudang|supervisor|qc|engineering'])
+        ->middleware(['role_or_permission:admin_gudang|supervisor|qc|engineering|audit-log.view'])
         ->name('activities.index');
 
     // User Profile
