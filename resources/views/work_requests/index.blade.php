@@ -290,6 +290,11 @@
                     $accumReceived = (float) $wri->quantity_received;
                     $remainingQty = $primaryAction ? $primaryAction['quantity'] : max(0, (float) $wri->quantity_requested - $accumReceived);
 
+                    $cleanStatus = strtolower(trim(preg_replace('/^Parsial\s*>\s*/i', '', $wri->status ?: '')));
+                    $isWaitingMH = in_array($cleanStatus, ['siap diambil', 'ready_for_warehouse']) || str_starts_with($cleanStatus, 'mh pickup') || str_ends_with($cleanStatus, '(out)');
+                    $isInTransitMH = str_contains($cleanStatus, 'menuju pengaju');
+                    $isReceivedGudang = str_contains($cleanStatus, 'sudah diambil') || $cleanStatus === 'received';
+
                     $isLaserIn = stripos($nextStatus, '(In)') !== false;
                     $isLaserOut = stripos($nextStatus, '(Out)') !== false || ($primaryAction && $primaryAction['type'] === 'out');
                     $isPickup = stripos($nextStatus, 'Pickup') !== false;
@@ -529,11 +534,19 @@
                                             <span>{{ $shortLabel }}</span>
                                         </button>
                                     @else
-                                        @if($isSudah)
-                                            <span class="flex-1 py-1.5 text-center bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-[10px] font-bold truncate px-2">
-                                                <i class="fa-solid fa-warehouse text-emerald-600 me-1"></i> Menunggu Penerimaan {{ $wri->dept_pengaju ?: 'Gudang' }}
-                                            </span>
-                                        @elseif($isMenuju)
+                                        @if($isWaitingMH)
+                                            <div class="flex-1 flex flex-col space-y-1">
+                                                <span class="py-1.5 text-center bg-amber-50 text-amber-900 border border-amber-300 rounded-xl text-[10px] font-bold truncate px-2">
+                                                    <i class="fa-solid fa-truck-ramp-box text-amber-600 me-1"></i> Menunggu Diambil MH
+                                                </span>
+                                                @can('material-handling.view')
+                                                <a href="{{ route('work-station-supplies.index') }}" 
+                                                   class="py-1 text-center bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[10px] rounded-lg shadow-2xs transition">
+                                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] me-1"></i> Buka Menu MH
+                                                </a>
+                                                @endcan
+                                            </div>
+                                        @elseif($isInTransitMH)
                                             <div class="flex-1 flex flex-col space-y-1">
                                                 <span class="py-1.5 text-center bg-purple-50 text-purple-800 border border-purple-300 rounded-xl text-[10px] font-bold truncate px-2">
                                                     <i class="fa-solid fa-truck-fast text-purple-600 me-1"></i> Sedang Diantar Kurir MH
@@ -545,18 +558,10 @@
                                                 </a>
                                                 @endcan
                                             </div>
-                                        @elseif($isPickup || stripos($wri->status, 'Siap Diambil') !== false)
-                                            <div class="flex-1 flex flex-col space-y-1">
-                                                <span class="py-1.5 text-center bg-amber-50 text-amber-900 border border-amber-300 rounded-xl text-[10px] font-bold truncate px-2">
-                                                    <i class="fa-solid fa-truck-ramp-box text-amber-600 me-1"></i> Siap Dijemput Kurir MH
-                                                </span>
-                                                @can('material-handling.view')
-                                                <a href="{{ route('work-station-supplies.index') }}" 
-                                                   class="py-1 text-center bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[10px] rounded-lg shadow-2xs transition">
-                                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] me-1"></i> Buka Menu MH
-                                                </a>
-                                                @endcan
-                                            </div>
+                                        @elseif($isReceivedGudang)
+                                            <span class="flex-1 py-1.5 text-center bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-[10px] font-bold truncate px-2">
+                                                <i class="fa-solid fa-warehouse text-emerald-600 me-1"></i> Menunggu Penerimaan {{ $wri->dept_pengaju ?: 'Gudang' }}
+                                            </span>
                                         @else
                                             <span class="flex-1 py-1.5 text-center bg-indigo-50 text-indigo-900 border border-indigo-200 rounded-xl text-[10px] font-bold truncate px-2">
                                                 <i class="fa-solid fa-gear fa-spin text-indigo-500 me-1"></i> Sedang dlm proses di Line {{ $wri->dept_penerima ?: 'Penerima' }}
@@ -633,6 +638,11 @@
                             $nextStatus = $primaryAction ? $primaryAction['target_status'] : $wri->getNextStatusLabel(auth()->user());
                             $accumReceived = (float) $wri->quantity_received;
                             $remainingQty = $primaryAction ? $primaryAction['quantity'] : max(0, (float) $wri->quantity_requested - $accumReceived);
+
+                            $cleanStatus = strtolower(trim(preg_replace('/^Parsial\s*>\s*/i', '', $wri->status ?: '')));
+                            $isWaitingMH = in_array($cleanStatus, ['siap diambil', 'ready_for_warehouse']) || str_starts_with($cleanStatus, 'mh pickup') || str_ends_with($cleanStatus, '(out)');
+                            $isInTransitMH = str_contains($cleanStatus, 'menuju pengaju');
+                            $isReceivedGudang = str_contains($cleanStatus, 'sudah diambil') || $cleanStatus === 'received';
 
                             $isLaserIn = stripos($nextStatus, '(In)') !== false;
                             $isLaserOut = stripos($nextStatus, '(Out)') !== false || ($primaryAction && $primaryAction['type'] === 'out');
@@ -832,11 +842,21 @@
                                                     <span class="truncate">{{ $shortLabel }}</span>
                                                 </button>
                                             @else
-                                                @if($isSudah)
-                                                    <span class="inline-flex items-center px-2 py-1 text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
-                                                        <i class="fa-solid fa-warehouse text-emerald-600 me-1 text-[9px]"></i> Tunggu Terima {{ $wri->dept_pengaju ?: 'Gudang' }}
-                                                    </span>
-                                                @elseif($isMenuju)
+                                                @if($isWaitingMH)
+                                                    <div class="space-y-1 w-full">
+                                                        <span class="inline-flex items-center px-2 py-1 text-amber-900 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                                            <i class="fa-solid fa-truck-ramp-box text-amber-600 me-1 text-[9px]"></i> Menunggu Diambil MH
+                                                        </span>
+                                                        @can('material-handling.view')
+                                                        <a href="{{ route('work-station-supplies.index') }}" 
+                                                           class="inline-flex items-center justify-center px-2 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[10px] rounded-lg shadow-2xs transition w-full space-x-1"
+                                                           title="Buka menu Material Handling untuk eksekusi penjemputan">
+                                                            <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                                                            <span>Buka Menu MH</span>
+                                                        </a>
+                                                        @endcan
+                                                    </div>
+                                                @elseif($isInTransitMH)
                                                     <div class="space-y-1 w-full">
                                                         <span class="inline-flex items-center px-2 py-1 text-purple-800 bg-purple-50 border border-purple-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
                                                             <i class="fa-solid fa-truck-fast text-purple-600 me-1 text-[9px]"></i> Sedang Diantar Kurir MH
@@ -850,20 +870,10 @@
                                                         </a>
                                                         @endcan
                                                     </div>
-                                                @elseif($isPickup || stripos($wri->status, 'Siap Diambil') !== false)
-                                                    <div class="space-y-1 w-full">
-                                                        <span class="inline-flex items-center px-2 py-1 text-amber-900 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
-                                                            <i class="fa-solid fa-truck-ramp-box text-amber-600 me-1 text-[9px]"></i> Siap Dijemput Kurir MH
-                                                        </span>
-                                                        @can('material-handling.view')
-                                                        <a href="{{ route('work-station-supplies.index') }}" 
-                                                           class="inline-flex items-center justify-center px-2 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[10px] rounded-lg shadow-2xs transition w-full space-x-1"
-                                                           title="Buka menu Material Handling untuk eksekusi penjemputan">
-                                                            <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
-                                                            <span>Buka Menu MH</span>
-                                                        </a>
-                                                        @endcan
-                                                    </div>
+                                                @elseif($isReceivedGudang)
+                                                    <span class="inline-flex items-center px-2 py-1 text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                                        <i class="fa-solid fa-warehouse text-emerald-600 me-1 text-[9px]"></i> Tunggu Terima {{ $wri->dept_pengaju ?: 'Gudang' }}
+                                                    </span>
                                                 @else
                                                     <span class="inline-flex items-center px-2 py-1 text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
                                                         <i class="fa-solid fa-gear fa-spin text-indigo-500 me-1 text-[9px]"></i> Proses Line {{ $wri->dept_penerima ?: 'Penerima' }}

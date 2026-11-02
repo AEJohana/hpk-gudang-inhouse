@@ -275,17 +275,36 @@
                 </div>
 
                 <div class="flex items-center space-x-2">
-                    @if(stripos($nextStatus, 'Pickup') !== false || stripos($nextStatus, 'Menuju Pengaju') !== false)
+                    @php
+                        $cleanShowStatus = strtolower(trim(preg_replace('/^Parsial\s*>\s*/i', '', $workRequest->status ?: '')));
+                        $isShowWaitingMH = in_array($cleanShowStatus, ['siap diambil', 'ready_for_warehouse']) || str_starts_with($cleanShowStatus, 'mh pickup');
+                        $isShowInTransitMH = str_contains($cleanShowStatus, 'menuju pengaju');
+                        $canUserReceive = $workRequest->canUserProcessAction(auth()->user(), 'Sudah Diambil');
+                    @endphp
+                    @if($isShowWaitingMH)
                         @can('material-handling.view')
                         <a href="{{ route('work-station-supplies.index') }}" 
                            class="px-5 py-2.5 font-black text-xs rounded-xl shadow-lg transition flex items-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950">
                             <i class="fa-solid fa-truck-ramp-box text-base"></i>
-                            <span>Buka Menu Material Handling &rarr;</span>
+                            <span>Buka Menu Material Handling (Ambil Barang) &rarr;</span>
                         </a>
                         @else
                         <span class="px-4 py-2.5 bg-white/10 text-amber-300 font-bold text-xs rounded-xl border border-amber-400/20 flex items-center space-x-2">
-                            <i class="fa-solid fa-clock text-base"></i>
-                            <span>Menunggu Penjemputan oleh Kurir MH</span>
+                            <i class="fa-solid fa-truck-ramp-box text-base"></i>
+                            <span>Menunggu Diambil oleh Kurir MH</span>
+                        </span>
+                        @endcan
+                    @elseif($isShowInTransitMH && !$canUserReceive)
+                        @can('material-handling.view')
+                        <a href="{{ route('work-station-supplies.index') }}" 
+                           class="px-5 py-2.5 font-black text-xs rounded-xl shadow-lg transition flex items-center space-x-2 bg-purple-600 hover:bg-purple-500 text-white">
+                            <i class="fa-solid fa-truck-fast text-base"></i>
+                            <span>Pantau Pengantaran di Menu MH &rarr;</span>
+                        </a>
+                        @else
+                        <span class="px-4 py-2.5 bg-white/10 text-purple-300 font-bold text-xs rounded-xl border border-purple-400/20 flex items-center space-x-2">
+                            <i class="fa-solid fa-truck-fast text-base"></i>
+                            <span>Sedang Diantar oleh Kurir MH ke Gudang</span>
                         </span>
                         @endcan
                     @else

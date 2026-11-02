@@ -290,6 +290,22 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Pengujian Unit Otomatis Terisolasi:**
   - Menambahkan pengujian `test_wri_view_excludes_material_handling_actions` dan `test_gudang_must_receive_goods_after_mh_delivery_and_ticket_remains_open` di `tests/Unit/WorkRequestAuthorizationTest.php`. Seluruh 57 unit tests lulus 100% (292 assertions).
 
+### AA. Koreksi Presisi Siklus Status MH: 'Menunggu Diambil MH' vs 'Sedang Diantar Kurir MH' (Baru Selesai & Teruji 100%)
+- **Penyebab Masalah (Root Cause):**
+  - Pengecekan kondisi status di `index.blade.php` sebelumnya menggunakan `$isMenuju = stripos($nextStatus, 'Menuju Pengaju') !== false;`. Karena setelah mesin selesai (`Siap Diambil`) target langkah berikutnya memang adalah `Menuju Pengaju`, variabel `$isMenuju` bernilai `true` secara prematur, sehingga baris tiket melompat ke label *"Sedang Diantar Kurir MH"* meskipun barang fisik masih berada di mesin dan kurir MH belum mengambil barang.
+  - Pada modal detail pelacakan tiket (`detail_modal.blade.php`), kartu *Pengiriman ke Dept Gudang* menampilkan keterangan default *"Menunggu tahapan pengerjaan mesin selesai"*, padahal mesin M1 sudah berstatus *SELESAI (FINAL)*.
+- **Penyempurnaan Logika Tampilan Berbasis Status Riil Database:**
+  - Mengganti pengecekan berbasis target langkah berikutnya dengan pengecekan status aktif database:
+    - **Status `Siap Diambil` (Mesin Selesai & Belum Diambil MH):**
+      - Tabel & Kartu WRI: Badge oranye **`🚚 Menunggu Diambil MH`** + tautan **`[ 🚚 Buka Menu MH ]`**.
+      - Modal Detail Tracking: Kartu Pengiriman ke Gudang menampilkan badge amber **`Menunggu Diambil MH`** & keterangan *"Pengerjaan Mesin Selesai • Siap Dijemput. Menunggu verifikasi pengambilan oleh Kurir Material Handling di menu MH."*
+    - **Status `Menuju Pengaju` (Hanya Setelah Kurir MH Verifikasi & Submit di Menu MH):**
+      - Tabel & Kartu WRI: Badge ungu **`🚚 Sedang Diantar Kurir MH`** (barang sedang di jalan/troli kurir) + tautan **`[ Pantau di MH ]`**.
+      - Bagi Staf Gudang: Tombol aktif **`[ 📦 Terima di Rak Gudang ]`**.
+      - Modal Detail Tracking: Log resmi Kurir MH warna biru (*"MATERIAL HANDLING (MENUJU PENGAJU)"*) aktif.
+- **Hasil Pengujian Unit:**
+  - 57 tests passed (292 assertions) lulus 100%.
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

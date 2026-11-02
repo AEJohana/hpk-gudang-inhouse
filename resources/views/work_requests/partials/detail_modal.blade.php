@@ -328,14 +328,14 @@
                             <div class="flex items-center justify-between border-b border-slate-100 pb-2">
                                 <div class="flex items-center space-x-2">
                                     <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-                                         :class="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-600 text-white' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'bg-purple-600 text-white animate-bounce' : 'bg-slate-200 text-slate-600')">
+                                         :class="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-600 text-white' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'bg-purple-600 text-white animate-bounce' : (detailData.currentStatus.toLowerCase().includes('siap diambil') ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-200 text-slate-600'))">
                                         <i class="fa-solid fa-warehouse text-[9px]"></i>
                                     </div>
                                     <h4 class="font-black text-xs text-slate-900" x-text="'Pengiriman ke ' + (detailData.deptPengaju || 'Dept Gudang')"></h4>
                                 </div>
                                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase"
-                                      :class="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-100 text-emerald-800' : (detailData.receivedQty > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'bg-purple-100 text-purple-900 font-extrabold' : 'bg-slate-100 text-slate-500'))"
-                                      x-text="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'Selesai Diterima' : (detailData.receivedQty > 0 ? 'Diterima Parsial (' + detailData.receivedQty + '/' + detailData.totalQty + ')' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'Sedang Diantar MH' : 'Menunggu Selesai'))"></span>
+                                      :class="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-100 text-emerald-800' : (detailData.receivedQty > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'bg-purple-100 text-purple-900 font-extrabold' : (detailData.currentStatus.toLowerCase().includes('siap diambil') ? 'bg-amber-100 text-amber-900 font-extrabold border border-amber-300' : 'bg-slate-100 text-slate-500')))"
+                                      x-text="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'Selesai Diterima' : (detailData.receivedQty > 0 ? 'Diterima Parsial (' + detailData.receivedQty + '/' + detailData.totalQty + ')' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'Sedang Diantar MH' : (detailData.currentStatus.toLowerCase().includes('siap diambil') ? 'Menunggu Diambil MH' : 'Menunggu Selesai')))"></span>
                             </div>
 
                             <!-- Final Logs / Status -->
@@ -397,8 +397,21 @@
                                             </div>
                                         </template>
                                         <template x-if="!detailData.currentStatus.toLowerCase().includes('menuju pengaju')">
-                                            <div class="p-3 text-center text-slate-400 text-xs italic bg-slate-50/60 rounded-xl border border-slate-100">
-                                                Menunggu tahapan pengerjaan mesin selesai
+                                            <div>
+                                                <template x-if="detailData.currentStatus.toLowerCase().includes('siap diambil')">
+                                                    <div class="p-3 rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 flex items-center space-x-2.5">
+                                                        <i class="fa-solid fa-truck-ramp-box text-amber-600 text-base"></i>
+                                                        <div class="text-left">
+                                                            <span class="font-bold text-xs block">Pengerjaan Mesin Selesai &bull; Siap Dijemput</span>
+                                                            <span class="text-[11px] text-amber-700">Menunggu verifikasi pengambilan oleh Kurir Material Handling di menu MH.</span>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <template x-if="!detailData.currentStatus.toLowerCase().includes('siap diambil')">
+                                                    <div class="p-3 text-center text-slate-400 text-xs italic bg-slate-50/60 rounded-xl border border-slate-100">
+                                                        Menunggu tahapan pengerjaan mesin selesai
+                                                    </div>
+                                                </template>
                                             </div>
                                         </template>
                                     </div>
