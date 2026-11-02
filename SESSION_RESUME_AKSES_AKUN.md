@@ -170,11 +170,34 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 ### S. Konsep Keranjang Permintaan Cetak & 2 Format Label QR (Rak & Kartu) (Baru Selesai & Teruji 100%)
 - **2 Kapsul Pilihan Format Label (Pill Checkboxes):** Mengubah pilihan menjadi 2 jenis kapsul yang dapat dicentang salah satu maupun **keduanya sekaligus**: 🏷️ **Label QR Rak** (`rack`) dan 📇 **Label QR Kartu** (`card`).
 - **Aturan Multiplier Kuantitas Cetak:**
-  - Label QR Rak: 1 input qty = 1 lembar label rak fisik.
-  - Label QR Kartu: 1 input set = 10 lembar label stiker kartu part (kelipatan 10).
+  - Label QR Rak: 1 input set = 10 lembar label rak fisik (1 HVS muat 20 label = 2 set).
+  - Label QR Kartu: 1 input = 1 lembar label stiker kartu part (fleksibel: 2 pcs untuk 1 baris, 10 pcs, 20 pcs).
 - **Konsep Keranjang Draft Multi-Item (Cart Workflow):** Pengguna dapat memasukkan banyak komponen ke dalam tabel keranjang pengajuan sebelum dikirim. Jika kedua jenis label dicentang untuk 1 komponen, sistem otomatis memecahnya menjadi 2 baris terpisah di keranjang.
 - **Penyimpanan Batch & Pemisahan Tiket Independen:** Pengiriman massal memproses array `cart_data` di dalam transaksi database atomik (`DB::transaction`) dan menyimpan setiap item sebagai record tiket `QrRequest` terpisah berstatus `pending` lengkap dengan penomoran unik dan catatan audit log.
 - **Pengujian Unit Otomatis Terisolasi:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/QrRequestQueueTest.php` - 6 passed, 38 assertions; total suite 49 passed, 220 assertions).
+
+### T. Redesign Presisi Label QR Rak (Grid 20/HVS 3-Blok) & Kartu (2-Kolom) serta Engine Cetak Massal Bersamaan (Baru Selesai & Teruji 100%)
+- **Redesign Label QR Rak Standar Pabrik (Grid 20/HVS):**
+  - Mengimplementasikan layout presisi Lampiran 1 & 2: 1 lembar kertas A4/HVS portrait memuat **20 label** (2 kolom x 10 baris).
+  - Struktur 3 blok horizontal: **Kotak Teks Berbingkai** (Header `KARTU QR KOMPONEN`, Kode Rak, Kode Komponen, Nama Komponen dengan titik dua rata), **QR Code SVG Lokal**, dan **Kotak Kosong Berbingkai** di sisi kanan untuk stempel/paraf manual.
+  - Multiplier 10x: 1 set = 10 label (setengah HVS), sehingga 2 jenis komponen atau 2 set pas mengisi 1 lembar HVS penuh (20 label).
+- **Redesign Label QR Kartu Part (Grid 2 Kolom):**
+  - Mengimplementasikan layout presisi Lampiran 3 & 4: Dimensi luar identik dengan label rak, namun terdiri dari 2 blok tanpa kotak kosong (kotak teks berbingkai lebih lebar + QR Code SVG di sisi kanan).
+  - Penempatan pada kertas A4 mengisi baris atas berdampingan (kiri Komponen 1, kanan Komponen 2).
+- **Multi-Select Checkbox & Floating Action Bar Antrean:**
+  - Menambahkan checkbox multi-select pada setiap baris (desktop) dan kartu (mobile) di `/qr-requests/index.blade.php`.
+  - Checkbox master `Select All` di header tabel.
+  - Floating Action Bar interaktif dengan tombol `[ 🖨️ Cetak Bersamaan (A4) ]` yang mengirim form POST ke `/qr-requests/bulk-print` dengan target `_blank`.
+- **Engine Cetak Gabungan & Smart Page-Break (`QrRequestController::bulkPrint`):**
+  - Memproses pencetakan banyak tiket sekaligus dalam 1 sesi browser print (`window.print()`).
+  - Pemisahan halaman cerdas: Tiket Label Rak dicetak terlebih dahulu dalam lembar format Rak (grid 20/hvs), lalu otomatis diikuti lembar format Kartu dengan `page-break` tanpa mencampur format dalam satu lembar potong.
+  - Mendukung cetak antrean baru (`pending`) dan cetak ulang massal (*reprint*) pada tab `printed` / `all`.
+  - **Presisi Centering & Margin Simetris Kertas A4 (210mm x 297mm):**
+    - `@page { size: A4 portrait; margin: 0; }` dengan padding eksplisit `.page-sheet { padding: 10.2mm 8mm; }`.
+    - Margin Kiri & Kanan presisi 8.0 mm simetris (Grid 2 kolom 194mm).
+    - Margin Atas & Bawah presisi 10.2 mm simetris (10 baris label 276.6mm), mengeliminasi masalah rata kiri dan margin bawah berlebih.
+    - Perbaikan `overflow-wrap: break-word` agar nama komponen tidak terpotong di tengah kata.
+- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/QrRequestQueueTest.php` - 8 passed, 49 assertions; total suite unit tests 51 passed, 231 assertions).
 
 ---
 

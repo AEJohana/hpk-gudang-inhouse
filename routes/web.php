@@ -88,6 +88,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/qr-requests', [QrRequestController::class, 'store'])->middleware('can:label-qr.create')->name('qr-requests.store');
         Route::get('/qr-requests/{qrRequest}/print-thermal', [QrRequestController::class, 'printThermal'])->name('qr-requests.print-thermal');
         Route::get('/qr-requests/{qrRequest}/print-sheet', [QrRequestController::class, 'printSheet'])->name('qr-requests.print-sheet');
+        Route::post('/qr-requests/bulk-print', [QrRequestController::class, 'bulkPrint'])->name('qr-requests.bulk-print');
     });
 
     // 7. Cycle Count (Stok Opname)

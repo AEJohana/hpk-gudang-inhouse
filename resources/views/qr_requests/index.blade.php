@@ -22,7 +22,21 @@
         </div>
     </x-slot>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6"
+         x-data="{
+            selectedIds: [],
+            allIds: {{ json_encode($qrRequests->pluck('id')->values()->all()) }},
+            toggleAll() {
+                if (this.selectedIds.length === this.allIds.length) {
+                    this.selectedIds = [];
+                } else {
+                    this.selectedIds = [...this.allIds];
+                }
+            },
+            get isAllSelected() {
+                return this.allIds.length > 0 && this.selectedIds.length === this.allIds.length;
+            }
+         }">
 
         <!-- 3 Kartu Indikator KPI Interaktif -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -139,11 +153,17 @@
         <!-- Mobile Card View (< md) -->
         <div class="block md:hidden space-y-3">
             @forelse ($qrRequests as $qr)
-                <div class="mobile-data-card">
+                <div class="mobile-data-card" :class="selectedIds.includes({{ $qr->id }}) ? 'ring-2 ring-cyan-500 bg-cyan-50/30' : ''">
                     <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                        <div>
-                            <span class="font-mono font-bold text-cyan-900 text-xs block">{{ $qr->request_number }}</span>
-                            <span class="text-[10px] text-slate-400 font-medium">{{ $qr->created_at->format('d M Y') }}</span>
+                        <div class="flex items-center space-x-2.5">
+                            <input type="checkbox" 
+                                   value="{{ $qr->id }}" 
+                                   x-model.number="selectedIds" 
+                                   class="rounded text-cyan-600 focus:ring-cyan-500 h-4 w-4 border-slate-300 cursor-pointer">
+                            <div>
+                                <span class="font-mono font-bold text-cyan-900 text-xs block">{{ $qr->request_number }}</span>
+                                <span class="text-[10px] text-slate-400 font-medium">{{ $qr->created_at->format('d M Y') }}</span>
+                            </div>
                         </div>
                         <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold border {{ $qr->status_badge['class'] }}">
                             {{ $qr->status_badge['label'] }}
@@ -202,6 +222,13 @@
             <table class="super-table">
                 <thead>
                     <tr>
+                        <th class="py-3 px-3 w-10 text-center">
+                            <input type="checkbox" 
+                                   @change="toggleAll()" 
+                                   :checked="isAllSelected" 
+                                   class="rounded text-cyan-600 focus:ring-cyan-500 h-4 w-4 border-slate-300 cursor-pointer"
+                                   title="Pilih Semua Tiket di Halaman Ini">
+                        </th>
                         <th class="py-3 px-4">No. Request & Tanggal</th>
                         <th class="py-3 px-4">Komponen & Part Number</th>
                         <th class="py-3 px-4">Jenis Label</th>
@@ -212,7 +239,14 @@
                 </thead>
                 <tbody>
                     @forelse ($qrRequests as $qr)
-                        <tr class="super-row">
+                        <tr class="super-row" :class="selectedIds.includes({{ $qr->id }}) ? 'bg-cyan-50/50 ring-1 ring-cyan-300' : ''">
+                            <td class="py-4 px-3 text-center">
+                                <input type="checkbox" 
+                                       value="{{ $qr->id }}" 
+                                       x-model.number="selectedIds" 
+                                       class="rounded text-cyan-600 focus:ring-cyan-500 h-4 w-4 border-slate-300 cursor-pointer">
+                            </td>
+
                             <td class="py-4 px-4">
                                 <span class="font-mono font-bold text-cyan-900 block text-xs">{{ $qr->request_number }}</span>
                                 <span class="text-[10px] text-slate-400 font-medium">{{ $qr->created_at->format('d M Y') }}</span>
@@ -261,7 +295,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="py-12 text-center text-slate-400 bg-white rounded-2xl shadow-sm">
+                            <td colspan="7" class="py-12 text-center text-slate-400 bg-white rounded-2xl shadow-sm">
                                 <i class="fa-solid fa-qrcode text-3xl mb-2 text-slate-300 block"></i>
                                 @if (request('q'))
                                     Tidak ada permintaan label yang sesuai dengan pencarian "<span class="font-semibold text-slate-600">{{ request('q') }}</span>".
@@ -284,6 +318,41 @@
                 {{ $qrRequests->links() }}
             </div>
         @endif
+
+        <!-- Floating Action Bar Cetak Bersamaan Massal -->
+        <div x-show="selectedIds.length > 0"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-8"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 translate-y-8"
+             class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center gap-4 max-w-xl w-[92%] sm:w-auto"
+             style="display: none;">
+            <div class="flex items-center space-x-2.5">
+                <span class="w-7 h-7 rounded-lg bg-cyan-400 text-slate-950 font-black text-xs flex items-center justify-center shadow-xs"
+                      x-text="selectedIds.length"></span>
+                <span class="text-xs font-bold text-slate-200">Tiket Terpilih</span>
+            </div>
+
+            <form method="POST" action="{{ route('qr-requests.bulk-print') }}" target="_blank" class="flex items-center gap-2">
+                @csrf
+                <template x-for="id in selectedIds" :key="id">
+                    <input type="hidden" name="ids[]" :value="id">
+                </template>
+                <button type="submit" 
+                        class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-print text-amber-300"></i>
+                    <span>Cetak Bersamaan (A4)</span>
+                </button>
+            </form>
+
+            <button type="button" 
+                    @click="selectedIds = []" 
+                    class="text-xs text-slate-400 hover:text-white transition px-2 py-1 font-semibold cursor-pointer">
+                Batal
+            </button>
+        </div>
 
     </div>
 </x-app-layout>

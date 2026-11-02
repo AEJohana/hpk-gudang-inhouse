@@ -21,6 +21,7 @@ class QrRequestQueueTest extends TestCase
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');
+            $table->softDeletes();
             $table->timestamps();
         });
 
@@ -309,5 +310,99 @@ class QrRequestQueueTest extends TestCase
         $this->assertNotNull($ticketCardB);
         $this->assertEquals(30, $ticketCardB->print_qty);
         $this->assertEquals('pending', $ticketCardB->status);
+    }
+
+    public function test_bulk_print_marks_pending_tickets_as_printed_and_renders_sheet(): void
+    {
+        $user = User::create([
+            'name' => 'Operator Bulk Print',
+            'email' => 'bulkprint@hpk.test',
+            'password' => bcrypt('password'),
+        ]);
+
+        $comp1 = Component::create([
+            'part_number' => 'PART-BULK-001',
+            'name' => 'Handle Pintu Luar',
+        ]);
+
+        $comp2 = Component::create([
+            'part_number' => 'PART-BULK-002',
+            'name' => 'Join Shaft Karoseri',
+        ]);
+
+        $req1 = QrRequest::create([
+            'request_number' => 'QR-REQ-BULK-01',
+            'component_id' => $comp1->id,
+            'label_type' => 'rack',
+            'print_qty' => 1,
+            'status' => 'pending',
+            'requested_by' => $user->id,
+        ]);
+
+        $req2 = QrRequest::create([
+            'request_number' => 'QR-REQ-BULK-02',
+            'component_id' => $comp2->id,
+            'label_type' => 'card',
+            'print_qty' => 2,
+            'status' => 'pending',
+            'requested_by' => $user->id,
+        ]);
+
+        $this->actingAs($user);
+        $controller = new \App\Http\Controllers\QrRequestController();
+        $request = new \Illuminate\Http\Request([
+            'ids' => [$req1->id, $req2->id]
+        ]);
+
+        $viewResponse = $controller->bulkPrint($request);
+
+        $this->assertInstanceOf(\Illuminate\View\View::class, $viewResponse);
+        $this->assertEquals('qr_requests.print_sheet', $viewResponse->name());
+        $this->assertTrue($viewResponse->getData()['isBulk']);
+        $this->assertCount(2, $viewResponse->getData()['qrRequests']);
+
+        // Pastikan status di database berubah menjadi printed
+        $req1->refresh();
+        $req2->refresh();
+        $this->assertEquals('printed', $req1->status);
+        $this->assertNotNull($req1->printed_at);
+        $this->assertEquals('printed', $req2->status);
+        $this->assertNotNull($req2->printed_at);
+    }
+
+    public function test_bulk_print_supports_reprinting_already_printed_tickets(): void
+    {
+        $user = User::create([
+            'name' => 'Operator Reprint',
+            'email' => 'reprint@hpk.test',
+            'password' => bcrypt('password'),
+        ]);
+
+        $comp = Component::create([
+            'part_number' => 'PART-REPRINT-001',
+            'name' => 'Plat Penahan',
+        ]);
+
+        $req = QrRequest::create([
+            'request_number' => 'QR-REQ-REPRINT-01',
+            'component_id' => $comp->id,
+            'label_type' => 'rack',
+            'print_qty' => 2,
+            'status' => 'printed',
+            'printed_at' => now()->subDay(),
+            'requested_by' => $user->id,
+        ]);
+
+        $this->actingAs($user);
+        $controller = new \App\Http\Controllers\QrRequestController();
+        $request = new \Illuminate\Http\Request([
+            'ids' => [$req->id]
+        ]);
+
+        $viewResponse = $controller->bulkPrint($request);
+
+        $this->assertInstanceOf(\Illuminate\View\View::class, $viewResponse);
+        $this->assertEquals('qr_requests.print_sheet', $viewResponse->name());
+        $this->assertEquals('printed', $req->fresh()->status);
     }
 }

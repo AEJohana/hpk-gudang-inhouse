@@ -171,6 +171,53 @@ class QrRequestController extends Controller
             $qrRequest
         );
 
-        return view('qr_requests.print_sheet', compact('qrRequest'));
+        return view('qr_requests.print_sheet', [
+            'qrRequests' => collect([$qrRequest]),
+            'qrRequest' => $qrRequest,
+            'isBulk' => false,
+        ]);
+    }
+
+    public function bulkPrint(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:qr_requests,id',
+        ]);
+
+        $qrRequests = QrRequest::with(['component.defaultLocation', 'requestedBy'])
+            ->whereIn('id', $validated['ids'])
+            ->get();
+
+        if ($qrRequests->isEmpty()) {
+            return redirect()->back()->with('error', 'Tidak ada tiket label yang valid untuk dicetak.');
+        }
+
+        $now = now();
+        QrRequest::whereIn('id', $qrRequests->pluck('id'))
+            ->where('status', 'pending')
+            ->update([
+                'status' => 'printed',
+                'printed_at' => $now,
+            ]);
+
+        foreach ($qrRequests as $qr) {
+            if ($qr->status === 'pending') {
+                $qr->status = 'printed';
+                $qr->printed_at = $now;
+            }
+        }
+
+        ActivityLogger::qr(
+            'printed',
+            "Mencetak massal (bulk print) " . $qrRequests->count() . " dokumen label QR terpilih.",
+            null,
+            ['count' => $qrRequests->count(), 'request_numbers' => $qrRequests->pluck('request_number')->all()]
+        );
+
+        return view('qr_requests.print_sheet', [
+            'qrRequests' => $qrRequests,
+            'isBulk' => true,
+        ]);
     }
 }

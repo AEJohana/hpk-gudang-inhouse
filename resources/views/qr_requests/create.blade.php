@@ -178,43 +178,52 @@
 
             <!-- PENGATURAN KUANTITAS SESUAI JENIS LABEL -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                <!-- Qty Rak: 1 input = 1 label fisik -->
+                <!-- Qty Rak: 1 input set = 10 label fisik (1 HVS = 20 label) -->
                 <div x-show="selectedTypeRack" 
                      x-transition 
                      class="p-3.5 bg-emerald-50/50 rounded-2xl border border-emerald-200/70 space-y-1.5">
                     <div class="flex items-center justify-between">
                         <span class="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">
-                            Qty Label Rak (1 Qty = 1 Label)
+                            Qty Set Rak (@10 Label | 1 HVS = 20 Label)
                         </span>
                         <span class="text-[10px] font-extrabold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">Rak Fisik</span>
                     </div>
                     <div class="flex items-center space-x-2.5 pt-1">
                         <input type="number" 
                                min="1" 
-                               max="100" 
+                               max="50" 
                                x-model.number="qtyRack" 
                                class="w-24 px-3 py-1.5 text-xs font-black border border-emerald-300 rounded-xl text-emerald-900 focus:ring-2 focus:ring-emerald-500 text-center">
-                        <span class="text-xs text-emerald-800 font-bold" x-text="'= ' + (qtyRack || 0) + ' lembar label rak'"></span>
+                        <span class="text-xs text-emerald-800 font-bold" x-text="'= ' + ((qtyRack || 0) * 10) + ' stiker label rak'"></span>
+                    </div>
+                    <div class="flex items-center gap-1.5 pt-0.5 text-[10px]">
+                        <button type="button" @click="qtyRack = 1" class="px-2 py-0.5 bg-white border border-emerald-300 rounded-md text-emerald-800 hover:bg-emerald-100 font-bold cursor-pointer">1 Set (10 Label / 1/2 HVS)</button>
+                        <button type="button" @click="qtyRack = 2" class="px-2 py-0.5 bg-white border border-emerald-300 rounded-md text-emerald-800 hover:bg-emerald-100 font-bold cursor-pointer">2 Set (20 Label / 1 HVS)</button>
                     </div>
                 </div>
 
-                <!-- Qty Kartu: 1 input set = 10 label stiker kartu -->
+                <!-- Qty Kartu: 1 input = 1 label stiker kartu part -->
                 <div x-show="selectedTypeCard" 
                      x-transition 
                      class="p-3.5 bg-cyan-50/50 rounded-2xl border border-cyan-200/70 space-y-1.5">
                     <div class="flex items-center justify-between">
                         <span class="text-[11px] font-bold text-cyan-900 uppercase tracking-wider">
-                            Qty Set Kartu (@10 Label / Set)
+                            Qty Label Kartu (1 Input = 1 Label)
                         </span>
                         <span class="text-[10px] font-extrabold text-cyan-700 bg-cyan-100/80 px-2 py-0.5 rounded-md">Stiker Part</span>
                     </div>
                     <div class="flex items-center space-x-2.5 pt-1">
                         <input type="number" 
                                min="1" 
-                               max="100" 
-                               x-model.number="qtyCardSets" 
+                               max="500" 
+                               x-model.number="qtyCard" 
                                class="w-24 px-3 py-1.5 text-xs font-black border border-cyan-300 rounded-xl text-cyan-900 focus:ring-2 focus:ring-cyan-500 text-center">
-                        <span class="text-xs text-cyan-800 font-bold" x-text="'= ' + ((qtyCardSets || 0) * 10) + ' lembar label kartu'"></span>
+                        <span class="text-xs text-cyan-800 font-bold" x-text="'= ' + (qtyCard || 0) + ' stiker label kartu'"></span>
+                    </div>
+                    <div class="flex items-center gap-1.5 pt-0.5 text-[10px]">
+                        <button type="button" @click="qtyCard = 2" class="px-2 py-0.5 bg-white border border-cyan-300 rounded-md text-cyan-800 hover:bg-cyan-100 font-bold cursor-pointer">2 pcs (1 baris)</button>
+                        <button type="button" @click="qtyCard = 10" class="px-2 py-0.5 bg-white border border-cyan-300 rounded-md text-cyan-800 hover:bg-cyan-100 font-bold cursor-pointer">10 pcs (1/2 lembar)</button>
+                        <button type="button" @click="qtyCard = 20" class="px-2 py-0.5 bg-white border border-cyan-300 rounded-md text-cyan-800 hover:bg-cyan-100 font-bold cursor-pointer">20 pcs (1 lembar)</button>
                     </div>
                 </div>
             </div>
@@ -387,7 +396,7 @@
                 selectedTypeRack: false,
                 selectedTypeCard: true, // Default aktif label kartu
                 qtyRack: 1,
-                qtyCardSets: 1, // 1 set = 10 lembar
+                qtyCard: 2, // Default 2 label stiker kartu (1 baris pada HVS)
                 itemNotes: '',
                 cartItems: [],
                 showToast: false,
@@ -414,7 +423,7 @@
                     const comp = this.selectedComponent;
                     const notes = this.itemNotes ? this.itemNotes.trim() : '';
 
-                    // 1. Jika Label QR Rak dicentang: 1 input = 1 lembar label fisik
+                    // 1. Jika Label QR Rak dicentang: 1 input set = 10 label fisik (1 HVS = 20 label)
                     if (this.selectedTypeRack) {
                         const qtyR = Math.max(1, parseInt(this.qtyRack) || 1);
                         this.cartItems.push({
@@ -431,10 +440,9 @@
                         });
                     }
 
-                    // 2. Jika Label QR Kartu dicentang: 1 input set = 10 lembar label kartu
+                    // 2. Jika Label QR Kartu dicentang: 1 input = 1 label stiker kartu part
                     if (this.selectedTypeCard) {
-                        const sets = Math.max(1, parseInt(this.qtyCardSets) || 1);
-                        const qtyC = sets * 10;
+                        const qtyC = Math.max(1, parseInt(this.qtyCard) || 1);
                         this.cartItems.push({
                             component_id: comp.id,
                             part_number: comp.part_number,
@@ -453,7 +461,7 @@
                     this.selectedId = '';
                     this.itemNotes = '';
                     this.qtyRack = 1;
-                    this.qtyCardSets = 1;
+                    this.qtyCard = 2;
                     
                     // Notifikasi visual kecil
                     this.showToast = true;
