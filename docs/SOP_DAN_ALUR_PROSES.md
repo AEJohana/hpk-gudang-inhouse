@@ -300,10 +300,54 @@ Untuk mengakomodasi kebutuhan penginputan data master komponen karoseri dalam ju
      - Saldo Stok Awal: jika kosong, default `0`. Jika diisi > 0, otomatis mencatat mutasi stok awal.
      - Kode Rak: jika kosong, default ditempatkan pada area penampungan sementara (`Area Penampungan Awal / Belum Dialokasikan ke Rak`).
 
-3. **Tata Kelola Foto Komponen (Google Drive & Tautan Web):**
-   - Kolom **Tautan Foto** dapat diisi tautan berbagi Google Drive publik atau URL gambar web langsung.
-   - Sistem secara otomatis mengunduh file gambar tersebut ke direktori server internal (`public/uploads/components/`), sehingga sistem tidak bergantung pada jaringan internet saat operasional harian.
-   - Kolom foto dapat dikosongkan sepenuhnya pada saat input massal mendesak; komponen langsung aktif dan sistem secara otomatis men-generate kode QR unik.
+3. **Tata Kelola Foto & Gambar Teknik CAD Komponen (Pure Local On-Premise Storage):**
+   Sistem menerapkan penyimpanan luring (*offline pure local mode*) terpusat pada direktori fisik `D:\Ali Magang\KOMPONEN` melalui layanan terpadu `ComponentPhotoStorageService` dengan variabel lingkungan `COMPONENT_EXTERNAL_PHOTO_DIR='D:\Ali Magang\KOMPONEN'` dan `COMPONENT_ENABLE_GDRIVE_FALLBACK=false`.
+
+   Berikut adalah rincian perilaku sistem pada 3 skenario operasional:
+   - **Skenario A: Tambah Baru / Edit Manual via Formulir Master Komponen atau Kamera Web:**
+     - Operator/Engineering mengunggah berkas foto (`.jpg`, `.jpeg`, `.png`, `.webp`, `.svg`) atau dokumen cetak biru CAD (`.pdf`) hingga ukuran maksimal 15MB, atau mengambil snapshot kamera web.
+     - Sistem membersihkan kode komponen via `sanitizePartNumber()` agar aman di tingkat filesystem OS Windows.
+     - Berkas **otomatis dinamai ulang (*auto-rename*)** menjadi format standar: `[part_number].[ext]`.
+     - Berkas **langsung disimpan ke folder fisik master `D:\Ali Magang\KOMPONEN\[part_number].[ext]`** dan dicerminkan (*mirrored*) ke `public/uploads/components/`.
+     - Sistem melakukan *clean overwrite* (otomatis menghapus berkas lama jika terjadi pergantian format ekstensi pada part yang sama).
+   - **Skenario B: Impor Massal Excel dengan Kolom Foto Diisi Tautan (Google Drive / URL Web):**
+     - Pada baris Excel yang memiliki tautan di kolom L ("Foto Komponen"), sistem backend mengunduh berkas gambar/PDF asli melalui HTTP Client (otomatis mengonversi ID sharing Google Drive menjadi stream beresolusi tinggi `lh3.googleusercontent.com/d/{fileId}`).
+     - Sistem **otomatis me-rename** berkas hasil unduhan menjadi format standar `[part_number].[ext]`.
+     - Berkas **otomatis disimpan langsung ke `D:\Ali Magang\KOMPONEN`** dan folder mirror webroot.
+     - Kolom `image_path` di database diisi alamat relatif `uploads/components/[part_number].[ext]`.
+   - **Skenario C: Impor Massal Excel dengan Kolom Foto Dikosongkan (Offline Drop-in / Auto-Detection):**
+     - Kolom foto pada Excel sangat dianjurkan dikosongkan jika tim gudang/engineering sudah mengumpulkan foto/PDF komponen secara massal langsung di komputer server/lokal.
+     - Sistem **tidak melakukan unduhan jaringan**, sehingga proses impor ratusan part selesai dalam hitungan detik.
+     - **Deteksi Otomatis Fisik:** Sistem melalui accessor `Component::getLocalPhotoFilePathAttribute()` dan `ComponentPhotoStorageService::findLocalPhoto()` **secara otomatis mencocokkan kode part fisik di folder `D:\Ali Magang\KOMPONEN`**. Selama file bernama `[part_number].[ext]` (misal `CBMP110004800602T.jpg`) ada di folder `D:\`, sistem langsung menampilkan foto/PDF tersebut di web tanpa memerlukan link URL sama sekali di database!
+     - Jika file fisik belum ditaruh di folder `D:\`, sistem menyajikan *Placeholder SVG Karoseri HPK* tanpa error dan tanpa menghubungi internet luar.
+
+   ```mermaid
+   flowchart TD
+       Start([Aksi Penambahan / Pembaruan Komponen]) --> Choice{Metode Penginputan?}
+       
+       Choice -->|Formulir Input / Edit / Kamera| ManualUpload[Unggah File Gambar / Dokumen CAD PDF / Snap Kamera]
+       ManualUpload --> CleanManual[Sanitize Kode Part: [part_number].[ext]]
+       CleanManual --> SavePhysical[Tulis Berkas Fisik ke D:\Ali Magang\KOMPONEN]
+       SavePhysical --> MirrorPublic[Salin Mirror ke public/uploads/components/]
+       
+       Choice -->|Impor Massal Excel| CheckCol{Kolom L Tautan Foto Diisi?}
+       CheckCol -->|Ya: Berisi Link GDrive / Web| DownloadHTTP[Backend Unduh Berkas via HTTP Stream]
+       DownloadHTTP --> CleanExcel[Auto Rename: [part_number].[ext]]
+       CleanExcel --> SavePhysical
+       
+       CheckCol -->|Tidak: Kolom L Dikosongkan| SkipDownload[Lewati Download Jaringan / Cepat]
+       SkipDownload --> ScanDisk{Apakah Berkas [part_number].* Ada di D:\?}
+       ScanDisk -->|Ada di Disk Lokal| LocalFound[Sistem Otomatis Deteksi & Tampilkan Berkas dari D:\]
+       ScanDisk -->|Belum Ada di Disk| FallbackSVG[Sistem Tampilkan Placeholder SVG Karoseri HPK]
+
+       SavePhysical --> StreamingGW[Streaming Gateway HTTP /components/id/photo-stream]
+       MirrorPublic --> StreamingGW
+       LocalFound --> StreamingGW
+       StreamingGW --> BrowserDisplay[Antarmuka Stasiun Mesin & Gudang: Interactive Lightbox / Native PDF Viewer 500%]
+   ```
+
+   - **Gateway Aliran Berkas HTTP Terisolasi (`/components/{component}/photo-stream`):**
+     Karena standar keamanan browser melarang akses protokol file lokal (`file:///D:/...`), controller menyajikan rute streaming terisolasi `ComponentController::photoStream()`. Sistem membaca file lokal fisik `D:\Ali Magang\KOMPONEN` secara on-the-fly, menginjeksi header MIME dan cache HTTP 24 jam (`max-age=86400`), serta menyajikan dokumen PDF secara inline untuk penampil CAD modal interaktif di stasiun kerja mesin (*work center*).
 
 4. **Alur Validasi 2 Tahap (Pre-Import Live Preview & Audit):**
    - **Langkah 1 (Upload & Opsi Duplikat):** Pengguna mengunggah file `.xlsx` atau `.csv` dan memilih salah satu kebijakan duplikat:
