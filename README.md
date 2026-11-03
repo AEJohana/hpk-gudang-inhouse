@@ -93,7 +93,8 @@ Dalam menjaga integritas kode dan basis data operasional, setiap developer dan A
 ## 📚 Tautan Dokumentasi Terkait
 
 - [about.md](about.md) - Analisis Arsitektur dan Rincian Seluruh Modul WMS & WRI
-- [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - SOP Operasional, Diagram Alur Proses, dan Aturan Bisnis (BR-01 s/d BR-10)
+- [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
+- [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - SOP Operasional, Diagram Alur Proses, dan Aturan Bisnis (BR-01 s/d BR-14)
 - [SESSION_RESUME_AKSES_AKUN.md](SESSION_RESUME_AKSES_AKUN.md) - Log Checkpoint Proyek, Pemetaan Hak Akses & Riwayat Implementasi
 - [GEMINI.md](GEMINI.md) - Panduan Kerja AI Agent
 - [System WR lama/README.md](System%20WR%20lama/README.md) - Arsip Historis Sistem Google Apps Script & Sheets (Legacy)

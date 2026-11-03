@@ -148,5 +148,10 @@ Users have specific roles and departmental scopes that dictate their permissions
 - **Smart Adaptive Audit Log Return:** Tombol kembali pada modul riwayat audit log mendeteksi konteks rute pemanggil (`request()->routeIs('admin.*') ? route('admin.dashboard') : route('dashboard')`) sehingga administrator kembali ke Pusat Kendali Admin, sedangkan staf operasional pengawas kembali ke dashboard WMS.
 - **Dedicated Return Shortcut in Admin Dashboard:** Header wave pada Pusat Kendali Administrator menyematkan tombol `[ < Kembali ke WMS ]` menuju `route('dashboard')` untuk navigasi 1-klik yang mudah dan cepat kembali ke alur pergudangan utama.
 
+## Technical Documentation References
+- [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
+- [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - Standar Operasional Prosedur, Diagram Alur Proses & Aturan Bisnis (BR-01 s/d BR-14)
+- [SESSION_RESUME_AKSES_AKUN.md](SESSION_RESUME_AKSES_AKUN.md) - Log Checkpoint Pengembangan & Kredensial Akun Pengujian
+
 ## Summary
 The system is an enterprise-grade, unified Warehouse Management System (WMS) and Work Request (WRI) platform. It seamlessly connects raw material warehouse storage (Zones A-F), multi-station production machine routing (Laser, M1, UNP, CNC, etc.), internal logistics transit (Material Handling), quality engineering control (ECR & Disposal), and inventory reconciliation into a single cohesive, auditable, and QR-driven ecosystem.

@@ -310,6 +310,14 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Hasil Pengujian Unit:**
   - 57 tests passed (292 assertions) lulus 100%.
 
+### BB. Dokumentasi Resmi Struktur Folder, Arsitektur Framework & Manual Pengembang (Baru Selesai & Teruji 100%)
+- **Penerbitan Dokumen Panduan Resmi:**
+  - Menerbitkan `docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md` sebagai panduan komprehensif bagi pengembang penerus yang berkolaborasi dengan AI Agent.
+  - Membedah konsep MVC Laravel dengan analogi pabrik karoseri (chassis standar vs bodi karoseri khusus).
+  - Merinci fungsi, alasan keberadaan, dan cara kerja seluruh folder/subfolder (termasuk folder historis: `Data acuan`, `referens`, `System WR lama`).
+  - Mengulas hubungan Node.js vs Laravel, penegasan bahwa Node.js tidak perlu selalu menyala di pabrik (cukup `npm run build` sekali di awal), serta bahaya fatal jika file konfigurasi `.json`, `.lock`, dan `.xml` dihapus.
+  - Menetapkan aturan tata kelola berkas `.md`: menegaskan bahwa `GEMINI.md` dan `README.md` **wajib tetap berada di root direktori** agar guardrails otomatis AI tidak terputus.
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi
@@ -333,6 +341,7 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 
 ## 3. Tautan Panduan Terkait
 - [about.md](about.md) - Rincian Arsitektur dan 11 Modul WMS & WRI
+- [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
 - [README.md](README.md) - Dokumentasi Utama Proyek
 - [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - Standar Operasional Prosedur & Aturan Bisnis Modern
 - [.gemini/rules/guardrails.md](.gemini/rules/guardrails.md) - Aturan Wajib Pengembangan & Kepatuhan Prompt AI Agent
