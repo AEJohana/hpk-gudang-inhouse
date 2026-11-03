@@ -45,61 +45,46 @@
                     <span class="text-xs font-normal text-slate-400">Petugas: <strong>{{ auth()->user()->name }}</strong></span>
                 </h3>
 
-                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <!-- Transaction Type -->
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                             Jenis Transaksi <span class="text-rose-500">*</span>
                         </label>
-                        <select name="type" x-model="txType" required class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-semibold">
-                            <option value="outbound">Pengeluaran (Outbound ke Perakitan)</option>
-                            <option value="inbound">Penerimaan (Inbound dari Supplier/PO)</option>
+                        <select name="type" x-model="txType" required class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-semibold text-slate-800">
+                            <option value="inbound">Inbound (Barang Masuk / Penerimaan)</option>
+                            <option value="outbound">Outbound (Barang Keluar / Perakitan)</option>
                             <option value="transfer">Transfer Antar Rak / Zona</option>
-                            <option value="return">Retur Material dari Produksi</option>
                         </select>
                     </div>
 
-                    <!-- SPK Number (Optional for now as requested) -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                            No. SPK Karoseri <span class="text-slate-400 font-normal lowercase">(opsional)</span>
-                        </label>
-                        <input type="text" 
-                               name="spk_number" 
-                               placeholder="Contoh: SPK-2026-DT-042" 
-                               class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
-                    </div>
-
-                    <!-- Reference Document -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                            No. Surat Jalan / PO
-                        </label>
-                        <input type="text" 
-                               name="reference_document" 
-                               placeholder="Contoh: PO-9912 / SJ-004" 
-                               class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                    </div>
-
-                    <!-- Transaction Date -->
+                    <!-- Transaction Date (Real-time & Read-only) -->
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                             Tanggal Transaksi <span class="text-rose-500">*</span>
                         </label>
-                        <input type="date" 
-                               name="transaction_date" 
-                               value="{{ date('Y-m-d') }}" 
-                               required 
+                        <div class="relative">
+                            <input type="date" 
+                                   name="transaction_date" 
+                                   value="{{ date('Y-m-d') }}" 
+                                   readonly 
+                                   class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl bg-slate-100 text-slate-700 font-bold cursor-not-allowed select-none focus:outline-none">
+                            <div class="absolute right-3 top-2 text-xs text-slate-400 font-medium pointer-events-none flex items-center space-x-1">
+                                <i class="fa-solid fa-lock text-[10px]"></i>
+                                <span class="text-[10px]">Real-time</span>
+                            </div>
+                        </div>
+                        <span class="text-[10px] text-slate-400 mt-1 block">Otomatis tercatat hari ini ({{ now()->translatedFormat('d F Y') }})</span>
+                    </div>
+
+                    <!-- Notes -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Catatan Transaksi</label>
+                        <input type="text" 
+                               name="notes" 
+                               placeholder="Keterangan transaksi..." 
                                class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Catatan Transaksi</label>
-                    <input type="text" 
-                           name="notes" 
-                           placeholder="Keterangan perakitan unit karoseri atau penerimaan material..." 
-                           class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
                 </div>
             </div>
 
@@ -204,7 +189,8 @@
                             <template x-if="txType === 'outbound' || txType === 'transfer'">
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-700 uppercase">Ambil dari Rak:</label>
-                                    <select x-model="fromLocId" class="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg mt-1">
+                                    <select x-model="fromLocId" class="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg mt-1 font-semibold text-slate-800">
+                                        <option value="">-- Tidak Ada Rak Terdaftar --</option>
                                         @foreach ($locations as $loc)
                                             <option value="{{ $loc->id }}">{{ $loc->full_location_code }} ({{ $loc->zone_name }})</option>
                                         @endforeach
@@ -215,7 +201,8 @@
                             <template x-if="txType === 'inbound' || txType === 'transfer' || txType === 'return'">
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-700 uppercase">Simpan ke Rak:</label>
-                                    <select x-model="toLocId" class="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg mt-1">
+                                    <select x-model="toLocId" class="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg mt-1 font-semibold text-slate-800">
+                                        <option value="">-- Pilih Rak Tujuan --</option>
                                         @foreach ($locations as $loc)
                                             <option value="{{ $loc->id }}">{{ $loc->full_location_code }} ({{ $loc->zone_name }})</option>
                                         @endforeach
@@ -413,8 +400,8 @@
                             if (res.success && res.data) {
                                 this.selectedComp = res.data;
                                 this.itemQty = 1;
-                                this.fromLocId = res.data.default_location_id || '';
-                                this.toLocId = res.data.default_location_id || '';
+                                this.fromLocId = res.data.default_location_id ? String(res.data.default_location_id) : '';
+                                this.toLocId = res.data.default_location_id ? String(res.data.default_location_id) : '';
                             } else {
                                 this.selectedComp = null;
                                 this.errorMessage = `Komponen "${this.searchQuery}" tidak ditemukan.`;
@@ -431,8 +418,8 @@
                         .then(res => {
                             if (res.success && res.data) {
                                 this.selectedComp = res.data;
-                                this.fromLocId = res.data.default_location_id || '';
-                                this.toLocId = res.data.default_location_id || '';
+                                this.fromLocId = res.data.default_location_id ? String(res.data.default_location_id) : '';
+                                this.toLocId = res.data.default_location_id ? String(res.data.default_location_id) : '';
                             }
                         });
                 },
@@ -454,6 +441,14 @@
                     const fromLocElem = document.querySelector('select[x-model="fromLocId"]');
                     const toLocElem = document.querySelector('select[x-model="toLocId"]');
 
+                    const fromLocText = (this.fromLocId && fromLocElem && fromLocElem.selectedIndex > 0)
+                        ? fromLocElem.options[fromLocElem.selectedIndex]?.text
+                        : (this.fromLocId ? null : '- (Tanpa Rak)');
+
+                    const toLocText = (this.toLocId && toLocElem && toLocElem.selectedIndex > 0)
+                        ? toLocElem.options[toLocElem.selectedIndex]?.text
+                        : (this.toLocId ? null : '- (Tanpa Rak)');
+
                     this.items.push({
                         component_id: this.selectedComp.id,
                         part_number: this.selectedComp.part_number,
@@ -462,9 +457,9 @@
                         image_url: this.selectedComp.image_url,
                         quantity: this.itemQty,
                         from_location_id: this.fromLocId || null,
-                        from_location_name: fromLocElem ? fromLocElem.options[fromLocElem.selectedIndex]?.text : null,
+                        from_location_name: fromLocText,
                         to_location_id: this.toLocId || null,
-                        to_location_name: toLocElem ? toLocElem.options[toLocElem.selectedIndex]?.text : null,
+                        to_location_name: toLocText,
                     });
 
                     // Reset staging box

@@ -39,13 +39,13 @@ class TransactionController extends Controller
 
     public function create(Request $request)
     {
-        $defaultType = $request->get('type', 'outbound');
+        $defaultType = $request->get('type', 'inbound');
         $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
         if ($locations->isEmpty()) {
             Location::ensureDefaultLocationExists();
             $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
         }
-        $components = Component::where('is_active', true)->orderBy('name')->get();
+        $components = Component::with('defaultLocation')->where('is_active', true)->orderBy('name')->get();
 
         return view('transactions.create', compact('defaultType', 'locations', 'components'));
     }
@@ -54,9 +54,9 @@ class TransactionController extends Controller
     {
         $validated = $request->validate([
             'type' => 'required|in:inbound,outbound,transfer,return',
-            'spk_number' => 'nullable|string|max:100', // Opsional untuk saat ini
+            'spk_number' => 'nullable|string|max:100',
             'reference_document' => 'nullable|string|max:100',
-            'transaction_date' => 'required|date',
+            'transaction_date' => 'nullable|date',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.component_id' => 'required|exists:components,id',
@@ -79,10 +79,10 @@ class TransactionController extends Controller
             $transaction = Transaction::create([
                 'transaction_number' => $txNumber,
                 'type' => $validated['type'],
-                'spk_number' => $validated['spk_number'],
-                'reference_document' => $validated['reference_document'],
-                'transaction_date' => $validated['transaction_date'],
-                'notes' => $validated['notes'],
+                'spk_number' => $validated['spk_number'] ?? null,
+                'reference_document' => $validated['reference_document'] ?? null,
+                'transaction_date' => now()->toDateString(),
+                'notes' => $validated['notes'] ?? null,
                 'user_id' => auth()->id(),
                 'status' => 'completed',
             ]);

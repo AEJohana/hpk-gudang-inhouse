@@ -16,17 +16,9 @@
                 </div>
             </div>
             <div class="flex flex-wrap gap-2 self-start sm:self-auto">
-                <a href="{{ route('transactions.create', ['type' => 'inbound']) }}" class="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center">
-                    <i class="fa-solid fa-arrow-down me-1.5"></i>
-                    Inbound
-                </a>
-                <a href="{{ route('transactions.create', ['type' => 'outbound']) }}" class="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center">
-                    <i class="fa-solid fa-arrow-up me-1.5 text-teal-400"></i>
-                    Outbound
-                </a>
-                <a href="{{ route('transactions.create', ['type' => 'transfer']) }}" class="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition flex items-center">
-                    <i class="fa-solid fa-right-left me-1.5"></i>
-                    Transfer Rak
+                <a href="{{ route('transactions.create') }}" class="px-3.5 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center space-x-1.5 cursor-pointer">
+                    <i class="fa-solid fa-plus text-teal-400 text-xs"></i>
+                    <span>Transaksi</span>
                 </a>
             </div>
         </div>

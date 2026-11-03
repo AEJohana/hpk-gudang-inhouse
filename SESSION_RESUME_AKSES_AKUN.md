@@ -400,6 +400,27 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - Memperbarui `tests/Unit/PermissionMatrixIntegrityTest.php` untuk mengunci matriks pada **tepat 31 hak akses resmi** dan memasukkan ke-6 izin semu tersebut ke dalam daftar hitam ghost permissions test (`test_no_ghost_permissions_in_tailored_list`).
   - Seluruh 59 unit tests lulus 100% (327 assertions).
 
+### HH. Simplifikasi Antarmuka & Logika Transaksi Komponen Gudang HPK (Baru Selesai & Teruji 100%)
+- **Penyatuan Sub-menu Header Index:**
+  - Menggantikan 3 tombol terpisah (`Inbound`, `Outbound`, `Transfer Rak`) pada header `resources/views/transactions/index.blade.php` menjadi **1 tombol tunggal `[ + Transaksi ]`** yang langsung membuka formulir transaksi (`route('transactions.create')`).
+- **3 Pilihan Menu Dropdown:**
+  - Pada formulir input transaksi `resources/views/transactions/create.blade.php`, pilihan `JENIS TRANSAKSI *` difokuskan menjadi 3 opsi yang jelas dan ramah pengguna:
+    1. `Inbound (Barang Masuk / Penerimaan)` (`inbound`)
+    2. `Outbound (Barang Keluar / Perakitan)` (`outbound`)
+    3. `Transfer Antar Rak / Zona` (`transfer`)
+- **Penghapusan Kolom Usang:**
+  - Menghilangkan input `No. SPK Karoseri (opsional)` dan `No. Surat Jalan / PO` dari formulir Blade sehingga form lebih bersih, cepat diisi, dan efisien untuk operator gudang.
+  - Memperbarui `TransactionController::store` untuk menangani field tersebut secara `nullable` (default `null`).
+- **Tanggal Transaksi Real-time & Terkunci (Readonly):**
+  - Input tanggal transaksi otomatis terisi tanggal hari ini dan dikunci (`readonly`, `cursor-not-allowed select-none bg-slate-100`) dilengkapi badge gembok *Real-time*.
+  - Penegakan integritas server-side di `TransactionController::store`: `transaction_date` selalu diset menggunakan `now()->toDateString()` sehingga tidak dapat dimanipulasi oleh input sisi klien.
+- **Auto-Fill Rak Asal Sesuai Alamat Default Komponen & Fallback:**
+  - Dropdown `Ambil dari Rak` (`fromLocId`) otomatis terisi sesuai alamat rak default komponen (`default_location_id`).
+  - Menambahkan `<option value="">-- Tidak Ada Rak Terdaftar --</option>` sebagai opsi pertama. Jika komponen master belum memiliki lokasi rak yang ditentukan, dropdown otomatis menampilkan `-- Tidak Ada Rak Terdaftar --` (*"kalau tidak ada, berarti tidak ada"*), bukan menampilkan rak acak dari daftar.
+  - Saat ditambahkan ke daftar rincian komponen siap diproses, item tanpa rak ditampilkan dengan label `- (Tanpa Rak)` yang jelas.
+- **Pengujian Unit Otomatis Terisolasi:**
+  - Membuat pengujian komprehensif di `tests/Unit/TransactionFormSimplificationTest.php` (3 test cases, 20 assertions) yang menguji tombol tunggal, dropdown 3 opsi, ketiadaan field SPK/PO, status readonly tanggal, dan server-side enforcement. Seluruh 62 unit test aplikasi lulus 100% (347 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi
