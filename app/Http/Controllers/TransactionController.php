@@ -165,4 +165,42 @@ class TransactionController extends Controller
         $transaction->load(['user', 'items.component', 'items.fromLocation', 'items.toLocation']);
         return view('transactions.show', compact('transaction'));
     }
+
+    /**
+     * Cetak massal slip mutasi gudang (Hemat Kertas: 2 slip per lembar HVS/A4)
+     */
+    public function bulkPrint(Request $request)
+    {
+        $rawIds = $request->input('ids');
+        if (is_string($rawIds)) {
+            $ids = array_filter(explode(',', $rawIds));
+        } elseif (is_array($rawIds)) {
+            $ids = array_filter($rawIds);
+        } else {
+            $ids = [];
+        }
+
+        if (empty($ids)) {
+            return redirect()->route('transactions.index')->with('error', 'Silakan pilih minimal 1 transaksi untuk dicetak.');
+        }
+
+        $transactions = Transaction::with(['user', 'items.component', 'items.fromLocation', 'items.toLocation'])
+            ->whereIn('id', $ids)
+            ->latest('transaction_date')
+            ->latest('id')
+            ->get();
+
+        if ($transactions->isEmpty()) {
+            return redirect()->route('transactions.index')->with('error', 'Tidak ditemukan transaksi yang valid untuk dicetak.');
+        }
+
+        ActivityLogger::transaction(
+            'printed',
+            "Mencetak massal slip mutasi gudang: " . count($transactions) . " dokumen.",
+            null,
+            ['count' => count($transactions), 'transaction_numbers' => $transactions->pluck('transaction_number')->all()]
+        );
+
+        return view('transactions.print_sheet', compact('transactions'));
+    }
 }

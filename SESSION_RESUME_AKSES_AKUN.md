@@ -318,6 +318,46 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - Mengulas hubungan Node.js vs Laravel, penegasan bahwa Node.js tidak perlu selalu menyala di pabrik (cukup `npm run build` sekali di awal), serta bahaya fatal jika file konfigurasi `.json`, `.lock`, dan `.xml` dihapus.
   - Menetapkan aturan tata kelola berkas `.md`: menegaskan bahwa `GEMINI.md` dan `README.md` **wajib tetap berada di root direktori** agar guardrails otomatis AI tidak terputus.
 
+### CC. Eliminasi Tabrakan Teks Dokumen Acuan & Redesign Margin Cetak A4 Slip Mutasi Gudang (Baru Selesai & Teruji 100%)
+- **Eliminasi Teks Nabrakan (Anti-Collision Metadata Grid):**
+  - Pada halaman detail mutasi barang gudang (`resources/views/transactions/show.blade.php`), ke-4 kolom metadata dibungkus dalam kontainer berbingkai bersih (`bg-slate-50/80 rounded-xl border border-slate-200/80`) dengan `min-w-0` pada setiap sel kolom.
+  - Nilai kolom `Dokumen Acuan (PO/SJ)` yang memuat string panjang tanpa spasi (misal kode WRI `WRI/DeptGudang/20261102/1/SDTPBRDD3000000`) disematkan kelas `break-all font-mono text-[11px] leading-tight`, sehingga teks terlipat rapi ke bawah dan tidak lagi menabrak nama `Petugas Gudang: Pak Panji`.
+  - Blok Catatan transaksi disematkan `break-words [overflow-wrap:anywhere]`.
+- **Redesign Margin & Layout Cetak A4 Presisi (Warehouse Slip Print):**
+  - Menggantikan trik lama `position: absolute; left: 0; top: 0; padding: 0;` dengan arsitektur cetak standar industri `@page { size: A4 portrait; margin: 12mm 15mm; }`.
+  - Elemen `#printable-slip` diatur `position: static !important; width: 100% !important; padding: 6mm 8mm !important; border: 1.5px solid #0f172a !important; border-radius: 8px !important;`, menghasilkan slip gudang formal dengan jarak nafas aman tanpa ada logo atau nomor transaksi yang terpotong oleh margin printer.
+  - Mengunci layout 4 kolom metadata (`print:grid-cols-4`) dan 3 kolom tanda tangan (`print:grid-cols-3`) secara eksplisit di mode cetak.
+- **Pengujian Unit Otomatis Terisolasi:**
+  - Menambahkan pengujian `tests/Unit/TransactionSlipTest.php` untuk memvalidasi anti-collision styling, break-all, @page A4 portrait, dan print layout. Seluruh 58 unit tests lulus 100% (303 assertions).
+
+### DD. Penghapusan Kolom QC, Penyederhanaan Kolom Penerima, Latar Polos, dan Cetak Massal Slip Mutasi (Hemat Kertas @2 Slip/HVS) (Baru Selesai & Teruji 100%)
+- **Penyesuaian Otorisasi Tanda Tangan (2 Kolom Simetris):**
+  - Menghapus kolom `Diperiksa / QC Inspeksi: ( Staff QC )` pada slip mutasi gudang sesuai arahan.
+  - Mengubah kolom penerima menjadi `Diterima Oleh:` dengan garis dan placeholder nama `( .................................... )`.
+  - Mengunci layout 2 kolom simetris: `Dikeluarkan Oleh (Gudang): {{ $transaction->user->name }}` di sebelah kiri dan `Diterima Oleh: ( .................................... )` di sebelah kanan.
+- **Pembersihan Background Grid:**
+  - Menambahkan override CSS `background-image: none !important; background-color: #f8fafc !important;` pada tampilan layar dan `background-color: #ffffff !important;` pada mode cetak untuk menghilangkan motif kotak-kotak grid 30px di belakang slip.
+- **Fitur Cetak Massal Hemat Kertas (Multi-Select Bulk Print @2 Slip / Lembar A4):**
+  - Menambahkan route `transactions.bulk-print` dan method `TransactionController::bulkPrint`.
+  - Menambahkan kotak centang multi-pilih (checkbox) pada header tabel (Pilih Semua), tiap baris tabel desktop, dan kartu mobile di `/transactions`.
+  - Floating action bar otomatis muncul di bagian bawah saat ada transaksi yang dicentang, menampilkan counter transaksi terpilih dan tombol `[ 🖨️ Cetak Slip Terpilih ]`.
+  - Menerbitkan template cetak presisi `resources/views/transactions/print_sheet.blade.php`: membagi data menjadi 2 slip per 1 lembar kertas A4 (`@page { size: A4 portrait; margin: 8mm 10mm; }`), dilengkapi garis panduan potong gunting (`✂ POTONG DI SINI / TEAR HERE`), mengeliminasi pemborosan kertas hingga 50%.
+- **Pengujian Unit Otomatis Terisolasi:**
+  - Memperbarui `tests/Unit/TransactionSlipTest.php` untuk memvalidasi ketiadaan kolom QC, teks 'Diterima Oleh:', format tanda tangan titik, penghilangan background grid, serta pembagian 2 slip per halaman A4. Seluruh 59 unit tests lulus 100% (315 assertions).
+
+### EE. Eliminasi Toggle Semu Scope Dept pada Antrean WRI & Perluasan Kotak Pencarian (Baru Selesai & Teruji 100%)
+- **Hasil Analisis Arsitektur Otorisasi Antrean WRI:**
+  - Sebelumnya terdapat tombol toggle pill `[ 👤 Dept Saya | 🌐 Semua Dept (*) ]` di halaman antrean Work Request Inhouse (`resources/views/work_requests/index.blade.php`).
+  - Berdasarkan audit logika backend `WorkRequest::scopeForUser()`, user dengan role global/admin (`canAccessAllDepartments() == true`) langsung di-short-circuit sehingga filter `my_dept` diabaikan dan seluruh tiket tetap ditampilkan. Sementara itu, operator divisi reguler sejak awal dibatasi oleh Blade `@if(Auth::user()->canAccessAllDepartments())`, sehingga tombol toggle ini semu (*redundant*) dan membingungkan pengguna.
+- **Pembersihan Antarmuka & Perluasan Search Input:**
+  - Menghapus komponen tombol toggle pill tersebut dari `resources/views/work_requests/index.blade.php`.
+  - Memperluas kotak pencarian (search box) menjadi `w-full sm:w-72 lg:w-80` dengan placeholder yang lebih komprehensif: `"Cari No. WRI, komponen, SPK, departemen..."`, memberikan ruang baca yang lebih lega dan antarmuka yang bersih (*clean*).
+- **Penyederhanaan Logika Controller (`WorkRequestController::index`):**
+  - Menghapus pengondisian parameter `$scope === 'all'` vs `'my_dept'`.
+  - Jika user tidak memiliki akses global (`!$user->canAccessAllDepartments()`), query secara otomatis menerapkan `forUser($user)` (hanya tiket milik departemennya). Jika user berhak atas seluruh departemen (Admin/Superadmin/PPIC/Gudang), seluruh tiket otomatis tersaji tanpa beban tombol toggle tambahan.
+- **Pengujian Unit Otomatis Terisolasi:**
+  - Menjalankan `WorkRequestAuthorizationTest` (5 passed), `WorkRequestSlaAndStatusFilterTest` (2 passed), serta seluruh unit test suite (59 passed, 315 assertions) pada SQLite in-memory, terkonfirmasi 100% stabil tanpa regresi.
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

@@ -240,38 +240,21 @@
                 @endif
             </div>
 
-            <!-- Right: Global Scope Switcher (if admin) & Search Input -->
-            <div class="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto">
-                @if(Auth::user()->canAccessAllDepartments())
-                <div class="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs w-full sm:w-auto justify-center">
-                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['scope' => 'my_dept'])) }}" 
-                       class="px-2.5 py-1 rounded-lg font-bold transition {{ $scope === 'my_dept' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
-                       title="Tampilkan hanya tiket departemen Anda">
-                        <i class="fa-solid fa-user-tag text-xs text-amber-500 mr-1"></i> Dept Saya
-                    </a>
-                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['scope' => 'all'])) }}" 
-                       class="px-2.5 py-1 rounded-lg font-bold transition {{ $scope === 'all' ? 'bg-[#0a2342] text-amber-400 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
-                       title="Tampilkan tiket dari seluruh 15 departemen">
-                        <i class="fa-solid fa-globe text-xs mr-1"></i> Semua Dept (*)
-                    </a>
-                </div>
-                @endif
-
-                <!-- Search Form -->
-                <form method="GET" action="{{ route('work-requests.index') }}" class="relative w-full sm:w-64">
-                    <input type="hidden" name="scope" value="{{ $scope }}">
+            <!-- Right: Search Input Form -->
+            <div class="w-full sm:w-72 lg:w-80">
+                <form method="GET" action="{{ route('work-requests.index') }}" class="relative w-full">
                     @if(request()->filled('status'))
                         <input type="hidden" name="status" value="{{ request()->status }}">
                     @endif
                     @if(request()->boolean('overdue_sla'))
                         <input type="hidden" name="overdue_sla" value="1">
                     @endif
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                     <input type="text" 
                            name="search" 
                            value="{{ request()->search }}" 
-                           placeholder="Cari No. WRI, komponen, SPK..." 
-                           class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
+                           placeholder="Cari No. WRI, komponen, SPK, departemen..." 
+                           class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition shadow-2xs">
                 </form>
             </div>
         </div>

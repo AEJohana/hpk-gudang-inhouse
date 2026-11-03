@@ -28,18 +28,12 @@ class WorkRequestController extends Controller
         $user = auth()->user();
         $query = WorkRequest::with(['component', 'requestedBy', 'targetLocation', 'steps.machine', 'logs']);
 
-        // 1. Department / Scope Tab Filtering
-        $scope = $request->input('scope', ($user->canAccessAllDepartments() ? 'all' : 'my_dept'));
-
-        if ($scope === 'my_dept') {
+        // 1. Department Scoping (User Biasa dibatasi ke departemennya via BR-06, Admin mengawasi seluruh 15 departemen)
+        if (!$user->canAccessAllDepartments()) {
             $query->forUser($user);
-        } elseif ($scope === 'needs_approval') {
-            $query->forUser($user)->needsApproval();
-        } elseif ($scope === 'all') {
-            if (!$user->canAccessAllDepartments()) {
-                $query->forUser($user);
-                $scope = 'my_dept';
-            }
+            $scope = 'my_dept';
+        } else {
+            $scope = 'all';
         }
 
         // 2. Lifecycle Status Filter (4 Kategori Baru: verifikasi, proses, siap, selesai)
@@ -109,14 +103,8 @@ class WorkRequestController extends Controller
 
         // 5. Scoped Summary Statistics
         $baseStatQuery = WorkRequest::query();
-        if ($scope === 'my_dept') {
+        if (!$user->canAccessAllDepartments()) {
             $baseStatQuery->forUser($user);
-        } elseif ($scope === 'needs_approval') {
-            $baseStatQuery->forUser($user)->needsApproval();
-        } elseif ($scope === 'all') {
-            if (!$user->canAccessAllDepartments()) {
-                $baseStatQuery->forUser($user);
-            }
         }
 
         $totalWri = (clone $baseStatQuery)->count();

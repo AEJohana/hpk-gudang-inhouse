@@ -56,6 +56,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // 3. Transaksi Komponen (Inbound, Outbound, Transfer, Return)
     Route::middleware(['can:transaksi-komponen.view'])->group(function () {
         Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
+        Route::match(['get', 'post'], '/transactions/bulk-print', [TransactionController::class, 'bulkPrint'])->name('transactions.bulk-print');
         Route::get('/transactions/create', [TransactionController::class, 'create'])->middleware('can:transaksi-komponen.create')->name('transactions.create');
         Route::post('/transactions', [TransactionController::class, 'store'])->middleware('can:transaksi-komponen.create')->name('transactions.store');
         Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
