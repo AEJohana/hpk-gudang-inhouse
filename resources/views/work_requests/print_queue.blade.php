@@ -62,13 +62,6 @@
                         </span>
                     @endif
                 </a>
-                @can('work-request.monitoring')
-                <a href="{{ route('work-requests.monitoring') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-                    <i class="fa-solid fa-chart-line text-xs text-amber-500"></i>
-                    <span>Monitoring SLA & Durasi</span>
-                </a>
-                @endcan
             </div>
 
             <div class="flex items-center space-x-2 text-xs">
@@ -240,7 +233,6 @@
                                 <span class="flex items-center space-x-2">
                                     <i class="fa-solid fa-bolt text-[11px] w-4 text-center text-amber-600"></i>
                                     <span>3 Hari Terakhir</span>
-                                    <span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 font-bold">SLA</span>
                                 </span>
                                 @if($datePreset === '3days')
                                     <i class="fa-solid fa-check text-xs text-slate-950"></i>

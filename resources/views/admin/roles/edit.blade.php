@@ -125,9 +125,7 @@
                                             'work-request.process' => 'Sub: Eksekusi Pengerjaan Mesin',
                                             'work-request.approve' => 'Sub: Approval (Ka. Pengaju & Penerima / Tugaskan Operator)',
                                             'work-request.print' => 'Sub: Cetak Lembar WRI & QR',
-                                            'work-request.monitoring' => 'Sub: Monitoring SLA & Durasi',
                                             'work-request.safety-stock' => 'Sub: Pantau Safety Stock',
-                                            'work-request.view-all' => 'Sub Khusus: Semua 15 Dept (*)',
 
                                             // MH
                                             'material-handling.view' => 'Lihat Dashboard MH & Task',
@@ -171,12 +169,6 @@
 
                                             // Audit Log
                                             'audit-log.view' => 'Lihat Rekam Jejak Audit Sistem',
-                                            'audit-log.export' => 'Sub: Ekspor / Unduh Log Audit',
-
-                                            // Admin Panel
-                                            'admin-panel.view' => 'Akses Masuk Admin Panel',
-                                            'admin-panel.users' => 'Sub: Manajemen Pengguna & Izin',
-                                            'admin-panel.settings' => 'Sub: Pengaturan & Master Data',
 
                                             default => ucfirst(str_replace('-', ' ', $actionRaw)),
                                         };

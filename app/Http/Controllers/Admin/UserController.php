@@ -332,7 +332,7 @@ class UserController extends Controller
                     'peta-gudang.view',
                     'label-qr.view', 'label-qr.create', 'label-qr.print',
                     'cycle-count.view', 'cycle-count.create',
-                    'audit-log.view', 'audit-log.export',
+                    'audit-log.view',
                     'work-request.view', 'work-request.create', 'work-request.print',
                 ],
                 'mesin_center' => [

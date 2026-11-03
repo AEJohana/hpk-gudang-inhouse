@@ -217,6 +217,7 @@ class WorkRequestController extends Controller
                     'canProcessAction' => $canProcessAction,
                     'actionUrl' => route('work-requests.process-action', $targetWr),
                     'isFinal' => (bool) $targetWr->is_final,
+                    'isOverdue' => (bool) $targetWr->isOverdue(),
                 ];
             }
         }
@@ -645,30 +646,11 @@ class WorkRequestController extends Controller
     }
 
     /**
-     * Tab: Monitoring SLA & Utilisasi Mesin (Dashboard Keterlambatan & SLA Alert).
+     * Pengalihan rute lama /work-requests/monitoring ke antrean WRI dengan filter tiket terlambat (> 3 hari).
      */
     public function monitoring(Request $request)
     {
-        $user = auth()->user();
-
-        // Overdue Tickets (> 72 Jam / 3 Hari - Aturan BR-10)
-        $overdueTickets = WorkRequest::with(['component', 'requestedBy'])
-            ->forUser($user)
-            ->overdueSla()
-            ->latest('created_at')
-            ->get();
-
-        // Statistics
-        $totalOrders = WorkRequest::forUser($user)->count();
-        $completedOrders = WorkRequest::forUser($user)->where('is_final', true)->count();
-        $successRate = $totalOrders > 0 ? round(($completedOrders / $totalOrders) * 100, 1) : 0;
-
-        // Machine utilization counts
-        $machines = Machine::withCount(['workRequestSteps as active_count' => function ($q) {
-            $q->where('status', 'in_progress');
-        }])->get();
-
-        return view('work_requests.monitoring', compact('overdueTickets', 'totalOrders', 'completedOrders', 'successRate', 'machines'));
+        return redirect()->route('work-requests.index', ['overdue_sla' => 1]);
     }
 
     /**

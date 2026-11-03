@@ -293,6 +293,27 @@ class WorkRequest extends Model
     }
 
     /**
+     * Memeriksa apakah tiket telah tertunda lebih dari 3 hari (> 72 jam) dan belum selesai
+     */
+    public function isOverdue(): bool
+    {
+        if ($this->is_final) {
+            return false;
+        }
+
+        if ($this->status && stripos($this->status, 'Sudah Diambil') !== false) {
+            return false;
+        }
+
+        return $this->created_at ? $this->created_at->lte(now()->subDays(3)) : false;
+    }
+
+    public function getIsOverdueAttribute(): bool
+    {
+        return $this->isOverdue();
+    }
+
+    /**
      * Scope: Tiket yang masih butuh approval (Menunggu)
      */
     public function scopeNeedsApproval(Builder $query): Builder

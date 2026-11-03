@@ -7,18 +7,16 @@ use Tests\TestCase;
 class PermissionMatrixIntegrityTest extends TestCase
 {
     /**
-     * The official 37 tailored permissions.
+     * The official 31 tailored permissions.
      */
     protected array $tailoredPermissions = [
-        // Work Request Inhouse (8)
+        // Work Request Inhouse (6)
         'work-request.view',
         'work-request.create',
         'work-request.process',
         'work-request.approve',
         'work-request.print',
-        'work-request.monitoring',
         'work-request.safety-stock',
-        'work-request.view-all',
 
         // Material Handling (3)
         'material-handling.view',
@@ -60,14 +58,8 @@ class PermissionMatrixIntegrityTest extends TestCase
         'cycle-count.create',
         'cycle-count.approve',
 
-        // Log Aktivitas & Audit (2)
+        // Log Aktivitas & Audit (1)
         'audit-log.view',
-        'audit-log.export',
-
-        // Admin Panel (3)
-        'admin-panel.view',
-        'admin-panel.users',
-        'admin-panel.settings',
     ];
 
     protected function setUp(): void
@@ -120,14 +112,20 @@ class PermissionMatrixIntegrityTest extends TestCase
         }
     }
 
-    public function test_tailored_permissions_count_is_exactly_37(): void
+    public function test_tailored_permissions_count_is_exactly_31(): void
     {
-        $this->assertCount(37, $this->tailoredPermissions);
+        $this->assertCount(31, $this->tailoredPermissions);
     }
 
     public function test_no_ghost_permissions_in_tailored_list(): void
     {
         $ghosts = [
+            'work-request.monitoring',
+            'work-request.view-all',
+            'audit-log.export',
+            'admin-panel.view',
+            'admin-panel.users',
+            'admin-panel.settings',
             'peta-gudang.approve',
             'peta-gudang.export',
             'peta-gudang.delete',

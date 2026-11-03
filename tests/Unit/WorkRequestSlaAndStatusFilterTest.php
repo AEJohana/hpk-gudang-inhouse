@@ -120,6 +120,14 @@ class WorkRequestSlaAndStatusFilterTest extends TestCase
         $this->assertContains('WRI-LATE-01', $overdueList);
         $this->assertNotContains('WRI-NEW-01', $overdueList);
         $this->assertNotContains('WRI-DONE-01', $overdueList);
+
+        // Validasi helper method isOverdue() dan accessor is_overdue
+        $this->assertTrue($overdueWr->isOverdue());
+        $this->assertTrue($overdueWr->is_overdue);
+        $this->assertFalse($newWr->isOverdue());
+        $this->assertFalse($newWr->is_overdue);
+        $this->assertFalse($finishedWr->isOverdue());
+        $this->assertFalse($finishedWr->is_overdue);
     }
 
     public function test_status_filter_categories(): void

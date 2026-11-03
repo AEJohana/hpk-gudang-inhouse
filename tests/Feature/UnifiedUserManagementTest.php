@@ -237,7 +237,7 @@ class UnifiedUserManagementTest extends TestCase
             'permissions' => [
                 'work-request.view',
                 'work-request.approve',
-                'work-request.monitoring',
+                'work-request.safety-stock',
             ],
         ];
 

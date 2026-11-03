@@ -174,22 +174,10 @@ class WorkRequestAccessTest extends TestCase
         $deniedResponse->assertStatus(403);
     }
 
-    public function test_sub_access_monitoring_sla_permission(): void
+    public function test_monitoring_url_redirects_to_overdue_wri_queue(): void
     {
-        // Admin has permission
         $response = $this->actingAs($this->admin)->get('/work-requests/monitoring');
-        $response->assertStatus(200);
-        $response->assertSee('Dashboard Monitoring SLA Pabrik');
-
-        // Operator Mesin does not have monitoring permission
-        $opMesin = User::factory()->create([
-            'department_id' => $this->deptLaser->id,
-            'can_access_all_departments' => false,
-        ]);
-        $opMesin->assignRole('operator_mesin');
-
-        $deniedResponse = $this->actingAs($opMesin)->get('/work-requests/monitoring');
-        $deniedResponse->assertStatus(403);
+        $response->assertRedirect(route('work-requests.index', ['overdue_sla' => 1]));
     }
 
     public function test_print_sheet_kanban_card_renders(): void

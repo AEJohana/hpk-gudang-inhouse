@@ -79,13 +79,6 @@
                     @endif
                 </a>
                 @endcan
-                @can('work-request.monitoring')
-                <a href="{{ route('work-requests.monitoring') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-                    <i class="fa-solid fa-chart-line text-xs text-amber-500"></i>
-                    <span>Monitoring SLA & Durasi</span>
-                </a>
-                @endcan
             </div>
 
             <div class="flex items-center space-x-2 text-xs">
@@ -170,7 +163,7 @@
 
         <!-- 2. UNIFIED WORK REQUEST CONTROL BAR (BEBAS DARI INPUT DOBEL) -->
         <div class="bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200 shadow-xs flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            <!-- Left: 5 Status Tabs & Interactive SLA Alert -->
+            <!-- Left: 5 Status Tabs -->
             <div class="flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
                 <!-- Tab: Semua -->
                 <a href="{{ route('work-requests.index', ['scope' => $scope]) }}" 
@@ -222,22 +215,6 @@
                         {{ $receivedCount }}
                     </span>
                 </a>
-
-                <!-- Separator Divider -->
-                <div class="hidden sm:block h-5 w-px bg-slate-200 mx-1"></div>
-
-                <!-- Interactive SLA Alert Filter Button -->
-                @if($overdueSlaCount > 0)
-                <a href="{{ route('work-requests.index', array_merge(request()->query(), ['overdue_sla' => request()->boolean('overdue_sla') ? null : 1])) }}"
-                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap {{ request()->boolean('overdue_sla') ? 'bg-rose-600 text-white ring-2 ring-rose-400 font-black shadow-xs' : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200' }}"
-                   title="{{ request()->boolean('overdue_sla') ? 'Filter aktif: Klik untuk mematikan filter SLA' : 'Klik untuk menyaring tiket terlambat > 72 jam' }}">
-                    <i class="fa-solid fa-triangle-exclamation {{ request()->boolean('overdue_sla') ? 'text-white' : 'text-rose-600' }}"></i>
-                    <span>{{ $overdueSlaCount }} Melewati SLA > 72 Jam</span>
-                    @if(request()->boolean('overdue_sla'))
-                        <i class="fa-solid fa-xmark ml-1 text-[11px] bg-rose-700 hover:bg-rose-800 rounded-full w-4 h-4 inline-flex items-center justify-center"></i>
-                    @endif
-                </a>
-                @endif
             </div>
 
             <!-- Right: Search Input Form -->
@@ -258,6 +235,40 @@
                 </form>
             </div>
         </div>
+
+        <!-- 2.5. PERINGATAN TERLAMBAT (> 3 HARI) BANNER (LAMPIRAN 1 STYLE) -->
+        @if($overdueSlaCount > 0 || request()->boolean('overdue_sla'))
+        <div class="bg-red-50/80 border border-red-200/90 rounded-2xl p-3.5 sm:px-5 sm:py-3.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 text-xl shadow-2xs">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <strong class="text-red-700 font-extrabold text-sm block">Peringatan!</strong>
+                    <span class="text-slate-700 text-xs sm:text-sm">
+                        Terdapat <b class="text-red-950 font-black">{{ $overdueSlaCount }}</b> Work Request yang tertunda lebih dari 3 hari.
+                    </span>
+                </div>
+            </div>
+            <div>
+                @if(request()->boolean('overdue_sla'))
+                    <a href="{{ route('work-requests.index', array_merge(request()->except('overdue_sla', 'page'))) }}" 
+                       class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-full shadow-sm transition inline-flex items-center space-x-1.5 whitespace-nowrap active:scale-95"
+                       title="Tampilkan seluruh tiket">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                        <span>Tampilkan Semua</span>
+                    </a>
+                @else
+                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['overdue_sla' => 1])) }}" 
+                       class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-full shadow-sm transition inline-flex items-center space-x-1.5 whitespace-nowrap active:scale-95"
+                       title="Saring tiket yang tertunda lebih dari 3 hari">
+                        <i class="fa-solid fa-filter text-xs"></i>
+                        <span>Lihat yang Terlambat</span>
+                    </a>
+                @endif
+            </div>
+        </div>
+        @endif
 
         <!-- 3. WORK REQUESTS (DUAL-MODE: MOBILE CARDS & DESKTOP TABLE) -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -393,6 +404,7 @@
                         'canProcessAction' => $canProcessAction,
                         'actionUrl' => route('work-requests.process-action', $wri),
                         'isFinal' => (bool) $wri->is_final,
+                        'isOverdue' => (bool) $wri->isOverdue(),
                     ];
                 @endphp
                 <div class="mobile-data-card space-y-3 border border-slate-200">
@@ -407,6 +419,9 @@
                                 <span>{{ $wri->dept_pengaju ?: 'Gudang' }} &rarr; {{ $wri->dept_penerima ?: 'Mesin' }}</span>
                                 <span>&bull;</span>
                                 <span>{{ $wri->created_at->format('d M, H:i') }}</span>
+                                @if($wri->isOverdue())
+                                    <span class="text-rose-600 font-bold">({{ $wri->created_at->diffInDays() }} hari lalu)</span>
+                                @endif
                             </div>
                             @if($wri->assigned_operator_name)
                                 <span class="inline-flex items-center mt-1 px-2 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 text-[9px] font-bold">
@@ -419,9 +434,16 @@
                                 </span>
                             @endif
                         </div>
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $wri->status_badge['class'] }}">
-                            {{ $wri->status_badge['label'] }}
-                        </span>
+                        <div class="flex flex-col items-end space-y-1">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $wri->status_badge['class'] }}">
+                                {{ $wri->status_badge['label'] }}
+                            </span>
+                            @if($wri->isOverdue())
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-300 shadow-2xs" title="Pengerjaan tertunda lebih dari 3 hari">
+                                    <i class="fa-solid fa-triangle-exclamation text-rose-600 me-1 text-[8px]"></i> Terlambat > 3 Hari
+                                </span>
+                            @endif
+                        </div>
                     </div>
 
                     <!-- Component info -->
@@ -750,6 +772,7 @@
                                 'canProcessAction' => $canProcessAction,
                                 'actionUrl' => route('work-requests.process-action', $wri),
                                 'isFinal' => (bool) $wri->is_final,
+                                'isOverdue' => (bool) $wri->isOverdue(),
                             ];
                         @endphp
                         <tr class="hover:bg-slate-50/70 transition">
@@ -772,6 +795,11 @@
                                     <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] {{ $wri->priority_badge['class'] }}">
                                         {{ $wri->priority_badge['label'] }}
                                     </span>
+                                    @if($wri->isOverdue())
+                                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-300 shadow-2xs" title="Pengerjaan tertunda lebih dari 3 hari">
+                                            <i class="fa-solid fa-triangle-exclamation text-rose-600 me-1 text-[8px]"></i> Terlambat > 3 Hari
+                                        </span>
+                                    @endif
                                     @can('work-request.print')
                                         @if($wri->isPrintable())
                                             <a href="{{ route('work-requests.print-sheet', $wri) }}" 
@@ -880,6 +908,11 @@
                                 <div class="text-[10px] text-slate-400 mt-0.5 whitespace-nowrap">
                                     {{ $wri->created_at->format('H:i') }} WIB
                                 </div>
+                                @if($wri->isOverdue())
+                                    <div class="text-[9.5px] font-bold text-rose-600 mt-1 flex items-center whitespace-nowrap" title="Pengerjaan telah melewati batas waktu 3 hari">
+                                        <i class="fa-solid fa-clock text-[9px] me-1"></i> Tertunda {{ $wri->created_at->diffInDays() }} hari
+                                    </div>
+                                @endif
                             </td>
 
                             <!-- 3. Komponen -->
@@ -1172,6 +1205,7 @@
                     isPrintable: false,
                     printValidationMessage: '',
                     printCount: 0,
+                    isOverdue: false,
                 },
                 openAssignModal(data) {
                     this.assignData = {

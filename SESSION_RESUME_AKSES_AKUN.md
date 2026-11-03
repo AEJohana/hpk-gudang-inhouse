@@ -358,6 +358,48 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Pengujian Unit Otomatis Terisolasi:**
   - Menjalankan `WorkRequestAuthorizationTest` (5 passed), `WorkRequestSlaAndStatusFilterTest` (2 passed), serta seluruh unit test suite (59 passed, 315 assertions) pada SQLite in-memory, terkonfirmasi 100% stabil tanpa regresi.
 
+### FF. Transformasi SLA Menjadi Banner Peringatan Terlambat (> 3 Hari) & Pembersihan Tab Navigasi WRI (Baru Selesai & Teruji 100%)
+- **Pembersihan Bahasa Asing / Istilah Teknis SLA:**
+  - Menghapus seluruh akronim asing "SLA" dari antarmuka pengguna WRI yang membingungkan operator lapangan. Menggantinya dengan bahasa operasional yang membumi: *"Tertunda lebih dari 3 hari"*, *"Terlambat > 3 Hari"*, dan *"Peringatan Terlambat"*.
+- **Penerapan Banner Peringatan Keterlambatan (Mengacu Lampiran 1 Desain Pengguna):**
+  - Tampil otomatis di atas daftar tiket WRI saat terdapat tiket tertunda lebih dari 3 hari (`$overdueSlaCount > 0` atau saat filter aktif).
+  - Dilengkapi ikon segitiga seru merah, judul tebal **"Peringatan!"**, keterangan jumlah tiket terlambat, dan tombol interaktif:
+    - Saat normal: Tombol merah bulat **`[ 🔻 Lihat yang Terlambat ]`** untuk menyaring tiket terlambat.
+    - Saat filter aktif: Berubah menjadi tombol gelap **`[ ✕ Tampilkan Semua ]`** untuk mengembalikan antrean penuh dalam 1 klik.
+  - Menghilangkan tombol kecil SLA lama di bilah kontrol filter sehingga antarmuka kontrol menjadi jauh lebih rapi.
+- **Penghapusan Tab Navigasi "Monitoring SLA & Durasi" (Mengacu Lampiran 2):**
+  - Menghapus tab tombol navigasi `[ 📈 Monitoring SLA & Durasi ]` dari sub-menu antrean WRI (`resources/views/work_requests/index.blade.php`, `safety_stock.blade.php`, dan `print_queue.blade.php`).
+  - Sub-navigasi WRI kini murni terdiri dari 3 pilar operasional:
+    1. `[ 📋 Antrian & Tiket WRI ]`
+    2. `[ 🛡️ Safety Stock Alert ]`
+    3. `[ 🖨️ Cetak Dokumen WR ]`
+- **Penyematan Indikator Terlambat Langsung pada Data Tiket WRI:**
+  - Menambahkan method pembantu `$wri->isOverdue(): bool` dan accessor `is_overdue` pada model `WorkRequest`.
+  - **Tabel Desktop:** Menyematkan lencana peringatan merah `⚠️ Terlambat > 3 Hari` pada kolom No WR / Status dan durasi `Tertunda X hari` pada kolom Tanggal.
+  - **Kartu Mobile:** Menampilkan lencana peringatan merah di samping status badge dan durasi umur tiket.
+  - **Modal Detail Pelacakan (`detail_modal.blade.php`):** Menyematkan kotak peringatan (*alert box*) khusus jika tiket yang dibuka berstatus tertunda > 3 hari agar segera ditindaklanjuti.
+- **Pengujian Unit Otomatis Terisolasi:**
+  - Memperbarui `tests/Unit/WorkRequestSlaAndStatusFilterTest.php` untuk menguji `isOverdue()` dan accessor `is_overdue`. Seluruh 59 unit tests lulus 100% (321 assertions).
+
+### GG. Pembersihan Bersih 6 Hak Akses Semu/Ghost & Perampingan Matriks Otorisasi (37 -> 31 Hak Akses) (Baru Selesai & Teruji 100%)
+- **Hasil Audit Empiris Matriks Otorisasi RBAC:**
+  - Melakukan investigasi menyeluruh terhadap seluruh 37 izin di `routes/web.php`, `app/Http/Controllers/`, dan `resources/views/`.
+  - Mengidentifikasi 6 hak akses yang tidak memiliki fitur fisik, semu (ghost), atau redundan:
+    1. `work-request.monitoring`: Usang karena SLA sudah diubah menjadi Banner Peringatan terbuka dan filter interaktif di halaman utama WRI.
+    2. `work-request.view-all`: Ghost permission (0 kali dibaca kode sistem) karena akses 15 departemen dikendalikan secara mutlak oleh kolom database `users.can_access_all_departments` dan fungsi `canAccessAllDepartments()`.
+    3. `audit-log.export`: Fitur ekspor/unduh log audit tidak pernah ada di aplikasi (tidak ada rute, controller, maupun tombol export).
+    4. `admin-panel.view`: Redundan karena seluruh area `/admin/*` diproteksi secara mutlak oleh `role:admin_gudang`.
+    5. `admin-panel.users`: Redundan terhadap role admin.
+    6. `admin-panel.settings`: Redundan terhadap role admin.
+- **Pembersihan Database Non-Destruktif & Antarmuka Admin:**
+  - Menerbitkan migrasi `2026_11_03_150000_remove_obsolete_and_ghost_permissions.php` untuk menghapus ke-6 izin tersebut dari tabel `permissions`, `role_has_permissions`, dan `model_has_permissions`, serta membersihkan cache izin Spatie.
+  - Menghapus ke-6 izin tersebut dari formulir *Edit Role* (`resources/views/admin/roles/edit.blade.php`) dan *Tambah/Edit User* (`resources/views/admin/users/create.blade.php` & `edit.blade.php`).
+  - Memperbarui keterangan bantuan mode penuh admin dari *"Seluruh 37 hak akses..."* menjadi *"Seluruh 31 hak akses modul WMS diaktifkan secara otomatis untuk pimpinan / admin sistem."*
+  - Mengarahkan rute lama `/work-requests/monitoring` secara mulus ke antrean WRI berfilter terlambat (`/work-requests?overdue_sla=1`).
+- **Pengujian Unit Otomatis Terisolasi:**
+  - Memperbarui `tests/Unit/PermissionMatrixIntegrityTest.php` untuk mengunci matriks pada **tepat 31 hak akses resmi** dan memasukkan ke-6 izin semu tersebut ke dalam daftar hitam ghost permissions test (`test_no_ghost_permissions_in_tailored_list`).
+  - Seluruh 59 unit tests lulus 100% (327 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

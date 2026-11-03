@@ -121,9 +121,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/work-requests/safety-stock', [\App\Http\Controllers\WorkRequestController::class, 'safetyStock'])
             ->middleware('can:work-request.safety-stock')
             ->name('work-requests.safety-stock');
-        Route::get('/work-requests/monitoring', [\App\Http\Controllers\WorkRequestController::class, 'monitoring'])
-            ->middleware('can:work-request.monitoring')
-            ->name('work-requests.monitoring');
+        Route::get('/work-requests/monitoring', function () {
+            return redirect()->route('work-requests.index', ['overdue_sla' => 1]);
+        })->name('work-requests.monitoring');
         Route::get('/work-requests/print-queue', [\App\Http\Controllers\WorkRequestController::class, 'printQueue'])
             ->middleware('can:work-request.print')
             ->name('work-requests.print-queue');

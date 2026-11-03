@@ -106,6 +106,24 @@
                     </template>
                 </div>
 
+                <!-- 1.5. PERINGATAN TERLAMBAT (> 3 HARI) ALERT BOX -->
+                <template x-if="detailData.isOverdue">
+                    <div class="p-3.5 bg-rose-50 border border-rose-200/90 rounded-2xl flex items-start space-x-3 text-rose-900 shadow-2xs">
+                        <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0 text-base mt-0.5 shadow-2xs">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between">
+                                <span class="font-extrabold text-xs text-rose-900 block">Peringatan: Pengerjaan Tertunda > 3 Hari</span>
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-200 text-rose-800 uppercase">Perlu Perhatian</span>
+                            </div>
+                            <p class="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
+                                Tiket ini telah tertunda melebihi batas waktu 3 hari sejak diajukan. Mohon prioritaskan pengerjaan atau segera berkoordinasi dengan bagian terkait.
+                            </p>
+                        </div>
+                    </div>
+                </template>
+
                 <!-- 2. IDENTITAS TIKET, QR CODE & DUAL VERIFIKATOR (Lampiran 1-3 Style) -->
                 <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
                     <div class="flex items-start gap-3.5">

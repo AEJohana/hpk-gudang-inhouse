@@ -22,15 +22,13 @@ class AdminSeeder extends Seeder
 
         // 1. The 34 Tailored Permissions (Presisi & Terhubung ke Fitur Riil)
         $tailoredPermissions = [
-            // Work Request Inhouse (8)
+            // Work Request Inhouse (6)
             'work-request.view',        // Akses Utama Menu & Lihat Daftar WRI
             'work-request.create',      // Sub-Akses: Buat Tiket WRI Baru
             'work-request.process',     // Sub-Akses: Eksekusi Pengerjaan Mesin, Advance Step & Lapor Defect
             'work-request.approve',     // Sub-Akses: Otorisasi Approval Ka. Bagian Pengaju & Penerima
             'work-request.print',       // Sub-Akses: Cetak Lembar WRI, Kanban & Label Barcode
-            'work-request.monitoring',  // Sub-Akses: Dashboard Monitoring SLA & Analitik Durasi Mesin
             'work-request.safety-stock',// Sub-Akses: Tab Pemantauan Part Kritis & Order Cepat
-            'work-request.view-all',    // Sub-Akses Khusus: Akses Global Tiket Semua 15 Departemen (*)
 
             // Material Handling (3)
             'material-handling.view',   // Lihat Dashboard & Logistik MH
@@ -72,14 +70,8 @@ class AdminSeeder extends Seeder
             'cycle-count.create',       // Buka Sesi Opname & Input Hasil Hitung Fisik
             'cycle-count.approve',      // Otorisasi Rekonsiliasi & Penyesuaian Saldo Stok
 
-            // Log Aktivitas & Audit (2)
+            // Log Aktivitas & Audit (1)
             'audit-log.view',           // Akses Menu & Lihat Rekam Jejak Audit Sistem
-            'audit-log.export',         // Unduh Rekam Jejak Aktivitas & Audit Log Sistem
-
-            // Admin Panel (3)
-            'admin-panel.view',         // Akses Masuk ke Admin Panel & Dashboard Admin
-            'admin-panel.users',        // Kelola Akun Pengguna, Role, & Matriks Izin
-            'admin-panel.settings',     // Kelola Kategori, Satuan UoM, Lokasi, & Pengaturan Sistem
         ];
 
         foreach ($tailoredPermissions as $perm) {
@@ -104,16 +96,14 @@ class AdminSeeder extends Seeder
             'disposal.view', 'disposal.approve',
             'label-qr.view', 'label-qr.print',
             'cycle-count.view', 'cycle-count.approve',
-            'audit-log.view', 'audit-log.export',
+            'audit-log.view',
             // WRI & MH
             'work-request.view',
             'work-request.create',
             'work-request.process',
             'work-request.approve',
             'work-request.print',
-            'work-request.monitoring',
             'work-request.safety-stock',
-            'work-request.view-all',
             'material-handling.view',
             'material-handling.manage',
             'material-handling.process',
@@ -162,7 +152,6 @@ class AdminSeeder extends Seeder
             'master-komponen.view', 'master-komponen.create', 'master-komponen.edit',
             'ecr.view', 'ecr.create',
             'work-request.view',
-            'work-request.monitoring',
         ]);
 
         // Role: Staff (Hak akses spesifik diberikan per-user via checklist matrix berdasarkan area kerja)
