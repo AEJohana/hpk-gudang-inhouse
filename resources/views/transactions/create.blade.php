@@ -2,333 +2,337 @@
     <x-slot name="header">
         <div class="flex items-center space-x-3">
             <a href="{{ route('transactions.index') }}" 
-               class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer"
+               class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-medium transition flex items-center space-x-1.5 shadow-2xs cursor-pointer"
                title="Kembali ke Riwayat Transaksi">
                 <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
                 <span>Kembali</span>
             </a>
             <div>
-                <h2 class="font-bold text-xl text-slate-900 leading-tight">
-                    Input Transaksi Komponen Gudang
+                <h2 class="font-bold text-base sm:text-lg text-slate-900 leading-tight">
+                    Transaksi Komponen Gudang
                 </h2>
-                <p class="text-xs text-slate-500 mt-0.5">Scan QR/Barcode atau ketik manual kode part dengan validasi visual foto komponen</p>
+                <p class="text-[11px] text-slate-500 mt-0.5">Form mutasi barang masuk, barang keluar, dan transfer rak</p>
             </div>
         </div>
     </x-slot>
 
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="transactionForm()">
-        <form method="POST" action="{{ route('transactions.store') }}" @submit="validateSubmit($event)" class="space-y-6">
+    <div class="max-w-xl mx-auto px-3 sm:px-4 py-4 sm:py-6" x-data="transactionForm()">
+        <form method="POST" action="{{ route('transactions.store') }}" @submit="validateSubmit($event)" class="space-y-4">
             @csrf
 
             @if ($components->isEmpty())
-                <div class="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start space-x-3">
-                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg mt-0.5"></i>
+                <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start space-x-3 text-xs text-slate-700">
+                    <i class="fa-solid fa-circle-info text-slate-500 text-sm mt-0.5"></i>
                     <div class="flex-1">
-                        <h4 class="font-bold text-xs text-amber-900">Belum Ada Master Komponen Terdaftar</h4>
-                        <p class="text-xs text-amber-700 mt-0.5">
-                            Belum ada master komponen di database gudang. Silakan daftarkan komponen terlebih dahulu sebelum melakukan transaksi inbound/outbound.
+                        <p class="font-medium text-slate-900">Belum Ada Master Komponen</p>
+                        <p class="text-[11px] text-slate-500 mt-0.5">
+                            Silakan daftarkan master komponen terlebih dahulu sebelum melakukan transaksi.
                         </p>
-                        <div class="mt-2.5">
-                            <a href="{{ route('components.create') }}" class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold transition shadow-xs">
-                                <i class="fa-solid fa-plus text-[10px]"></i>
-                                <span>Tambah Komponen Sekarang</span>
+                        <div class="mt-2">
+                            <a href="{{ route('components.create') }}" class="inline-flex items-center px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-[11px] font-medium transition">
+                                Tambah Komponen
                             </a>
                         </div>
                     </div>
                 </div>
             @endif
 
-            <!-- Section 1: Header Information -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-                <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
-                    <span>1. Informasi Umum Transaksi</span>
-                    <span class="text-xs font-normal text-slate-400">Petugas: <strong>{{ auth()->user()->name }}</strong></span>
-                </h3>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <!-- Transaction Type -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                            Jenis Transaksi <span class="text-rose-500">*</span>
-                        </label>
-                        <select name="type" x-model="txType" required class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-semibold text-slate-800">
-                            <option value="inbound">Inbound (Barang Masuk / Penerimaan)</option>
-                            <option value="outbound">Outbound (Barang Keluar / Perakitan)</option>
-                            <option value="transfer">Transfer Antar Rak / Zona</option>
-                        </select>
+            <!-- UNIFIED FORMAL CARD CONTAINER -->
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 space-y-3.5">
+                
+                <!-- 1. BAR JENIS TRANSAKSI (3 CLEAN TABS - TANPA DROPDOWN GANDA) -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="text-xs font-medium text-slate-700">Jenis Transaksi</label>
+                        <span class="text-[11px] text-slate-400">Petugas: {{ auth()->user()->name }}</span>
                     </div>
 
-                    <!-- Transaction Date (Real-time & Read-only) -->
+                    <div class="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl">
+                        <button type="button" 
+                                @click="setTxType('inbound')" 
+                                :class="txType === 'inbound' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-800 font-medium'"
+                                class="py-2 px-2 text-xs rounded-lg transition text-center cursor-pointer">
+                            Barang Masuk
+                            <span class="sr-only">Inbound (Barang Masuk / Penerimaan)</span>
+                        </button>
+                        <button type="button" 
+                                @click="setTxType('outbound')" 
+                                :class="txType === 'outbound' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-800 font-medium'"
+                                class="py-2 px-2 text-xs rounded-lg transition text-center cursor-pointer">
+                            Barang Keluar
+                            <span class="sr-only">Outbound (Barang Keluar / Perakitan)</span>
+                        </button>
+                        <button type="button" 
+                                @click="setTxType('transfer')" 
+                                :class="txType === 'transfer' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-800 font-medium'"
+                                class="py-2 px-2 text-xs rounded-lg transition text-center cursor-pointer">
+                            Transfer Rak
+                            <span class="sr-only">Transfer Antar Rak / Zona</span>
+                        </button>
+                    </div>
+
+                    <!-- Hidden Input for Form Submission -->
+                    <input type="hidden" name="type" :value="txType">
+                </div>
+
+                <!-- 2. PEMINDAI KAMERA (CLEAN BUTTON) -->
+                <div class="space-y-2">
+                    <button type="button" 
+                            @click="toggleCameraScanner()" 
+                            class="w-full py-2 px-3 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-xl border border-slate-300 shadow-2xs transition flex items-center justify-center space-x-1.5 cursor-pointer">
+                        <i class="fa-solid fa-camera text-slate-500 text-xs"></i>
+                        <span x-text="scannerActive ? 'Tutup Pemindai Kamera' : 'Buka Pemindai QR / Barcode'"></span>
+                    </button>
+
+                    <!-- Camera Viewport Box -->
+                    <div x-show="scannerActive" style="display: none;" class="p-3 bg-slate-950 rounded-xl border border-slate-800 transition-all">
+                        <div class="max-w-[200px] mx-auto aspect-square relative flex items-center justify-center overflow-hidden rounded-lg bg-black">
+                            <div id="tx-camera-reader" class="w-full"></div>
+                            <div class="absolute inset-x-4 top-1/2 -translate-y-1/2 h-0.5 bg-amber-400 shadow-xs pointer-events-none"></div>
+                        </div>
+                        <p class="text-center text-[11px] text-slate-400 mt-2">Arahkan kamera ke label QR / Barcode part</p>
+                    </div>
+                </div>
+
+                <!-- 3. PRATINJAU FOTO KOMPONEN -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Pratinjau Komponen</label>
+                    <div class="w-full min-h-[120px] rounded-xl border border-slate-200 bg-slate-50/60 flex flex-col items-center justify-center p-3 overflow-hidden text-center transition">
+                        <template x-if="selectedComp && selectedComp.image_url">
+                            <div class="flex flex-col items-center space-y-1">
+                                <img :src="selectedComp.image_url" :alt="selectedComp.name" class="h-24 max-w-full object-contain rounded-lg border border-slate-200 bg-white shadow-2xs">
+                                <span class="text-[10px] font-mono text-slate-600 bg-slate-200/70 px-2 py-0.5 rounded" x-text="selectedComp.part_number"></span>
+                            </div>
+                        </template>
+                        <template x-if="!selectedComp || !selectedComp.image_url">
+                            <div class="text-slate-400 text-xs py-4 flex flex-col items-center space-y-1">
+                                <i class="fa-regular fa-image text-xl text-slate-300"></i>
+                                <span class="text-[11px]">Pratinjau fisik part akan muncul saat dipilih</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- 4. COMBOBOX: SEARCHABLE AUTOCOMPLETE DROPDOWN DALAM 1 KOTAK -->
+                <div class="relative" @click.away="dropdownOpen = false">
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Kode / Nama Komponen</label>
+                    
+                    <div class="relative">
+                        <input type="text" 
+                               x-model="searchQuery" 
+                               @focus="dropdownOpen = true" 
+                               @input="onInputSearch()" 
+                               @keydown.enter.prevent="onEnterKey()"
+                               placeholder="Ketik kode part atau klik untuk pilih..." 
+                               class="w-full pl-3 pr-10 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-1 focus:ring-slate-900 focus:outline-none font-mono text-slate-800 bg-white">
+                        
+                        <!-- Toggle / Clear Button -->
+                        <div class="absolute right-2.5 top-2.5 flex items-center space-x-1">
+                            <button type="button" 
+                                    x-show="searchQuery" 
+                                    @click="clearSelection()" 
+                                    class="text-slate-400 hover:text-slate-600 p-0.5" 
+                                    title="Bersihkan">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                            <button type="button" 
+                                    @click="dropdownOpen = !dropdownOpen" 
+                                    class="text-slate-400 hover:text-slate-600 p-0.5">
+                                <i class="fa-solid fa-chevron-down text-xs transition-transform" :class="{ 'rotate-180': dropdownOpen }"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Floating Searchable Dropdown List -->
+                    <div x-show="dropdownOpen" 
+                         style="display: none;" 
+                         class="absolute z-30 left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg divide-y divide-slate-100">
+                        <template x-for="comp in filteredComponents" :key="comp.id">
+                            <div @click="selectComponent(comp)" 
+                                 class="p-2.5 hover:bg-slate-50 cursor-pointer flex items-center justify-between text-xs transition">
+                                <div class="min-w-0 pr-2">
+                                    <span class="font-mono font-semibold text-slate-900 block" x-text="comp.part_number"></span>
+                                    <span class="text-slate-600 text-[11px] truncate block" x-text="comp.name"></span>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <span class="text-[11px] font-semibold text-slate-700 block" x-text="comp.total_stock + ' ' + comp.uom"></span>
+                                </div>
+                            </div>
+                        </template>
+                        <div x-show="filteredComponents.length === 0" class="p-3 text-center text-xs text-slate-400">
+                            Tidak ada komponen yang cocok
+                        </div>
+                    </div>
+
+                    <div x-show="errorMessage" style="display: none;" class="mt-1 p-2 bg-rose-50 border border-rose-200 text-rose-700 text-[11px] rounded-lg" x-text="errorMessage"></div>
+                </div>
+
+                <!-- 5. NAMA BARANG & SALDO GUDANG (READ-ONLY) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                            Tanggal Transaksi <span class="text-rose-500">*</span>
-                        </label>
-                        <div class="relative">
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Nama Komponen</label>
+                        <div class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-800 min-h-[38px] flex items-center">
+                            <span x-text="selectedComp ? selectedComp.name : '-'"
+                                  :class="selectedComp ? 'font-medium text-slate-900' : 'text-slate-400 italic text-[11px]'"></span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Stok Saat Ini</label>
+                        <div class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-800 min-h-[38px] flex items-center justify-between">
+                            <span x-text="selectedComp ? (selectedComp.total_stock + ' ' + (selectedComp.uom || 'Pcs')) : '-'"
+                                  :class="selectedComp ? 'font-semibold text-slate-900' : 'text-slate-400 italic text-[11px]'"></span>
+                            <template x-if="selectedComp">
+                                <span class="text-[10px] px-2 py-0.5 rounded"
+                                      :class="selectedComp.is_low_stock ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-slate-100 text-slate-600 border border-slate-200'"
+                                      x-text="selectedComp.is_low_stock ? 'Perlu Restock' : 'Aman'"></span>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. RAK PENYIMPANAN (ADAPTIF) -->
+                <div>
+                    <template x-if="txType === 'outbound' || txType === 'transfer'">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 mb-1">Ambil dari Rak</label>
+                            <select x-model="fromLocId" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-1 focus:ring-slate-900 text-slate-800 font-normal">
+                                <option value="">-- Tidak Ada Rak Terdaftar --</option>
+                                @foreach ($locations as $loc)
+                                    <option value="{{ $loc->id }}">{{ $loc->full_location_code }} ({{ $loc->zone_name }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </template>
+
+                    <template x-if="txType === 'inbound' || txType === 'transfer' || txType === 'return'">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 mb-1">Simpan ke Rak</label>
+                            <select x-model="toLocId" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-1 focus:ring-slate-900 text-slate-800 font-normal">
+                                <option value="">-- Pilih Rak Tujuan --</option>
+                                @foreach ($locations as $loc)
+                                    <option value="{{ $loc->id }}">{{ $loc->full_location_code }} ({{ $loc->zone_name }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- 7. JUMLAH BARANG (QTY) - BILANGAN BULAT MURNI (INTEGER) -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-xs font-medium text-slate-700">Jumlah Barang (Qty)</label>
+                        <span class="text-[11px] text-slate-500" x-text="selectedComp ? ('Satuan: ' + selectedComp.uom) : 'Satuan: Pcs'"></span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button type="button" 
+                                @click="if (itemQty > 1) itemQty--" 
+                                class="w-10 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center border border-slate-200 transition active:scale-95 cursor-pointer">
+                            -
+                        </button>
+                        <input type="number" 
+                               step="1" 
+                               min="1" 
+                               x-model.number="itemQty" 
+                               @input="itemQty = (itemQty ? Math.max(1, Math.floor(itemQty)) : 1)"
+                               inputmode="numeric" 
+                               class="w-full px-3 py-2 text-sm font-semibold text-center border border-slate-300 rounded-xl focus:ring-1 focus:ring-slate-900 focus:outline-none text-slate-900">
+                        <button type="button" 
+                                @click="itemQty++" 
+                                class="w-10 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center border border-slate-200 transition active:scale-95 cursor-pointer">
+                            +
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 8. TANGGAL REALTIME & CATATAN OPSIONAL (COLLAPSIBLE) -->
+                <div x-data="{ expanded: false }" class="pt-1 border-t border-slate-100">
+                    <button type="button" @click="expanded = !expanded" class="text-[11px] font-medium text-slate-600 hover:text-slate-900 flex items-center space-x-1 cursor-pointer">
+                        <i class="fa-solid fa-chevron-right text-[8px] transition-transform" :class="{ 'rotate-90': expanded }"></i>
+                        <span>Tanggal & Catatan Tambahan</span>
+                    </button>
+                    <div x-show="expanded" style="display: none;" class="mt-2 space-y-2 pt-1">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[11px] font-medium text-slate-600">Tanggal Transaksi</label>
+                                <span class="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Real-time</span>
+                            </div>
                             <input type="date" 
                                    name="transaction_date" 
                                    value="{{ date('Y-m-d') }}" 
                                    readonly 
-                                   class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl bg-slate-100 text-slate-700 font-bold cursor-not-allowed select-none focus:outline-none">
-                            <div class="absolute right-3 top-2 text-xs text-slate-400 font-medium pointer-events-none flex items-center space-x-1">
-                                <i class="fa-solid fa-lock text-[10px]"></i>
-                                <span class="text-[10px]">Real-time</span>
-                            </div>
+                                   class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-slate-100 text-slate-700 font-normal cursor-not-allowed select-none focus:outline-none">
                         </div>
-                        <span class="text-[10px] text-slate-400 mt-1 block">Otomatis tercatat hari ini ({{ now()->translatedFormat('d F Y') }})</span>
-                    </div>
-
-                    <!-- Notes -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Catatan Transaksi</label>
-                        <input type="text" 
-                               name="notes" 
-                               placeholder="Keterangan transaksi..." 
-                               class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Section 2: Scanner & Component Photo Visual Verification Box -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-900">2. Identifikasi Komponen & Verifikasi Visual</h3>
-                        <p class="text-xs text-slate-500">Scan QR Code label atau ketik manual. Foto fisik part akan muncul otomatis untuk dicocokkan!</p>
-                    </div>
-                    <!-- Camera Scanner Launcher Button -->
-                    <button type="button" 
-                            @click="toggleCameraScanner()" 
-                            class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-xl shadow-sm transition flex items-center border border-slate-700">
-                        <svg class="w-4 h-4 me-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-                        <span x-text="scannerActive ? 'Tutup Scanner' : 'Scan via Kamera'"></span>
-                    </button>
-                </div>
-
-                <!-- Live Camera Viewport (Expandable) -->
-                <div x-show="scannerActive" style="display: none;" class="p-4 bg-slate-950 rounded-xl border border-slate-800">
-                    <div class="max-w-xs mx-auto aspect-square relative flex items-center justify-center overflow-hidden rounded-lg bg-black">
-                        <div id="tx-camera-reader" class="w-full"></div>
-                        <div class="absolute inset-x-6 top-1/2 -translate-y-1/2 h-1 bg-amber-500 shadow-[0_0_8px_#f59e0b] animate-pulse pointer-events-none"></div>
-                    </div>
-                    <p class="text-center text-xs text-slate-400 mt-2">Arahkan kamera ke label QR stiker komponen atau rak</p>
-                </div>
-
-                <!-- Input Selector Bar (Scan Barcode Gun / Autocomplete / Dropdown) -->
-                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                    <div class="sm:col-span-6">
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                            Ketik / Scan Barcode Part Number:
-                        </label>
-                        <div class="flex space-x-2">
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-600 mb-1">Catatan Transaksi</label>
                             <input type="text" 
-                                   x-model="searchQuery" 
-                                   @keydown.enter.prevent="searchComponent()"
-                                   placeholder="Contoh: HYD-CYL-160 atau scan barcode..."
-                                   class="flex-1 px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
-                            <button type="button" 
-                                    @click="searchComponent()" 
-                                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl transition">
-                                Cari Part
-                            </button>
+                                   name="notes" 
+                                   placeholder="Keterangan transaksi (opsional)..." 
+                                   class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 focus:outline-none text-slate-800">
                         </div>
-                    </div>
-
-                    <div class="sm:col-span-6">
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                            Atau Pilih dari Daftar Komponen:
-                        </label>
-                        <select @change="onDropdownSelect($event.target.value)" class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            <option value="">-- Cari Nama Komponen --</option>
-                            @foreach ($components as $comp)
-                                <option value="{{ $comp->part_number }}">{{ $comp->part_number }} - {{ $comp->name }} (Stok: {{ $comp->total_stock }} {{ $comp->uom }})</option>
-                            @endforeach
-                        </select>
                     </div>
                 </div>
 
-                <!-- VISUAL COMPONENT PREVIEW CARD -->
-                <template x-if="selectedComp">
-                    <div class="p-4 bg-blue-50/70 border border-blue-200 rounded-2xl flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-5 transition-all">
-                        <!-- High Resolution Component Photo -->
-                        <div class="w-28 h-28 rounded-xl overflow-hidden bg-white border border-blue-300 shadow-md flex-shrink-0 flex items-center justify-center">
-                            <img :src="selectedComp.image_url" :alt="selectedComp.name" class="w-full h-full object-cover">
-                        </div>
+                <!-- 9. MULTI-ITEM STAGING LIST (MINIMALIST) -->
+                <div class="pt-1 flex items-center justify-between border-t border-slate-100">
+                    <button type="button" 
+                            @click="addItemToTable()" 
+                            :disabled="!selectedComp" 
+                            class="text-xs font-medium text-slate-600 hover:text-slate-900 flex items-center space-x-1.5 py-1 px-1.5 rounded-lg hover:bg-slate-100 transition disabled:opacity-40 cursor-pointer">
+                        <i class="fa-solid fa-plus text-[10px]"></i>
+                        <span>Tambah ke Daftar Multi-Item</span>
+                    </button>
+                    <span class="text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded" 
+                          x-show="items.length > 0" 
+                          x-text="items.length + ' Part Siap'"></span>
+                </div>
 
-                        <!-- Component Verification Details -->
-                        <div class="flex-1 space-y-1.5 text-xs text-slate-700">
+                <!-- Staged List Items -->
+                <div x-show="items.length > 0" class="space-y-1.5 pt-1">
+                    <template x-for="(item, idx) in items" :key="idx">
+                        <div class="p-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-xs">
                             <div class="flex items-center space-x-2">
-                                <span class="font-mono font-bold text-xs bg-blue-900 text-white px-2 py-0.5 rounded" x-text="selectedComp.part_number"></span>
-                                <span class="px-2 py-0.5 rounded font-semibold bg-blue-200 text-blue-900 text-[10px]" x-text="selectedComp.category_label"></span>
-                                <span class="text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
-                                    Stok Gudang: <strong x-text="selectedComp.total_stock"></strong> <span x-text="selectedComp.uom"></span>
-                                </span>
+                                <span class="font-mono text-slate-900 text-xs" x-text="item.part_number"></span>
+                                <span class="text-slate-600 truncate max-w-[150px] text-[11px]" x-text="item.name"></span>
                             </div>
-                            <h4 class="text-base font-bold text-slate-900" x-text="selectedComp.name"></h4>
-                            <p class="text-slate-600 line-clamp-2" x-text="selectedComp.specification || 'Tidak ada spesifikasi khusus.'"></p>
-                            <p class="text-slate-500 text-[11px]">
-                                <strong>Lokasi Default:</strong> <span class="font-mono text-blue-900 font-semibold" x-text="selectedComp.default_location"></span>
-                            </p>
-                        </div>
-
-                        <!-- Staging Input Controls -->
-                        <div class="w-full sm:w-64 bg-white p-3.5 rounded-xl border border-blue-200 shadow-sm space-y-2.5">
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase">Jumlah (Qty):</label>
-                                <div class="flex items-center space-x-2 mt-1">
-                                    <input type="number" 
-                                           step="0.01" 
-                                           x-model="itemQty" 
-                                           min="0.01" 
-                                           inputmode="decimal"
-                                           class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 font-bold text-slate-900">
-                                    <span class="text-xs font-semibold text-slate-500" x-text="selectedComp.uom"></span>
-                                </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="font-semibold text-slate-800 text-xs" x-text="item.quantity + ' ' + item.uom"></span>
+                                <button type="button" @click="removeItem(idx)" class="text-slate-400 hover:text-rose-600 p-1 cursor-pointer">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
                             </div>
-
-                            <!-- Location Selectors based on Type -->
-                            <template x-if="txType === 'outbound' || txType === 'transfer'">
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase">Ambil dari Rak:</label>
-                                    <select x-model="fromLocId" class="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg mt-1 font-semibold text-slate-800">
-                                        <option value="">-- Tidak Ada Rak Terdaftar --</option>
-                                        @foreach ($locations as $loc)
-                                            <option value="{{ $loc->id }}">{{ $loc->full_location_code }} ({{ $loc->zone_name }})</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </template>
-
-                            <template x-if="txType === 'inbound' || txType === 'transfer' || txType === 'return'">
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase">Simpan ke Rak:</label>
-                                    <select x-model="toLocId" class="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg mt-1 font-semibold text-slate-800">
-                                        <option value="">-- Pilih Rak Tujuan --</option>
-                                        @foreach ($locations as $loc)
-                                            <option value="{{ $loc->id }}">{{ $loc->full_location_code }} ({{ $loc->zone_name }})</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </template>
-
-                            <button type="button" 
-                                    @click="addItemToTable()" 
-                                    class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition touch-target">
-                                + Masukkan ke Daftar
-                            </button>
                         </div>
+                    </template>
+                </div>
+
+                <!-- HIDDEN INPUTS FOR FORM SUBMISSION -->
+                <!-- Scenario A: Single Item Instant Mode -->
+                <template x-if="items.length === 0 && selectedComp">
+                    <div>
+                        <input type="hidden" name="items[0][component_id]" :value="selectedComp.id">
+                        <input type="hidden" name="items[0][quantity]" :value="itemQty">
+                        <input type="hidden" name="items[0][from_location_id]" :value="fromLocId || ''">
+                        <input type="hidden" name="items[0][to_location_id]" :value="toLocId || ''">
                     </div>
                 </template>
 
-                <div x-show="errorMessage" style="display: none;" class="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl" x-text="errorMessage"></div>
-            </div>
-
-            <!-- Section 3: Staged Line Items Table & Mobile List -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <!-- Scenario B: Multi-Items Mode -->
+                <template x-for="(item, idx) in items" :key="idx">
                     <div>
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">3. Rincian Komponen Siap Diproses</h3>
-                        <p class="text-[11px] text-slate-400">Pastikan seluruh fisik komponen telah dicocokkan sebelum menyimpan transaksi</p>
+                        <input type="hidden" :name="'items[' + idx + '][component_id]'" :value="item.component_id">
+                        <input type="hidden" :name="'items[' + idx + '][quantity]'" :value="item.quantity">
+                        <input type="hidden" :name="'items[' + idx + '][from_location_id]'" :value="item.from_location_id || ''">
+                        <input type="hidden" :name="'items[' + idx + '][to_location_id]'" :value="item.to_location_id || ''">
                     </div>
-                    <span class="text-xs font-bold text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full" x-text="items.length + ' Item Terdaftar'"></span>
+                </template>
+
+                <!-- 10. TOMBOL KONFIRMASI TRANSAKSI (FORMAL NAVY HPK) -->
+                <div class="pt-2">
+                    <button type="submit" 
+                            class="w-full py-2.5 px-4 bg-[#0a2342] hover:bg-slate-800 active:bg-slate-950 text-white font-medium text-xs rounded-xl shadow-2xs transition flex items-center justify-center space-x-1.5 cursor-pointer">
+                        <span x-text="items.length > 0 ? ('Proses Transaksi (' + items.length + ' Item)') : 'Konfirmasi Transaksi'"></span>
+                    </button>
                 </div>
 
-                <!-- Mobile Staged Items (< md screens) -->
-                <div class="block md:hidden p-4 space-y-3">
-                    <template x-for="(item, idx) in items" :key="idx">
-                        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
-                            <div class="flex items-start justify-between">
-                                <div class="flex items-center space-x-2.5">
-                                    <img :src="item.image_url" class="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-white">
-                                    <div>
-                                        <span class="font-mono font-bold text-slate-900 text-xs block" x-text="item.part_number"></span>
-                                        <span class="text-xs font-semibold text-slate-800 line-clamp-1" x-text="item.name"></span>
-                                    </div>
-                                </div>
-                                <button type="button" @click="removeItem(idx)" class="text-rose-600 hover:text-rose-800 text-xs font-bold p-1">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs">
-                                <span class="text-slate-500 font-mono text-[10px]">
-                                    <span x-text="item.from_location_name || 'Gudang'"></span> &rarr; <span x-text="item.to_location_name || 'Lini'"></span>
-                                </span>
-                                <span class="font-extrabold text-slate-900 text-sm">
-                                    <span x-text="item.quantity"></span> <span class="text-xs font-normal text-slate-500" x-text="item.uom"></span>
-                                </span>
-                            </div>
-                        </div>
-                    </template>
-                    <template x-if="items.length === 0">
-                        <div class="py-6 text-center text-slate-400 text-xs">
-                            Belum ada komponen di dalam daftar. Scan barcode atau cari komponen di atas untuk menambahkan.
-                        </div>
-                    </template>
-                </div>
-
-                <!-- Desktop Staged Table (>= md screens) -->
-                <div class="hidden md:block overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-600">
-                        <thead class="bg-slate-50/50 text-[11px] uppercase tracking-wider text-slate-400 font-semibold border-b border-slate-200">
-                            <tr>
-                                <th class="py-3 px-4">Foto & Part Number</th>
-                                <th class="py-3 px-4">Nama Komponen</th>
-                                <th class="py-3 px-4">Rak Asal &rarr; Rak Tujuan</th>
-                                <th class="py-3 px-4 text-center">Jumlah (Qty)</th>
-                                <th class="py-3 px-4 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <template x-for="(item, idx) in items" :key="idx">
-                                <tr class="hover:bg-slate-50/60 transition">
-                                    <td class="py-3 px-4">
-                                        <div class="flex items-center space-x-3">
-                                            <img :src="item.image_url" class="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-white">
-                                            <span class="font-mono font-bold text-slate-900" x-text="item.part_number"></span>
-                                        </div>
-                                    </td>
-                                    <td class="py-3 px-4 font-semibold text-slate-900" x-text="item.name"></td>
-                                    <td class="py-3 px-4 text-slate-500 font-mono text-[11px]">
-                                        <span x-text="item.from_location_name || 'Gudang Luar'"></span> &rarr; 
-                                        <span x-text="item.to_location_name || 'Lini Perakitan'"></span>
-                                    </td>
-                                    <td class="py-3 px-4 text-center font-bold text-slate-900 text-sm">
-                                        <span x-text="item.quantity"></span> <span class="text-xs font-normal" x-text="item.uom"></span>
-                                    </td>
-                                    <td class="py-3 px-4 text-right">
-                                        <button type="button" @click="removeItem(idx)" class="text-rose-600 hover:text-rose-800 font-semibold text-xs">
-                                            Hapus
-                                        </button>
-                                        <!-- Hidden Inputs for Form Submission -->
-                                        <input type="hidden" :name="'items[' + idx + '][component_id]'" :value="item.component_id">
-                                        <input type="hidden" :name="'items[' + idx + '][quantity]'" :value="item.quantity">
-                                        <input type="hidden" :name="'items[' + idx + '][from_location_id]'" :value="item.from_location_id">
-                                        <input type="hidden" :name="'items[' + idx + '][to_location_id]'" :value="item.to_location_id">
-                                    </td>
-                                </tr>
-                            </template>
-                            <template x-if="items.length === 0">
-                                <tr>
-                                    <td colspan="5" class="py-8 text-center text-slate-400">
-                                        Belum ada komponen di dalam daftar. Scan barcode atau cari komponen di atas untuk menambahkan.
-                                    </td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Submit Section -->
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:space-x-3 pt-3">
-                <a href="{{ route('transactions.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition text-center">
-                    Batal
-                </a>
-                <button type="submit" 
-                        :disabled="items.length === 0"
-                        :class="items.length === 0 ? 'opacity-50 cursor-not-allowed bg-slate-300' : 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold shadow-md'"
-                        class="px-6 py-2.5 text-xs rounded-xl transition">
-                    Proses Transaksi & Perbarui Stok Fisik
-                </button>
             </div>
         </form>
     </div>
@@ -338,7 +342,7 @@
         function transactionForm() {
             return {
                 txType: '{{ $defaultType }}',
-                searchQuery: '{{ request("component_id") ? "" : "" }}',
+                searchQuery: '',
                 selectedComp: null,
                 itemQty: 1,
                 fromLocId: '',
@@ -347,12 +351,86 @@
                 errorMessage: null,
                 scannerActive: false,
                 html5QrCode: null,
+                dropdownOpen: false,
+
+                allComponents: {!! json_encode($components->map(function($c) {
+                    return [
+                        'id' => $c->id,
+                        'part_number' => $c->part_number,
+                        'name' => $c->name,
+                        'uom' => $c->uom,
+                        'total_stock' => $c->total_stock,
+                        'default_location_id' => $c->default_location_id,
+                        'image_url' => $c->image_url,
+                        'is_low_stock' => $c->is_low_stock,
+                    ];
+                })) !!},
+
+                get filteredComponents() {
+                    if (!this.searchQuery || !this.searchQuery.trim()) {
+                        return this.allComponents.slice(0, 40);
+                    }
+                    const q = this.searchQuery.toLowerCase().trim();
+                    return this.allComponents.filter(c => 
+                        (c.part_number && c.part_number.toLowerCase().includes(q)) || 
+                        (c.name && c.name.toLowerCase().includes(q))
+                    ).slice(0, 40);
+                },
 
                 init() {
                     const presetId = '{{ request("component_id") }}';
                     if (presetId) {
                         this.lookupById(presetId);
                     }
+                },
+
+                setTxType(type) {
+                    this.txType = type;
+                },
+
+                selectComponent(comp) {
+                    this.selectedComp = comp;
+                    this.searchQuery = comp.part_number + ' - ' + comp.name;
+                    this.itemQty = 1;
+                    this.fromLocId = comp.default_location_id ? String(comp.default_location_id) : '';
+                    this.toLocId = comp.default_location_id ? String(comp.default_location_id) : '';
+                    this.dropdownOpen = false;
+                    this.errorMessage = null;
+                },
+
+                clearSelection() {
+                    this.selectedComp = null;
+                    this.searchQuery = '';
+                    this.dropdownOpen = false;
+                },
+
+                onInputSearch() {
+                    this.dropdownOpen = true;
+                    // If user clears input, reset selected component
+                    if (!this.searchQuery.trim()) {
+                        this.selectedComp = null;
+                    }
+                },
+
+                onEnterKey() {
+                    if (!this.searchQuery || !this.searchQuery.trim()) return;
+                    const q = this.searchQuery.toLowerCase().trim();
+                    
+                    // 1. Try exact part_number match
+                    const exact = this.allComponents.find(c => c.part_number && c.part_number.toLowerCase() === q);
+                    if (exact) {
+                        this.selectComponent(exact);
+                        return;
+                    }
+
+                    // 2. Try first match in filtered list
+                    if (this.filteredComponents.length > 0) {
+                        this.selectComponent(this.filteredComponents[0]);
+                        return;
+                    }
+
+                    // 3. Fallback to API lookup
+                    this.searchComponent();
                 },
 
                 toggleCameraScanner() {
@@ -371,10 +449,10 @@
                     this.html5QrCode = new Html5Qrcode('tx-camera-reader');
                     this.html5QrCode.start(
                         { facingMode: 'environment' },
-                        { fps: 10, qrbox: { width: 200, height: 200 } },
+                        { fps: 10, qrbox: { width: 180, height: 180 } },
                         (text) => {
                             this.searchQuery = text;
-                            this.searchComponent();
+                            this.onEnterKey();
                             this.stopCamera();
                             this.scannerActive = false;
                         },
@@ -391,17 +469,14 @@
                 },
 
                 searchComponent() {
-                    if (!this.searchQuery.trim()) return;
+                    if (!this.searchQuery || !this.searchQuery.trim()) return;
                     this.errorMessage = null;
 
                     fetch(`/api/components/search?q=${encodeURIComponent(this.searchQuery.trim())}`)
                         .then(res => res.json())
                         .then(res => {
                             if (res.success && res.data) {
-                                this.selectedComp = res.data;
-                                this.itemQty = 1;
-                                this.fromLocId = res.data.default_location_id ? String(res.data.default_location_id) : '';
-                                this.toLocId = res.data.default_location_id ? String(res.data.default_location_id) : '';
+                                this.selectComponent(res.data);
                             } else {
                                 this.selectedComp = null;
                                 this.errorMessage = `Komponen "${this.searchQuery}" tidak ditemukan.`;
@@ -413,21 +488,18 @@
                 },
 
                 lookupById(id) {
+                    const found = this.allComponents.find(c => String(c.id) === String(id));
+                    if (found) {
+                        this.selectComponent(found);
+                        return;
+                    }
                     fetch(`/api/components/search?q=${encodeURIComponent(id)}`)
                         .then(res => res.json())
                         .then(res => {
                             if (res.success && res.data) {
-                                this.selectedComp = res.data;
-                                this.fromLocId = res.data.default_location_id ? String(res.data.default_location_id) : '';
-                                this.toLocId = res.data.default_location_id ? String(res.data.default_location_id) : '';
+                                this.selectComponent(res.data);
                             }
                         });
-                },
-
-                onDropdownSelect(partNumber) {
-                    if (!partNumber) return;
-                    this.searchQuery = partNumber;
-                    this.searchComponent();
                 },
 
                 addItemToTable() {
@@ -437,7 +509,6 @@
                         return;
                     }
 
-                    // Get location label texts
                     const fromLocElem = document.querySelector('select[x-model="fromLocId"]');
                     const toLocElem = document.querySelector('select[x-model="toLocId"]');
 
@@ -455,16 +526,16 @@
                         name: this.selectedComp.name,
                         uom: this.selectedComp.uom,
                         image_url: this.selectedComp.image_url,
-                        quantity: this.itemQty,
+                        quantity: Math.floor(this.itemQty),
                         from_location_id: this.fromLocId || null,
                         from_location_name: fromLocText,
                         to_location_id: this.toLocId || null,
                         to_location_name: toLocText,
                     });
 
-                    // Reset staging box
-                    this.selectedComp = null;
-                    this.searchQuery = '';
+                    // Reset staging box for next item
+                    this.clearSelection();
+                    this.itemQty = 1;
                 },
 
                 removeItem(idx) {
@@ -472,10 +543,19 @@
                 },
 
                 validateSubmit(e) {
-                    if (this.items.length === 0) {
+                    if (this.items.length === 0 && !this.selectedComp) {
                         e.preventDefault();
-                        alert('Silakan tambahkan minimal 1 item komponen ke dalam daftar transaksi.');
+                        alert('Silakan scan atau pilih komponen terlebih dahulu!');
+                        return false;
                     }
+                    if (this.items.length === 0 && this.selectedComp) {
+                        if (!this.itemQty || this.itemQty <= 0) {
+                            e.preventDefault();
+                            alert('Jumlah quantity harus minimal 1');
+                            return false;
+                        }
+                    }
+                    return true;
                 }
             };
         }
