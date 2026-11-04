@@ -1,34 +1,36 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div class="flex flex-col items-start gap-1 sm:gap-1.5">
-                <div>
-                    <a href="{{ route('dashboard') }}" 
-                       class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
-                       title="Kembali ke Beranda Utama">
-                        <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
-                        <span>Kembali</span>
-                    </a>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 w-full">
+            <!-- Left: Back Button + Icon Badge + Title (Judul Saja Tanpa Deskripsi) -->
+            <div class="flex items-center space-x-3 sm:space-x-3.5 min-w-0">
+                <a href="{{ route('dashboard') }}" 
+                   class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 flex items-center justify-center text-slate-700 transition shadow-2xs shrink-0 cursor-pointer" 
+                   title="Kembali ke Beranda">
+                    <i class="fa-solid fa-arrow-left text-sm text-slate-600"></i>
+                </a>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-700 shadow-2xs shrink-0">
+                    <i class="fa-solid fa-industry text-base sm:text-lg"></i>
                 </div>
-                <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight">
-                    Work Request Inhouse (WRI)
+                <h2 class="font-extrabold text-base sm:text-xl text-[#0a2342] tracking-tight leading-tight truncate">
+                    Work Request Mesin
                 </h2>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto self-start sm:self-auto">
+            <!-- Right: Action Buttons (Anchored to Far Right) -->
+            <div class="flex items-center space-x-2 shrink-0 ml-auto sm:ml-0">
                 <button type="button" 
                         onclick="window.location.reload()" 
-                        class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-xl border border-slate-300 shadow-2xs transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
+                        class="px-3 py-2 sm:px-3.5 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-xl border border-slate-300 shadow-2xs transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
                         title="Segarkan antrean tiket WRI">
                     <i class="fa-solid fa-arrows-rotate text-xs text-slate-500"></i>
-                    <span>Refresh</span>
+                    <span class="hidden md:inline">Refresh</span>
                 </button>
-                <a href="{{ route('work-station-supplies.index') }}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-xl border border-slate-300 shadow-2xs transition flex items-center justify-center text-center space-x-1.5">
+                <a href="{{ route('work-station-supplies.index') }}" class="px-3 py-2 sm:px-3.5 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-xl border border-slate-300 shadow-2xs transition flex items-center justify-center text-center space-x-1.5">
                     <i class="fa-solid fa-truck-ramp-box text-xs text-slate-500"></i>
-                    <span>Material Handling</span>
+                    <span class="hidden md:inline">Material Handling</span>
                 </a>
                 @can('work-request.create')
-                <a href="{{ route('work-requests.create') }}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center justify-center text-center space-x-1.5">
+                <a href="{{ route('work-requests.create') }}" class="px-3.5 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center justify-center text-center space-x-1.5 whitespace-nowrap">
                     <i class="fa-solid fa-plus text-xs"></i>
                     <span>Membuat WR</span>
                 </a>

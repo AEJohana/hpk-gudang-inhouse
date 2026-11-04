@@ -1,28 +1,31 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-            <div class="flex flex-col items-start gap-1 sm:gap-1.5">
-                <div>
-                    <a href="{{ route('dashboard') }}" 
-                       class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
-                       title="Kembali ke Beranda Utama">
-                        <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
-                        <span>Kembali</span>
-                    </a>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 w-full">
+            <!-- Left: Back Button + Icon Badge + Title (Judul Saja Tanpa Deskripsi) -->
+            <div class="flex items-center space-x-3 sm:space-x-3.5 min-w-0">
+                <a href="{{ route('dashboard') }}" 
+                   class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 flex items-center justify-center text-slate-700 transition shadow-2xs shrink-0 cursor-pointer" 
+                   title="Kembali ke Beranda">
+                    <i class="fa-solid fa-arrow-left text-sm text-slate-600"></i>
+                </a>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-teal-50 border border-teal-200/80 flex items-center justify-center text-teal-700 shadow-2xs shrink-0">
+                    <i class="fa-solid fa-cubes-stacked text-base sm:text-lg"></i>
                 </div>
-                <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight">
-                    Master Data Komponen Karoseri
+                <h2 class="font-extrabold text-base sm:text-xl text-[#0a2342] tracking-tight leading-tight truncate">
+                    Master Data Komponen
                 </h2>
             </div>
-            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto self-start sm:self-auto">
+
+            <!-- Right: Action Buttons (Anchored to Far Right) -->
+            <div class="flex items-center space-x-2 shrink-0 ml-auto sm:ml-0">
                 <button type="button" 
                         @click="$dispatch('open-import-modal')" 
-                        class="flex-1 sm:flex-initial inline-flex items-center justify-center px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition touch-target cursor-pointer">
-                    <i class="fa-solid fa-file-excel me-1.5 text-emerald-200"></i>
-                    <span>Import Excel</span>
+                        class="px-3 py-2 sm:px-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition touch-target cursor-pointer flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-file-excel text-emerald-200 text-xs"></i>
+                    <span class="hidden md:inline">Import Excel</span>
                 </button>
-                <a href="{{ route('components.create') }}" class="flex-1 sm:flex-initial inline-flex items-center justify-center px-3.5 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition touch-target whitespace-nowrap">
-                    <i class="fa-solid fa-plus me-1.5 text-teal-400"></i>
+                <a href="{{ route('components.create') }}" class="px-3.5 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition touch-target whitespace-nowrap flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-plus text-teal-400 text-xs"></i>
                     <span>+ Komponen Baru</span>
                 </a>
             </div>

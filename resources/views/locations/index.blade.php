@@ -1,25 +1,23 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div class="flex flex-col items-start gap-1 sm:gap-1.5">
-                <div>
-                    <a href="{{ route('dashboard') }}" 
-                       class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
-                       title="Kembali ke Beranda Utama">
-                        <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
-                        <span>Kembali</span>
-                    </a>
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 w-full">
+            <!-- Left: Back Button + Icon Badge + Title (Judul Saja Tanpa Deskripsi) -->
+            <div class="flex items-center space-x-3 sm:space-x-3.5 min-w-0">
+                <a href="{{ route('dashboard') }}" 
+                   class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 flex items-center justify-center text-slate-700 transition shadow-2xs shrink-0 cursor-pointer" 
+                   title="Kembali ke Beranda">
+                    <i class="fa-solid fa-arrow-left text-sm text-slate-600"></i>
+                </a>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-700 shadow-2xs shrink-0">
+                    <i class="fa-solid fa-map-location-dot text-base sm:text-lg"></i>
                 </div>
-                <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight flex items-center gap-2">
-                    <span class="sr-only">Interactive Lego 2D Floor Plan</span>
-                    <i class="fa-solid fa-cubes text-amber-500"></i>
-                    Peta Lokasi & Tata Letak Rak & Pallet Gudang
+                <h2 class="font-extrabold text-base sm:text-xl text-[#0a2342] tracking-tight leading-tight truncate">
+                    Peta Lokasi & Denah Gudang
                 </h2>
-            </div>
             </div>
 
             <!-- KPI Pill Bar (Tema Terang) -->
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2 ml-auto lg:ml-0">
                 <div class="px-3.5 py-2 bg-white border border-slate-200 rounded-xl shadow-xs text-center flex-1 sm:flex-initial min-w-[100px]">
                     <div class="text-[10px] uppercase font-bold text-slate-400">Rak Bertingkat</div>
                     <div class="text-base font-extrabold text-slate-800">{{ $stats['total_racks'] }} <span class="text-xs font-normal text-slate-500">Unit</span></div>

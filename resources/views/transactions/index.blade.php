@@ -1,23 +1,26 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-            <div class="flex flex-col items-start gap-1 sm:gap-1.5">
-                <div>
-                    <a href="{{ route('dashboard') }}" 
-                       class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
-                       title="Kembali ke Beranda Utama">
-                        <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
-                        <span>Kembali</span>
-                    </a>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 w-full">
+            <!-- Left: Back Button + Icon Badge + Title (Judul Saja Tanpa Deskripsi) -->
+            <div class="flex items-center space-x-3 sm:space-x-3.5 min-w-0">
+                <a href="{{ route('dashboard') }}" 
+                   class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 flex items-center justify-center text-slate-700 transition shadow-2xs shrink-0 cursor-pointer" 
+                   title="Kembali ke Beranda">
+                    <i class="fa-solid fa-arrow-left text-sm text-slate-600"></i>
+                </a>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-700 shadow-2xs shrink-0">
+                    <i class="fa-solid fa-right-left text-base sm:text-lg"></i>
                 </div>
-                <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight">
-                    Transaksi Komponen Gudang HPK
+                <h2 class="font-extrabold text-base sm:text-xl text-[#0a2342] tracking-tight leading-tight truncate">
+                    Transaksi Komponen
                 </h2>
             </div>
-            <div class="flex flex-wrap gap-2 self-start sm:self-auto">
-                <a href="{{ route('transactions.create') }}" class="px-3.5 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center space-x-1.5 cursor-pointer">
+
+            <!-- Right: Action Buttons (Anchored to Far Right) -->
+            <div class="flex items-center space-x-2 shrink-0 ml-auto sm:ml-0">
+                <a href="{{ route('transactions.create') }}" class="px-3.5 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap">
                     <i class="fa-solid fa-plus text-teal-400 text-xs"></i>
-                    <span>Transaksi</span>
+                    <span>+ Transaksi Baru</span>
                 </a>
             </div>
         </div>

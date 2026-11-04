@@ -155,6 +155,14 @@ Users have specific roles and departmental scopes that dictate their permissions
 - **Smart Adaptive Audit Log Return:** Tombol kembali pada modul riwayat audit log mendeteksi konteks rute pemanggil (`request()->routeIs('admin.*') ? route('admin.dashboard') : route('dashboard')`) sehingga administrator kembali ke Pusat Kendali Admin, sedangkan staf operasional pengawas kembali ke dashboard WMS.
 - **Dedicated Return Shortcut in Admin Dashboard:** Header wave pada Pusat Kendali Administrator menyematkan tombol `[ < Kembali ke WMS ]` menuju `route('dashboard')` untuk navigasi 1-klik yang mudah dan cepat kembali ke alur pergudangan utama.
 
+### 17. Unified Navbar Menu Identity & Clean Single-Row Page Headers (Judul & Ikon Saja, Zero Duplication)
+- **Penempatan Judul Menu di Navbar Atas (Lampiran 1 ke Lampiran 2):** Logo dan identitas perusahaan `HYDRAXLE PERKASA | [Judul Menu]` diposisikan secara terpusat di bilah navigasi atas (`navigation.blade.php`), dipisahkan garis vertikal elegan `|`.
+- **Header Halaman Bersih Berbasis Ikon & Judul (Tanpa Deskripsi, Persis Lampiran Pengguna):**
+  - Pada header halaman modul, teks deskripsi panjang dan logo/nama PT dihilangkan sepenuhnya agar antarmuka tampil lapang, ringkas, dan fokus pada fungsi utama.
+  - Header halaman menyematkan tombol kembali kotak rounded ergonomis `[ ← ]` berdampingan langsung dengan kotak ikon modul bersudut tumpul (`rounded-xl`) dan judul modul tebal terpusat secara vertikal.
+  - Tombol aksi modul (*Refresh*, *Material Handling*, *+ Membuat WR*, *Import Excel*, *+ Transaksi Baru*, dll.) terkunci rata kanan penuh (`ml-auto flex items-center justify-end space-x-2 shrink-0`).
+- **Konsistensi Seragam Lintas Seluruh Modul:** Diterapkan di 9 modul operasional: *Work Request Mesin*, *Master Data Komponen*, *Transaksi Komponen*, *Material Handling*, *ECR Revisi Part*, *Cycle Count*, *Cetak Label QR Mesin*, *Pengajuan Disposal*, dan *Peta Lokasi & Denah Gudang*.
+
 ## Technical Documentation References
 - [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
 - [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - Standar Operasional Prosedur, Diagram Alur Proses & Aturan Bisnis (BR-01 s/d BR-14)

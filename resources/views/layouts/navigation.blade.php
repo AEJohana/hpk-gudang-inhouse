@@ -22,6 +22,31 @@
                         <span class="text-[9px] sm:text-[10px] font-semibold text-teal-400 tracking-wider uppercase truncate max-w-[125px] sm:max-w-none">WMS In-House</span>
                     </div>
                 </a>
+
+                @php
+                    $currentNavbarMenu = match(true) {
+                        request()->routeIs('work-requests.*') => 'Work Request Mesin',
+                        request()->routeIs('components.*') => 'Master Komponen',
+                        request()->routeIs('transactions.*') => 'Transaksi Komponen',
+                        request()->routeIs('work-station-supplies.*') => 'Material Handling',
+                        request()->routeIs('ecrs.*') => 'ECR Revisi Part',
+                        request()->routeIs('cycle-counts.*') => 'Cycle Count',
+                        request()->routeIs('qr-requests.*') => 'Cetak Label QR',
+                        request()->routeIs('disposals.*') => 'Pengajuan Disposal',
+                        request()->routeIs('locations.*') => 'Peta Denah Gudang',
+                        request()->routeIs('activities.*') => 'Log Aktivitas Sistem',
+                        request()->routeIs('admin.*') => 'Panel Administrasi',
+                        default => null,
+                    };
+                @endphp
+                @if($currentNavbarMenu)
+                <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0 pl-1 sm:pl-2">
+                    <div class="h-5 sm:h-6 w-px bg-white/30 shrink-0"></div>
+                    <span class="font-bold text-xs sm:text-sm text-white tracking-wide truncate max-w-[150px] sm:max-w-none">
+                        {{ $currentNavbarMenu }}
+                    </span>
+                </div>
+                @endif
             </div>
 
             <!-- Right: User Glass Pill -->

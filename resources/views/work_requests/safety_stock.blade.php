@@ -6,9 +6,6 @@
                     <span class="sr-only">Safety Stock Buffer Alert</span>
                     Safety Stock & Pemicu Order WRI
                 </h2>
-                <p class="text-xs text-slate-500 mt-0.5">
-                    Daftar komponen karoseri yang stok fisiknya berada di bawah batas aman minimum untuk memicu pembuatan tiket WRI sebelum terjadi kelangkaan di lini produksi
-                </p>
             </div>
 
             <div class="flex items-center space-x-2 self-start sm:self-auto">

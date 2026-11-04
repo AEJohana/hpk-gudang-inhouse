@@ -1,44 +1,46 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div class="flex flex-col items-start gap-1 sm:gap-1.5">
-                <div>
-                    <a href="{{ route('dashboard') }}" 
-                       class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
-                       title="Kembali ke Beranda Utama">
-                        <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
-                        <span>Kembali</span>
-                    </a>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 w-full">
+            <!-- Left: Back Button + Icon Badge + Title + Digital Clock (Judul Saja Tanpa Deskripsi) -->
+            <div class="flex items-center space-x-3 sm:space-x-3.5 min-w-0">
+                <a href="{{ route('dashboard') }}" 
+                   class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 flex items-center justify-center text-slate-700 transition shadow-2xs shrink-0 cursor-pointer" 
+                   title="Kembali ke Beranda">
+                    <i class="fa-solid fa-arrow-left text-sm text-slate-600"></i>
+                </a>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-50 border border-cyan-200/80 flex items-center justify-center text-cyan-700 shadow-2xs shrink-0">
+                    <i class="fa-solid fa-truck-ramp-box text-base sm:text-lg"></i>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight">
+                <div class="flex items-center space-x-2 sm:space-x-3 truncate">
+                    <h2 class="font-extrabold text-base sm:text-xl text-[#0a2342] tracking-tight leading-tight truncate">
                         Material Handling
                     </h2>
                     <!-- Jam Digital Ringan Kotak (Sesuai Desain Legacy) -->
-                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/80 shadow-xs text-xs font-bold text-slate-600 font-mono" x-data="{ time: new Date().toLocaleTimeString('id-ID') }" x-init="setInterval(() => time = new Date().toLocaleTimeString('id-ID'), 1000)">
-                        <i class="fa-regular fa-clock text-slate-400 text-[11px]"></i>
+                    <div class="hidden sm:inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs text-[11px] font-bold text-slate-600 font-mono shrink-0" x-data="{ time: new Date().toLocaleTimeString('id-ID') }" x-init="setInterval(() => time = new Date().toLocaleTimeString('id-ID'), 1000)">
+                        <i class="fa-regular fa-clock text-slate-400 text-[10px]"></i>
                         <span x-text="time">--:--:--</span>
                     </div>
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto self-start sm:self-auto">
+            <!-- Right: Action Buttons (Anchored to Far Right) -->
+            <div class="flex items-center space-x-2 shrink-0 ml-auto sm:ml-0">
                 <button type="button" 
                         onclick="window.location.reload()" 
-                        class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
+                        class="px-3 py-2 sm:px-3.5 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-2xs transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
                         title="Segarkan antrean tugas MH">
                     <i class="fa-solid fa-arrows-rotate text-xs text-teal-600"></i>
-                    <span>Refresh</span>
+                    <span class="hidden md:inline">Refresh</span>
                 </button>
                 <button type="button" 
                         @click="$dispatch('open-mh-scanner')" 
-                        class="flex-1 sm:flex-initial px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center text-center cursor-pointer">
-                    <i class="fa-solid fa-qrcode me-1.5 text-sm"></i>
-                    <span>Scan QR Tiket</span>
+                        class="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center text-center cursor-pointer whitespace-nowrap">
+                    <i class="fa-solid fa-qrcode me-1 text-xs"></i>
+                    <span>Scan QR</span>
                 </button>
-                <a href="{{ route('work-requests.index') }}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center text-center">
-                    <i class="fa-solid fa-list-check me-1.5"></i>
-                    <span>Semua WRI</span>
+                <a href="{{ route('work-requests.index') }}" class="px-3 py-2 sm:px-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center text-center whitespace-nowrap">
+                    <i class="fa-solid fa-list-check me-1.5 text-xs"></i>
+                    <span class="hidden sm:inline">Semua WRI</span>
                 </a>
             </div>
         </div>

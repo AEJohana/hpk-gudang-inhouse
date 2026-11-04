@@ -5,9 +5,6 @@
                 <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight">
                     Dashboard Monitoring SLA Pabrik
                 </h2>
-                <p class="text-xs text-slate-500 mt-0.5">
-                    Evaluasi kepatuhan SLA 72 Jam (3 Hari), deteksi keterlambatan pengerjaan mesin, dan utilisasi antrian produksi karoseri
-                </p>
             </div>
 
             <div class="flex items-center space-x-2 self-start sm:self-auto">

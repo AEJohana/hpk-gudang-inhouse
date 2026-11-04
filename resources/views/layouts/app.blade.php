@@ -198,7 +198,7 @@
         <!-- Page Heading (Optional) -->
         @if (isset($header))
             <header class="bg-white border-b border-slate-200 shadow-sm">
-                <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+                <div class="max-w-7xl mx-auto py-3.5 px-4 sm:px-6 lg:px-8">
                     {{ $header }}
                 </div>
             </header>

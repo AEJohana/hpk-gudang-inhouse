@@ -18,21 +18,18 @@
                     </span>
                 </div>
 
-                <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-                    <div class="flex flex-col items-start gap-1 sm:gap-1.5">
-                        <div>
-                            <a href="{{ route('dashboard') }}" 
-                               class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
-                               title="Kembali ke Beranda WMS Utama">
-                                <i class="fa-solid fa-arrow-left text-[11px] text-amber-300"></i>
-                                <span>Kembali ke WMS</span>
-                            </a>
-                        </div>
-                        <h1 class="font-black text-xl sm:text-3xl text-white tracking-wide leading-tight">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div class="flex items-center space-x-3 min-w-0">
+                        <a href="{{ route('dashboard') }}" 
+                           class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 flex items-center justify-center transition shadow-2xs shrink-0 cursor-pointer" 
+                           title="Kembali ke Beranda WMS Utama">
+                            <i class="fa-solid fa-arrow-left text-sm text-amber-300"></i>
+                        </a>
+                        <h1 class="font-black text-xl sm:text-2xl lg:text-3xl text-white tracking-wide leading-tight truncate">
                             Pusat Kendali Administrator
                         </h1>
                     </div>
-                    <div class="mt-4 md:mt-0 flex items-center space-x-2.5">
+                    <div class="mt-4 md:mt-0 flex items-center space-x-2.5 ml-auto">
                         <span class="inline-flex items-center text-xs text-white/90 font-medium bg-white/10 border border-white/10 px-3.5 py-1.5 rounded-full backdrop-blur-xs">
                             <i class="fa-regular fa-calendar-days text-amber-300 me-2"></i>
                             {{ now()->translatedFormat('l, d F Y') }}

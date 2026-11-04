@@ -141,15 +141,16 @@
                     <div class="icon-box text-amber-800 bg-amber-100">
                         <i class="fa-solid fa-industry"></i>
                     </div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-amber-800 transition">Work Request Mesin</h4>
+                    <div class="relative z-10 flex-1 min-w-0 pr-5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-amber-800 transition truncate">Work Request Mesin</h4>
                             @if ($readyForWarehouseWriCount > 0)
-                                <span class="text-[11px] font-black text-slate-950 bg-amber-400 px-2 py-0.5 rounded-full animate-pulse">{{ $readyForWarehouseWriCount }} Siap Gudang</span>
+                                <span class="text-[10px] font-black text-slate-950 bg-amber-400 px-2 py-0.5 rounded-full animate-pulse">{{ $readyForWarehouseWriCount }} Siap Gudang</span>
                             @elseif ($inProductionWriCount > 0)
-                                <span class="text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{{ $inProductionWriCount }} di Mesin</span>
+                                <span class="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{{ $inProductionWriCount }} di Mesin</span>
                             @endif
                         </div>
+                        <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">Fabrikasi & order mesin</p>
                     </div>
                 </a>
                 @endcan
@@ -162,18 +163,17 @@
                     <div class="icon-box text-[#4a9e9e] bg-teal-50">
                         <i class="fa-solid fa-boxes-stacked"></i>
                     </div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-teal-700 transition">Master Komponen</h4>
-                            <div class="flex items-center gap-1.5">
-                                @if(!empty($unallocatedComponentsCount) && $unallocatedComponentsCount > 0)
-                                    <span class="text-[10px] font-extrabold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200" title="{{ $unallocatedComponentsCount }} part butuh alokasi rak">
-                                        ⚠️ {{ $unallocatedComponentsCount }} Perlu Rak
-                                    </span>
-                                @endif
-                                <span class="text-[11px] font-bold text-teal-700 bg-teal-100/70 px-2 py-0.5 rounded-full">{{ $totalComponents }} SKU</span>
-                            </div>
+                    <div class="relative z-10 flex-1 min-w-0 pr-5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-teal-700 transition truncate">Master Komponen</h4>
+                            @if(!empty($unallocatedComponentsCount) && $unallocatedComponentsCount > 0)
+                                <span class="text-[10px] font-extrabold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200" title="{{ $unallocatedComponentsCount }} part butuh alokasi rak">
+                                    ⚠️ {{ $unallocatedComponentsCount }} Perlu Rak
+                                </span>
+                            @endif
+                            <span class="text-[10px] font-bold text-teal-700 bg-teal-100/70 px-2 py-0.5 rounded-full">{{ $totalComponents }} SKU</span>
                         </div>
+                        <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">Katalog part & stok rak</p>
                     </div>
                 </a>
                 @endcan
@@ -186,11 +186,12 @@
                     <div class="icon-box text-teal-700 bg-teal-100">
                         <i class="fa-solid fa-truck-ramp-box"></i>
                     </div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-teal-800 transition">Material Handling</h4>
-                            <span class="text-[11px] font-bold text-teal-800 bg-teal-100 px-2 py-0.5 rounded-full">Task Gudang</span>
+                    <div class="relative z-10 flex-1 min-w-0 pr-5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-teal-800 transition truncate">Material Handling</h4>
+                            <span class="text-[10px] font-bold text-teal-800 bg-teal-100 px-2 py-0.5 rounded-full">Task Gudang</span>
                         </div>
+                        <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">Logistik antar stasiun</p>
                     </div>
                 </a>
                 @endcan
@@ -203,11 +204,12 @@
                     <div class="icon-box text-blue-600 bg-blue-50">
                         <i class="fa-solid fa-right-left"></i>
                     </div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-blue-700 transition">Transaksi Komponen</h4>
-                            <span class="text-[11px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full">{{ $todayTransactionsCount }} Hari Ini</span>
+                    <div class="relative z-10 flex-1 min-w-0 pr-5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-blue-700 transition truncate">Transaksi Komponen</h4>
+                            <span class="text-[10px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full">{{ $todayTransactionsCount }} Hari Ini</span>
                         </div>
+                        <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">Inbound & outbound fisik</p>
                     </div>
                 </a>
                 @endcan
@@ -220,13 +222,14 @@
                     <div class="icon-box text-purple-600 bg-purple-50">
                         <i class="fa-solid fa-file-pen"></i>
                     </div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-purple-700 transition">ECR Revisi Part</h4>
+                    <div class="relative z-10 flex-1 min-w-0 pr-5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-purple-700 transition truncate">ECR Revisi Part</h4>
                             @if ($pendingEcrsCount > 0)
-                                <span class="text-[11px] font-bold text-purple-700 bg-purple-100/70 px-2 py-0.5 rounded-full">{{ $pendingEcrsCount }} Review</span>
+                                <span class="text-[10px] font-bold text-purple-700 bg-purple-100/70 px-2 py-0.5 rounded-full">{{ $pendingEcrsCount }} Review</span>
                             @endif
                         </div>
+                        <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">Perubahan desain spek</p>
                     </div>
                 </a>
                 @endcan
@@ -239,11 +242,12 @@
                     <div class="icon-box text-amber-600 bg-amber-50">
                         <i class="fa-solid fa-clipboard-check"></i>
                     </div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-amber-700 transition">Cycle Count</h4>
-                            <span class="text-[11px] font-bold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full">Opname Fisik</span>
+                    <div class="relative z-10 flex-1 min-w-0 pr-5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-amber-700 transition truncate">Cycle Count</h4>
+                            <span class="text-[10px] font-bold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full">Opname Fisik</span>
                         </div>
+                        <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">Audit opname berkala</p>
                     </div>
                 </a>
                 @endcan
@@ -256,13 +260,14 @@
                     <div class="icon-box text-cyan-600 bg-cyan-50">
                         <i class="fa-solid fa-qrcode"></i>
                     </div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-cyan-700 transition">Permintaan Label QR</h4>
+                    <div class="relative z-10 flex-1 min-w-0 pr-5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-cyan-700 transition truncate">Permintaan Label QR</h4>
                             @if ($pendingQrRequestsCount > 0)
-                                <span class="text-[11px] font-bold text-cyan-700 bg-cyan-100/70 px-2 py-0.5 rounded-full">{{ $pendingQrRequestsCount }} Siap Cetak</span>
+                                <span class="text-[10px] font-bold text-cyan-700 bg-cyan-100/70 px-2 py-0.5 rounded-full">{{ $pendingQrRequestsCount }} Siap Cetak</span>
                             @endif
                         </div>
+                        <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">Cetak barcode thermal</p>
                     </div>
                 </a>
                 @endcan
@@ -275,13 +280,14 @@
                     <div class="icon-box text-rose-600 bg-rose-50">
                         <i class="fa-solid fa-trash-can"></i>
                     </div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-rose-700 transition">Pengajuan Disposal</h4>
+                    <div class="relative z-10 flex-1 min-w-0 pr-5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-rose-700 transition truncate">Pengajuan Disposal</h4>
                             @if ($pendingDisposalsCount > 0)
-                                <span class="text-[11px] font-bold text-rose-700 bg-rose-100/70 px-2 py-0.5 rounded-full">{{ $pendingDisposalsCount }} Pending</span>
+                                <span class="text-[10px] font-bold text-rose-700 bg-rose-100/70 px-2 py-0.5 rounded-full">{{ $pendingDisposalsCount }} Pending</span>
                             @endif
                         </div>
+                        <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">Scrap & afkir material</p>
                     </div>
                 </a>
                 @endcan
@@ -294,11 +300,12 @@
                     <div class="icon-box text-amber-700 bg-amber-100">
                         <i class="fa-solid fa-clock-rotate-left"></i>
                     </div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-amber-800 transition">Log Aktivitas Sistem</h4>
-                            <span class="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">Audit Trail</span>
+                    <div class="relative z-10 flex-1 min-w-0 pr-5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-amber-800 transition truncate">Log Aktivitas Sistem</h4>
+                            <span class="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">Audit Trail</span>
                         </div>
+                        <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">Jejak audit trail</p>
                     </div>
                 </a>
                 @endif
@@ -311,11 +318,12 @@
                     <div class="icon-box text-slate-800 bg-slate-100 group-hover:bg-[#0a2342] group-hover:text-amber-400 transition">
                         <i class="fa-solid fa-user-shield"></i>
                     </div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-[#0a2342] transition">Panel Administrasi</h4>
-                            <span class="text-[11px] font-bold text-slate-800 bg-slate-200/80 px-2 py-0.5 rounded-full">Admin Center</span>
+                    <div class="relative z-10 flex-1 min-w-0 pr-5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-[#0a2342] transition truncate">Panel Administrasi</h4>
+                            <span class="text-[10px] font-bold text-slate-800 bg-slate-200/80 px-2 py-0.5 rounded-full">Admin Center</span>
                         </div>
+                        <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">User & konfigurasi</p>
                     </div>
                 </a>
                 @endif
