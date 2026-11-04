@@ -2,13 +2,7 @@
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <div class="flex items-center space-x-2">
-                    <span class="px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-md bg-blue-100 text-blue-800 border border-blue-300">
-                        <i class="fa-solid fa-chart-line me-1 text-blue-600"></i> Monitoring SLA & Durasi
-                    </span>
-                    <span class="text-xs text-slate-500 font-medium">Pengawasan Utilisasi Mesin & Durasi Lead Time</span>
-                </div>
-                <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight mt-1">
+                <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight">
                     Dashboard Monitoring SLA Pabrik
                 </h2>
                 <p class="text-xs text-slate-500 mt-0.5">

@@ -9,13 +9,7 @@
                     <span>Kembali</span>
                 </a>
                 <div>
-                    <div class="flex items-center space-x-2">
-                        <span class="px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-md bg-amber-100 text-amber-900 border border-amber-300">
-                            WRI &bull; Alur Multi-Routing & Parsial
-                        </span>
-                        <span class="text-xs text-slate-500 font-medium">PT Hydraxle Perkasa Karoseri</span>
-                    </div>
-                    <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight mt-1">
+                    <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight">
                         Work Request Inhouse (WRI)
                     </h2>
                     <p class="text-xs text-slate-500 mt-0.5">
@@ -27,18 +21,18 @@
             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto self-start sm:self-auto">
                 <button type="button" 
                         onclick="window.location.reload()" 
-                        class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
+                        class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-xl border border-slate-300 shadow-2xs transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
                         title="Segarkan antrean tiket WRI">
-                    <i class="fa-solid fa-arrows-rotate text-xs text-amber-600"></i>
+                    <i class="fa-solid fa-arrows-rotate text-xs text-slate-500"></i>
                     <span>Refresh</span>
                 </button>
-                <a href="{{ route('work-station-supplies.index') }}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center text-center">
-                    <i class="fa-solid fa-truck-ramp-box me-1.5 text-sm"></i>
+                <a href="{{ route('work-station-supplies.index') }}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-xl border border-slate-300 shadow-2xs transition flex items-center justify-center text-center space-x-1.5">
+                    <i class="fa-solid fa-truck-ramp-box text-xs text-slate-500"></i>
                     <span>Material Handling</span>
                 </a>
                 @can('work-request.create')
-                <a href="{{ route('work-requests.create') }}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center text-center">
-                    <i class="fa-solid fa-plus me-1.5"></i>
+                <a href="{{ route('work-requests.create') }}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center justify-center text-center space-x-1.5">
+                    <i class="fa-solid fa-plus text-xs"></i>
                     <span>Membuat WR</span>
                 </a>
                 @endcan
@@ -70,10 +64,10 @@
                 @can('work-request.print')
                 <a href="{{ route('work-requests.print-queue') }}" 
                    class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-                    <i class="fa-solid fa-print text-xs text-indigo-500"></i>
+                    <i class="fa-solid fa-print text-xs text-slate-500"></i>
                     <span>Cetak Dokumen WR</span>
                     @if(isset($printableCount) && $printableCount > 0)
-                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-indigo-600 text-white ml-1">
+                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-700 text-white ml-1">
                             {{ $printableCount }}
                         </span>
                     @endif
@@ -84,7 +78,7 @@
             <div class="flex items-center space-x-2 text-xs">
                 <span class="text-slate-400 font-semibold">Departemen Anda:</span>
                 <span class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 font-extrabold flex items-center space-x-1">
-                    <i class="fa-solid fa-building-user text-amber-600"></i>
+                    <i class="fa-solid fa-building-user text-slate-500"></i>
                     <span>{{ Auth::user()->effective_department_name }}</span>
                     @if(Auth::user()->canAccessAllDepartments())
                         <span class="text-[10px] text-teal-600 font-bold ml-1">(Akses Global *)</span>
@@ -270,355 +264,9 @@
         </div>
         @endif
 
-        <!-- 3. WORK REQUESTS (DUAL-MODE: MOBILE CARDS & DESKTOP TABLE) -->
+        <!-- 3. WORK REQUESTS UNIFIED RESPONSIVE TABLE (DESKTOP & HP) -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <!-- Mobile Work Request Cards (< md screens) -->
-            <div class="block md:hidden p-4 space-y-3">
-                @forelse($workRequests as $wri)
-                @php
-                    $userActions = $wri->getAvailableActionsForUser(auth()->user(), true);
-                    $hasUserAction = !empty($userActions);
-                    $primaryAction = $hasUserAction ? $userActions[0] : null;
-
-                    $nextStatus = $primaryAction ? $primaryAction['target_status'] : $wri->getNextStatusLabel(auth()->user());
-                    $accumReceived = (float) $wri->quantity_received;
-                    $remainingQty = $primaryAction ? $primaryAction['quantity'] : max(0, (float) $wri->quantity_requested - $accumReceived);
-
-                    $cleanStatus = strtolower(trim(preg_replace('/^Parsial\s*>\s*/i', '', $wri->status ?: '')));
-                    $isWaitingMH = in_array($cleanStatus, ['siap diambil', 'ready_for_warehouse']) || str_starts_with($cleanStatus, 'mh pickup') || str_ends_with($cleanStatus, '(out)');
-                    $isInTransitMH = str_contains($cleanStatus, 'menuju pengaju');
-                    $isReceivedGudang = str_contains($cleanStatus, 'sudah diambil') || $cleanStatus === 'received';
-
-                    $isLaserIn = stripos($nextStatus, '(In)') !== false;
-                    $isLaserOut = stripos($nextStatus, '(Out)') !== false || ($primaryAction && $primaryAction['type'] === 'out');
-                    $isPickup = stripos($nextStatus, 'Pickup') !== false;
-                    $isMenuju = stripos($nextStatus, 'Menuju Pengaju') !== false;
-                    $isSudah = stripos($nextStatus, 'Sudah Diambil') !== false;
-
-                    $btnBg = $isSudah ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 
-                             ($isMenuju ? 'bg-blue-600 hover:bg-blue-700 text-white' : 
-                             ($isPickup ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-black' : 
-                             ($isLaserOut ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-teal-600 hover:bg-teal-700 text-white')));
-
-                    $btnIcon = $primaryAction ? $primaryAction['icon'] : ($isSudah ? 'fa-warehouse' : ($isMenuju ? 'fa-truck-fast' : ($isPickup ? 'fa-truck-ramp-box' : ($isLaserOut ? 'fa-check' : 'fa-play'))));
-                    $shortLabel = $primaryAction ? $primaryAction['label'] : ($isSudah ? 'Terima di Gudang' : ($isMenuju ? 'Kirim ke Pengaju' : ($isPickup ? 'MH Pickup' : ($isLaserOut ? 'Selesai: ' . $nextStatus : 'Mulai: ' . $nextStatus))));
-
-                    $canApprovePengaju = $wri->canUserApprovePengaju(auth()->user());
-                    $canApprovePenerima = $wri->canUserApprovePenerima(auth()->user());
-                    $canProcessAction = $hasUserAction ? true : (auth()->user()->isAdmin() && $wri->canUserProcessAction(auth()->user(), $nextStatus, true));
-
-                    $assignPayload = [
-                        'id' => $wri->id,
-                        'wriNumber' => $wri->wri_number,
-                        'componentName' => $wri->component?->name ?? 'Komponen',
-                        'partNumber' => $wri->component?->part_number ?? '-',
-                        'deptPengaju' => $wri->dept_pengaju ?: 'Gudang',
-                        'deptPenerima' => $wri->dept_penerima ?: 'Mesin',
-                        'totalQty' => (float) $wri->quantity_requested,
-                        'uom' => $wri->component?->uom ?? 'PCS',
-                        'assignedOperator' => $wri->assigned_operator_name ?? '',
-                        'actionUrl' => route('work-requests.approve-penerima', $wri),
-                    ];
-
-                    $processPayload = [
-                        'id' => $wri->id,
-                        'wriNumber' => $wri->wri_number,
-                        'componentName' => $wri->component?->name ?? 'Komponen',
-                        'partNumber' => $wri->component?->part_number ?? '-',
-                        'uom' => $wri->component?->uom ?? 'PCS',
-                        'currentStatus' => $wri->status,
-                        'nextStatus' => $nextStatus,
-                        'nextActionLabel' => $shortLabel,
-                        'totalQty' => (float) $wri->quantity_requested,
-                        'remainingQty' => $remainingQty > 0 ? $remainingQty : (float) $wri->quantity_requested,
-                        'currentBatchQty' => (float) $wri->current_batch_qty,
-                        'targetRack' => $wri->target_specific_location_code ?: 'Belum di Rak',
-                        'assignedOperator' => $wri->assigned_operator_name ?? '',
-                        'actionUrl' => route('work-requests.process-action', $wri),
-                    ];
-
-                    $appPengajuLog = $wri->approval_pengaju_log;
-                    $appPenerimaLog = $wri->approval_penerima_log;
-
-                    $approvalPengajuStatus = $wri->approval_pengaju ?: 'Menunggu';
-                    $approvalPengajuBy = $appPengajuLog?->operator_name 
-                        ?? ($wri->approval_pengaju === 'Diterima' ? ($wri->requestedBy?->name ?? 'Ka. ' . ($wri->dept_pengaju ?: 'Pengaju')) : 'Menunggu');
-                    $approvalPengajuAt = $appPengajuLog?->created_at?->format('d/m/Y H:i') 
-                        ?? ($wri->approval_pengaju === 'Diterima' ? $wri->created_at->format('d/m/Y H:i') : '-');
-
-                    $approvalPenerimaStatus = $wri->approval_penerima ?: 'Menunggu';
-                    $approvalPenerimaBy = $appPenerimaLog?->operator_name 
-                        ?? ($wri->approval_penerima === 'Diterima' ? 'Ka. ' . ($wri->dept_penerima ?: 'Mesin') : 'Menunggu');
-                    $approvalPenerimaAt = $appPenerimaLog?->created_at?->format('d/m/Y H:i') ?? '-';
-
-                    $detailPayload = [
-                        'id' => $wri->id,
-                        'wriNumber' => $wri->wri_number,
-                        'componentName' => $wri->component?->name ?? 'Komponen',
-                        'partNumber' => $wri->component?->part_number ?? '-',
-                        'dimension' => $wri->component?->dimension_formatted ?? '-',
-                        'uom' => $wri->component?->uom ?? 'PCS',
-                        'imageUrl' => $wri->component?->image_url ?? asset('images/logo_hpk.webp'),
-                        'qrUrl' => 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($wri->wri_number),
-                        'deptPengaju' => $wri->dept_pengaju ?: 'Gudang',
-                        'deptPenerima' => $wri->dept_penerima ?: 'Mesin',
-                        'priority' => $wri->priority_badge['label'],
-                        'priorityClass' => $wri->priority_badge['class'],
-                        'currentStatus' => $wri->status,
-                        'statusClass' => $wri->status_badge['class'],
-                        'targetRack' => $wri->target_specific_location_code ?: 'Belum di Rak',
-                        'originalQty' => (float) $wri->original_quantity_requested,
-                        'totalQty' => (float) $wri->quantity_requested,
-                        'receivedQty' => (float) $wri->quantity_received,
-                        'defectQty' => (float) $wri->quantity_defect,
-                        'progressPercentage' => $wri->progress_percentage,
-                        'routingText' => $wri->routing_text,
-                        'requestedByName' => $wri->requestedBy?->name ?? 'Pemohon Gudang',
-                        'approvalPengajuStatus' => $approvalPengajuStatus,
-                        'approvalPengajuBy' => $approvalPengajuBy,
-                        'approvalPengajuAt' => $approvalPengajuAt,
-                        'approvalPenerimaStatus' => $approvalPenerimaStatus,
-                        'approvalPenerimaBy' => $approvalPenerimaBy,
-                        'approvalPenerimaAt' => $approvalPenerimaAt,
-                        'assignedOperator' => $wri->assigned_operator_name ?: 'Belum ditentukan',
-                        'steps' => $wri->steps->map(fn($s) => [
-                            'step' => $s->step_number,
-                            'name' => $s->process_name,
-                            'status' => $s->status,
-                        ])->values(),
-                        'logs' => $wri->logs->sortBy('id')->values()->map(fn($l) => [
-                            'time' => $l->created_at->format('d/m/Y H:i'),
-                            'status' => $l->status_label,
-                            'qty' => (float) $l->quantity,
-                            'operator' => $l->operator_name ?: '-',
-                            'notes' => $l->notes ?: '-',
-                            'action_type' => $l->action_type,
-                            'is_defect' => $l->action_type === 'defect' || str_contains($l->status_label, 'Defect'),
-                        ])->values(),
-                        'printUrl' => route('work-requests.print-sheet', $wri),
-                        'isPrintable' => $wri->isPrintable(),
-                        'printValidationMessage' => $wri->getPrintValidationMessage(),
-                        'printCount' => $wri->print_count,
-                        'remainingQty' => $remainingQty > 0 ? $remainingQty : (float) $wri->quantity_requested,
-                        'nextStatus' => $nextStatus,
-                        'canProcessAction' => $canProcessAction,
-                        'actionUrl' => route('work-requests.process-action', $wri),
-                        'isFinal' => (bool) $wri->is_final,
-                        'isOverdue' => (bool) $wri->isOverdue(),
-                    ];
-                @endphp
-                <div class="mobile-data-card space-y-3 border border-slate-200">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <button type="button" 
-                                    @click='openDetailModal(@json($detailPayload))'
-                                    class="font-mono font-bold text-xs text-slate-900 hover:text-blue-600 block text-left">
-                                {{ $wri->wri_number }}
-                            </button>
-                            <div class="flex items-center space-x-1.5 text-[10px] text-slate-500 mt-0.5">
-                                <span>{{ $wri->dept_pengaju ?: 'Gudang' }} &rarr; {{ $wri->dept_penerima ?: 'Mesin' }}</span>
-                                <span>&bull;</span>
-                                <span>{{ $wri->created_at->format('d M, H:i') }}</span>
-                                @if($wri->isOverdue())
-                                    <span class="text-rose-600 font-bold">({{ $wri->created_at->diffInDays() }} hari lalu)</span>
-                                @endif
-                            </div>
-                            @if($wri->assigned_operator_name)
-                                <span class="inline-flex items-center mt-1 px-2 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 text-[9px] font-bold">
-                                    <i class="fa-solid fa-user-gear text-[8px] me-1"></i> Op: {{ $wri->assigned_operator_name }}
-                                </span>
-                            @endif
-                            @if($wri->spk_reference)
-                                <span class="inline-block mt-0.5 px-2 py-0.2 rounded bg-slate-100 font-mono text-[9px] text-slate-600 font-semibold">
-                                    SPK: {{ $wri->spk_reference }}
-                                </span>
-                            @endif
-                        </div>
-                        <div class="flex flex-col items-end space-y-1">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $wri->status_badge['class'] }}">
-                                {{ $wri->status_badge['label'] }}
-                            </span>
-                            @if($wri->isOverdue())
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-300 shadow-2xs" title="Pengerjaan tertunda lebih dari 3 hari">
-                                    <i class="fa-solid fa-triangle-exclamation text-rose-600 me-1 text-[8px]"></i> Terlambat > 3 Hari
-                                </span>
-                            @endif
-                        </div>
-                    </div>
-
-                    <!-- Component info -->
-                    <div class="flex items-center space-x-3 p-2 bg-slate-50 rounded-xl cursor-pointer" @click='openDetailModal(@json($detailPayload))'>
-                        <img src="{{ $wri->component?->image_url ?? asset('images/logo_hpk.webp') }}" class="w-12 h-12 rounded-lg object-cover border border-slate-200 bg-white flex-shrink-0">
-                        <div class="min-w-0 flex-1">
-                            <span class="font-bold text-slate-900 text-xs block truncate">{{ $wri->component?->name ?? 'Komponen' }}</span>
-                            <span class="font-mono text-[10px] font-semibold text-amber-900 bg-amber-100/70 px-1.5 py-0.2 rounded inline-block">
-                                {{ $wri->component?->part_number ?? '-' }}
-                            </span>
-                            <div class="flex items-center justify-between text-[11px] font-extrabold text-slate-900 mt-1">
-                                <span>Target: {{ number_format($wri->quantity_requested, 0) }} {{ $wri->component?->uom ?? 'PCS' }}</span>
-                                @if($wri->quantity_defect > 0)
-                                    <span class="text-rose-600 font-bold text-[10px] bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200" title="Order Awal: {{ number_format($wri->original_quantity_requested, 0) }}">
-                                        Defect: -{{ number_format($wri->quantity_defect, 0) }}
-                                    </span>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Progress Bar -->
-                    <div>
-                        <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium mb-1">
-                            <span class="truncate max-w-[200px]">Alur: {{ $wri->routing_text ?: 'Mesin Fabrikasi' }}</span>
-                            <span>{{ $wri->progress_percentage }}%</span>
-                        </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div class="bg-gradient-to-r from-blue-500 to-emerald-500 h-1.5 rounded-full" style="width: {{ $wri->progress_percentage }}%"></div>
-                        </div>
-                    </div>
-
-                    <!-- Info Penerima & Operator & Actions (Direct In-Place Pop-ups) -->
-                    <div class="pt-2 border-t border-slate-100 flex flex-col gap-2">
-                        <div class="flex items-center justify-between text-xs">
-                            <span class="text-[10px] text-slate-400 block font-medium">Tujuan & Operator:</span>
-                            <span class="font-bold text-slate-800 text-[11px] truncate max-w-[200px]">
-                                {{ $wri->dept_penerima ?: 'Mesin' }} &bull; <span class="text-indigo-700">{{ $wri->assigned_operator_name ?: 'Belum ditentukan' }}</span>
-                            </span>
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                            @if(!$wri->is_final)
-                                @if($wri->approval_pengaju === 'Menunggu')
-                                    @if($canApprovePengaju)
-                                        <div class="flex-1 flex items-center gap-1.5">
-                                            <form method="POST" action="{{ route('work-requests.approve-pengaju', $wri) }}" class="flex-1">
-                                                @csrf
-                                                <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center space-x-1">
-                                                    <i class="fa-solid fa-check text-[10px]"></i>
-                                                    <span>Diterima</span>
-                                                </button>
-                                            </form>
-                                            <button type="button" 
-                                                    @click="openRejectModal('{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')" 
-                                                    class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold text-xs rounded-xl shadow-2xs flex items-center justify-center space-x-1">
-                                                <i class="fa-solid fa-ban text-[10px]"></i>
-                                                <span>Ditolak</span>
-                                            </button>
-                                        </div>
-                                    @else
-                                        <span class="flex-1 py-1.5 text-center bg-amber-50 text-amber-800 border border-amber-300 rounded-xl text-[11px] font-bold">
-                                            <i class="fa-solid fa-clock text-amber-500 me-1"></i> Menunggu Verifikasi Ka. {{ $wri->dept_pengaju ?: 'Pengaju' }}
-                                        </span>
-                                    @endif
-                                @elseif($wri->approval_penerima === 'Menunggu')
-                                    @if($canApprovePenerima)
-                                        <div class="flex-1 flex items-center gap-1.5">
-                                            <button type="button" 
-                                                    @click='openAssignModal(@json($assignPayload))'
-                                                    class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center space-x-1.5 transition">
-                                                <i class="fa-solid fa-user-check text-[10px]"></i>
-                                                <span>Diterima (Tugaskan)</span>
-                                            </button>
-                                            <button type="button" 
-                                                    @click="openRejectModal('{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')" 
-                                                    class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold text-xs rounded-xl shadow-2xs flex items-center justify-center space-x-1">
-                                                <i class="fa-solid fa-ban text-[10px]"></i>
-                                                <span>Ditolak</span>
-                                            </button>
-                                        </div>
-                                    @else
-                                        <span class="flex-1 py-1.5 text-center bg-blue-50 text-blue-800 border border-blue-300 rounded-xl text-[11px] font-bold">
-                                            <i class="fa-solid fa-clock text-blue-500 me-1"></i> Menunggu Verifikasi Ka. {{ $wri->dept_penerima ?: 'Penerima' }}
-                                        </span>
-                                    @endif
-                                @else
-                                    @if($canProcessAction)
-                                        <button type="button" 
-                                                @click='openProcessModal(@json($processPayload))'
-                                                class="flex-1 py-2 {{ $btnBg }} font-bold text-xs rounded-xl shadow-xs flex items-center justify-center space-x-1.5 transition">
-                                            <i class="fa-solid {{ $btnIcon }} text-[10px]"></i>
-                                            <span>{{ $shortLabel }}</span>
-                                        </button>
-                                    @else
-                                        @if($isWaitingMH)
-                                            <div class="flex-1 flex flex-col space-y-1">
-                                                <span class="py-1.5 text-center bg-amber-50 text-amber-900 border border-amber-300 rounded-xl text-[10px] font-bold truncate px-2">
-                                                    <i class="fa-solid fa-truck-ramp-box text-amber-600 me-1"></i> Menunggu Diambil MH
-                                                </span>
-                                                @can('material-handling.view')
-                                                <a href="{{ route('work-station-supplies.index') }}" 
-                                                   class="py-1 text-center bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[10px] rounded-lg shadow-2xs transition">
-                                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] me-1"></i> Buka Menu MH
-                                                </a>
-                                                @endcan
-                                            </div>
-                                        @elseif($isInTransitMH)
-                                            <div class="flex-1 flex flex-col space-y-1">
-                                                <span class="py-1.5 text-center bg-purple-50 text-purple-800 border border-purple-300 rounded-xl text-[10px] font-bold truncate px-2">
-                                                    <i class="fa-solid fa-truck-fast text-purple-600 me-1"></i> Sedang Diantar Kurir MH
-                                                </span>
-                                                @can('material-handling.view')
-                                                <a href="{{ route('work-station-supplies.index') }}" 
-                                                   class="py-1 text-center bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold text-[10px] rounded-lg border border-purple-300 transition">
-                                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] me-1"></i> Pantau di MH
-                                                </a>
-                                                @endcan
-                                            </div>
-                                        @elseif($isReceivedGudang)
-                                            <span class="flex-1 py-1.5 text-center bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-[10px] font-bold truncate px-2">
-                                                <i class="fa-solid fa-warehouse text-emerald-600 me-1"></i> Menunggu Penerimaan {{ $wri->dept_pengaju ?: 'Gudang' }}
-                                            </span>
-                                        @else
-                                            <span class="flex-1 py-1.5 text-center bg-indigo-50 text-indigo-900 border border-indigo-200 rounded-xl text-[10px] font-bold truncate px-2">
-                                                <i class="fa-solid fa-gear fa-spin text-indigo-500 me-1"></i> Sedang dlm proses di Line {{ $wri->dept_penerima ?: 'Penerima' }}
-                                            </span>
-                                        @endif
-                                    @endif
-                                @endif
-                            @else
-                                <span class="flex-1 py-1.5 text-center bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold">
-                                    <i class="fa-solid fa-circle-check text-emerald-600 me-1"></i> Selesai Diterima {{ $wri->dept_pengaju ?: 'Gudang' }}
-                                </span>
-                            @endif
-
-                            @can('work-request.print')
-                                @if($wri->isPrintable())
-                                    <a href="{{ route('work-requests.print-sheet', $wri) }}" 
-                                       target="_blank" 
-                                       class="px-2.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition flex items-center justify-center space-x-1"
-                                       title="Cetak lembar kerja resmi 3 duplikat">
-                                        <i class="fa-solid fa-print text-xs"></i>
-                                        <span>Cetak</span>
-                                    </a>
-                                @endif
-                            @endcan
-
-                            <button type="button" 
-                                    @click='openDetailModal(@json($detailPayload))'
-                                    class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1">
-                                <i class="fa-solid fa-timeline text-slate-500"></i>
-                                <span>Detail</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                @empty
-                <div class="py-10 text-center text-slate-400">
-                    <i class="fa-solid fa-industry text-3xl mb-2 text-slate-300 block"></i>
-                    @if(request()->filled('status') || request()->boolean('overdue_sla') || request()->filled('search'))
-                        <p class="text-xs font-bold text-slate-700">Tidak ada tiket yang sesuai kriteria filter.</p>
-                        <a href="{{ route('work-requests.index', ['scope' => $scope]) }}" class="inline-flex items-center space-x-1 mt-2.5 px-3 py-1 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-lg text-xs transition shadow-xs">
-                            <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
-                            <span>Reset Semua Filter</span>
-                        </a>
-                    @else
-                        <p class="text-xs font-bold text-slate-600">Belum ada data Work Request Inhouse.</p>
-                    @endif
-                </div>
-                @endforelse
-            </div>
-
-            <!-- Desktop Table (>= md screens) -->
-            <div class="hidden md:block overflow-x-auto">
+            <div class="overflow-x-auto w-full">
                 <table class="w-full text-left text-xs text-slate-600">
                     <thead class="bg-slate-50/80 text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200">
                         <tr>
@@ -655,10 +303,7 @@
                             $isMenuju = stripos($nextStatus, 'Menuju Pengaju') !== false;
                             $isSudah = stripos($nextStatus, 'Sudah Diambil') !== false;
 
-                            $btnBg = $isSudah ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 
-                                     ($isMenuju ? 'bg-blue-600 hover:bg-blue-700 text-white' : 
-                                     ($isPickup ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-black' : 
-                                     ($isLaserOut ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-teal-600 hover:bg-teal-700 text-white')));
+                            $btnBg = 'bg-[#0a2342] hover:bg-slate-800 text-white font-medium';
 
                             $btnIcon = $primaryAction ? $primaryAction['icon'] : ($isSudah ? 'fa-warehouse' : ($isMenuju ? 'fa-truck-fast' : ($isPickup ? 'fa-truck-ramp-box' : ($isLaserOut ? 'fa-check' : 'fa-play'))));
                             $shortLabel = $primaryAction ? $primaryAction['label'] : ($isSudah ? 'Terima di Gudang' : ($isMenuju ? 'Kirim ke Pengaju' : ($isPickup ? 'MH Pickup' : ($isLaserOut ? 'Selesai: ' . $nextStatus : 'Mulai: ' . $nextStatus))));
@@ -780,10 +425,10 @@
                             <td class="py-3 px-3 align-top">
                                 <button type="button" 
                                         @click='openDetailModal(@json($detailPayload))' 
-                                        class="font-mono font-bold text-blue-600 hover:text-blue-800 text-xs flex items-center group text-left"
+                                        class="font-mono font-bold text-slate-900 hover:text-blue-600 text-xs flex items-center group text-left"
                                         title="Klik untuk lihat detail WRI">
                                     <span class="break-all">{{ $wri->wri_number }}</span>
-                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-blue-400 group-hover:text-blue-600 ms-1 opacity-0 group-hover:opacity-100 transition shrink-0"></i>
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-slate-400 group-hover:text-blue-600 ms-1 opacity-0 group-hover:opacity-100 transition shrink-0"></i>
                                 </button>
                                 
                                 <div class="flex flex-wrap items-center gap-1 mt-1">
@@ -804,9 +449,9 @@
                                         @if($wri->isPrintable())
                                             <a href="{{ route('work-requests.print-sheet', $wri) }}" 
                                                target="_blank" 
-                                               class="inline-flex items-center space-x-1 px-1.5 py-0.2 rounded text-[9px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 font-bold transition"
+                                               class="inline-flex items-center space-x-1 px-1.5 py-0.2 rounded text-[9px] bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-slate-300 font-medium transition shadow-2xs"
                                                title="Cetak formulir resmi 3 duplikat">
-                                                <i class="fa-solid fa-print text-[8.5px]"></i>
+                                                <i class="fa-solid fa-print text-[8.5px] text-slate-500"></i>
                                                 <span>Cetak</span>
                                             </a>
                                         @endif
@@ -820,7 +465,7 @@
                                             @if($canApprovePengaju)
                                                 <button type="button" 
                                                         @click="handlePengajuActionDirect('{{ route('work-requests.approve-pengaju', $wri) }}')"
-                                                        class="w-full inline-flex items-center justify-center px-2 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold text-[11px] rounded-xl shadow-xs transition space-x-1 text-center"
+                                                        class="w-full inline-flex items-center justify-center px-2 py-1.5 bg-[#0a2342] hover:bg-slate-800 text-white font-semibold text-[11px] rounded-xl shadow-xs transition space-x-1 text-center"
                                                         title="Setujui tiket pengajuan ini">
                                                     <i class="fa-solid fa-check text-[10px]"></i>
                                                     <span>Setujui Pengaju</span>
@@ -834,7 +479,7 @@
                                             @if($canApprovePenerima)
                                                 <button type="button" 
                                                         @click='openAssignModal(@json($assignPayload))'
-                                                        class="w-full inline-flex items-center justify-center px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] rounded-xl shadow-xs hover:shadow-md transition space-x-1.5 text-center"
+                                                        class="w-full inline-flex items-center justify-center px-2 py-1.5 bg-[#0a2342] hover:bg-slate-800 text-white font-semibold text-[11px] rounded-xl shadow-xs hover:shadow-md transition space-x-1.5 text-center"
                                                         title="Verifikasi kesanggupan mesin dan tugaskan operator">
                                                     <i class="fa-solid fa-user-check text-[10px]"></i>
                                                     <span class="truncate">Tugaskan Operator</span>
@@ -848,7 +493,7 @@
                                             @if($canProcessAction)
                                                 <button type="button" 
                                                         @click='openProcessModal(@json($processPayload))'
-                                                        class="w-full inline-flex items-center justify-center px-2.5 py-1.5 {{ $btnBg }} font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition space-x-1.5 text-center">
+                                                        class="w-full inline-flex items-center justify-center px-2.5 py-1.5 {{ $btnBg }} font-semibold text-xs rounded-xl shadow-xs hover:shadow-md transition space-x-1.5 text-center">
                                                     <i class="fa-solid {{ $btnIcon }} text-[10px]"></i>
                                                     <span class="truncate">{{ $shortLabel }}</span>
                                                 </button>
@@ -860,9 +505,9 @@
                                                         </span>
                                                         @can('material-handling.view')
                                                         <a href="{{ route('work-station-supplies.index') }}" 
-                                                           class="inline-flex items-center justify-center px-2 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[10px] rounded-lg shadow-2xs transition w-full space-x-1"
+                                                           class="inline-flex items-center justify-center px-2 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-[10px] rounded-lg shadow-2xs transition w-full space-x-1"
                                                            title="Buka menu Material Handling untuk eksekusi penjemputan">
-                                                            <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                                                            <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-slate-500"></i>
                                                             <span>Buka Menu MH</span>
                                                         </a>
                                                         @endcan
@@ -874,9 +519,9 @@
                                                         </span>
                                                         @can('material-handling.view')
                                                         <a href="{{ route('work-station-supplies.index') }}" 
-                                                           class="inline-flex items-center justify-center px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold text-[10px] rounded-lg border border-purple-300 transition w-full space-x-1"
+                                                           class="inline-flex items-center justify-center px-2 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-[10px] rounded-lg shadow-2xs transition w-full space-x-1"
                                                            title="Buka menu Material Handling untuk memantau pengantaran">
-                                                            <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                                                            <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-slate-500"></i>
                                                             <span>Pantau di MH</span>
                                                         </a>
                                                         @endcan
@@ -939,14 +584,14 @@
                                         <div class="inline-flex items-center space-x-1">
                                             <button type="button" 
                                                     @click="handlePengajuActionDirect('{{ route('work-requests.approve-pengaju', $wri) }}')"
-                                                    class="inline-flex items-center px-2.5 py-1 text-xs font-extrabold bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-lg shadow-2xs transition space-x-1"
+                                                    class="inline-flex items-center px-2.5 py-1 text-xs font-semibold bg-[#0a2342] hover:bg-slate-800 text-white rounded-lg shadow-2xs transition space-x-1"
                                                     title="Setujui pengajuan tiket WRI ini">
                                                 <i class="fa-solid fa-check text-[10px]"></i>
                                                 <span>Setujui</span>
                                             </button>
                                             <button type="button" 
                                                     @click="openRejectModal('{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')" 
-                                                    class="inline-flex items-center px-2 py-1 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg shadow-2xs transition"
+                                                    class="inline-flex items-center px-2 py-1 text-xs font-medium bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg shadow-2xs transition"
                                                     title="Tolak tiket ini">
                                                 <i class="fa-solid fa-ban text-[10px]"></i>
                                             </button>
@@ -974,14 +619,14 @@
                                         <div class="inline-flex items-center space-x-1">
                                             <button type="button" 
                                                     @click='openAssignModal(@json($assignPayload))'
-                                                    class="inline-flex items-center px-2.5 py-1 text-xs font-extrabold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-2xs transition space-x-1"
+                                                    class="inline-flex items-center px-2.5 py-1 text-xs font-semibold bg-[#0a2342] hover:bg-slate-800 text-white rounded-lg shadow-2xs transition space-x-1"
                                                     title="Verifikasi kesanggupan mesin dan tugaskan operator pelaksana">
                                                 <i class="fa-solid fa-user-check text-[10px]"></i>
                                                 <span>Tugaskan</span>
                                             </button>
                                             <button type="button" 
                                                     @click="openRejectModal('{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')" 
-                                                    class="inline-flex items-center px-2 py-1 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg shadow-2xs transition"
+                                                    class="inline-flex items-center px-2 py-1 text-xs font-medium bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg shadow-2xs transition"
                                                     title="Tolak pengerjaan mesin">
                                                 <i class="fa-solid fa-ban text-[10px]"></i>
                                             </button>
@@ -1006,9 +651,9 @@
                             <td class="py-3 px-2 align-top text-center">
                                 <button type="button" 
                                         @click='openImageModal(@json($imagePayload))'
-                                        class="inline-flex items-center px-3 py-1 bg-white hover:bg-blue-50 text-blue-600 hover:text-blue-700 border border-blue-300 hover:border-blue-400 rounded-full font-bold text-xs shadow-2xs transition space-x-1.5"
+                                        class="inline-flex items-center px-3 py-1 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-300 rounded-full font-medium text-xs shadow-2xs transition space-x-1.5"
                                         title="Lihat foto komponen">
-                                    <i class="fa-solid fa-image text-[10px]"></i>
+                                    <i class="fa-regular fa-image text-[11px] text-slate-500"></i>
                                     <span>Lihat</span>
                                 </button>
                             </td>
@@ -1062,7 +707,7 @@
                                     <div class="flex items-start space-x-1">
                                         <span class="text-slate-400 w-16 shrink-0">Operator</span>
                                         <span class="text-slate-400">:</span>
-                                        <span class="font-bold text-indigo-700 truncate" title="{{ $wri->assigned_operator_name ?: 'Belum ditentukan' }}">{{ $wri->assigned_operator_name ?: 'Belum ditentukan' }}</span>
+                                        <span class="font-medium text-slate-800 truncate" title="{{ $wri->assigned_operator_name ?: 'Belum ditentukan' }}">{{ $wri->assigned_operator_name ?: 'Belum ditentukan' }}</span>
                                     </div>
                                 </div>
                             </td>

@@ -9,13 +9,7 @@
                     <span>Kembali</span>
                 </a>
                 <div>
-                    <div class="flex items-center space-x-2">
-                        <span class="px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-md bg-teal-100 text-teal-900 border border-teal-300">
-                            Task Gudang &bull; Logistik Antar Stasiun
-                        </span>
-                        <span class="text-xs text-slate-500 font-medium">PT. Hydraxle Perkasa</span>
-                    </div>
-                    <div class="flex items-center space-x-3 mt-1">
+                    <div class="flex items-center space-x-3">
                         <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight">
                             Material Handling
                         </h2>

@@ -9,13 +9,7 @@
                     <span>Kembali</span>
                 </a>
                 <div>
-                    <div class="flex items-center space-x-2">
-                        <span class="px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-md bg-indigo-100 text-indigo-900 border border-indigo-300">
-                            WRI &bull; Dokumen SPK Pabrik
-                        </span>
-                        <span class="text-xs text-slate-500 font-medium">PT Hydraxle Perkasa Karoseri</span>
-                    </div>
-                    <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight mt-1">
+                    <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight">
                         Pusat Antrean Cetak Dokumen WR
                     </h2>
                     <p class="text-xs text-slate-500 mt-0.5">

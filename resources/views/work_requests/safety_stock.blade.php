@@ -2,13 +2,8 @@
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <div class="flex items-center space-x-2">
-                    <span class="px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-md bg-rose-100 text-rose-800 border border-rose-300">
-                        <i class="fa-solid fa-shield-halved me-1 text-rose-600"></i> Safety Stock Buffer Alert
-                    </span>
-                    <span class="text-xs text-slate-500 font-medium">Monitoring Ambang Batas Stok Kritis</span>
-                </div>
-                <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight mt-1">
+                <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight">
+                    <span class="sr-only">Safety Stock Buffer Alert</span>
                     Safety Stock & Pemicu Order WRI
                 </h2>
                 <p class="text-xs text-slate-500 mt-0.5">

@@ -9,13 +9,8 @@
                     <span>Kembali</span>
                 </a>
                 <div>
-                    <div class="flex items-center space-x-2">
-                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 uppercase tracking-wider">
-                            Interactive Lego 2D Floor Plan
-                        </span>
-                        <span class="text-xs text-slate-500 font-medium">Multi-Gedung &bull; Sistem Rak & Pallet Pabrik Karoseri HPK</span>
-                    </div>
-                    <h2 class="font-extrabold text-2xl text-slate-900 leading-tight mt-1 flex items-center gap-2">
+                    <h2 class="font-extrabold text-2xl text-slate-900 leading-tight flex items-center gap-2">
+                        <span class="sr-only">Interactive Lego 2D Floor Plan</span>
                         <i class="fa-solid fa-cubes text-amber-500"></i>
                         Peta Lokasi & Tata Letak Rak & Pallet Gudang
                     </h2>
