@@ -35,80 +35,94 @@
             </div>
         </div>
 
-        <!-- 2. TOP KPI METRICS STATS -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 2. TOP KPI METRICS STATS (2 KOLOM DI MOBILE = CUMA 2 BARIS) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             <!-- Total SKU Aktif -->
-            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between hover:shadow-md transition">
-                <div>
-                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Komponen (SKU)</p>
-                    <h3 class="text-2xl font-black text-slate-900 mt-1">{{ $totalComponents }} <span class="text-xs font-normal text-slate-500">Item</span></h3>
-                    <p class="text-[11px] text-teal-600 mt-1 flex items-center font-semibold">
-                        <i class="fa-solid fa-check me-1.5"></i>
-                        Katalog Part Terdaftar
-                    </p>
+            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between hover:shadow-md transition">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Komponen (SKU)</p>
+                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight">{{ $totalComponents }} <span class="text-[10px] sm:text-xs font-normal text-slate-500">Item</span></h3>
+                    </div>
+                    <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </div>
                 </div>
-                <div class="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl shadow-xs">
-                    <i class="fa-solid fa-boxes-stacked"></i>
-                </div>
+                <p class="text-[10px] sm:text-[11px] text-teal-600 mt-1.5 sm:mt-2 flex items-center font-semibold truncate">
+                    <i class="fa-solid fa-check me-1 sm:me-1.5 shrink-0 text-[9px] sm:text-[11px]"></i>
+                    <span class="truncate">Katalog Part Terdaftar</span>
+                </p>
             </div>
 
             <!-- Alert Stok Kritis / Minimum -->
             @can('master-komponen.view')
-            <a href="{{ route('components.index', ['low_stock' => 1]) }}" class="bg-white rounded-2xl p-5 border {{ $lowStockCount > 0 ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200/80' }} shadow-sm flex items-center justify-between group hover:border-rose-400 hover:shadow-md transition">
-                <div>
-                    <p class="text-[11px] font-bold uppercase tracking-wider text-rose-600 flex items-center">
-                        <span class="w-2 h-2 rounded-full bg-rose-500 me-1.5 animate-pulse"></span>
-                        Stok Menipis (Kritis)
-                    </p>
-                    <h3 class="text-2xl font-black text-slate-900 mt-1">{{ $lowStockCount }} <span class="text-xs font-normal text-slate-500">Item</span></h3>
-                    <p class="text-[11px] text-rose-600 mt-1 font-semibold group-hover:underline">
-                        Di bawah safety stock &rarr;
-                    </p>
+            <a href="{{ route('components.index', ['low_stock' => 1]) }}" class="bg-white rounded-2xl p-3.5 sm:p-5 border {{ $lowStockCount > 0 ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200/80' }} shadow-2xs flex flex-col justify-between group hover:border-rose-400 hover:shadow-md transition">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-rose-600 flex items-center truncate">
+                            <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-rose-500 me-1 sm:me-1.5 animate-pulse shrink-0"></span>
+                            <span class="truncate">Stok Menipis (Kritis)</span>
+                        </p>
+                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight">{{ $lowStockCount }} <span class="text-[10px] sm:text-xs font-normal text-slate-500">Item</span></h3>
+                    </div>
+                    <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
                 </div>
-                <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shadow-xs">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
+                <p class="text-[10px] sm:text-[11px] text-rose-600 mt-1.5 sm:mt-2 font-semibold group-hover:underline truncate">
+                    <span class="truncate">Di bawah safety stock &rarr;</span>
+                </p>
             </a>
             @else
-            <div class="bg-white rounded-2xl p-5 border {{ $lowStockCount > 0 ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200/80' }} shadow-sm flex items-center justify-between">
-                <div>
-                    <p class="text-[11px] font-bold uppercase tracking-wider text-rose-600 flex items-center">
-                        <span class="w-2 h-2 rounded-full bg-rose-500 me-1.5 animate-pulse"></span>
-                        Stok Menipis (Kritis)
-                    </p>
-                    <h3 class="text-2xl font-black text-slate-900 mt-1">{{ $lowStockCount }} <span class="text-xs font-normal text-slate-500">Item</span></h3>
-                    <p class="text-[11px] text-slate-400 mt-1 font-semibold">
-                        Katalog Gudang
-                    </p>
+            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border {{ $lowStockCount > 0 ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200/80' }} shadow-2xs flex flex-col justify-between">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-rose-600 flex items-center truncate">
+                            <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-rose-500 me-1 sm:me-1.5 animate-pulse shrink-0"></span>
+                            <span class="truncate">Stok Menipis (Kritis)</span>
+                        </p>
+                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight">{{ $lowStockCount }} <span class="text-[10px] sm:text-xs font-normal text-slate-500">Item</span></h3>
+                    </div>
+                    <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
                 </div>
-                <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shadow-xs">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
+                <p class="text-[10px] sm:text-[11px] text-slate-400 mt-1.5 sm:mt-2 font-semibold truncate">
+                    <span class="truncate">Katalog Gudang</span>
+                </p>
             </div>
             @endcan
 
             <!-- Transaksi Hari Ini -->
-            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between hover:shadow-md transition">
-                <div>
-                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Transaksi Hari Ini</p>
-                    <h3 class="text-2xl font-black text-slate-900 mt-1">{{ $todayTransactionsCount }} <span class="text-xs font-normal text-slate-500">Mutasi</span></h3>
-                    <p class="text-[11px] text-blue-600 mt-1 font-medium">Inbound, Outbound & Transfer</p>
+            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between hover:shadow-md transition">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">Transaksi Hari Ini</p>
+                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight">{{ $todayTransactionsCount }} <span class="text-[10px] sm:text-xs font-normal text-slate-500">Mutasi</span></h3>
+                    </div>
+                    <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
+                        <i class="fa-solid fa-right-left"></i>
+                    </div>
                 </div>
-                <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-xs">
-                    <i class="fa-solid fa-right-left"></i>
-                </div>
+                <p class="text-[10px] sm:text-[11px] text-blue-600 mt-1.5 sm:mt-2 font-medium truncate">
+                    <span class="truncate">Inbound, Outbound & Transfer</span>
+                </p>
             </div>
 
             <!-- Antrian Approval (ECR & Disposal) -->
-            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between hover:shadow-md transition">
-                <div>
-                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Menunggu Approval</p>
-                    <h3 class="text-2xl font-black text-slate-900 mt-1">{{ $pendingApprovalsCount }} <span class="text-xs font-normal text-slate-500">Pengajuan</span></h3>
-                    <p class="text-[11px] text-purple-600 mt-1 font-semibold">ECR & Pengajuan Disposal</p>
+            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between hover:shadow-md transition">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">Menunggu Approval</p>
+                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight">{{ $pendingApprovalsCount }} <span class="text-[10px] sm:text-xs font-normal text-slate-500">Pengajuan</span></h3>
+                    </div>
+                    <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
+                        <i class="fa-solid fa-stamp"></i>
+                    </div>
                 </div>
-                <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shadow-xs">
-                    <i class="fa-solid fa-stamp"></i>
-                </div>
+                <p class="text-[10px] sm:text-[11px] text-purple-600 mt-1.5 sm:mt-2 font-semibold truncate">
+                    <span class="truncate">ECR & Pengajuan Disposal</span>
+                </p>
             </div>
         </div>
 
