@@ -372,7 +372,7 @@
                                 'dimension' => $wri->component?->dimension_formatted ?? '-',
                                 'uom' => $wri->component?->uom ?? 'PCS',
                                 'imageUrl' => $wri->component?->image_url ?? asset('images/logo_hpk.webp'),
-                                'qrUrl' => 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($wri->wri_number),
+                                'qrUrl' => $wri->qr_code_data_uri,
                                 'deptPengaju' => $wri->dept_pengaju ?: 'Gudang',
                                 'deptPenerima' => $wri->dept_penerima ?: 'Mesin',
                                 'priority' => $wri->priority_badge['label'],

@@ -21,7 +21,10 @@ class DashboardController extends Controller
             ->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) <= components.minimum_stock')
             ->count();
 
-        $todayTransactionsCount = Transaction::whereDate('transaction_date', now())->count();
+        $todayTransactionsCount = Transaction::whereBetween('transaction_date', [
+            now()->startOfDay()->toDateString(),
+            now()->endOfDay()->toDateString()
+        ])->count();
         
         $pendingEcrsCount = Ecr::whereIn('status', ['submitted', 'reviewed_qc'])->count();
         $pendingDisposalsCount = Disposal::whereIn('status', ['submitted', 'approved_qc'])->count();

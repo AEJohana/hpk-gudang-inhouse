@@ -101,51 +101,34 @@ class WorkRequestController extends Controller
 
         $workRequests = $query->paginate(12)->withQueryString();
 
-        // 5. Scoped Summary Statistics
+        // 5. Scoped Summary Statistics (Single Consolidated Aggregation Query)
         $baseStatQuery = WorkRequest::query();
         if (!$user->canAccessAllDepartments()) {
             $baseStatQuery->forUser($user);
         }
 
-        $totalWri = (clone $baseStatQuery)->count();
-        $needsApprovalCount = (clone $baseStatQuery)->needsApproval()->count();
-        
-        $inProcessCount = (clone $baseStatQuery)->where(function ($q) {
-            $q->where('status', 'like', '%antrian%')
-              ->orWhere('status', 'submitted')
-              ->orWhere('status', 'like', '%Proses:%')
-              ->orWhere('status', 'in_production')
-              ->orWhere('status', 'like', '%MH Pickup%');
-        })->where('is_final', false)
-          ->where('status', 'not like', '%Siap Diambil%')
-          ->where('status', 'not like', '%Menuju Pengaju%')
-          ->count();
+        $statsRow = (clone $baseStatQuery)->selectRaw("
+            COUNT(*) as total_count,
+            SUM(CASE WHEN approval_pengaju = 'Menunggu' OR approval_penerima = 'Menunggu' THEN 1 ELSE 0 END) as needs_approval_count,
+            SUM(CASE WHEN (status LIKE '%antrian%' OR status = 'submitted' OR status LIKE '%Proses:%' OR status = 'in_production' OR status LIKE '%MH Pickup%') AND is_final = 0 AND status NOT LIKE '%Siap Diambil%' AND status NOT LIKE '%Menuju Pengaju%' THEN 1 ELSE 0 END) as in_process_count,
+            SUM(CASE WHEN status LIKE '%antrian%' OR status = 'submitted' THEN 1 ELSE 0 END) as in_antrian_count,
+            SUM(CASE WHEN (status LIKE '%Siap Diambil%' OR status LIKE '%Menuju Pengaju%' OR status = 'ready_for_warehouse') AND is_final = 0 THEN 1 ELSE 0 END) as ready_count,
+            SUM(CASE WHEN is_final = 1 OR ((status LIKE '%Sudah Diambil%' OR status = 'received') AND status NOT LIKE '%Parsial%') THEN 1 ELSE 0 END) as received_count,
+            SUM(CASE WHEN status LIKE '%Parsial%' THEN 1 ELSE 0 END) as partial_count,
+            SUM(CASE WHEN is_final = 0 AND status NOT LIKE '%Sudah Diambil%' AND created_at <= ? THEN 1 ELSE 0 END) as overdue_count,
+            SUM(CASE WHEN approval_pengaju = 'Diterima' AND approval_penerima = 'Diterima' AND assigned_operator_name IS NOT NULL AND assigned_operator_name != '' THEN 1 ELSE 0 END) as printable_count
+        ", [now()->subDays(3)->toDateTimeString()])->first();
 
-        // Backward compatibility for existing views
-        $inAntrianCount = (clone $baseStatQuery)->where(function ($q) {
-            $q->where('status', 'like', '%antrian%')->orWhere('status', 'submitted');
-        })->count();
+        $totalWri = (int) ($statsRow->total_count ?? 0);
+        $needsApprovalCount = (int) ($statsRow->needs_approval_count ?? 0);
+        $inProcessCount = (int) ($statsRow->in_process_count ?? 0);
+        $inAntrianCount = (int) ($statsRow->in_antrian_count ?? 0);
         $inProductionCount = $inProcessCount;
-
-        $readyForWarehouseCount = (clone $baseStatQuery)->where(function ($q) {
-            $q->where('status', 'like', '%Siap Diambil%')
-              ->orWhere('status', 'like', '%Menuju Pengaju%')
-              ->orWhere('status', 'ready_for_warehouse');
-        })->where('is_final', false)->count();
-
-        $receivedCount = (clone $baseStatQuery)->where(function ($q) {
-            $q->where('is_final', true)
-              ->orWhere(function ($sub) {
-                  $sub->where(function ($w) {
-                      $w->where('status', 'like', '%Sudah Diambil%')
-                        ->orWhere('status', 'received');
-                  })->where('status', 'not like', '%Parsial%');
-              });
-        })->count();
-
-        $partialCount = (clone $baseStatQuery)->where('status', 'like', '%Parsial%')->count();
-        $overdueSlaCount = (clone $baseStatQuery)->overdueSla()->count();
-        $printableCount = (clone $baseStatQuery)->printable()->count();
+        $readyForWarehouseCount = (int) ($statsRow->ready_count ?? 0);
+        $receivedCount = (int) ($statsRow->received_count ?? 0);
+        $partialCount = (int) ($statsRow->partial_count ?? 0);
+        $overdueSlaCount = (int) ($statsRow->overdue_count ?? 0);
+        $printableCount = (int) ($statsRow->printable_count ?? 0);
 
         $openDetailPayload = null;
         if ($request->filled('open_detail')) {
@@ -175,7 +158,7 @@ class WorkRequestController extends Controller
                     'dimension' => $targetWr->component?->dimension_formatted ?? '-',
                     'uom' => $targetWr->component?->uom ?? 'PCS',
                     'imageUrl' => $targetWr->component?->image_url ?? asset('images/logo_hpk.webp'),
-                    'qrUrl' => 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($targetWr->wri_number),
+                    'qrUrl' => $targetWr->qr_code_data_uri,
                     'deptPengaju' => $targetWr->dept_pengaju ?: 'Gudang',
                     'deptPenerima' => $targetWr->dept_penerima ?: 'Mesin',
                     'priority' => $targetWr->priority_badge['label'],
