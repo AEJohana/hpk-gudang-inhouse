@@ -1,15 +1,17 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center space-x-3">
-            <a href="{{ route('qr-requests.index') }}" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            </a>
+        <div class="flex flex-col items-start gap-1 sm:gap-1.5">
             <div>
-                <h2 class="font-bold text-xl text-slate-900 leading-tight">
-                    Buat Permintaan Label QR Baru
-                </h2>
-                <p class="text-xs text-slate-500 mt-0.5">Ajukan pencetakan stiker QR Code untuk identifikasi fisik material di rak gudang</p>
+                <a href="{{ route('qr-requests.index') }}" 
+                   class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
+                   title="Kembali ke Permintaan Label">
+                    <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
+                    <span>Kembali</span>
+                </a>
             </div>
+            <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight">
+                Buat Permintaan Label QR Baru
+            </h2>
         </div>
     </x-slot>
 

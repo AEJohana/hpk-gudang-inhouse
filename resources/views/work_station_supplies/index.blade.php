@@ -1,27 +1,24 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div class="flex items-start space-x-3">
-                <a href="{{ route('dashboard') }}" 
-                   class="mt-1 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
-                   title="Kembali ke Beranda Utama">
-                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
-                    <span>Kembali</span>
-                </a>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex flex-col items-start gap-1 sm:gap-1.5">
                 <div>
-                    <div class="flex items-center space-x-3">
-                        <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight">
-                            Material Handling
-                        </h2>
-                        <!-- Jam Digital Ringan Kotak (Sesuai Desain Legacy) -->
-                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/80 shadow-xs text-xs font-bold text-slate-600 font-mono" x-data="{ time: new Date().toLocaleTimeString('id-ID') }" x-init="setInterval(() => time = new Date().toLocaleTimeString('id-ID'), 1000)">
-                            <i class="fa-regular fa-clock text-slate-400 text-[11px]"></i>
-                            <span x-text="time">--:--:--</span>
-                        </div>
+                    <a href="{{ route('dashboard') }}" 
+                       class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
+                       title="Kembali ke Beranda Utama">
+                        <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
+                        <span>Kembali</span>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight">
+                        Material Handling
+                    </h2>
+                    <!-- Jam Digital Ringan Kotak (Sesuai Desain Legacy) -->
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/80 shadow-xs text-xs font-bold text-slate-600 font-mono" x-data="{ time: new Date().toLocaleTimeString('id-ID') }" x-init="setInterval(() => time = new Date().toLocaleTimeString('id-ID'), 1000)">
+                        <i class="fa-regular fa-clock text-slate-400 text-[11px]"></i>
+                        <span x-text="time">--:--:--</span>
                     </div>
-                    <p class="text-xs text-slate-500 mt-0.5">
-                        Proses pengambilan & pengiriman barang antar mesin dan ke gudang
-                    </p>
                 </div>
             </div>
 

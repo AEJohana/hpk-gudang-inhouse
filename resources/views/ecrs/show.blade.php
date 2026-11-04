@@ -1,13 +1,15 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between w-full">
-            <div class="flex items-center space-x-3">
-                <a href="{{ route('ecrs.index') }}" 
-                   class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer"
-                   title="Kembali ke Daftar ECR">
-                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
-                    <span>Kembali</span>
-                </a>
+            <div class="flex flex-col items-start gap-1 sm:gap-1.5">
+                <div>
+                    <a href="{{ route('ecrs.index') }}" 
+                       class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
+                       title="Kembali ke Daftar ECR">
+                        <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
+                        <span>Kembali</span>
+                    </a>
+                </div>
                 <div>
                     <div class="flex items-center space-x-2">
                         <span class="font-mono text-xs font-bold text-purple-900 bg-purple-100 px-2 py-0.5 rounded">{{ $ecr->ecr_number }}</span>

@@ -1,19 +1,18 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
-            <div class="flex items-start space-x-3">
-                <a href="{{ route('dashboard') }}" 
-                   class="mt-1 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
-                   title="Kembali ke Beranda Utama">
-                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
-                    <span>Kembali</span>
-                </a>
+            <div class="flex flex-col items-start gap-1 sm:gap-1.5">
                 <div>
-                    <h2 class="font-extrabold text-xl text-slate-900 leading-tight">
-                        Cycle Count (Stok Opname Berkala)
-                    </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Penghitungan fisik stok berkala per zona gudang tanpa menghentikan operasional pabrik karoseri</p>
+                    <a href="{{ route('dashboard') }}" 
+                       class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
+                       title="Kembali ke Beranda Utama">
+                        <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
+                        <span>Kembali</span>
+                    </a>
                 </div>
+                <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight">
+                    Cycle Count (Stok Opname Berkala)
+                </h2>
             </div>
             <a href="{{ route('cycle-counts.create') }}" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center w-full sm:w-auto">
                 <i class="fa-solid fa-plus me-1.5"></i>

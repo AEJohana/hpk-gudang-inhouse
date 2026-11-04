@@ -1,19 +1,18 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-            <div class="flex items-start space-x-3">
-                <a href="{{ route('dashboard') }}" 
-                   class="mt-1 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
-                   title="Kembali ke Beranda Utama">
-                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
-                    <span>Kembali</span>
-                </a>
+            <div class="flex flex-col items-start gap-1 sm:gap-1.5">
                 <div>
-                    <h2 class="font-extrabold text-xl text-slate-900 leading-tight">
-                        Pengajuan Disposal (Scrap & Afkir Material Karoseri)
-                    </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Pencatatan & persetujuan pemusnahan part cacat, potongan pelat sisa (offcut), dan besi tua</p>
+                    <a href="{{ route('dashboard') }}" 
+                       class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
+                       title="Kembali ke Beranda Utama">
+                        <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
+                        <span>Kembali</span>
+                    </a>
                 </div>
+                <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight">
+                    Pengajuan Disposal (Scrap & Afkir Material Karoseri)
+                </h2>
             </div>
             <a href="{{ route('disposals.create') }}" class="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center self-start sm:self-auto touch-target">
                 <i class="fa-solid fa-plus me-1.5"></i>

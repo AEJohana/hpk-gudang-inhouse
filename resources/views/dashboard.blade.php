@@ -128,9 +128,8 @@
 
         <!-- 3. QUICK ACTION DASHBOARD CARDS GRID (DASH-CARD FROM REFERENS) -->
         <div>
-            <div class="mb-4">
+            <div class="mb-3.5">
                 <h3 class="font-bold text-slate-900 text-lg">Modul Aplikasi Pergudangan HPK</h3>
-                <p class="text-xs text-slate-500">Pilih menu navigasi untuk input data form atau transaksi barang harian</p>
             </div>
 
             <div class="dashboard-grid">
@@ -143,15 +142,14 @@
                         <i class="fa-solid fa-industry"></i>
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-amber-800 transition">Work Request Mesin</h4>
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-amber-800 transition">Work Request Mesin</h4>
                             @if ($readyForWarehouseWriCount > 0)
                                 <span class="text-[11px] font-black text-slate-950 bg-amber-400 px-2 py-0.5 rounded-full animate-pulse">{{ $readyForWarehouseWriCount }} Siap Gudang</span>
                             @elseif ($inProductionWriCount > 0)
                                 <span class="text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{{ $inProductionWriCount }} di Mesin</span>
                             @endif
                         </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Order fabrikasi ke Mesin Center (Potong Laser & Bending) & serah terima stok</p>
                     </div>
                 </a>
                 @endcan
@@ -165,8 +163,8 @@
                         <i class="fa-solid fa-boxes-stacked"></i>
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-teal-700 transition">Master Komponen</h4>
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-teal-700 transition">Master Komponen</h4>
                             <div class="flex items-center gap-1.5">
                                 @if(!empty($unallocatedComponentsCount) && $unallocatedComponentsCount > 0)
                                     <span class="text-[10px] font-extrabold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200" title="{{ $unallocatedComponentsCount }} part butuh alokasi rak">
@@ -176,7 +174,6 @@
                                 <span class="text-[11px] font-bold text-teal-700 bg-teal-100/70 px-2 py-0.5 rounded-full">{{ $totalComponents }} SKU</span>
                             </div>
                         </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Katalog part, upload foto fisik, spesifikasi teknis & batas safety stock</p>
                     </div>
                 </a>
                 @endcan
@@ -190,11 +187,10 @@
                         <i class="fa-solid fa-truck-ramp-box"></i>
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-teal-800 transition">Material Handling</h4>
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-teal-800 transition">Material Handling</h4>
                             <span class="text-[11px] font-bold text-teal-800 bg-teal-100 px-2 py-0.5 rounded-full">Task Gudang</span>
                         </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Pengambilan & pengantaran komponen antar mesin fabrikasi dan ke gudang</p>
                     </div>
                 </a>
                 @endcan
@@ -208,11 +204,10 @@
                         <i class="fa-solid fa-right-left"></i>
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-blue-700 transition">Transaksi Komponen</h4>
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-blue-700 transition">Transaksi Komponen</h4>
                             <span class="text-[11px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full">{{ $todayTransactionsCount }} Hari Ini</span>
                         </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Inbound supplier, outbound serah terima lini perakitan & transfer antar rak</p>
                     </div>
                 </a>
                 @endcan
@@ -226,13 +221,12 @@
                         <i class="fa-solid fa-file-pen"></i>
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-purple-700 transition">ECR Revisi Part</h4>
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-purple-700 transition">ECR Revisi Part</h4>
                             @if ($pendingEcrsCount > 0)
                                 <span class="text-[11px] font-bold text-purple-700 bg-purple-100/70 px-2 py-0.5 rounded-full">{{ $pendingEcrsCount }} Review</span>
                             @endif
                         </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Engineering Change Request, pembaruan dimensi spek & persetujuan berjenjang</p>
                     </div>
                 </a>
                 @endcan
@@ -246,11 +240,10 @@
                         <i class="fa-solid fa-clipboard-check"></i>
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-amber-700 transition">Cycle Count</h4>
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-amber-700 transition">Cycle Count</h4>
                             <span class="text-[11px] font-bold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full">Opname Fisik</span>
                         </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Audit stok periodik per zona rak gudang, input jumlah fisik & rekonsiliasi selisih</p>
                     </div>
                 </a>
                 @endcan
@@ -264,13 +257,12 @@
                         <i class="fa-solid fa-qrcode"></i>
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-cyan-700 transition">Permintaan Label QR</h4>
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-cyan-700 transition">Permintaan Label QR</h4>
                             @if ($pendingQrRequestsCount > 0)
                                 <span class="text-[11px] font-bold text-cyan-700 bg-cyan-100/70 px-2 py-0.5 rounded-full">{{ $pendingQrRequestsCount }} Siap Cetak</span>
                             @endif
                         </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Pengajuan stiker barcode / QR code thermal untuk part baru & identifikasi rak</p>
                     </div>
                 </a>
                 @endcan
@@ -284,13 +276,12 @@
                         <i class="fa-solid fa-trash-can"></i>
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-rose-700 transition">Pengajuan Disposal</h4>
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-rose-700 transition">Pengajuan Disposal</h4>
                             @if ($pendingDisposalsCount > 0)
                                 <span class="text-[11px] font-bold text-rose-700 bg-rose-100/70 px-2 py-0.5 rounded-full">{{ $pendingDisposalsCount }} Pending</span>
                             @endif
                         </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Scrap potongan plat besi, material rusak/afkir & otorisasi pimpinan</p>
                     </div>
                 </a>
                 @endcan
@@ -304,11 +295,10 @@
                         <i class="fa-solid fa-clock-rotate-left"></i>
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-amber-800 transition">Log Aktivitas Sistem</h4>
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-amber-800 transition">Log Aktivitas Sistem</h4>
                             <span class="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">Audit Trail</span>
                         </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Jejak aktivitas pengguna, transaksi fisik, approval, pengerjaan mesin & mutasi</p>
                     </div>
                 </a>
                 @endif
@@ -322,11 +312,10 @@
                         <i class="fa-solid fa-user-shield"></i>
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-[#0a2342] transition">Panel Administrasi</h4>
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-[#0a2342] transition">Panel Administrasi</h4>
                             <span class="text-[11px] font-bold text-slate-800 bg-slate-200/80 px-2 py-0.5 rounded-full">Admin Center</span>
                         </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Manajemen pengguna & hak akses, setup departemen, dan konfigurasi sistem</p>
                     </div>
                 </a>
                 @endif

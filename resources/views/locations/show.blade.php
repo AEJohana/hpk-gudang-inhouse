@@ -1,9 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center space-x-3">
-            <a href="{{ route('admin.locations-master.index') }}" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition" title="Kembali ke Lokasi Rak">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            </a>
+        <div class="flex flex-col items-start gap-1 sm:gap-1.5">
+            <div>
+                <a href="{{ route('admin.locations-master.index') }}" 
+                   class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
+                   title="Kembali ke Lokasi Rak">
+                    <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
+                    <span>Kembali</span>
+                </a>
+            </div>
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="font-mono text-xs font-bold text-white bg-slate-900 px-2 py-0.5 rounded">ZONA {{ $location->zone_code }}</span>

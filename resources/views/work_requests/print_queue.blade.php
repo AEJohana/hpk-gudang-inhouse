@@ -1,21 +1,18 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div class="flex items-start space-x-3">
-                <a href="{{ route('work-requests.index') }}" 
-                   class="mt-1 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
-                   title="Kembali ke Antrean WRI Utama">
-                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
-                    <span>Kembali</span>
-                </a>
+            <div class="flex flex-col items-start gap-1 sm:gap-1.5">
                 <div>
-                    <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight">
-                        Pusat Antrean Cetak Dokumen WR
-                    </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">
-                        Daftar Work Request yang telah disahkan (Pengaju + Penerima + Operator) dan siap dicetak ke format resmi 3 rangkap HVS A4
-                    </p>
+                    <a href="{{ route('work-requests.index') }}" 
+                       class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
+                       title="Kembali ke Antrean WRI Utama">
+                        <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
+                        <span>Kembali</span>
+                    </a>
                 </div>
+                <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight">
+                    Pusat Antrean Cetak Dokumen WR
+                </h2>
             </div>
 
             <div class="flex items-center space-x-2 self-start sm:self-auto">

@@ -18,21 +18,18 @@
                 </div>
 
                 <div class="flex flex-col md:flex-row md:items-end md:justify-between">
-                    <div class="flex items-start space-x-3">
-                        <a href="{{ route('admin.dashboard') }}" 
-                           class="mt-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
-                           title="Kembali ke Pusat Kendali Administrator">
-                            <i class="fa-solid fa-arrow-left text-xs text-amber-300"></i>
-                            <span>Kembali</span>
-                        </a>
+                    <div class="flex flex-col items-start gap-1 sm:gap-1.5">
                         <div>
-                            <h1 class="font-black text-2xl sm:text-3xl text-white tracking-wide">
-                                Matriks Peran & Hak Akses (RBAC)
-                            </h1>
-                            <p class="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                                Konfigurasi matriks permission berbasis modul (Spatie Laravel Permission) untuk 5 divisi pergudangan HPK Karoseri.
-                            </p>
+                            <a href="{{ route('admin.dashboard') }}" 
+                               class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
+                               title="Kembali ke Pusat Kendali Administrator">
+                                <i class="fa-solid fa-arrow-left text-[11px] text-amber-300"></i>
+                                <span>Kembali</span>
+                            </a>
                         </div>
+                        <h1 class="font-black text-xl sm:text-3xl text-white tracking-wide leading-tight">
+                            Matriks Peran & Hak Akses (RBAC)
+                        </h1>
                     </div>
                 </div>
             </div>

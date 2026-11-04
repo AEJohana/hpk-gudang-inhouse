@@ -1,13 +1,15 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full print:hidden">
-            <div class="flex items-center space-x-3">
-                <a href="{{ route('transactions.index') }}" 
-                   class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0"
-                   title="Kembali ke Riwayat Transaksi">
-                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
-                    <span>Kembali</span>
-                </a>
+            <div class="flex flex-col items-start gap-1 sm:gap-1.5">
+                <div>
+                    <a href="{{ route('transactions.index') }}" 
+                       class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
+                       title="Kembali ke Riwayat Transaksi">
+                        <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
+                        <span>Kembali</span>
+                    </a>
+                </div>
                 <div class="min-w-0">
                     <div class="flex items-center space-x-2">
                         <span class="font-mono text-xs font-bold text-slate-900 bg-slate-200 px-2 py-0.5 rounded">{{ $transaction->transaction_number }}</span>

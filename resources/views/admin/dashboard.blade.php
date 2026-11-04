@@ -19,21 +19,18 @@
                 </div>
 
                 <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-                    <div class="flex items-start space-x-3">
-                        <a href="{{ route('dashboard') }}" 
-                           class="mt-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
-                           title="Kembali ke Beranda WMS Utama">
-                            <i class="fa-solid fa-arrow-left text-xs text-amber-300"></i>
-                            <span>Kembali ke WMS</span>
-                        </a>
+                    <div class="flex flex-col items-start gap-1 sm:gap-1.5">
                         <div>
-                            <h1 class="font-black text-xl sm:text-3xl text-white tracking-wide">
-                                Pusat Kendali Administrator
-                            </h1>
-                            <p class="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                                Manajemen terpusat akun pengguna, hak akses per divisi, referensi master data, konfigurasi sistem, dan pemantauan audit log WMS.
-                            </p>
+                            <a href="{{ route('dashboard') }}" 
+                               class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
+                               title="Kembali ke Beranda WMS Utama">
+                                <i class="fa-solid fa-arrow-left text-[11px] text-amber-300"></i>
+                                <span>Kembali ke WMS</span>
+                            </a>
                         </div>
+                        <h1 class="font-black text-xl sm:text-3xl text-white tracking-wide leading-tight">
+                            Pusat Kendali Administrator
+                        </h1>
                     </div>
                     <div class="mt-4 md:mt-0 flex items-center space-x-2.5">
                         <span class="inline-flex items-center text-xs text-white/90 font-medium bg-white/10 border border-white/10 px-3.5 py-1.5 rounded-full backdrop-blur-xs">

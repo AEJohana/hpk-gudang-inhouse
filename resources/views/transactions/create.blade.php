@@ -1,18 +1,17 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center space-x-3">
-            <a href="{{ route('transactions.index') }}" 
-               class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-medium transition flex items-center space-x-1.5 shadow-2xs cursor-pointer"
-               title="Kembali ke Riwayat Transaksi">
-                <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
-                <span>Kembali</span>
-            </a>
+        <div class="flex flex-col items-start gap-1 sm:gap-1.5">
             <div>
-                <h2 class="font-bold text-base sm:text-lg text-slate-900 leading-tight">
-                    Transaksi Komponen Gudang
-                </h2>
-                <p class="text-[11px] text-slate-500 mt-0.5">Form mutasi barang masuk, barang keluar, dan transfer rak</p>
+                <a href="{{ route('transactions.index') }}" 
+                   class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
+                   title="Kembali ke Riwayat Transaksi">
+                    <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
+                    <span>Kembali</span>
+                </a>
             </div>
+            <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight">
+                Transaksi Komponen Gudang
+            </h2>
         </div>
     </x-slot>
 

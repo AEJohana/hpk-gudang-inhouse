@@ -1,21 +1,18 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div class="flex items-start space-x-3">
-                <a href="{{ route('dashboard') }}" 
-                   class="mt-1 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer shrink-0" 
-                   title="Kembali ke Beranda Utama">
-                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
-                    <span>Kembali</span>
-                </a>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex flex-col items-start gap-1 sm:gap-1.5">
                 <div>
-                    <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight">
-                        Work Request Inhouse (WRI)
-                    </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">
-                        Permintaan komponen fabrikasi in-house dengan alur multi-mesin, pencatatan parsial, koreksi defect, hingga serah terima & auto-update stok gudang
-                    </p>
+                    <a href="{{ route('dashboard') }}" 
+                       class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
+                       title="Kembali ke Beranda Utama">
+                        <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
+                        <span>Kembali</span>
+                    </a>
                 </div>
+                <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight">
+                    Work Request Inhouse (WRI)
+                </h2>
             </div>
 
             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto self-start sm:self-auto">
@@ -48,9 +45,9 @@
 
         <!-- 0. INTEGRATED WRI SUB-NAVIGATION TABS (Antrian, Safety Stock, Monitoring) -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 pb-3">
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1 sm:pb-0 flex-nowrap">
                 <a href="{{ route('work-requests.index') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 {{ request()->routeIs('work-requests.index') ? 'bg-[#0a2342] text-amber-400 shadow-md' : 'text-slate-600 hover:bg-slate-100' }}">
+                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 whitespace-nowrap {{ request()->routeIs('work-requests.index') ? 'bg-[#0a2342] text-amber-400 shadow-md' : 'text-slate-600 hover:bg-slate-100' }}">
                     <i class="fa-solid fa-list-check text-xs"></i>
                     <span>Antrian & Tiket WRI</span>
                 </a>
@@ -157,8 +154,8 @@
 
         <!-- 2. UNIFIED WORK REQUEST CONTROL BAR (BEBAS DARI INPUT DOBEL) -->
         <div class="bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200 shadow-xs flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            <!-- Left: 5 Status Tabs -->
-            <div class="flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
+            <!-- Left: 5 Status Tabs (Swipeable on touch screens) -->
+            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap py-0.5 shrink-0">
                 <!-- Tab: Semua -->
                 <a href="{{ route('work-requests.index', ['scope' => $scope]) }}" 
                    class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ (!request()->filled('status') || request()->status === 'all') && !request()->boolean('overdue_sla') ? 'bg-[#0a2342] text-amber-400 shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
