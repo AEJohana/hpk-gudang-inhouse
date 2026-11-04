@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cetak Slip Mutasi Gudang - {{ count($transactions) === 1 ? $transactions->first()->transaction_number : 'Massal (' . count($transactions) . ' Slip)' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}">
     <style>
         /* Standar Kertas A4 Portrait */
         @page {
