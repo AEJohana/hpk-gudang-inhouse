@@ -101,16 +101,8 @@
                 </div>
             </div>
 
-            <!-- Right: Quick Camera Scanner Button & User Glass Pill -->
+            <!-- Right: User Glass Pill -->
             <div class="flex items-center space-x-3">
-                <!-- Global QR & Barcode Scanner Button -->
-                <button type="button" 
-                        @click="$dispatch('open-global-scanner')" 
-                        class="inline-flex items-center px-3 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold tracking-wide transition shadow-sm hover:shadow-md">
-                    <i class="fa-solid fa-qrcode me-1.5 text-xs"></i>
-                    <span>Scan Part</span>
-                </button>
-
                 <!-- User Profile Glass Pill (Reference Design) -->
                 <x-dropdown align="right" width="56">
                     <x-slot name="trigger">

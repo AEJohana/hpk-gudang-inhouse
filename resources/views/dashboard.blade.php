@@ -114,17 +114,9 @@
 
         <!-- 3. QUICK ACTION DASHBOARD CARDS GRID (DASH-CARD FROM REFERENS) -->
         <div>
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <div>
-                    <h3 class="font-bold text-slate-900 text-lg">Modul Aplikasi Pergudangan HPK</h3>
-                    <p class="text-xs text-slate-500">Pilih menu navigasi untuk input data form atau transaksi barang harian</p>
-                </div>
-                <button type="button" 
-                        @click="$dispatch('open-global-scanner')" 
-                        class="hidden sm:inline-flex items-center px-4 py-2 bg-[#0a2342] hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-xl shadow-md border border-white/10 transition self-start sm:self-auto">
-                    <i class="fa-solid fa-qrcode me-2 text-sm"></i>
-                    Buka Scanner QR / Barcode
-                </button>
+            <div class="mb-4">
+                <h3 class="font-bold text-slate-900 text-lg">Modul Aplikasi Pergudangan HPK</h3>
+                <p class="text-xs text-slate-500">Pilih menu navigasi untuk input data form atau transaksi barang harian</p>
             </div>
 
             <div class="dashboard-grid">
