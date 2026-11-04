@@ -56,12 +56,6 @@
                     <i class="fa-solid fa-truck-ramp-box me-1.5 text-blue-600"></i>
                     <span>Material Handling</span>
                 </a>
-                @if($workRequest->targetLocation)
-                    <a href="{{ route('warehouse-map.index') }}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center">
-                        <i class="fa-solid fa-map-location-dot me-1.5"></i>
-                        <span>Slot Rak Gudang</span>
-                    </a>
-                @endif
             </div>
         </div>
     </x-slot>
@@ -701,15 +695,6 @@
                     </div>
                 </div>
             </div>
-
-            @if($workRequest->targetLocation)
-            <div class="flex items-center space-x-2">
-                <a href="{{ route('warehouse-map.index') }}" class="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center">
-                    <i class="fa-solid fa-map-location-dot me-1.5"></i>
-                    Lihat di Peta Denah Gudang
-                </a>
-            </div>
-            @endif
         </div>
         @endif
 

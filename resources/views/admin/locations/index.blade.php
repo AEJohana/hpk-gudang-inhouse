@@ -34,13 +34,6 @@
                             </p>
                         </div>
                     </div>
-                    <div class="mt-4 md:mt-0 flex items-center space-x-3">
-                        <a href="{{ route('warehouse-map.index') }}" 
-                           class="inline-flex items-center px-4 py-2.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 hover:text-teal-200 border border-teal-400/30 font-bold text-xs tracking-wide shadow-xs transition">
-                            <i class="fa-solid fa-map-location-dot me-2 text-sm"></i>
-                            Buka Peta Visual Gudang
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>

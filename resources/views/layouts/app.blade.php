@@ -122,12 +122,6 @@
                     <span>Cycle Count (Opname)</span>
                 </a>
                 @endcan
-                @can('peta-gudang.view')
-                <a href="{{ route('warehouse-map.index') }}" class="hpk-sidebar-item {{ request()->routeIs('warehouse-map.*', 'locations.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-map-location-dot"></i>
-                    <span>Peta Denah Gudang</span>
-                </a>
-                @endcan
 
                 @if(Auth::user()->hasAnyRole(['admin_gudang', 'supervisor', 'qc', 'engineering']) || Auth::user()->can('audit-log.view'))
                 <a href="{{ route('activities.index') }}" class="hpk-sidebar-item {{ request()->routeIs('activities.*') ? 'active' : '' }}">

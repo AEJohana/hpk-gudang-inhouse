@@ -218,7 +218,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                         <!-- Satuan Ukur (UOM) -->
                         <a href="{{ route('admin.uoms.index') }}" class="p-4 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl transition group">
                             <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs mb-2">
@@ -244,15 +244,6 @@
                             </div>
                             <h4 class="text-sm font-bold text-slate-900 group-hover:text-amber-700 transition">Pengaturan Sistem</h4>
                             <p class="text-[11px] text-slate-500 mt-0.5">Nama aplikasi, mata uang & batas keamanan login</p>
-                        </a>
-
-                        <!-- Peta Layout Gudang -->
-                        <a href="{{ route('warehouse-map.index') }}" class="p-4 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl transition group">
-                            <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs mb-2">
-                                <i class="fa-solid fa-map-location-dot"></i>
-                            </div>
-                            <h4 class="text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition">Peta Denah Gudang</h4>
-                            <p class="text-[11px] text-slate-500 mt-0.5">Visualisasi interaktif 1 gedung HPK Karoseri</p>
                         </a>
                     </div>
                 </div>

@@ -134,7 +134,29 @@
             </div>
 
             <div class="dashboard-grid">
-                <!-- 1. Master Komponen -->
+                <!-- 1. Work Request Inhouse (Machine Center) -->
+                @can('work-request.view')
+                <a href="{{ route('work-requests.index') }}" class="dash-card group border-amber-300 bg-amber-50/20">
+                    <i class="fa-solid fa-arrow-right arrow-action"></i>
+                    <i class="fa-solid fa-industry card-icon-bg"></i>
+                    <div class="icon-box text-amber-800 bg-amber-100">
+                        <i class="fa-solid fa-industry"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-amber-800 transition">Work Request Mesin</h4>
+                            @if ($readyForWarehouseWriCount > 0)
+                                <span class="text-[11px] font-black text-slate-950 bg-amber-400 px-2 py-0.5 rounded-full animate-pulse">{{ $readyForWarehouseWriCount }} Siap Gudang</span>
+                            @elseif ($inProductionWriCount > 0)
+                                <span class="text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{{ $inProductionWriCount }} di Mesin</span>
+                            @endif
+                        </div>
+                        <p class="text-xs text-slate-500 leading-relaxed">Order fabrikasi ke Mesin Center (Potong Laser & Bending) & serah terima stok</p>
+                    </div>
+                </a>
+                @endcan
+
+                <!-- 2. Master Komponen -->
                 @can('master-komponen.view')
                 <a href="{{ route('components.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
@@ -159,7 +181,25 @@
                 </a>
                 @endcan
 
-                <!-- 2. Transaksi Barang -->
+                <!-- 3. Material Handling (Task Gudang) -->
+                @can('material-handling.view')
+                <a href="{{ route('work-station-supplies.index') }}" class="dash-card group border-teal-200 bg-teal-50/20">
+                    <i class="fa-solid fa-arrow-right arrow-action"></i>
+                    <i class="fa-solid fa-truck-ramp-box card-icon-bg"></i>
+                    <div class="icon-box text-teal-700 bg-teal-100">
+                        <i class="fa-solid fa-truck-ramp-box"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-teal-800 transition">Material Handling</h4>
+                            <span class="text-[11px] font-bold text-teal-800 bg-teal-100 px-2 py-0.5 rounded-full">Task Gudang</span>
+                        </div>
+                        <p class="text-xs text-slate-500 leading-relaxed">Pengambilan & pengantaran komponen antar mesin fabrikasi dan ke gudang</p>
+                    </div>
+                </a>
+                @endcan
+
+                <!-- 4. Transaksi Barang -->
                 @can('transaksi-komponen.view')
                 <a href="{{ route('transactions.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
@@ -177,7 +217,7 @@
                 </a>
                 @endcan
 
-                <!-- 3. ECR Revisi Komponen -->
+                <!-- 5. ECR Revisi Komponen -->
                 @can('ecr.view')
                 <a href="{{ route('ecrs.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
@@ -197,7 +237,7 @@
                 </a>
                 @endcan
 
-                <!-- 4. Cycle Count (Stok Opname) -->
+                <!-- 6. Cycle Count (Stok Opname) -->
                 @can('cycle-count.view')
                 <a href="{{ route('cycle-counts.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
@@ -215,7 +255,7 @@
                 </a>
                 @endcan
 
-                <!-- 5. Permintaan Label QR -->
+                <!-- 7. Permintaan Label QR -->
                 @can('label-qr.view')
                 <a href="{{ route('qr-requests.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
@@ -235,7 +275,7 @@
                 </a>
                 @endcan
 
-                <!-- 6. Pengajuan Disposal Scrap -->
+                <!-- 8. Pengajuan Disposal Scrap -->
                 @can('disposal.view')
                 <a href="{{ route('disposals.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
@@ -255,47 +295,7 @@
                 </a>
                 @endcan
 
-                <!-- 8. Work Request Inhouse (Machine Center) -->
-                @can('work-request.view')
-                <a href="{{ route('work-requests.index') }}" class="dash-card group border-amber-300 bg-amber-50/20">
-                    <i class="fa-solid fa-arrow-right arrow-action"></i>
-                    <i class="fa-solid fa-industry card-icon-bg"></i>
-                    <div class="icon-box text-amber-800 bg-amber-100">
-                        <i class="fa-solid fa-industry"></i>
-                    </div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-amber-800 transition">Work Request Mesin</h4>
-                            @if ($readyForWarehouseWriCount > 0)
-                                <span class="text-[11px] font-black text-slate-950 bg-amber-400 px-2 py-0.5 rounded-full animate-pulse">{{ $readyForWarehouseWriCount }} Siap Gudang</span>
-                            @elseif ($inProductionWriCount > 0)
-                                <span class="text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{{ $inProductionWriCount }} di Mesin</span>
-                            @endif
-                        </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Order fabrikasi ke Mesin Center (Potong Laser & Bending) & serah terima stok</p>
-                    </div>
-                </a>
-                @endcan
-
-                <!-- 9. Material Handling (Task Gudang) -->
-                @can('material-handling.view')
-                <a href="{{ route('work-station-supplies.index') }}" class="dash-card group border-teal-200 bg-teal-50/20">
-                    <i class="fa-solid fa-arrow-right arrow-action"></i>
-                    <i class="fa-solid fa-truck-ramp-box card-icon-bg"></i>
-                    <div class="icon-box text-teal-700 bg-teal-100">
-                        <i class="fa-solid fa-truck-ramp-box"></i>
-                    </div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-teal-800 transition">Material Handling</h4>
-                            <span class="text-[11px] font-bold text-teal-800 bg-teal-100 px-2 py-0.5 rounded-full">Task Gudang</span>
-                        </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Pengambilan & pengantaran komponen antar mesin fabrikasi dan ke gudang</p>
-                    </div>
-                </a>
-                @endcan
-
-                <!-- 10. Log Aktivitas Sistem (Audit Trail) -->
+                <!-- 9. Log Aktivitas Sistem (Audit Trail) -->
                 @if(Auth::user()->hasAnyRole(['admin_gudang', 'supervisor', 'qc', 'engineering']))
                 <a href="{{ route('activities.index') }}" class="dash-card group border-amber-200 bg-amber-50/10">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
@@ -309,6 +309,24 @@
                             <span class="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">Audit Trail</span>
                         </div>
                         <p class="text-xs text-slate-500 leading-relaxed">Jejak aktivitas pengguna, transaksi fisik, approval, pengerjaan mesin & mutasi</p>
+                    </div>
+                </a>
+                @endif
+
+                <!-- 10. Panel Administrasi Sistem (Khusus Admin Gudang) -->
+                @if(Auth::user()->hasRole('admin_gudang'))
+                <a href="{{ route('admin.dashboard') }}" class="dash-card group border-slate-300 bg-slate-50/50 hover:bg-white hover:border-[#0a2342]/40 transition">
+                    <i class="fa-solid fa-arrow-right arrow-action"></i>
+                    <i class="fa-solid fa-user-shield card-icon-bg"></i>
+                    <div class="icon-box text-slate-800 bg-slate-100 group-hover:bg-[#0a2342] group-hover:text-amber-400 transition">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-[#0a2342] transition">Panel Administrasi</h4>
+                            <span class="text-[11px] font-bold text-slate-800 bg-slate-200/80 px-2 py-0.5 rounded-full">Admin Center</span>
+                        </div>
+                        <p class="text-xs text-slate-500 leading-relaxed">Manajemen pengguna & hak akses, setup departemen, dan konfigurasi sistem</p>
                     </div>
                 </a>
                 @endif
