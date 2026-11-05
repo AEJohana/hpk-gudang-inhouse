@@ -15,14 +15,14 @@ class ComponentPhotoStorageService
     public const SUPPORTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'svg'];
 
     /**
-     * Get the primary external storage directory (e.g. D:\Ali Magang\KOMPONEN or NAS).
+     * Get the primary external storage directory (e.g. Z:\... or D:\Ali Magang\KOMPONEN).
      */
     public function getExternalDirectory(): string
     {
         if (function_exists('config') && app()->has('config')) {
-            return config('services.components.photo_dir') ?: env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN');
+            return config('services.components.photo_dir') ?: env('COMPONENT_EXTERNAL_PHOTO_DIR', 'Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House');
         }
-        return env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN');
+        return env('COMPONENT_EXTERNAL_PHOTO_DIR', 'Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House');
     }
 
     /**
@@ -128,13 +128,24 @@ class ComponentPhotoStorageService
 
         $cleanPn = $this->sanitizePartNumber($partNumber);
 
-        // 1. Cek folder eksternal D:\Ali Magang\KOMPONEN (Prioritas Utama)
+        // 1. Cek folder eksternal utama (Prioritas Utama, misal Drive Z:)
         $extDir = $this->getExternalDirectory();
         if (!empty($extDir) && file_exists($extDir)) {
             foreach (self::SUPPORTED_EXTENSIONS as $ext) {
                 $fullPath = rtrim($extDir, '\\/') . DIRECTORY_SEPARATOR . "{$cleanPn}.{$ext}";
                 if (file_exists($fullPath) && filesize($fullPath) > 50) {
                     return $fullPath;
+                }
+            }
+        }
+
+        // 1b. Fallback Cadangan Fisik Lokal (D:\Ali Magang\KOMPONEN jika folder Z tidak terjangkau)
+        $localBackupDir = 'D:\Ali Magang\KOMPONEN';
+        if ($extDir !== $localBackupDir && file_exists($localBackupDir)) {
+            foreach (self::SUPPORTED_EXTENSIONS as $ext) {
+                $backupPath = rtrim($localBackupDir, '\\/') . DIRECTORY_SEPARATOR . "{$cleanPn}.{$ext}";
+                if (file_exists($backupPath) && filesize($backupPath) > 50) {
+                    return $backupPath;
                 }
             }
         }

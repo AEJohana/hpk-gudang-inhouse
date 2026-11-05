@@ -293,7 +293,18 @@ class ComponentController extends Controller
                 $headers['Content-Disposition'] = 'inline; filename="drawing-' . $cleanPn . '.pdf"';
             }
 
-            return response()->file($filePath, $headers);
+            $fileSize = @filesize($filePath);
+            if ($fileSize) {
+                $headers['Content-Length'] = $fileSize;
+            }
+
+            return response()->stream(function () use ($filePath) {
+                $stream = @fopen($filePath, 'rb');
+                if ($stream) {
+                    fpassthru($stream);
+                    fclose($stream);
+                }
+            }, 200, $headers);
         }
 
         // Fallback: jika berupa URL eksternal (Google Drive), hanya redirect jika fallback diizinkan (.env)

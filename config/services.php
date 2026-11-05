@@ -32,7 +32,7 @@ return [
     ],
 
     'components' => [
-        'photo_dir' => env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN'),
+        'photo_dir' => env('COMPONENT_EXTERNAL_PHOTO_DIR', 'Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House'),
         'enable_gdrive_fallback' => filter_var(env('COMPONENT_ENABLE_GDRIVE_FALLBACK', false), FILTER_VALIDATE_BOOLEAN),
     ],
 

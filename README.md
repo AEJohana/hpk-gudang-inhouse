@@ -18,13 +18,14 @@ Sistem ini dirancang untuk mendigitalisasi dan menyatukan seluruh siklus logisti
 ## 🛠️ Tech Stack
 
 - **Backend:** Laravel 10 (PHP 8.1+)
-- **Frontend:** Laravel Blade, Alpine.js, Tailwind CSS
+- **Frontend:** Laravel Blade, Alpine.js, Tailwind CSS (100% Offline Pure On-Premise Asset, Bebas CDN Luar)
 - **Database:** MySQL (Database: `hpk_gudang`)
-- **Build Tool:** Vite
+- **Build Tool:** Vite (Kompilasi Lokal `public/build/`)
 - **Pustaka Utama:**
   - `spatie/laravel-permission` (Manajemen Peran & Izin Pengguna)
-  - `html5-qrcode` (Pemindaian Barcode & QR Code via Kamera Browser)
-  - `simplesoftwareio/simple-qrcode` & `qrcode` (Pembangkit Kode QR)
+  - `html5-qrcode` (Pemindaian Barcode & QR Code via Kamera Browser Lokal di `public/js/`)
+  - `chillerlan/php-qrcode` (Pembangkit Kode QR Backend SVG / Base64 Offline)
+  - `FontAwesome Free` & `Poppins Font` (Lokal Offline di `public/vendor/` & `public/fonts/`)
 - **Autentikasi:** Laravel Breeze dengan Bcrypt Password Hashing
 
 ---
@@ -54,7 +55,7 @@ Sistem mengadopsi 15 departemen standar pabrik yang termigrasi dari basis data a
 
 1. **Dashboard (Beranda Dinamis):** Menampilkan modul-modul kartu yang hanya diizinkan untuk peran yang sedang login.
 2. **Peta Gudang & Lokasi:** Visualisasi tata letak rak fisik (Zona A s/d F, Aisle, Rack, Bin, Level, dan kapasitas muat).
-3. **Master Data Komponen:** Database material dengan tipe spesifikasi, min/max stok, payload QR code, rute pengerjaan mesin (`process_route`), dan penyimpanan foto/gambar teknik luring (*pure local offline on-premise* terpusat di `D:\Ali Magang\KOMPONEN` via `ComponentPhotoStorageService`) dengan toggle lingkungan `COMPONENT_ENABLE_GDRIVE_FALLBACK=false`. Sistem menerapkan otomatisasi komprehensif: simpan langsung & auto-rename kode part fisik untuk upload form/kamera, auto-download & simpan lokal untuk impor Excel bertautan GDrive/web, serta auto-detection cerdas tanpa tautan untuk berkas fisik yang sudah ada di disk `D:\`. Dilengkapi dukungan dokumen cetak biru CAD (`.pdf`) hingga 15MB, interactive zoom lightbox & PDF modal viewer di stasiun kerja (*work center*), artisan command `components:export-to-local`, perintah pembersihan dummy aman `components:clean-dummies`, serta streaming gateway HTTP terisolasi (`/components/{component}/photo-stream`).
+3. **Master Data Komponen:** Database material dengan tipe spesifikasi, min/max stok, payload QR code, rute pengerjaan mesin (`process_route`), dan penyimpanan foto/gambar teknik luring (*pure local offline on-premise* terpusat di server jaringan `Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House` dengan redundansi cadangan lokal `D:\Ali Magang\KOMPONEN` via `ComponentPhotoStorageService`) dengan toggle lingkungan `COMPONENT_ENABLE_GDRIVE_FALLBACK=false`. Sistem menerapkan otomatisasi komprehensif: simpan langsung & auto-rename kode part fisik untuk upload form/kamera, auto-download & simpan lokal untuk impor Excel bertautan GDrive/web, serta auto-detection cerdas tanpa tautan untuk berkas fisik yang sudah ada di disk jaringan `Z:\`. Dilengkapi dukungan dokumen cetak biru CAD (`.pdf`) hingga 15MB, interactive zoom lightbox & PDF modal viewer di stasiun kerja (*work center*), artisan command `components:export-to-local`, perintah pembersihan dummy aman `components:clean-dummies`, serta streaming gateway HTTP terisolasi (`/components/{component}/photo-stream`) berbasis `StreamedResponse` berkecepatan tinggi. Berkas sumber acuan resmi tersinkronisasi di `Data Acuan Resmi\Form Work Request - Data komponen.csv`.
 4. **Transaksi Komponen:** Pencatatan arus barang (*Inbound*, *Outbound*, *Transfer*) dengan alur yang disederhanakan: 1 tombol tunggal `[ + Transaksi ]` di header `/transactions`, dropdown 3 jenis transaksi yang terarah, eliminasi kolom SPK/PO yang tidak relevan, pengisian tanggal real-time terkunci (*readonly*), pengisian otomatis rak asal (*Ambil dari Rak*) sesuai alamat default komponen atau fallback *-- Tidak Ada Rak Terdaftar --*, tata letak metadata anti-collision (`break-all` pada dokumen acuan panjang), latar belakang polos (bebas grid), 2 kolom tanda tangan ringkas (*Dikeluarkan Oleh (Gudang)* & *Diterima Oleh: ( .................................... )* tanpa kolom QC), serta fitur **Cetak Massal Hemat Kertas (Bulk Print @2 Slip per 1 Lembar A4)** via multi-select checkbox di `/transactions`.
 5. **Work Request Inhouse (WRI):**
    - Penomoran otomatis `WRI/YYYYMMDD/...`.

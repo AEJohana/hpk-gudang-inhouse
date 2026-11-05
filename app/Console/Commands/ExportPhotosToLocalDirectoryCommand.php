@@ -16,7 +16,7 @@ class ExportPhotosToLocalDirectoryCommand extends Command
      * @var string
      */
     protected $signature = 'components:export-to-local 
-                            {--path=D:\Ali Magang\KOMPONEN : Folder tujuan penyimpanan foto} 
+                            {--path= : Folder tujuan penyimpanan foto (default dari config COMPONENT_EXTERNAL_PHOTO_DIR)} 
                             {--force : Timpa file jika sudah ada}';
 
     /**
@@ -31,7 +31,7 @@ class ExportPhotosToLocalDirectoryCommand extends Command
      */
     public function handle()
     {
-        $targetDir = $this->option('path') ?: 'D:\Ali Magang\KOMPONEN';
+        $targetDir = $this->option('path') ?: config('services.components.photo_dir') ?: 'Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House';
         $force = $this->option('force');
 
         $this->info("==================================================================");

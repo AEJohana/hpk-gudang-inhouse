@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cetak Work Request - {{ count($workRequests) === 1 ? $workRequests->first()->wri_number : 'Massal (' . count($workRequests) . ' Dokumen)' }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css'])
     <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}">
     <style>
         @page {

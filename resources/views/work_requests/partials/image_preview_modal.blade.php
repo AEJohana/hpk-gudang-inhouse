@@ -114,7 +114,7 @@
 
             <!-- Footer -->
             <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex items-center justify-between">
-                <span class="text-[11px] text-slate-400 italic">Pratinjau gambar teknik luring (D:\Ali Magang\KOMPONEN)</span>
+                <span class="text-[11px] text-slate-400 italic">Pratinjau gambar teknik luring ({{ config('services.components.photo_dir') }})</span>
                 <button type="button" @click="closeImageModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer">
                     <i class="fa-solid fa-arrow-left text-xs"></i>
                     <span>Tutup</span>

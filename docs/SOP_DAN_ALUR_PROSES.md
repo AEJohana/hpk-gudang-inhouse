@@ -76,7 +76,7 @@ Seluruh logika bisnis dari sistem lama telah diimplementasikan secara terstruktu
 | **BR-11** | **Unified 4-Status Control Bar & Bebas Redundansi** | Mapping status di `WorkRequestController.php` & tab navigasi `index.blade.php`. | Mengeliminasi baris ganda bertumpuk dan kontrol dobel. Antrean WRI disederhanakan menjadi 4 kategori operasional fungsional (+ Semua): **Perlu Verifikasi**, **Sedang Proses**, **Siap Ambil**, dan **Selesai**, dengan 5 kartu KPI interaktif di header. |
 | **BR-12** | **Otorisasi Cetak Lembar WRI Resmi 3 Rangkap & Antrean Print** | `WorkRequest::isPrintable()`, `WorkRequestController::printSheet()`, `printQueue()`, dan `print_sheet.blade.php`. | Tiket hanya boleh dicetak jika: Approval Pengaju `Diterima`, Approval Penerima `Diterima`, dan Operator Pengerjaan telah dipilih (`assigned_operator_name`). Dicetak dalam format triplicate 3 rangkap (Pemohon, Mesin, Gudang) dalam 1 lembar HVS A4 dengan QR lokal SVG dan 4 kolom otorisasi tanda tangan resmi. Didukung fitur cetak ulang dengan log tracking dan cetak massal (*Bulk Print*). |
 | **BR-13** | **Format QR Komposit 3-in-1 (`Nama;Kode;Rak`) & Parser Multi-Token** | `Component::getQrCompositePayloadAttribute()`, `ComponentController::searchApi()`, `WorkStationSupplyController::scanLookup()`, dan view cetak label QR. | Seluruh kode QR komponen memuat format komposit `Nama Komponen ; Kode Komponen ; Kode Rak` yang dapat dibaca offline oleh kamera apapun. Parser scanner otomatis mengekstrak part number dengan delimiter titik koma (`;`) tanpa merusak barcode lama (`backward-compatible`). |
-| **BR-14** | **Penyimpanan Gambar Teknik & CAD PDF Lokal Terpusat (Pure Local Mode)** | `COMPONENT_EXTERNAL_PHOTO_DIR` & `COMPONENT_ENABLE_GDRIVE_FALLBACK` (.env), `ComponentPhotoStorageService`, `Component::getLocalPhotoFilePathAttribute()`, `Component::getImageUrlAttribute()`, `ComponentController::photoStream()`, `CleanDummyComponentsCommand`, dan `image_preview_modal.blade.php`. | Seluruh foto komponen dan gambar teknik CAD tersimpan terpusat di folder fisik on-premise (`D:\Ali Magang\KOMPONEN\[part_number].[ext]`) dengan Pure Local Mode (`COMPONENT_ENABLE_GDRIVE_FALLBACK=false`) yang mematikan ketergantungan koneksi Google Drive. Seluruh penambahan/pembaruan via Form Input, Edit, Quick Store WR, dan Impor Excel otomatis disimpan ke master folder D: dengan nama bersih `[part_number].[ext]`. Mendukung dokumen CAD format `.pdf` serta gambar hingga 15MB, dilengkapi **Interactive Drawing Zoom Modal** dan **Native PDF Modal Viewer Fullscreen** (zoom 500%, multi-halaman, cetak langsung) di stasiun mesin (*work center*). Dilengkapi perintah konsol `php artisan components:clean-dummies` untuk memurnikan database dari part seeder dummy. |
+| **BR-14** | **Penyimpanan Gambar Teknik & CAD PDF Lokal Terpusat (Pure Local Mode)** | `COMPONENT_EXTERNAL_PHOTO_DIR` & `COMPONENT_ENABLE_GDRIVE_FALLBACK` (.env), `ComponentPhotoStorageService`, `Component::getLocalPhotoFilePathAttribute()`, `Component::getImageUrlAttribute()`, `ComponentController::photoStream()`, `CleanDummyComponentsCommand`, dan `image_preview_modal.blade.php`. | Seluruh foto komponen dan gambar teknik CAD tersimpan terpusat di server jaringan bersama on-premise (`Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House\[part_number].[ext]`) dengan redundansi cadangan lokal di `D:\Ali Magang\KOMPONEN` dan Pure Local Mode (`COMPONENT_ENABLE_GDRIVE_FALLBACK=false`) yang mematikan ketergantungan koneksi Google Drive. Seluruh penambahan/pembaruan via Form Input, Edit, Quick Store WR, dan Impor Excel otomatis disimpan ke master folder Z: dengan nama bersih `[part_number].[ext]`. Mendukung dokumen CAD format `.pdf` serta gambar hingga 15MB, dilengkapi **Interactive Drawing Zoom Modal** dan **Native PDF Modal Viewer Fullscreen** (zoom 500%, multi-halaman, cetak langsung) di stasiun mesin (*work center*). Dilengkapi streaming berkecepatan tinggi `StreamedResponse`, perintah konsol `php artisan components:clean-dummies` untuk memurnikan database dari part seeder dummy, dan arsip data sumber resmi di `Data Acuan Resmi\Form Work Request - Data komponen.csv`. |
 | **BR-15** | **Manajemen Antrean Cetak Label QR (Default Menunggu Dicetak, Indikator KPI, Keranjang Pengajuan, Redesign Presisi Rak & Kartu, serta Bulk Print)** | `QrRequestController`, `resources/views/qr_requests/`, dan `QrRequestQueueTest.php`. | Akses awal menu `/qr-requests` tanpa parameter langsung menyaring antrean berstatus `pending` (*Menunggu Dicetak*) agar operator fokus pada label yang perlu diproses. Dilengkapi 3 kartu indikator KPI interaktif (*Menunggu Dicetak*, *Selesai Dicetak*, *Total Permintaan*), lencana kuantitas riil (*count badges*) pada setiap tab, serta pencarian terpadu. Pada formulir `/qr-requests/create`, disematkan **Panel Geser Pratinjau Foto & Identitas Komponen Interaktif**, 2 opsi format label mandiri (*Label QR Rak* @10 label/set & *Label QR Kartu* fleksibel per part) yang dapat dipilih keduanya sekaligus, serta **Sistem Keranjang Pengajuan Massal (Cart Workflow)**. Di halaman antrean disematkan **Multi-Select Checkbox** dan **Floating Action Bar** untuk mencetak massal bersamaan (`/qr-requests/bulk-print`) dengan dokumen cetak A4 yang menerapkan *smart page-break*: lembar Label QR Rak tercetak dalam grid 2x10 (20 label/HVS) dengan 3 blok horizontal (kotak teks identitas, QR code SVG, kotak kosong stempel/paraf), sedangkan lembar Label QR Kartu tercetak dalam grid 2 kolom dengan 2 blok horizontal tanpa kotak kosong. |
 | **BR-16** | **Pusat Log Aktivitas Pengguna & Audit Trail Terpadu** | `ActivityLogger`, `AuditLogController`, `LogSuccessfulLogin`, `LogSuccessfulLogout`, dan `tests/Unit/ActivityLoggerTest.php`. | Seluruh peristiwa operasional penting (Login/Logout, Pembuatan & Approval WRI, Penugasan Operator, Pengerjaan Mesin, Pelaporan Defect/Reject, Material Handling, Mutasi Stok Gudang, Master Komponen/CAD, dan Cetak Label QR) wajib direkam secara otomatis dengan deskripsi naratif berbahasa Indonesia yang jelas, nama pelaku, departemen, dan IP address. Dapat diakses via `/activities` dan `/admin/audit-logs` dengan 4 kartu KPI interaktif, filter multi-kriteria, dan modal detail JSON diff. |
 
@@ -301,25 +301,25 @@ Untuk mengakomodasi kebutuhan penginputan data master komponen karoseri dalam ju
      - Kode Rak: jika kosong, default ditempatkan pada area penampungan sementara (`Area Penampungan Awal / Belum Dialokasikan ke Rak`).
 
 3. **Tata Kelola Foto & Gambar Teknik CAD Komponen (Pure Local On-Premise Storage):**
-   Sistem menerapkan penyimpanan luring (*offline pure local mode*) terpusat pada direktori fisik `D:\Ali Magang\KOMPONEN` melalui layanan terpadu `ComponentPhotoStorageService` dengan variabel lingkungan `COMPONENT_EXTERNAL_PHOTO_DIR='D:\Ali Magang\KOMPONEN'` dan `COMPONENT_ENABLE_GDRIVE_FALLBACK=false`.
+   Sistem menerapkan penyimpanan luring (*offline pure local mode*) terpusat pada direktori master server jaringan `Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House` (dengan fallback redundansi cadangan lokal di `D:\Ali Magang\KOMPONEN`) melalui layanan terpadu `ComponentPhotoStorageService` dengan variabel lingkungan `COMPONENT_EXTERNAL_PHOTO_DIR='Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House'` dan `COMPONENT_ENABLE_GDRIVE_FALLBACK=false`.
 
    Berikut adalah rincian perilaku sistem pada 3 skenario operasional:
    - **Skenario A: Tambah Baru / Edit Manual via Formulir Master Komponen atau Kamera Web:**
      - Operator/Engineering mengunggah berkas foto (`.jpg`, `.jpeg`, `.png`, `.webp`, `.svg`) atau dokumen cetak biru CAD (`.pdf`) hingga ukuran maksimal 15MB, atau mengambil snapshot kamera web.
      - Sistem membersihkan kode komponen via `sanitizePartNumber()` agar aman di tingkat filesystem OS Windows.
      - Berkas **otomatis dinamai ulang (*auto-rename*)** menjadi format standar: `[part_number].[ext]`.
-     - Berkas **langsung disimpan ke folder fisik master `D:\Ali Magang\KOMPONEN\[part_number].[ext]`** dan dicerminkan (*mirrored*) ke `public/uploads/components/`.
+     - Berkas **langsung disimpan ke folder fisik master `Z:\...\[part_number].[ext]`** dan dicerminkan (*mirrored*) ke `public/uploads/components/`.
      - Sistem melakukan *clean overwrite* (otomatis menghapus berkas lama jika terjadi pergantian format ekstensi pada part yang sama).
    - **Skenario B: Impor Massal Excel dengan Kolom Foto Diisi Tautan (Google Drive / URL Web):**
      - Pada baris Excel yang memiliki tautan di kolom L ("Foto Komponen"), sistem backend mengunduh berkas gambar/PDF asli melalui HTTP Client (otomatis mengonversi ID sharing Google Drive menjadi stream beresolusi tinggi `lh3.googleusercontent.com/d/{fileId}`).
      - Sistem **otomatis me-rename** berkas hasil unduhan menjadi format standar `[part_number].[ext]`.
-     - Berkas **otomatis disimpan langsung ke `D:\Ali Magang\KOMPONEN`** dan folder mirror webroot.
+     - Berkas **otomatis disimpan langsung ke folder master `Z:\...`** dan folder mirror webroot.
      - Kolom `image_path` di database diisi alamat relatif `uploads/components/[part_number].[ext]`.
    - **Skenario C: Impor Massal Excel dengan Kolom Foto Dikosongkan (Offline Drop-in / Auto-Detection):**
      - Kolom foto pada Excel sangat dianjurkan dikosongkan jika tim gudang/engineering sudah mengumpulkan foto/PDF komponen secara massal langsung di komputer server/lokal.
      - Sistem **tidak melakukan unduhan jaringan**, sehingga proses impor ratusan part selesai dalam hitungan detik.
-     - **Deteksi Otomatis Fisik:** Sistem melalui accessor `Component::getLocalPhotoFilePathAttribute()` dan `ComponentPhotoStorageService::findLocalPhoto()` **secara otomatis mencocokkan kode part fisik di folder `D:\Ali Magang\KOMPONEN`**. Selama file bernama `[part_number].[ext]` (misal `CBMP110004800602T.jpg`) ada di folder `D:\`, sistem langsung menampilkan foto/PDF tersebut di web tanpa memerlukan link URL sama sekali di database!
-     - Jika file fisik belum ditaruh di folder `D:\`, sistem menyajikan *Placeholder SVG Karoseri HPK* tanpa error dan tanpa menghubungi internet luar.
+     - **Deteksi Otomatis Fisik:** Sistem melalui accessor `Component::getLocalPhotoFilePathAttribute()` dan `ComponentPhotoStorageService::findLocalPhoto()` **secara otomatis mencocokkan kode part fisik di folder master drive Z:** (dengan fallback lokal `D:` jika Z: tidak terhubung). Selama file bernama `[part_number].[ext]` (misal `CBMP110004800602T.jpg`) ada di folder tersebut, sistem langsung menampilkan foto/PDF tersebut di web tanpa memerlukan link URL sama sekali di database!
+     - Jika file fisik belum ditaruh di folder master, sistem menyajikan *Placeholder SVG Karoseri HPK* tanpa error dan tanpa menghubungi internet luar.
 
    ```mermaid
    flowchart TD
@@ -327,7 +327,7 @@ Untuk mengakomodasi kebutuhan penginputan data master komponen karoseri dalam ju
        
        Choice -->|Formulir Input / Edit / Kamera| ManualUpload[Unggah File Gambar / Dokumen CAD PDF / Snap Kamera]
        ManualUpload --> CleanManual[Sanitize Kode Part: [part_number].[ext]]
-       CleanManual --> SavePhysical[Tulis Berkas Fisik ke D:\Ali Magang\KOMPONEN]
+       CleanManual --> SavePhysical[Tulis Berkas Fisik ke Drive Z: Master]
        SavePhysical --> MirrorPublic[Salin Mirror ke public/uploads/components/]
        
        Choice -->|Impor Massal Excel| CheckCol{Kolom L Tautan Foto Diisi?}
@@ -336,18 +336,18 @@ Untuk mengakomodasi kebutuhan penginputan data master komponen karoseri dalam ju
        CleanExcel --> SavePhysical
        
        CheckCol -->|Tidak: Kolom L Dikosongkan| SkipDownload[Lewati Download Jaringan / Cepat]
-       SkipDownload --> ScanDisk{Apakah Berkas [part_number].* Ada di D:\?}
-       ScanDisk -->|Ada di Disk Lokal| LocalFound[Sistem Otomatis Deteksi & Tampilkan Berkas dari D:\]
+       SkipDownload --> ScanDisk{Apakah Berkas [part_number].* Ada di Z: atau D:?}
+       ScanDisk -->|Ada di Disk Master/Backup| LocalFound[Sistem Otomatis Deteksi & Tampilkan Berkas Fisik]
        ScanDisk -->|Belum Ada di Disk| FallbackSVG[Sistem Tampilkan Placeholder SVG Karoseri HPK]
 
-       SavePhysical --> StreamingGW[Streaming Gateway HTTP /components/id/photo-stream]
+       SavePhysical --> StreamingGW[Streaming Gateway HTTP /components/id/photo-stream via StreamedResponse]
        MirrorPublic --> StreamingGW
        LocalFound --> StreamingGW
        StreamingGW --> BrowserDisplay[Antarmuka Stasiun Mesin & Gudang: Interactive Lightbox / Native PDF Viewer 500%]
    ```
 
    - **Gateway Aliran Berkas HTTP Terisolasi (`/components/{component}/photo-stream`):**
-     Karena standar keamanan browser melarang akses protokol file lokal (`file:///D:/...`), controller menyajikan rute streaming terisolasi `ComponentController::photoStream()`. Sistem membaca file lokal fisik `D:\Ali Magang\KOMPONEN` secara on-the-fly, menginjeksi header MIME dan cache HTTP 24 jam (`max-age=86400`), serta menyajikan dokumen PDF secara inline untuk penampil CAD modal interaktif di stasiun kerja mesin (*work center*).
+     Karena standar keamanan browser melarang akses protokol file lokal (`file:///...`), controller menyajikan rute streaming terisolasi `ComponentController::photoStream()`. Sistem membaca file master fisik di server `Z:\` (didukung fallback `D:\`) secara on-the-fly via `StreamedResponse`, menginjeksi header MIME dan cache HTTP 24 jam (`max-age=86400`), serta menyajikan dokumen PDF secara inline untuk penampil CAD modal interaktif di stasiun kerja mesin (*work center*). Berkas sumber data acuan resmi tersinkronisasi di folder `Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House\Data Acuan Resmi\Form Work Request - Data komponen.csv`.
 
 4. **Alur Validasi 2 Tahap (Pre-Import Live Preview & Audit):**
    - **Langkah 1 (Upload & Opsi Duplikat):** Pengguna mengunggah file `.xlsx` atau `.csv` dan memilih salah satu kebijakan duplikat:
