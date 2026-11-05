@@ -15,6 +15,7 @@ class ComponentPhotoStorageService
     public const SUPPORTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'svg'];
 
     /**
+<<<<<<< HEAD
      * Get candidate extensions including uppercase variants for Linux case-sensitive filesystems.
      */
     public function getCandidateExtensions(): array
@@ -29,11 +30,15 @@ class ComponentPhotoStorageService
 
     /**
      * Get the primary external storage directory (e.g. D:\Ali Magang\KOMPONEN or /mnt/nas-gudang/Gudang Komponen In House).
+=======
+     * Get the primary external storage directory (e.g. Z:\... or D:\Ali Magang\KOMPONEN).
+>>>>>>> defed8d474e0865244c9936e9b6e0b3dc351beff
      */
     public function getExternalDirectory(): string
     {
         $dir = '';
         if (function_exists('config') && app()->has('config')) {
+<<<<<<< HEAD
             $dir = config('services.components.photo_dir') ?: env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN');
         } else {
             $dir = env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN');
@@ -65,6 +70,11 @@ class ComponentPhotoStorageService
 
         $cleanPath = ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), '\\/');
         return $cleanPath ? rtrim($base, '\\/') . DIRECTORY_SEPARATOR . $cleanPath : $base;
+=======
+            return config('services.components.photo_dir') ?: env('COMPONENT_EXTERNAL_PHOTO_DIR', 'Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House');
+        }
+        return env('COMPONENT_EXTERNAL_PHOTO_DIR', 'Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House');
+>>>>>>> defed8d474e0865244c9936e9b6e0b3dc351beff
     }
 
     /**
@@ -172,6 +182,7 @@ class ComponentPhotoStorageService
         $rawPn = trim($partNumber);
         $candidateExts = $this->getCandidateExtensions();
 
+<<<<<<< HEAD
         // Variasi nama file yang mungkin tersimpan di folder NAS (sanitasi, raw, upper, lower)
         $candidateNames = array_values(array_unique(array_filter([
             $cleanPn,
@@ -183,6 +194,9 @@ class ComponentPhotoStorageService
         ])));
 
         // 1. Cek folder eksternal / NAS (Prioritas Utama, misal: /mnt/nas-gudang/Gudang Komponen In House)
+=======
+        // 1. Cek folder eksternal utama (Prioritas Utama, misal Drive Z:)
+>>>>>>> defed8d474e0865244c9936e9b6e0b3dc351beff
         $extDir = $this->getExternalDirectory();
         if (!empty($extDir) && file_exists($extDir)) {
             $extDirTrimmed = rtrim($extDir, '\\/');
@@ -201,6 +215,17 @@ class ComponentPhotoStorageService
                 $directExtPath = $extDirTrimmed . DIRECTORY_SEPARATOR . $baseImg;
                 if (file_exists($directExtPath) && filesize($directExtPath) > 50) {
                     return realpath($directExtPath) ?: $directExtPath;
+                }
+            }
+        }
+
+        // 1b. Fallback Cadangan Fisik Lokal (D:\Ali Magang\KOMPONEN jika folder Z tidak terjangkau)
+        $localBackupDir = 'D:\Ali Magang\KOMPONEN';
+        if ($extDir !== $localBackupDir && file_exists($localBackupDir)) {
+            foreach (self::SUPPORTED_EXTENSIONS as $ext) {
+                $backupPath = rtrim($localBackupDir, '\\/') . DIRECTORY_SEPARATOR . "{$cleanPn}.{$ext}";
+                if (file_exists($backupPath) && filesize($backupPath) > 50) {
+                    return $backupPath;
                 }
             }
         }

@@ -3,12 +3,17 @@
 namespace App\Console\Commands;
 
 use App\Models\Component;
+use App\Models\CycleCount;
 use App\Models\CycleCountItem;
+use App\Models\Disposal;
 use App\Models\DisposalItem;
 use App\Models\Ecr;
 use App\Models\QrRequest;
 use App\Models\StockBalance;
+use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Models\WorkRequest;
+use App\Models\WorkRequestStep;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -92,26 +97,65 @@ class CleanDummyComponentsCommand extends Command
 
         DB::beginTransaction();
         try {
-            // 1. Bersihkan transaksi child seeder yang merujuk ke dummy
-            $sbDeleted = StockBalance::whereIn('component_id', $ids)->delete();
-            $txDeleted = TransactionItem::whereIn('component_id', $ids)->delete();
-            $ecrDeleted = Ecr::whereIn('component_id', $ids)->delete();
-            $qrDeleted = QrRequest::whereIn('component_id', $ids)->delete();
-            $ccDeleted = CycleCountItem::whereIn('component_id', $ids)->delete();
-            $dispDeleted = DisposalItem::whereIn('component_id', $ids)->delete();
+            // 1. Bersihkan sample Work Request seeder (beserta step pengerjaannya)
+            $dummyWriIds = WorkRequest::whereIn('wri_number', ['WRI-202610-0001', 'WRI-202610-0002'])
+                ->orWhereIn('component_id', $ids)
+                ->pluck('id')
+                ->toArray();
+            $wrStepsDeleted = WorkRequestStep::whereIn('work_request_id', $dummyWriIds)->delete();
+            $wriDeleted = WorkRequest::whereIn('id', $dummyWriIds)->delete();
 
-            // 2. Hapus komponen dummy
+            // 2. Bersihkan transaksi seeder (item dan header)
+            $dummyTxIds = Transaction::whereIn('transaction_number', ['TRX-IN-202610-001', 'TRX-OUT-202610-001'])
+                ->pluck('id')
+                ->toArray();
+            $txItemsDeleted = TransactionItem::whereIn('transaction_id', $dummyTxIds)
+                ->orWhereIn('component_id', $ids)
+                ->delete();
+            $txDeleted = Transaction::whereIn('id', $dummyTxIds)->delete();
+
+            // 3. Bersihkan ECR seeder
+            $ecrDeleted = Ecr::whereIn('ecr_number', ['ECR-2026-10-001'])
+                ->orWhereIn('component_id', $ids)
+                ->delete();
+
+            // 4. Bersihkan Disposal seeder (item dan header)
+            $dummyDspIds = Disposal::whereIn('disposal_number', ['DSP-2026-10-001'])->pluck('id')->toArray();
+            $dispItemsDeleted = DisposalItem::whereIn('disposal_id', $dummyDspIds)
+                ->orWhereIn('component_id', $ids)
+                ->delete();
+            $dispDeleted = Disposal::whereIn('id', $dummyDspIds)->delete();
+
+            // 5. Bersihkan QR Request seeder
+            $qrDeleted = QrRequest::whereIn('request_number', ['QR-REQ-202610-001'])
+                ->orWhereIn('component_id', $ids)
+                ->delete();
+
+            // 6. Bersihkan Cycle Count seeder (item dan header)
+            $dummyCcIds = CycleCount::whereIn('count_number', ['CC-202610-001'])->pluck('id')->toArray();
+            $ccItemsDeleted = CycleCountItem::whereIn('cycle_count_id', $dummyCcIds)
+                ->orWhereIn('component_id', $ids)
+                ->delete();
+            $ccDeleted = CycleCount::whereIn('id', $dummyCcIds)->delete();
+
+            // 7. Bersihkan saldo stok dummy seeder (termasuk saldo duplikat batch LOT-2026-HIN)
+            $sbDeleted = StockBalance::whereIn('component_id', $ids)
+                ->orWhere('batch_lot_number', 'LOT-2026-HIN')
+                ->delete();
+
+            // 8. Hapus master komponen dummy
             $compDeleted = Component::whereIn('id', $ids)->delete();
 
             DB::commit();
 
             $this->info("==================================================================");
-            $this->info(" PEMBERSIHAN DUMMY BERHASIL 100%");
+            $this->info(" PEMBERSIHAN DUMMY SEEDER BERHASIL 100%");
             $this->info("==================================================================");
             $this->line("Komponen Dihapus      : <info>{$compDeleted}</info> part");
             $this->line("Saldo Stok Dihapus    : <comment>{$sbDeleted}</comment> baris");
-            $this->line("Item Transaksi Dihapus: <comment>{$txDeleted}</comment> baris");
-            $this->line("Item ECR/QR/CC Dihapus: <comment>" . ($ecrDeleted + $qrDeleted + $ccDeleted + $dispDeleted) . "</comment> baris");
+            $this->line("Sample WRI Dihapus    : <comment>{$wriDeleted}</comment> tiket ({$wrStepsDeleted} step)");
+            $this->line("Transaksi Dihapus     : <comment>{$txDeleted}</comment> transaksi ({$txItemsDeleted} item)");
+            $this->line("Item ECR/QR/CC/Disposal: <comment>" . ($ecrDeleted + $qrDeleted + $ccDeleted + $dispDeleted) . "</comment> dokumen");
             $this->info("Database sekarang murni berisi data master komponen resmi karoseri HPK!");
 
             return 0;

@@ -421,6 +421,7 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Pengujian Unit Otomatis Terisolasi:**
   - Membuat pengujian komprehensif di `tests/Unit/TransactionFormSimplificationTest.php` (3 test cases, 20 assertions) yang menguji tombol tunggal, dropdown 3 opsi, ketiadaan field SPK/PO, status readonly tanggal, dan server-side enforcement. Seluruh 62 unit test aplikasi lulus 100% (347 assertions).
 
+<<<<<<< HEAD
 ### II. Integrasi Direktori NAS Server Produksi (`/mnt/nas-gudang/Gudang Komponen In House`) & .env.production (Baru Selesai & Teruji 100%)
 - **Konfigurasi Lingkungan Produksi (`.env.production` & `.env.production.example`):**
   - Mengonfigurasi variable `COMPONENT_EXTERNAL_PHOTO_DIR='/mnt/nas-gudang/Gudang Komponen In House'` dengan enkapsulasi kutip untuk menangani spasi nama folder secara aman.
@@ -435,6 +436,24 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - `ExportPhotosToLocalDirectoryCommand` secara dinamis mengambil folder default dari `config('services.components.photo_dir')`, sehingga perintah `php artisan components:export-to-local` di server produksi otomatis merujuk ke folder NAS.
 - **Pengujian Unit Otomatis Terisolasi:**
   - Berhasil 100% pada SQLite `:memory:` (`tests/Unit/ComponentPhotoStorageTest.php` - 8 passed, 26 assertions; `tests/Unit/ComponentQrCodeTest.php` - 5 passed, 10 assertions).
+=======
+### II. Migrasi Master Komponen & Berkas Sumber ke Shared Drive Z: (Baru Selesai & Teruji 100%)
+- **Migrasi Berkas Fisik ke Drive Jaringan Bersama:**
+  - Menyalin 614 berkas foto & gambar teknik CAD (280 MB) dari `D:\Ali Magang\KOMPONEN` ke folder bersama perusahaan `Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House` dengan verifikasi integritas 100% berhasil (614/614 file identik).
+  - Berkas di `D:\Ali Magang\KOMPONEN` tetap dipertahankan sebagai cadangan lokal (*local backup redundancy*).
+  - Menyalin berkas data acuan resmi ke `Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House\Data Acuan Resmi\Form Work Request - Data komponen.csv`.
+- **Pembaruan Konfigurasi Sistem:**
+  - Mengubah `COMPONENT_EXTERNAL_PHOTO_DIR` pada `.env` dan `.env.example` ke direktori baru di drive `Z:`.
+  - Mengupdate fallback default di `config/services.php`, `ComponentPhotoStorageService.php`, dan artisan command `ExportPhotosToLocalDirectoryCommand.php`.
+- **Ketahanan Lapis Ganda (Zero-Downtime Fallback):**
+  - Menambahkan logika fallback otomatis di `ComponentPhotoStorageService::findLocalPhoto()`: jika drive `Z:` sewaktu-waktu mengalami gangguan jaringan LAN, sistem otomatis menyajikan file cadangan dari `D:\Ali Magang\KOMPONEN`.
+- **Solusi Windows SMB Mapped Drive Streaming:**
+  - Mengubah metode penyajian file di `ComponentController::photoStream()` dari `response()->file()` menjadi `response()->stream()` (`StreamedResponse`) menggunakan chunk file handle. Solusi ini mengatasi limitasi PHP Windows di mana fungsi `is_readable()` pada network drive sering mengembalikan false, sekaligus menjamin konsumsi memori server tetap 0 MB saat mengalirkan berkas CAD berukuran besar.
+- **Antarmuka Dinamis:**
+  - Mengubah label subtitle lokasi berkas pada `master_components/show.blade.php`, `work_requests/partials/image_preview_modal.blade.php`, dan `work_requests/show.blade.php` agar membaca konfigurasi dinamis `config('services.components.photo_dir')`.
+- **Pengujian Unit Otomatis Terisolasi:**
+  - `tests/Unit/ComponentPhotoStorageTest.php` dan `tests/Unit/ComponentQrCodeTest.php` lulus 100% (10 tests, 22 assertions).
+>>>>>>> defed8d474e0865244c9936e9b6e0b3dc351beff
 
 ---
 
