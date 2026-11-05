@@ -31,7 +31,8 @@ class ExportPhotosToLocalDirectoryCommand extends Command
      */
     public function handle()
     {
-        $targetDir = $this->option('path') ?: 'D:\Ali Magang\KOMPONEN';
+        $defaultDir = (new \App\Services\ComponentPhotoStorageService())->getExternalDirectory();
+        $targetDir = $this->option('path') ?: $defaultDir;
         $force = $this->option('force');
 
         $this->info("==================================================================");

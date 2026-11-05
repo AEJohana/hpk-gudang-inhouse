@@ -15,14 +15,56 @@ class ComponentPhotoStorageService
     public const SUPPORTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'svg'];
 
     /**
-     * Get the primary external storage directory (e.g. D:\Ali Magang\KOMPONEN or NAS).
+     * Get candidate extensions including uppercase variants for Linux case-sensitive filesystems.
+     */
+    public function getCandidateExtensions(): array
+    {
+        $exts = [];
+        foreach (self::SUPPORTED_EXTENSIONS as $ext) {
+            $exts[] = strtolower($ext);
+            $exts[] = strtoupper($ext);
+        }
+        return array_values(array_unique($exts));
+    }
+
+    /**
+     * Get the primary external storage directory (e.g. D:\Ali Magang\KOMPONEN or /mnt/nas-gudang/Gudang Komponen In House).
      */
     public function getExternalDirectory(): string
     {
+        $dir = '';
         if (function_exists('config') && app()->has('config')) {
-            return config('services.components.photo_dir') ?: env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN');
+            $dir = config('services.components.photo_dir') ?: env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN');
+        } else {
+            $dir = env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN');
         }
-        return env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN');
+
+        $dir = trim((string)$dir, " \t\n\r\0\x0B\"'");
+
+        // Normalisasi path Linux jika pengguna menulis mnt/... tanpa leading slash
+        if (!empty($dir) && !str_starts_with($dir, '/') && !preg_match('/^[a-zA-Z]:/', $dir) && str_starts_with($dir, 'mnt/')) {
+            $dir = '/' . $dir;
+        }
+
+        return $dir;
+    }
+
+    /**
+     * Resolve public directory path safely even in isolated testing containers.
+     */
+    public function resolvePublicPath(string $path = ''): string
+    {
+        $base = '';
+        if (function_exists('app') && method_exists(app(), 'publicPath')) {
+            $base = public_path();
+        } elseif (function_exists('app') && method_exists(app(), 'basePath')) {
+            $base = base_path('public');
+        } else {
+            $base = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'public';
+        }
+
+        $cleanPath = ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), '\\/');
+        return $cleanPath ? rtrim($base, '\\/') . DIRECTORY_SEPARATOR . $cleanPath : $base;
     }
 
     /**
@@ -30,7 +72,7 @@ class ComponentPhotoStorageService
      */
     public function getMirrorDirectory(): string
     {
-        return public_path('uploads/components');
+        return $this->resolvePublicPath('uploads/components');
     }
 
     /**
@@ -127,32 +169,59 @@ class ComponentPhotoStorageService
         }
 
         $cleanPn = $this->sanitizePartNumber($partNumber);
+        $rawPn = trim($partNumber);
+        $candidateExts = $this->getCandidateExtensions();
 
-        // 1. Cek folder eksternal D:\Ali Magang\KOMPONEN (Prioritas Utama)
+        // Variasi nama file yang mungkin tersimpan di folder NAS (sanitasi, raw, upper, lower)
+        $candidateNames = array_values(array_unique(array_filter([
+            $cleanPn,
+            $rawPn,
+            strtoupper($cleanPn),
+            strtolower($cleanPn),
+            strtoupper($rawPn),
+            strtolower($rawPn),
+        ])));
+
+        // 1. Cek folder eksternal / NAS (Prioritas Utama, misal: /mnt/nas-gudang/Gudang Komponen In House)
         $extDir = $this->getExternalDirectory();
         if (!empty($extDir) && file_exists($extDir)) {
-            foreach (self::SUPPORTED_EXTENSIONS as $ext) {
-                $fullPath = rtrim($extDir, '\\/') . DIRECTORY_SEPARATOR . "{$cleanPn}.{$ext}";
-                if (file_exists($fullPath) && filesize($fullPath) > 50) {
-                    return $fullPath;
+            $extDirTrimmed = rtrim($extDir, '\\/');
+            foreach ($candidateNames as $name) {
+                foreach ($candidateExts as $ext) {
+                    $fullPath = $extDirTrimmed . DIRECTORY_SEPARATOR . "{$name}.{$ext}";
+                    if (file_exists($fullPath) && filesize($fullPath) > 50) {
+                        return realpath($fullPath) ?: $fullPath;
+                    }
+                }
+            }
+
+            // Cek jika imagePath di database merupakan nama file langsung yang ada di NAS
+            if ($imagePath && !str_starts_with($imagePath, 'http')) {
+                $baseImg = basename($imagePath);
+                $directExtPath = $extDirTrimmed . DIRECTORY_SEPARATOR . $baseImg;
+                if (file_exists($directExtPath) && filesize($directExtPath) > 50) {
+                    return realpath($directExtPath) ?: $directExtPath;
                 }
             }
         }
 
         // 2. Cek folder cermin lokal public/uploads/components/
-        foreach (self::SUPPORTED_EXTENSIONS as $ext) {
-            $localRel = "uploads/components/{$cleanPn}.{$ext}";
-            $localFull = public_path($localRel);
-            if (file_exists($localFull) && filesize($localFull) > 50) {
-                return $localFull;
+        $candidateMirrorNames = array_values(array_unique(array_filter([$cleanPn, $rawPn])));
+        foreach ($candidateMirrorNames as $name) {
+            foreach ($candidateExts as $ext) {
+                $localRel = "uploads/components/{$name}.{$ext}";
+                $localFull = $this->resolvePublicPath($localRel);
+                if (file_exists($localFull) && filesize($localFull) > 50) {
+                    return realpath($localFull) ?: $localFull;
+                }
             }
         }
 
-        // 3. Cek image_path di database jika berupa file lokal valid
+        // 3. Cek image_path di database jika berupa file lokal valid di webroot
         if ($imagePath && !str_starts_with($imagePath, 'http')) {
-            $fullDbPath = public_path($imagePath);
+            $fullDbPath = $this->resolvePublicPath($imagePath);
             if (file_exists($fullDbPath) && filesize($fullDbPath) > 50) {
-                return $fullDbPath;
+                return realpath($fullDbPath) ?: $fullDbPath;
             }
         }
 
@@ -166,9 +235,11 @@ class ComponentPhotoStorageService
     {
         $extDir = $this->getExternalDirectory();
         $mirrorDir = $this->getMirrorDirectory();
+        $candidateExts = $this->getCandidateExtensions();
+        $exceptExtLower = strtolower(trim($exceptExt, '. '));
 
-        foreach (self::SUPPORTED_EXTENSIONS as $ext) {
-            if ($ext === $exceptExt) {
+        foreach ($candidateExts as $ext) {
+            if (strtolower($ext) === $exceptExtLower) {
                 continue;
             }
 

@@ -421,6 +421,21 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Pengujian Unit Otomatis Terisolasi:**
   - Membuat pengujian komprehensif di `tests/Unit/TransactionFormSimplificationTest.php` (3 test cases, 20 assertions) yang menguji tombol tunggal, dropdown 3 opsi, ketiadaan field SPK/PO, status readonly tanggal, dan server-side enforcement. Seluruh 62 unit test aplikasi lulus 100% (347 assertions).
 
+### II. Integrasi Direktori NAS Server Produksi (`/mnt/nas-gudang/Gudang Komponen In House`) & .env.production (Baru Selesai & Teruji 100%)
+- **Konfigurasi Lingkungan Produksi (`.env.production` & `.env.production.example`):**
+  - Mengonfigurasi variable `COMPONENT_EXTERNAL_PHOTO_DIR='/mnt/nas-gudang/Gudang Komponen In House'` dengan enkapsulasi kutip untuk menangani spasi nama folder secara aman.
+  - Menyediakan file template `.env.production.example` yang terlacak di Git dan file `.env.production` lokal siap pakai untuk server Linux operasional.
+  - Menambahkan catatan konfigurasi transparan pada `.env.example` dan `.env` yang memisahkan jalur lokal pengembangan (`D:\Ali Magang\KOMPONEN`) dengan jalur mount Linux produksi.
+- **Normalisasi Path Linux & Resiliensi Case-Sensitivity (`ComponentPhotoStorageService`):**
+  - **Auto-Prepending Slash:** Jika konfigurasi di `.env` tertulis tanpa leading slash (`mnt/nas-gudang/...`), sistem otomatis menormalisasikannya menjadi `/mnt/nas-gudang/...`.
+  - **Dukungan Ekstensi Kapital:** Pengecekan berkas fisik di Linux mount kini mencakup ekstensi lowercase dan uppercase (`.jpg`, `.JPG`, `.jpeg`, `.JPEG`, `.png`, `.PNG`, `.webp`, `.WEBP`, `.pdf`, `.PDF`, `.svg`, `.SVG`).
+  - **Pencarian Nama File Fleksibel:** Mencari file berdasarkan kode komponen tersanitasi (`$cleanPn`), kode komponen asli dengan spasi (`$rawPn`), serta variasi huruf besar/kecil (`strtoupper`, `strtolower`).
+  - **Streaming Gateway HTTP & Resolusi Aman:** Menggunakan `resolvePublicPath()` yang terisolasi dan `realpath()` kanonikal pada streaming gateway `/components/{component}/photo-stream`.
+- **Dukungan Default Dinamis pada Perintah Konsol:**
+  - `ExportPhotosToLocalDirectoryCommand` secara dinamis mengambil folder default dari `config('services.components.photo_dir')`, sehingga perintah `php artisan components:export-to-local` di server produksi otomatis merujuk ke folder NAS.
+- **Pengujian Unit Otomatis Terisolasi:**
+  - Berhasil 100% pada SQLite `:memory:` (`tests/Unit/ComponentPhotoStorageTest.php` - 8 passed, 26 assertions; `tests/Unit/ComponentQrCodeTest.php` - 5 passed, 10 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

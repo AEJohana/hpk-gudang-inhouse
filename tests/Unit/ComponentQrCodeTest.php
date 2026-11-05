@@ -80,19 +80,30 @@ class ComponentQrCodeTest extends TestCase
     }
 
     /**
-     * Test local photo file path resolves file from D:\Ali Magang\KOMPONEN.
+     * Test local photo file path resolves file from local/NAS storage or mirror.
      */
     public function test_local_photo_file_path_resolves_downloaded_file(): void
     {
+        $service = new \App\Services\ComponentPhotoStorageService();
+        $dummyPath = $service->resolvePublicPath('uploads/components/ASPET1061330700.jpg');
+        if (!is_dir(dirname($dummyPath))) {
+            @mkdir(dirname($dummyPath), 0777, true);
+        }
+        file_put_contents($dummyPath, str_repeat('X', 100));
+
         $component = new Component([
             'part_number' => 'ASPET1061330700',
             'name' => 'Test Part',
         ]);
 
-        $localPath = $component->local_photo_file_path;
+        try {
+            $localPath = $component->local_photo_file_path;
 
-        $this->assertNotNull($localPath);
-        $this->assertFileExists($localPath);
-        $this->assertStringContainsString('ASPET1061330700.jpg', $localPath);
+            $this->assertNotNull($localPath);
+            $this->assertFileExists($localPath);
+            $this->assertStringContainsString('ASPET1061330700.jpg', $localPath);
+        } finally {
+            @unlink($dummyPath);
+        }
     }
 }
