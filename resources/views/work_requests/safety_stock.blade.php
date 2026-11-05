@@ -19,36 +19,8 @@
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-        <!-- 0. INTEGRATED WRI SUB-NAVIGATION TABS -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 pb-3">
-            <div class="flex items-center space-x-2">
-                <a href="{{ route('work-requests.index') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100">
-                    <i class="fa-solid fa-list-check text-xs"></i>
-                    <span>Antrian & Tiket WRI</span>
-                </a>
-                <a href="{{ route('work-requests.safety-stock') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 bg-[#0a2342] text-amber-400 shadow-md whitespace-nowrap">
-                    <i class="fa-solid fa-shield-halved text-xs text-amber-400"></i>
-                    <span>Safety Stock Alert</span>
-                </a>
-                @can('work-request.print')
-                <a href="{{ route('work-requests.print-queue') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-                    <i class="fa-solid fa-print text-xs text-indigo-500"></i>
-                    <span>Cetak Dokumen WR</span>
-                </a>
-                @endcan
-            </div>
-
-            <div class="flex items-center space-x-2 text-xs">
-                <span class="text-slate-400 font-semibold">Status Gudang:</span>
-                <span class="px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-extrabold flex items-center space-x-1">
-                    <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
-                    <span>{{ $totalCritical }} Komponen Butuh Restock</span>
-                </span>
-            </div>
-        </div>
+        <!-- 0. INTEGRATED WRI SUB-NAVIGATION TABS (Antrean, Safety Stock, Cetak WR) -->
+        @include('work_requests.partials.sub_nav')
 
         <!-- 1. ALERT BANNER -->
         @if($totalCritical > 0)

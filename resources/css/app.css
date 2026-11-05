@@ -274,41 +274,47 @@ body {
 }
 
 /* =======================================================
-   SUPER NAV PILLS & CUSTOM TABS (GLASSMORPHISM)
+   SUPER NAV PILLS & CUSTOM TABS (ELEVATED WHITE CARD)
    ======================================================= */
 .super-nav-pills {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  padding: 6px;
-  border-radius: 20px;
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+  background: #ffffff;
+  padding: 4px;
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
   display: inline-flex;
-  gap: 6px;
+  gap: 4px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Horizontal Scroll Peek Affordance on Touch Screens */
+@media (max-width: 639px) {
+  .super-nav-pills {
+    padding-right: 1.25rem;
+  }
 }
 
 .super-nav-pill {
-  border-radius: 14px;
+  border-radius: 12px;
   color: #475569;
-  background: #f1f5f9;
+  background: transparent;
   font-weight: 700;
-  font-size: 0.8rem;
-  padding: 8px 16px;
-  transition: all 0.25s ease;
+  font-size: 0.75rem;
+  padding: 6px 14px;
+  transition: all 0.2s ease;
   text-decoration: none;
 }
 
 .super-nav-pill:hover {
-  background: #e2e8f0;
-  color: var(--hpk-blue);
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 .super-nav-pill.active {
   background: var(--hpk-blue);
   color: #ffffff !important;
-  box-shadow: 0 6px 18px rgba(10, 35, 66, 0.25);
-  transform: scale(1.02);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 /* =======================================================

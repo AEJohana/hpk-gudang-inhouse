@@ -25,44 +25,8 @@
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6" x-data="printQueueManager()">
 
-        <!-- 0. INTEGRATED WRI SUB-NAVIGATION TABS (Antrian, Safety Stock, Cetak Dokumen WR) -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 pb-3">
-            <div class="flex items-center space-x-2 overflow-x-auto pb-1 sm:pb-0">
-                <a href="{{ route('work-requests.index') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-                    <i class="fa-solid fa-list-check text-xs"></i>
-                    <span>Antrian & Tiket WRI</span>
-                </a>
-                @can('work-request.safety-stock')
-                <a href="{{ route('work-requests.safety-stock') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-                    <i class="fa-solid fa-shield-halved text-xs text-rose-500"></i>
-                    <span>Safety Stock Alert</span>
-                </a>
-                @endcan
-                <a href="{{ route('work-requests.print-queue') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 bg-[#0a2342] text-amber-400 shadow-md whitespace-nowrap">
-                    <i class="fa-solid fa-print text-xs"></i>
-                    <span>Cetak Dokumen WR</span>
-                    @if($totalPrintable > 0)
-                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 ml-1">
-                            {{ $totalPrintable }}
-                        </span>
-                    @endif
-                </a>
-            </div>
-
-            <div class="flex items-center space-x-2 text-xs">
-                <span class="text-slate-400 font-semibold">Departemen:</span>
-                <span class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 font-extrabold flex items-center space-x-1">
-                    <i class="fa-solid fa-building-user text-indigo-600"></i>
-                    <span>{{ Auth::user()->effective_department_name }}</span>
-                    @if(Auth::user()->canAccessAllDepartments())
-                        <span class="text-[10px] text-teal-600 font-bold ml-1">(Akses Global *)</span>
-                    @endif
-                </span>
-            </div>
-        </div>
+        <!-- 0. INTEGRATED WRI SUB-NAVIGATION TABS (Antrean, Safety Stock, Cetak WR) -->
+        @include('work_requests.partials.sub_nav')
 
         <!-- 1. KPI SUMMARY STATS CARDS (DENGAN PRESERVE FILTER WAKTU & SCOPE) -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
@@ -105,20 +69,69 @@
 
         <!-- 2. CONTROL BAR (STATUS FILTER, BULK PRINT ACTION, DATE FILTER & SEARCH) -->
         <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            <!-- Filter Status Cetak Tabs -->
-            <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 lg:pb-0">
-                <a href="{{ route('work-requests.print-queue', array_merge(request()->query(), ['print_status' => 'all'])) }}" 
-                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {{ !request()->filled('print_status') || request()->print_status === 'all' ? 'bg-[#0a2342] text-amber-400 shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                    Semua ({{ $totalPrintable }})
-                </a>
-                <a href="{{ route('work-requests.print-queue', array_merge(request()->query(), ['print_status' => 'belum'])) }}" 
-                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {{ request()->print_status === 'belum' ? 'bg-amber-400 text-slate-950 font-black shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                    <i class="fa-solid fa-clock-rotate-left me-1 text-[10px]"></i> Belum Dicetak ({{ $totalUnprinted }})
-                </a>
-                <a href="{{ route('work-requests.print-queue', array_merge(request()->query(), ['print_status' => 'sudah'])) }}" 
-                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {{ request()->print_status === 'sudah' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                    <i class="fa-solid fa-check me-1 text-[10px]"></i> Sudah Dicetak ({{ $totalPrinted }})
-                </a>
+            <!-- Filter Status Cetak Tabs (Swipeable with Gradient Cue & Mini Chevrons) -->
+            <div class="relative w-full lg:w-auto min-w-0 shrink-0" 
+                 x-data="{
+                     canScrollLeft: false,
+                     canScrollRight: false,
+                     checkScroll() {
+                         const el = this.$refs.scrollContainer;
+                         if (!el) return;
+                         this.canScrollLeft = el.scrollLeft > 6;
+                         this.canScrollRight = el.scrollLeft < (el.scrollWidth - el.clientWidth - 6);
+                     },
+                     scrollLeft() {
+                         this.$refs.scrollContainer.scrollBy({ left: -140, behavior: 'smooth' });
+                     },
+                     scrollRight() {
+                         this.$refs.scrollContainer.scrollBy({ left: 140, behavior: 'smooth' });
+                     }
+                 }"
+                 x-init="$nextTick(() => checkScroll()); window.addEventListener('resize', () => checkScroll())">
+
+                <!-- Left Scroll Gradient & Chevron Button -->
+                <div x-show="canScrollLeft" 
+                     x-transition.opacity.duration.200ms
+                     class="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-4 pl-0.5 bg-gradient-to-r from-white via-white/90 to-transparent pointer-events-none"
+                     style="display: none;">
+                    <button type="button" 
+                            @click="scrollLeft()" 
+                            class="w-6 h-6 rounded-full bg-white border border-slate-300 shadow-xs text-slate-700 hover:text-slate-950 hover:scale-105 active:scale-95 flex items-center justify-center pointer-events-auto transition cursor-pointer text-[10px]"
+                            title="Geser ke kiri">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                </div>
+
+                <!-- Scrollable Tabs Container -->
+                <div x-ref="scrollContainer" 
+                     @scroll.passive="checkScroll()"
+                     class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pb-1 lg:pb-0 scroll-smooth pe-4 lg:pe-0">
+                    <a href="{{ route('work-requests.print-queue', array_merge(request()->query(), ['print_status' => 'all'])) }}" 
+                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {{ !request()->filled('print_status') || request()->print_status === 'all' ? 'bg-[#0a2342] text-amber-400 shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                        Semua ({{ $totalPrintable }})
+                    </a>
+                    <a href="{{ route('work-requests.print-queue', array_merge(request()->query(), ['print_status' => 'belum'])) }}" 
+                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {{ request()->print_status === 'belum' ? 'bg-amber-400 text-slate-950 font-black shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                        <i class="fa-solid fa-clock-rotate-left me-1 text-[10px]"></i> Belum Dicetak ({{ $totalUnprinted }})
+                    </a>
+                    <a href="{{ route('work-requests.print-queue', array_merge(request()->query(), ['print_status' => 'sudah'])) }}" 
+                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {{ request()->print_status === 'sudah' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                        <i class="fa-solid fa-check me-1 text-[10px]"></i> Sudah Dicetak ({{ $totalPrinted }})
+                    </a>
+                </div>
+
+                <!-- Right Scroll Gradient & Chevron Button (Tanda Geser Halus) -->
+                <div x-show="canScrollRight" 
+                     x-transition.opacity.duration.200ms
+                     class="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-4 pr-0.5 bg-gradient-to-l from-white via-white/90 to-transparent pointer-events-none"
+                     style="display: none;">
+                    <button type="button" 
+                            @click="scrollRight()" 
+                            class="w-6 h-6 rounded-full bg-white border border-slate-300 shadow-xs text-slate-700 hover:text-slate-950 hover:scale-105 active:scale-95 flex items-center justify-center pointer-events-auto transition cursor-pointer text-[10px] animate-pulse"
+                            title="Geser ke kanan untuk melihat tab lainnya">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- Right: Bulk Print Action, Date Filter Dropdown & Search Box (Mobile Friendly) -->

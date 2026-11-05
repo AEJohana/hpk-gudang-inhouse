@@ -173,6 +173,19 @@ Users have specific roles and departmental scopes that dictate their permissions
 - **Offline Print Sheets:** Template cetak slip mutasi gudang (`transactions/print_sheet`) dan formulir perintah kerja mesin 3-rangkap (`work_requests/print_sheet`) terhubung langsung ke stylesheet lokal `@vite(['resources/css/app.css'])`, menjamin hasil cetak kertas A4 tetap rapi dan terformat sempurna meskipun jaringan internet terputus total.
 - **Offline QR & Component Visuals:** Pembangkitan QR code berjalan di server backend via `chillerlan/php-qrcode` (inline SVG/Base64), pembacaan scanner via `html5-qrcode.min.js` lokal, dan penyajian 614 foto komponen karoseri langsung dari server jaringan `Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House` (dengan fallback redundansi cadangan lokal di `D:\Ali Magang\KOMPONEN`) melalui streaming gateway HTTP lokal.
 
+### 19. Modern Elevated Segmented Sub-Navigation Controls (Kartu Putih Berbayangan)
+- **Elevated White Card Containers & Permanent Single-Row Flex:** Bilah sub-navigasi antrean WRI disatukan ke dalam wadah kartu putih berbayangan lembut (`bg-white p-1 sm:p-1.5 rounded-2xl border border-slate-200/80 shadow-xs sm:shadow-sm inline-flex items-center gap-1 sm:gap-1.5 w-fit shrink-0`) yang terkunci dalam satu baris horizontal (`flex items-center justify-between w-full`) berdampingan dengan badge Departemen (`shrink-0 ml-auto`), tanpa pernah meregang kosong atau turun ke bawah di mode tablet.
+- **Adaptive Collapsible Segmented Tabs:** Mengadopsi navigasi cerdas di mana hanya tab aktif yang menampilkan teks label lengkap, sedangkan tab inaktif menyembunyikan teks dan hanya menampilkan Ikon + Badge notifikasi. Fitur ini memangkas lebar bar dari ~340px menjadi ~200px sehingga tidak pernah bertabrakan dengan info departemen di tablet/mobile.
+- **Ergonomic Compact Labels:** Memadatkan label teks (`"Antrean WRI"`, `"Safety Stock"`, `"Cetak WR"`) sehingga menghemat ruang horizontal tanpa memotong konteks operasional.
+- **Integrated Smart Floating Badges:** Notifikasi counter cetak dan indikator buffer stok minimum ditampilkan dalam bentuk mini-pill bulat ergonomis (`min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-black`) dengan kontras emas pada tab aktif dan warna pastel lembut pada tab inaktif.
+- **Harmonisasi Global `.super-nav-pills`:** Kelas filter status pada modul `qr_requests`, `master_components`, `cycle_counts`, `disposals`, dan `ecrs` diperbarui dengan latar kartu putih dan shadow lembut yang serasi.
+
+### 20. Horizontal Scroll Affordance & Smart Swipe Cues on Touch Displays
+- **Smart Scroll Controller (Alpine.js):** Deretan tab filter status (pada WRI dan Antrean Cetak) dilengkapi pembungkus reaktif cerdas yang mendeteksi overflow konten secara dinamis.
+- **Gradient Fade Masking & Mini Chevrons:** Ketika konten meluap ke kanan pada layar ponsel/tablet, sisi kanan otomatis menampilkan efek bayangan putih memudar (*peek affordance*) dengan tombol panah bulat mini `[ > ]` yang beranimasi denyut lembut.
+- **Dual-Action Navigation:** Operator dapat menggeser manual dengan jari (*swipe gesture*) atau cukup mengetuk tombol panah untuk scroll otomatis sejauh 160px. Panah kiri `[ < ]` otomatis muncul saat bar digeser ke kanan, dan seluruh elemen bantuan otomatis bersembunyi di layar desktop lebar.
+- **Global Touch Padding:** Menambahkan padding akhir responsif pada seluruh komponen pill tab horizontal agar tab terakhir tidak terpotong kaku di layar sentuh.
+
 ## Technical Documentation References
 - [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
 - [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - Standar Operasional Prosedur, Diagram Alur Proses & Aturan Bisnis (BR-01 s/d BR-14)
