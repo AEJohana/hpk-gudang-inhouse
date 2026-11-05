@@ -161,7 +161,10 @@ Users have specific roles and departmental scopes that dictate their permissions
   - Pada header halaman modul, teks deskripsi panjang dan logo/nama PT dihilangkan sepenuhnya agar antarmuka tampil lapang, ringkas, dan fokus pada fungsi utama.
   - Header halaman menyematkan tombol kembali kotak rounded ergonomis `[ ← ]` berdampingan langsung dengan kotak ikon modul bersudut tumpul (`rounded-xl`) dan judul modul tebal terpusat secara vertikal.
   - Tombol aksi modul (*Refresh*, *Material Handling*, *+ Membuat WR*, *Import Excel*, *+ Transaksi Baru*, dll.) terkunci rata kanan penuh (`ml-auto flex items-center justify-end space-x-2 shrink-0`).
-- **Konsistensi Seragam Lintas Seluruh Modul:** Diterapkan di 9 modul operasional: *Work Request Mesin*, *Master Data Komponen*, *Transaksi Komponen*, *Material Handling*, *ECR Revisi Part*, *Cycle Count*, *Cetak Label QR Mesin*, *Pengajuan Disposal*, dan *Peta Lokasi & Denah Gudang*.
+- **Standardisasi Header 1 Baris Sejajar (Single-Row Header Alignment):**
+  - Mengeliminasi pembungkus responsif lama `flex flex-col sm:flex-row` yang menyebabkan tombol aksi turun baris pada viewport < 640px / split-screen.
+  - Seluruh 11 modul utama kini terkunci sejajar horizontal: `flex items-center justify-between gap-2.5 sm:gap-4 w-full`, dengan `min-w-0` & `truncate` pada judul kiri dan `shrink-0 ml-auto` pada baris tombol kanan, memastikan tombol tidak pernah turun baris (*never wraps down*).
+- **Konsistensi Seragam Lintas Seluruh Modul:** Diterapkan di 11 modul dan antrean operasional: *Work Request Mesin*, *Safety Stock Buffer*, *Antrean Cetak Label*, *Monitoring WRI*, *Master Data Komponen*, *Transaksi Komponen*, *Material Handling*, *ECR Revisi Part*, *Cycle Count*, *Cetak Label QR Mesin*, dan *Pengajuan Disposal*.
 
 ### 18. 100% Pure Local & Offline On-Premise Asset Delivery (Bebas Ketergantungan Internet)
 - **Zero External CDN Dependencies:** Seluruh pustaka CSS dan JavaScript dimuat secara murni dari disk lokal pabrik tanpa memanggil server eksternal (Google Fonts, unpkg, cdnjs, Cloudflare, atau Tailwind CDN).

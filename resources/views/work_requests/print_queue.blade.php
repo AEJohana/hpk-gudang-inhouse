@@ -1,21 +1,18 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div class="flex flex-col items-start gap-1 sm:gap-1.5">
-                <div>
-                    <a href="{{ route('work-requests.index') }}" 
-                       class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
-                       title="Kembali ke Antrean WRI Utama">
-                        <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
-                        <span>Kembali</span>
-                    </a>
-                </div>
-                <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight">
+        <div class="flex items-center justify-between gap-2.5 sm:gap-4 w-full">
+            <div class="flex items-center space-x-2.5 sm:space-x-3.5 min-w-0">
+                <a href="{{ route('work-requests.index') }}" 
+                   class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 flex items-center justify-center text-slate-700 transition shadow-2xs shrink-0 cursor-pointer" 
+                   title="Kembali ke Antrean WRI Utama">
+                    <i class="fa-solid fa-arrow-left text-sm text-slate-600"></i>
+                </a>
+                <h2 class="font-extrabold text-base sm:text-xl text-slate-900 tracking-tight leading-tight truncate">
                     Pusat Antrean Cetak Dokumen WR
                 </h2>
             </div>
 
-            <div class="flex items-center space-x-2 self-start sm:self-auto">
+            <div class="flex items-center space-x-2 shrink-0 ml-auto">
                 <button type="button" 
                         onclick="window.location.reload()" 
                         class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95">

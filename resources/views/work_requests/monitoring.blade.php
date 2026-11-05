@@ -1,13 +1,13 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <h2 class="font-extrabold text-2xl text-slate-900 tracking-tight">
+        <div class="flex items-center justify-between gap-2.5 sm:gap-4 w-full">
+            <div class="min-w-0">
+                <h2 class="font-extrabold text-lg sm:text-2xl text-slate-900 tracking-tight truncate">
                     Dashboard Monitoring SLA Pabrik
                 </h2>
             </div>
 
-            <div class="flex items-center space-x-2 self-start sm:self-auto">
+            <div class="flex items-center space-x-2 shrink-0 ml-auto">
                 <a href="{{ route('work-requests.index') }}" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center">
                     <i class="fa-solid fa-arrow-left me-1.5"></i>
                     Kembali ke Antrian WRI

@@ -438,6 +438,29 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Pengujian Unit Otomatis Terisolasi:**
   - `tests/Unit/ComponentPhotoStorageTest.php` dan `tests/Unit/ComponentQrCodeTest.php` lulus 100% (10 tests, 22 assertions).
 
+### JJ. Standardisasi Tata Letak Header 1 Baris Sejajar (Single-Row Header Alignment - Baru Selesai & Teruji 100%)
+- **Identifikasi Masalah & Akar Penyebab:**
+  - Tombol aksi kanan pada modul utama (seperti `Work Request Mesin`, dll.) turun ke baris kedua meskipun ruang layar masih lega. Hal ini disebabkan kontainer header menggunakan `flex flex-col sm:flex-row sm:items-center sm:justify-between`. Pada Tailwind CSS, breakpoint `sm:` membutuhkan lebar minimal `640px`. Ketika resolusi layar atau split-screen berada di bawah 640px, kontainer beralih ke orientasi vertikal (`flex-col`), sehingga tombol aksi jatuh ke bawah judul.
+- **Solusi & Penyelarasan Menyeluruh (11 Modul Views):**
+  - Mengunci kontainer header menjadi 1 baris horizontal permanen: `flex items-center justify-between gap-2.5 sm:gap-4 w-full`.
+  - Sisi kiri (tombol kembali, ikon, judul) disematkan `min-w-0` dengan teks judul `truncate` agar judul panjang tidak mendorong tombol keluar layar.
+  - Sisi kanan (tombol aksi, reload, shortcut) disematkan `shrink-0 ml-auto` agar selalu menempel rapi di tepi kanan dalam satu garis horizontal yang sejajar dan presisi.
+- **Cakupan 11 Modul yang Diselaraskan:**
+  1. `work_requests/index.blade.php` (Antrian WRI)
+  2. `work_requests/safety_stock.blade.php` (Safety Stock Buffer)
+  3. `work_requests/print_queue.blade.php` (Antrean Cetak Label)
+  4. `work_requests/monitoring.blade.php` (Monitoring & SLA)
+  5. `master_components/index.blade.php` (Master Data Komponen)
+  6. `transactions/index.blade.php` (Log Mutasi Stok)
+  7. `work_station_supplies/index.blade.php` (Suplai Mesin & MH)
+  8. `ecrs/index.blade.php` (Engineering Change Request)
+  9. `cycle_counts/index.blade.php` (Cycle Count / Stock Opname)
+  10. `disposals/index.blade.php` (Pengajuan Disposal)
+  11. `qr_requests/index.blade.php` (Cetak Label QR Mesin)
+- **Verifikasi & Build Produksi:**
+  - Build aset CSS via `npm run build` berjalan sukses (56 modules transformed, 0 error).
+  - Seluruh 62 pengujian unit aplikasi (`php artisan test --testsuite=Unit`) lolos 100% (347 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi
