@@ -1,8 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 w-full">
+        <div class="flex items-center justify-between gap-2.5 sm:gap-4 w-full">
             <!-- Left: Back Button + Icon Badge + Title (Judul Saja Tanpa Deskripsi) -->
-            <div class="flex items-center space-x-3 sm:space-x-3.5 min-w-0">
+            <div class="flex items-center space-x-2 sm:space-x-3.5 min-w-0">
                 <a href="{{ route('dashboard') }}" 
                    class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 flex items-center justify-center text-slate-700 transition shadow-2xs shrink-0 cursor-pointer" 
                    title="Kembali ke Beranda">
@@ -17,7 +17,7 @@
             </div>
 
             <!-- Right: Action Buttons (Anchored to Far Right) -->
-            <div class="flex items-center space-x-2 shrink-0 ml-auto sm:ml-0">
+            <div class="flex items-center space-x-1.5 sm:space-x-2 shrink-0 ml-auto">
                 <a href="{{ route('cycle-counts.create') }}" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center whitespace-nowrap space-x-1.5">
                     <i class="fa-solid fa-plus text-xs"></i>
                     <span>Jadwalkan Cycle Count</span>

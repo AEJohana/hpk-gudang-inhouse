@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 w-full">
+        <div class="flex items-center justify-between gap-2.5 sm:gap-4 w-full">
             <!-- Left: Back Button + Icon Badge + Title (Judul Saja Tanpa Deskripsi) -->
             <div class="flex items-center space-x-3 sm:space-x-3.5 min-w-0">
                 <a href="{{ route('dashboard') }}" 
@@ -17,7 +17,7 @@
             </div>
 
             <!-- Right: Action Buttons (Anchored to Far Right) -->
-            <div class="flex items-center space-x-2 shrink-0 ml-auto sm:ml-0">
+            <div class="flex items-center space-x-1.5 sm:space-x-2 shrink-0 ml-auto">
                 <a href="{{ route('qr-requests.create') }}" class="px-3.5 py-2 bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center whitespace-nowrap space-x-1.5">
                     <i class="fa-solid fa-plus text-xs"></i>
                     <span>Buat Permintaan Label</span>

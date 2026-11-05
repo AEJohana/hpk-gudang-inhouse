@@ -1,8 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 w-full">
+        <div class="flex items-center justify-between gap-2.5 sm:gap-4 w-full">
             <!-- Left: Back Button + Icon Badge + Title (Judul Saja Tanpa Deskripsi) -->
-            <div class="flex items-center space-x-3 sm:space-x-3.5 min-w-0">
+            <div class="flex items-center space-x-2 sm:space-x-3.5 min-w-0">
                 <a href="{{ route('dashboard') }}" 
                    class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 flex items-center justify-center text-slate-700 transition shadow-2xs shrink-0 cursor-pointer" 
                    title="Kembali ke Beranda">
@@ -17,7 +17,7 @@
             </div>
 
             <!-- Right: Action Buttons (Anchored to Far Right) -->
-            <div class="flex items-center space-x-2 shrink-0 ml-auto sm:ml-0">
+            <div class="flex items-center space-x-1.5 sm:space-x-2 shrink-0 ml-auto">
                 <button type="button" 
                         onclick="window.location.reload()" 
                         class="px-3 py-2 sm:px-3.5 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-xl border border-slate-300 shadow-2xs transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
@@ -45,46 +45,8 @@
              x-init='openDetailModal(@json($openDetailPayload))'
          @endif>
 
-        <!-- 0. INTEGRATED WRI SUB-NAVIGATION TABS (Antrian, Safety Stock, Monitoring) -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 pb-3">
-            <div class="flex items-center space-x-2 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1 sm:pb-0 flex-nowrap">
-                <a href="{{ route('work-requests.index') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 whitespace-nowrap {{ request()->routeIs('work-requests.index') ? 'bg-[#0a2342] text-amber-400 shadow-md' : 'text-slate-600 hover:bg-slate-100' }}">
-                    <i class="fa-solid fa-list-check text-xs"></i>
-                    <span>Antrian & Tiket WRI</span>
-                </a>
-                @can('work-request.safety-stock')
-                <a href="{{ route('work-requests.safety-stock') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-                    <i class="fa-solid fa-shield-halved text-xs text-rose-500"></i>
-                    <span>Safety Stock Alert</span>
-                </a>
-                @endcan
-                @can('work-request.print')
-                <a href="{{ route('work-requests.print-queue') }}" 
-                   class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-                    <i class="fa-solid fa-print text-xs text-slate-500"></i>
-                    <span>Cetak Dokumen WR</span>
-                    @if(isset($printableCount) && $printableCount > 0)
-                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-700 text-white ml-1">
-                            {{ $printableCount }}
-                        </span>
-                    @endif
-                </a>
-                @endcan
-            </div>
-
-            <div class="flex items-center space-x-2 text-xs">
-                <span class="text-slate-400 font-semibold">Departemen Anda:</span>
-                <span class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 font-extrabold flex items-center space-x-1">
-                    <i class="fa-solid fa-building-user text-slate-500"></i>
-                    <span>{{ Auth::user()->effective_department_name }}</span>
-                    @if(Auth::user()->canAccessAllDepartments())
-                        <span class="text-[10px] text-teal-600 font-bold ml-1">(Akses Global *)</span>
-                    @endif
-                </span>
-            </div>
-        </div>
+        <!-- 0. INTEGRATED WRI SUB-NAVIGATION TABS (Antrean, Safety Stock, Cetak WR) -->
+        @include('work_requests.partials.sub_nav')
 
         <!-- 1. KPI SUMMARY STATS CARDS (INTERACTIVE QUICK FILTERS) -->
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
@@ -156,58 +118,107 @@
 
         <!-- 2. UNIFIED WORK REQUEST CONTROL BAR (BEBAS DARI INPUT DOBEL) -->
         <div class="bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200 shadow-xs flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            <!-- Left: 5 Status Tabs (Swipeable on touch screens) -->
-            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap py-0.5 shrink-0">
-                <!-- Tab: Semua -->
-                <a href="{{ route('work-requests.index', ['scope' => $scope]) }}" 
-                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ (!request()->filled('status') || request()->status === 'all') && !request()->boolean('overdue_sla') ? 'bg-[#0a2342] text-amber-400 shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                    <span>Semua</span>
-                    <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ (!request()->filled('status') || request()->status === 'all') && !request()->boolean('overdue_sla') ? 'bg-amber-400 text-slate-950' : 'bg-slate-200 text-slate-700' }}">
-                        {{ $totalWri }}
-                    </span>
-                </a>
+            <!-- Left: 5 Status Tabs (Swipeable with Gradient Cue & Mini Chevrons) -->
+            <div class="relative w-full lg:w-auto min-w-0 shrink-0" 
+                 x-data="{
+                     canScrollLeft: false,
+                     canScrollRight: false,
+                     checkScroll() {
+                         const el = this.$refs.scrollContainer;
+                         if (!el) return;
+                         this.canScrollLeft = el.scrollLeft > 6;
+                         this.canScrollRight = el.scrollLeft < (el.scrollWidth - el.clientWidth - 6);
+                     },
+                     scrollLeft() {
+                         this.$refs.scrollContainer.scrollBy({ left: -160, behavior: 'smooth' });
+                     },
+                     scrollRight() {
+                         this.$refs.scrollContainer.scrollBy({ left: 160, behavior: 'smooth' });
+                     }
+                 }"
+                 x-init="$nextTick(() => checkScroll()); window.addEventListener('resize', () => checkScroll())">
 
-                <!-- Tab: Perlu Verifikasi -->
-                <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'verifikasi', 'overdue_sla' => null])) }}" 
-                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ request()->status === 'verifikasi' ? 'bg-amber-400 text-slate-950 font-black shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                    <i class="fa-solid fa-stamp text-[11px]"></i>
-                    <span>Perlu Verifikasi</span>
-                    @if($needsApprovalCount > 0)
-                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ request()->status === 'verifikasi' ? 'bg-slate-950 text-white' : 'bg-rose-600 text-white animate-pulse' }}">
-                            {{ $needsApprovalCount }}
+                <!-- Left Scroll Gradient & Chevron Button -->
+                <div x-show="canScrollLeft" 
+                     x-transition.opacity.duration.200ms
+                     class="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-4 pl-0.5 bg-gradient-to-r from-white via-white/90 to-transparent pointer-events-none"
+                     style="display: none;">
+                    <button type="button" 
+                            @click="scrollLeft()" 
+                            class="w-6 h-6 rounded-full bg-white border border-slate-300 shadow-xs text-slate-700 hover:text-slate-950 hover:scale-105 active:scale-95 flex items-center justify-center pointer-events-auto transition cursor-pointer text-[10px]"
+                            title="Geser ke kiri">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                </div>
+
+                <!-- Scrollable Tabs Container -->
+                <div x-ref="scrollContainer" 
+                     @scroll.passive="checkScroll()"
+                     class="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap py-0.5 scroll-smooth pe-4 lg:pe-0">
+                    <!-- Tab: Semua -->
+                    <a href="{{ route('work-requests.index', ['scope' => $scope]) }}" 
+                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ (!request()->filled('status') || request()->status === 'all') && !request()->boolean('overdue_sla') ? 'bg-[#0a2342] text-amber-400 shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                        <span>Semua</span>
+                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ (!request()->filled('status') || request()->status === 'all') && !request()->boolean('overdue_sla') ? 'bg-amber-400 text-slate-950' : 'bg-slate-200 text-slate-700' }}">
+                            {{ $totalWri }}
                         </span>
-                    @endif
-                </a>
+                    </a>
 
-                <!-- Tab: Sedang Proses -->
-                <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'proses', 'overdue_sla' => null])) }}" 
-                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ request()->status === 'proses' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                    <i class="fa-solid fa-gears text-[11px]"></i>
-                    <span>Sedang Proses</span>
-                    <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ request()->status === 'proses' ? 'bg-blue-800 text-white' : 'bg-slate-200 text-slate-700' }}">
-                        {{ $inProcessCount }}
-                    </span>
-                </a>
+                    <!-- Tab: Perlu Verifikasi -->
+                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'verifikasi', 'overdue_sla' => null])) }}" 
+                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ request()->status === 'verifikasi' ? 'bg-amber-400 text-slate-950 font-black shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                        <i class="fa-solid fa-stamp text-[11px]"></i>
+                        <span>Perlu Verifikasi</span>
+                        @if($needsApprovalCount > 0)
+                            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ request()->status === 'verifikasi' ? 'bg-slate-950 text-white' : 'bg-rose-600 text-white animate-pulse' }}">
+                                {{ $needsApprovalCount }}
+                            </span>
+                        @endif
+                    </a>
 
-                <!-- Tab: Siap Ambil -->
-                <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'siap', 'overdue_sla' => null])) }}" 
-                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ request()->status === 'siap' ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                    <i class="fa-solid fa-dolly text-[11px]"></i>
-                    <span>Siap Ambil</span>
-                    <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ request()->status === 'siap' ? 'bg-teal-800 text-white' : 'bg-slate-200 text-slate-700' }}">
-                        {{ $readyForWarehouseCount }}
-                    </span>
-                </a>
+                    <!-- Tab: Sedang Proses -->
+                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'proses', 'overdue_sla' => null])) }}" 
+                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ request()->status === 'proses' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                        <i class="fa-solid fa-gears text-[11px]"></i>
+                        <span>Sedang Proses</span>
+                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ request()->status === 'proses' ? 'bg-blue-800 text-white' : 'bg-slate-200 text-slate-700' }}">
+                            {{ $inProcessCount }}
+                        </span>
+                    </a>
 
-                <!-- Tab: Selesai -->
-                <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'selesai', 'overdue_sla' => null])) }}" 
-                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ request()->status === 'selesai' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
-                    <i class="fa-solid fa-circle-check text-[11px]"></i>
-                    <span>Selesai</span>
-                    <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ request()->status === 'selesai' ? 'bg-emerald-800 text-white' : 'bg-slate-200 text-slate-700' }}">
-                        {{ $receivedCount }}
-                    </span>
-                </a>
+                    <!-- Tab: Siap Ambil -->
+                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'siap', 'overdue_sla' => null])) }}" 
+                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ request()->status === 'siap' ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                        <i class="fa-solid fa-dolly text-[11px]"></i>
+                        <span>Siap Ambil</span>
+                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ request()->status === 'siap' ? 'bg-teal-800 text-white' : 'bg-slate-200 text-slate-700' }}">
+                            {{ $readyForWarehouseCount }}
+                        </span>
+                    </a>
+
+                    <!-- Tab: Selesai -->
+                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'selesai', 'overdue_sla' => null])) }}" 
+                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 {{ request()->status === 'selesai' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                        <i class="fa-solid fa-circle-check text-[11px]"></i>
+                        <span>Selesai</span>
+                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ request()->status === 'selesai' ? 'bg-emerald-800 text-white' : 'bg-slate-200 text-slate-700' }}">
+                            {{ $receivedCount }}
+                        </span>
+                    </a>
+                </div>
+
+                <!-- Right Scroll Gradient & Chevron Button (Tanda Geser Halus) -->
+                <div x-show="canScrollRight" 
+                     x-transition.opacity.duration.200ms
+                     class="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-4 pr-0.5 bg-gradient-to-l from-white via-white/90 to-transparent pointer-events-none"
+                     style="display: none;">
+                    <button type="button" 
+                            @click="scrollRight()" 
+                            class="w-6 h-6 rounded-full bg-white border border-slate-300 shadow-xs text-slate-700 hover:text-slate-950 hover:scale-105 active:scale-95 flex items-center justify-center pointer-events-auto transition cursor-pointer text-[10px] animate-pulse"
+                            title="Geser ke kanan untuk melihat tab lainnya">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- Right: Search Input Form -->

@@ -455,6 +455,81 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - `tests/Unit/ComponentPhotoStorageTest.php` dan `tests/Unit/ComponentQrCodeTest.php` lulus 100% (10 tests, 22 assertions).
 >>>>>>> defed8d474e0865244c9936e9b6e0b3dc351beff
 
+### JJ. Standardisasi Tata Letak Header 1 Baris Sejajar (Single-Row Header Alignment - Baru Selesai & Teruji 100%)
+- **Identifikasi Masalah & Akar Penyebab:**
+  - Tombol aksi kanan pada modul utama (seperti `Work Request Mesin`, dll.) turun ke baris kedua meskipun ruang layar masih lega. Hal ini disebabkan kontainer header menggunakan `flex flex-col sm:flex-row sm:items-center sm:justify-between`. Pada Tailwind CSS, breakpoint `sm:` membutuhkan lebar minimal `640px`. Ketika resolusi layar atau split-screen berada di bawah 640px, kontainer beralih ke orientasi vertikal (`flex-col`), sehingga tombol aksi jatuh ke bawah judul.
+- **Solusi & Penyelarasan Menyeluruh (11 Modul Views):**
+  - Mengunci kontainer header menjadi 1 baris horizontal permanen: `flex items-center justify-between gap-2.5 sm:gap-4 w-full`.
+  - Sisi kiri (tombol kembali, ikon, judul) disematkan `min-w-0` dengan teks judul `truncate` agar judul panjang tidak mendorong tombol keluar layar.
+  - Sisi kanan (tombol aksi, reload, shortcut) disematkan `shrink-0 ml-auto` agar selalu menempel rapi di tepi kanan dalam satu garis horizontal yang sejajar dan presisi.
+- **Cakupan 11 Modul yang Diselaraskan:**
+  1. `work_requests/index.blade.php` (Antrian WRI)
+  2. `work_requests/safety_stock.blade.php` (Safety Stock Buffer)
+  3. `work_requests/print_queue.blade.php` (Antrean Cetak Label)
+  4. `work_requests/monitoring.blade.php` (Monitoring & SLA)
+  5. `master_components/index.blade.php` (Master Data Komponen)
+  6. `transactions/index.blade.php` (Log Mutasi Stok)
+  7. `work_station_supplies/index.blade.php` (Suplai Mesin & MH)
+  8. `ecrs/index.blade.php` (Engineering Change Request)
+  9. `cycle_counts/index.blade.php` (Cycle Count / Stock Opname)
+  10. `disposals/index.blade.php` (Pengajuan Disposal)
+  11. `qr_requests/index.blade.php` (Cetak Label QR Mesin)
+- **Verifikasi & Build Produksi:**
+  - Build aset CSS via `npm run build` berjalan sukses (56 modules transformed, 0 error).
+  - Seluruh 62 pengujian unit aplikasi (`php artisan test --testsuite=Unit`) lolos 100% (347 assertions).
+
+### KK. Modernisasi Sub-Navigasi Tabs Segmented Control Kartu Putih & Pembersihan Dev Hotfile LAN (Baru Selesai & Teruji 100%)
+- **Identifikasi Masalah & Masukan Pengguna:**
+  - Bilah sub-navigasi WRI sebelumnya mengambang langsung di atas pola grid latar belakang tanpa wadah pemersatu, tombol aktif terlalu dominan kontrasnya sedangkan tombol inaktif melayang tanpa latar, label teks terlalu panjang dan boros ruang (`"Antrian & Tiket WRI"`, `"Safety Stock Alert"`, `"Cetak Dokumen WR"`), serta badge notifikasi angka kaku di ujung teks.
+  - Akses IP LAN (`192.168.3.101:8000`) mengalami `ERR_CONNECTION` pada berkas CSS akibat keberadaan artefak dev `public/hot` yang merujuk ke port dev lokal `5173`.
+- **Solusi Komprehensif & Reusable Component:**
+  - **Pembersihan Artefak & Build Mandiri:** Menghapus `public/hot` dan melakukan `npm run build`. Sistem kembali ke pembacaan manifest lokal `public/build/manifest.json` yang 100% stabil diakses lintas perangkat LAN pabrik.
+  - **Segmented Control Kartu Putih Berbayangan (*Elevated White Card*):** Mengembangkan partial reusable `resources/views/work_requests/partials/sub_nav.blade.php` dengan kontainer `bg-white p-1 sm:p-1.5 rounded-2xl border border-slate-200/80 shadow-xs sm:shadow-sm inline-flex items-center gap-1 sm:gap-1.5` yang tampak melayang lembut dan hidup (*lively*).
+  - **Pemadatan Teks Ergonomis (Hemat ~35% Ruang):** Meringkas teks menjadi `"Antrean WRI"`, `"Safety Stock"`, dan `"Cetak WR"` tanpa kehilangan konteks.
+  - **Smart Floating Badges:** Mengubah notifikasi counter cetak dan peringatan restock menjadi mini-pill bulat dinamis (`min-w-[18px] h-[18px] px-1.5 text-[10px] font-black rounded-full`) yang elegan dan hemat tempat.
+  - **Harmonisasi Global `.super-nav-pills`:** Memperbarui styling `.super-nav-pills` di `resources/css/app.css` agar filter status pada `qr_requests`, `master_components`, `cycle_counts`, `disposals`, dan `ecrs` ikut mengadopsi latar kartu putih elegan dan bayangan halus yang seragam.
+- **Pengujian & Integritas Sistem:**
+  - Terintegrasi penuh di `work_requests/index.blade.php`, `safety_stock.blade.php`, `print_queue.blade.php`, dan `monitoring.blade.php`.
+  - Seluruh 62 pengujian unit aplikasi (`php artisan test --testsuite=Unit`) lolos 100% (347 assertions).
+
+### LL. Sub-Navigasi Adaptif (Icon-Only Inactive, Expand Active) & Anti-Collision Tablet (Baru Selesai & Teruji 100%)
+- **Penanganan Masalah Mode Tablet & Layar Menengah:**
+  - Menghilangkan peregangan kosong kotak putih di mode tablet (Lampiran 2) dengan menyematkan kelas `w-fit shrink-0` pada kontainer `.bg-white` di `resources/views/work_requests/partials/sub_nav.blade.php`.
+  - Mengeliminasi tabrakan antara bilah tab dan badge Departemen di sebelah kanan (Lampiran 3).
+- **Penerapan Konsep Adaptif Usulan Pengguna:**
+  - **Tab Aktif (Dipilih):** Menampilkan **Ikon + Teks Label (+ Badge jika ada)** dengan kontras tebal `#0a2342` dan teks putih.
+  - **Tab Inaktif (Tidak Dipilih):** Teks label **disembunyikan (ngumpet)**, menyisakan **Ikon + Badge Notifikasi** yang ringkas (contoh: ikon printer + badge `10`).
+  - Dilengkapi atribut HTML `title="..."` untuk menampilkan tooltip fungsi saat kursor mengarah ke ikon.
+- **Efisiensi Ruang Maksimal:**
+  - Memangkas lebar keseluruhan bilah navigasi dari ~340px menjadi hanya **~200px**, memberikan jarak aman lapang (> 400px) sehingga info departemen di kanan tidak pernah bersenggolan di mode tablet maupun smartphone.
+- **Pengujian & Build:**
+  - Build Vite produksi: `npm run build` sukses (56 modul transformed, 2.09s).
+  - Pengujian unit otomatis: 62 passed (347 assertions).
+
+### MM. Penguncian Sub-Navigasi 1 Baris Sejajar & Penyelarasan Badge Departemen (Baru Selesai & Teruji 100%)
+- **Penataan Single-Row Permanen:**
+  - Menghilangkan `flex-col sm:flex-row` pada kontainer luar `resources/views/work_requests/partials/sub_nav.blade.php`, menguncinya menjadi `flex items-center justify-between gap-2.5 sm:gap-4 w-full`.
+  - Menyematkan `shrink-0 ml-auto` pada kontainer badge `[ 🏢 Dept Gudang ]`.
+- **Hasil Visual:**
+  - Badge Departemen langsung naik ke baris utama dan duduk sejajar rapi di samping kanan bilah tab kartu putih di semua ukuran layar (desktop, tablet, mobile).
+  - Memanfaatkan ruang horizontal yang lapang secara optimal tanpa menjatuhkan elemen ke baris bawah.
+- **Pengujian & Build:**
+  - Build Vite produksi: `npm run build` sukses (56 modules transformed, 2.20s).
+  - Pengujian unit otomatis: 62 passed (347 assertions).
+
+### NN. Indikator Visual Geser (Horizontal Scroll Affordance) untuk Layar HP & Tablet (Baru Selesai & Teruji 100%)
+- **Penanganan Masalah Tab Terpotong di Layar Sentuh:**
+  - Tab status filter WRI yang meluap ke kanan sebelumnya terpotong kaku tanpa ada tanda visual bahwa tab tersebut bisa digeser (*swipeable*).
+- **Implementasi Smart Scroll Controller (Alpine.js):**
+  - Menerapkan pembungkus reaktif cerdas pada filter status di `work_requests/index.blade.php` dan `work_requests/print_queue.blade.php`.
+  - **Gradient Fade Masking:** Sisi kanan otomatis menampilkan efek bayangan pudar putih halus (`bg-gradient-to-l from-white via-white/90 to-transparent`) yang memberi isyarat bahwa ada konten tersembunyi di balik tirai.
+  - **Tombol Panah Geser Mini (`[ > ]` & `[ < ]`):** Mengapung di atas bayangan gradasi dengan animasi denyut (*pulse hint*). Pengguna HP dapat menggeser manual dengan jari (*swipe*), atau mengetuk tombol `[ > ]` untuk menggeser otomatis 160px secara halus.
+  - **Otomatis Bersembunyi di Layar Lebar:** Jika layar desktop cukup lebar dan seluruh tab muat, tombol panah dan gradasi otomatis disembunyikan (*clean desktop view*).
+  - **Harmonisasi Global `.super-nav-pills`:** Menambahkan `scroll-behavior: smooth` dan padding kanan touch `padding-right: 1.25rem` pada `resources/css/app.css` agar seluruh filter tab modul lain (`qr_requests`, `master_components`, `cycle_counts`, `disposals`, `ecrs`) memiliki efek intip (*peek affordance*) yang jelas di ponsel.
+- **Pengujian & Build:**
+  - Build Vite produksi: `npm run build` sukses (56 modules transformed, 2.21s).
+  - Pengujian unit otomatis: 62 passed (347 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi
