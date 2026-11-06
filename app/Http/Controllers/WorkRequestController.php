@@ -15,6 +15,7 @@ use App\Models\WorkRequestLog;
 use App\Models\WorkRequestStep;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -101,23 +102,26 @@ class WorkRequestController extends Controller
 
         $workRequests = $query->paginate(12)->withQueryString();
 
-        // 5. Scoped Summary Statistics (Single Consolidated Aggregation Query)
+        // 5. Scoped Summary Statistics (Single Consolidated Aggregation Query with short 15s cache)
         $baseStatQuery = WorkRequest::query();
         if (!$user->canAccessAllDepartments()) {
             $baseStatQuery->forUser($user);
         }
 
-        $statsRow = (clone $baseStatQuery)->selectRaw("
-            COUNT(*) as total_count,
-            SUM(CASE WHEN approval_pengaju = 'Menunggu' OR approval_penerima = 'Menunggu' THEN 1 ELSE 0 END) as needs_approval_count,
-            SUM(CASE WHEN (status LIKE '%antrian%' OR status = 'submitted' OR status LIKE '%Proses:%' OR status = 'in_production' OR status LIKE '%MH Pickup%') AND is_final = 0 AND status NOT LIKE '%Siap Diambil%' AND status NOT LIKE '%Menuju Pengaju%' THEN 1 ELSE 0 END) as in_process_count,
-            SUM(CASE WHEN status LIKE '%antrian%' OR status = 'submitted' THEN 1 ELSE 0 END) as in_antrian_count,
-            SUM(CASE WHEN (status LIKE '%Siap Diambil%' OR status LIKE '%Menuju Pengaju%' OR status = 'ready_for_warehouse') AND is_final = 0 THEN 1 ELSE 0 END) as ready_count,
-            SUM(CASE WHEN is_final = 1 OR ((status LIKE '%Sudah Diambil%' OR status = 'received') AND status NOT LIKE '%Parsial%') THEN 1 ELSE 0 END) as received_count,
-            SUM(CASE WHEN status LIKE '%Parsial%' THEN 1 ELSE 0 END) as partial_count,
-            SUM(CASE WHEN is_final = 0 AND status NOT LIKE '%Sudah Diambil%' AND created_at <= ? THEN 1 ELSE 0 END) as overdue_count,
-            SUM(CASE WHEN approval_pengaju = 'Diterima' AND approval_penerima = 'Diterima' AND assigned_operator_name IS NOT NULL AND assigned_operator_name != '' THEN 1 ELSE 0 END) as printable_count
-        ", [now()->subDays(3)->toDateTimeString()])->first();
+        $statsCacheKey = 'wr_stats_' . ($user->canAccessAllDepartments() ? 'all' : 'dept_' . ($user->department_id ?? 'user_' . $user->id));
+        $statsRow = Cache::remember($statsCacheKey, 15, function () use ($baseStatQuery) {
+            return (clone $baseStatQuery)->selectRaw("
+                COUNT(*) as total_count,
+                SUM(CASE WHEN approval_pengaju = 'Menunggu' OR approval_penerima = 'Menunggu' THEN 1 ELSE 0 END) as needs_approval_count,
+                SUM(CASE WHEN (status LIKE '%antrian%' OR status = 'submitted' OR status LIKE '%Proses:%' OR status = 'in_production' OR status LIKE '%MH Pickup%') AND is_final = 0 AND status NOT LIKE '%Siap Diambil%' AND status NOT LIKE '%Menuju Pengaju%' THEN 1 ELSE 0 END) as in_process_count,
+                SUM(CASE WHEN status LIKE '%antrian%' OR status = 'submitted' THEN 1 ELSE 0 END) as in_antrian_count,
+                SUM(CASE WHEN (status LIKE '%Siap Diambil%' OR status LIKE '%Menuju Pengaju%' OR status = 'ready_for_warehouse') AND is_final = 0 THEN 1 ELSE 0 END) as ready_count,
+                SUM(CASE WHEN is_final = 1 OR ((status LIKE '%Sudah Diambil%' OR status = 'received') AND status NOT LIKE '%Parsial%') THEN 1 ELSE 0 END) as received_count,
+                SUM(CASE WHEN status LIKE '%Parsial%' THEN 1 ELSE 0 END) as partial_count,
+                SUM(CASE WHEN is_final = 0 AND status NOT LIKE '%Sudah Diambil%' AND created_at <= ? THEN 1 ELSE 0 END) as overdue_count,
+                SUM(CASE WHEN approval_pengaju = 'Diterima' AND approval_penerima = 'Diterima' AND assigned_operator_name IS NOT NULL AND assigned_operator_name != '' THEN 1 ELSE 0 END) as printable_count
+            ", [now()->subDays(3)->toDateTimeString()])->first();
+        });
 
         $totalWri = (int) ($statsRow->total_count ?? 0);
         $needsApprovalCount = (int) ($statsRow->needs_approval_count ?? 0);
@@ -203,6 +207,11 @@ class WorkRequestController extends Controller
                     'isOverdue' => (bool) $targetWr->isOverdue(),
                 ];
             }
+        }
+
+        // Return partial view for seamless AJAX tab switching (Zero Full Page Reload)
+        if ($request->ajax() || $request->header('X-Partial') === '1' || $request->query('_partial') === '1') {
+            return view('work_requests.partials._table_content', compact('workRequests', 'scope'));
         }
 
         return view('work_requests.index', compact(

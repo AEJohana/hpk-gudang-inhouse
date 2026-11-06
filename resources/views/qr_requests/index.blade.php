@@ -180,13 +180,16 @@
                             <span class="font-mono font-bold text-slate-900 block text-xs truncate">{{ $qr->component?->part_number ?? '-' }}</span>
                             <span class="text-xs text-slate-600 block line-clamp-1 mt-0.5">{{ $qr->component?->name ?? 'Komponen' }}</span>
                             <div class="flex items-center gap-2 mt-1">
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold {{ $qr->label_type === 'rack' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-cyan-50 text-cyan-800 border border-cyan-200' }}">
-                                    {{ match($qr->label_type) {
-                                        'rack' => 'Label QR Rak',
-                                        'card', 'item' => 'Label QR Kartu',
-                                        'box' => 'Master Box',
-                                        default => ucfirst($qr->label_type)
-                                    } }}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold whitespace-nowrap {{ $qr->label_type === 'rack' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-cyan-50 text-cyan-800 border border-cyan-200' }}">
+                                    <i class="fa-solid {{ $qr->label_type === 'rack' ? 'fa-warehouse' : 'fa-id-card' }} me-1 text-[8.5px] opacity-80"></i>
+                                    <span>
+                                        {{ match($qr->label_type) {
+                                            'rack' => 'Label QR Rak',
+                                            'card', 'item' => 'Label QR Kartu',
+                                            'box' => 'Master Box',
+                                            default => ucfirst($qr->label_type)
+                                        } }}
+                                    </span>
                                 </span>
                                 <span class="font-extrabold text-slate-900 text-xs">{{ $qr->print_qty }} Label</span>
                             </div>
@@ -233,68 +236,73 @@
                                    class="rounded text-cyan-600 focus:ring-cyan-500 h-4 w-4 border-slate-300 cursor-pointer"
                                    title="Pilih Semua Tiket di Halaman Ini">
                         </th>
-                        <th class="py-3 px-4">No. Request & Tanggal</th>
-                        <th class="py-3 px-4">Komponen & Part Number</th>
-                        <th class="py-3 px-4">Jenis Label</th>
-                        <th class="py-3 px-4 text-center">Jumlah Cetak (Qty)</th>
-                        <th class="py-3 px-4">Status & Pemohon</th>
-                        <th class="py-3 px-4 text-right">Opsi Cetak</th>
+                        <th class="py-3 px-3 whitespace-nowrap">No. Request & Tanggal</th>
+                        <th class="py-3 px-3">Komponen & Part Number</th>
+                        <th class="py-3 px-3 whitespace-nowrap">Jenis Label</th>
+                        <th class="py-3 px-3 text-center whitespace-nowrap">Jumlah Cetak (Qty)</th>
+                        <th class="py-3 px-3 whitespace-nowrap">Status & Pemohon</th>
+                        <th class="py-3 px-3 text-right whitespace-nowrap">Opsi Cetak</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($qrRequests as $qr)
                         <tr class="super-row" :class="selectedIds.includes({{ $qr->id }}) ? 'bg-cyan-50/50 ring-1 ring-cyan-300' : ''">
-                            <td class="py-4 px-3 text-center">
+                            <td class="py-3 px-3 text-center">
                                 <input type="checkbox" 
                                        value="{{ $qr->id }}" 
                                        x-model.number="selectedIds" 
                                        class="rounded text-cyan-600 focus:ring-cyan-500 h-4 w-4 border-slate-300 cursor-pointer">
                             </td>
 
-                            <td class="py-4 px-4">
+                            <td class="py-3 px-3 whitespace-nowrap">
                                 <span class="font-mono font-bold text-cyan-900 block text-xs">{{ $qr->request_number }}</span>
                                 <span class="text-[10px] text-slate-400 font-medium">{{ $qr->created_at->format('d M Y') }}</span>
                             </td>
 
-                            <td class="py-4 px-4">
-                                <div class="flex items-center space-x-3">
-                                    <img src="{{ $qr->component?->image_url ?? asset('images/logo_hpk.webp') }}" class="w-10 h-10 rounded-xl object-cover border border-slate-200 bg-white shadow-xs">
-                                    <div>
-                                        <span class="font-mono font-bold text-slate-900 block text-xs">{{ $qr->component?->part_number ?? '-' }}</span>
-                                        <span class="text-[11px] text-slate-500 truncate max-w-xs block">{{ $qr->component?->name ?? 'Komponen' }}</span>
+                            <td class="py-3 px-3">
+                                <div class="flex items-center space-x-2.5">
+                                    <img src="{{ $qr->component?->image_url ?? asset('images/logo_hpk.webp') }}" class="w-9 h-9 rounded-xl object-cover border border-slate-200 bg-white shadow-xs shrink-0">
+                                    <div class="min-w-0">
+                                        <span class="font-mono font-bold text-slate-900 block text-xs truncate max-w-[200px]">{{ $qr->component?->part_number ?? '-' }}</span>
+                                        <span class="text-[11px] text-slate-500 truncate max-w-[200px] block">{{ $qr->component?->name ?? 'Komponen' }}</span>
                                     </div>
                                 </div>
                             </td>
 
-                            <td class="py-4 px-4">
-                                <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold {{ $qr->label_type === 'rack' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-cyan-50 text-cyan-800 border border-cyan-200' }}">
-                                    {{ match($qr->label_type) {
-                                        'rack' => 'Label QR Rak',
-                                        'card', 'item' => 'Label QR Kartu',
-                                        'box' => 'Label Master Box',
-                                        default => ucfirst($qr->label_type)
-                                    } }}
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap shadow-2xs {{ $qr->label_type === 'rack' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-cyan-50 text-cyan-800 border border-cyan-200' }}">
+                                    <i class="fa-solid {{ $qr->label_type === 'rack' ? 'fa-warehouse' : 'fa-id-card' }} me-1.5 text-[9px] opacity-80"></i>
+                                    <span>
+                                        {{ match($qr->label_type) {
+                                            'rack' => 'Label QR Rak',
+                                            'card', 'item' => 'Label QR Kartu',
+                                            'box' => 'Label Master Box',
+                                            default => ucfirst($qr->label_type)
+                                        } }}
+                                    </span>
                                 </span>
                             </td>
 
-                            <td class="py-4 px-4 text-center">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
                                 <span class="font-bold text-slate-900 text-sm">{{ $qr->print_qty }} Label</span>
                             </td>
 
-                            <td class="py-4 px-4">
+                            <td class="py-3 px-3 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold border {{ $qr->status_badge['class'] }}">
                                     {{ $qr->status_badge['label'] }}
                                 </span>
                                 <span class="text-[10px] text-slate-400 block mt-0.5">Oleh: {{ $qr->requestedBy->name }}</span>
                             </td>
 
-                            <td class="py-4 px-4 text-right space-x-1 whitespace-nowrap">
-                                <a href="{{ route('qr-requests.print-thermal', $qr) }}" target="_blank" class="px-3 py-1.5 bg-[#0a2342] hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs transition inline-flex items-center">
-                                    <i class="fa-solid fa-receipt me-1.5 text-amber-400"></i> Thermal
-                                </a>
-                                <a href="{{ route('qr-requests.print-sheet', $qr) }}" target="_blank" class="px-3 py-1.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 font-semibold text-xs rounded-xl transition inline-flex items-center">
-                                    <i class="fa-solid fa-file-pdf me-1.5"></i> Lembar A4
-                                </a>
+                            <td class="py-3 px-3 text-right whitespace-nowrap">
+                                <div class="flex flex-col items-end gap-1.5">
+                                    <a href="{{ route('qr-requests.print-thermal', $qr) }}" target="_blank" class="w-[100px] justify-center px-2.5 py-1 bg-[#0a2342] hover:bg-slate-800 text-white font-semibold text-[11px] rounded-lg shadow-2xs transition inline-flex items-center">
+                                        <i class="fa-solid fa-receipt me-1.5 text-amber-400 text-[10px]"></i> Thermal
+                                    </a>
+                                    <a href="{{ route('qr-requests.print-sheet', $qr) }}" target="_blank" class="w-[100px] justify-center px-2.5 py-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 font-semibold text-[11px] rounded-lg transition inline-flex items-center shadow-2xs">
+                                        <i class="fa-solid fa-file-pdf me-1.5 text-cyan-600 text-[10px]"></i> Lembar A4
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     @empty

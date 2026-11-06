@@ -105,6 +105,7 @@ graph TD
 | :--- | :--- | :--- | :--- |
 | **`.env`** | Environment Variables | **WAJIB** | **Jantung Konfigurasi Lokal Rahasia.** Berisi nama database MySQL (`hpk_gudang`), password DB, dan folder master foto fisik (`D:\Ali Magang\KOMPONEN`). Jangan dibagikan ke publik. |
 | **`.env.example`** | Template Cadangan | Wajib | Contoh format `.env` kosongan sebagai panduan jika proyek dipasang di komputer baru. |
+| **`.env.production`** | Environment Variables (Production) | Opsional | Template/arsip konfigurasi lingkungan produksi (`APP_ENV=production`, `APP_DEBUG=false`, `LOG_LEVEL=error`). Terproteksi di `.gitignore`. |
 | **`.gitignore`** | Git Ignore | Wajib | Mencegah file raksasa (`vendor/`, `node_modules/`) dan file rahasia (`.env`) terunggah ke Git. |
 | **`.gitattributes`** | Git Attributes | Opsional | Menyeragamkan karakter baris baru (*line-ending*) antar Windows (CRLF) dan Linux (LF). |
 | **`.editorconfig`** | Editor Config | Opsional | Menyeragamkan standar spasi dan indentasi editor kode (VS Code, dll.). |

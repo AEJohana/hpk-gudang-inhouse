@@ -307,8 +307,8 @@
                         <tr class="border-b border-slate-200 bg-slate-50/70 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
                             <th class="py-3 px-3 w-10 text-center">#</th>
                             <th class="py-3 px-3">Komponen</th>
-                            <th class="py-3 px-3">Format / Jenis Label</th>
-                            <th class="py-3 px-3 text-center">Qty Cetak</th>
+                            <th class="py-3 px-3 whitespace-nowrap min-w-[140px]">Format / Jenis Label</th>
+                            <th class="py-3 px-3 text-center whitespace-nowrap">Qty Cetak</th>
                             <th class="py-3 px-3">Catatan</th>
                             <th class="py-3 px-3 w-16 text-center">Aksi</th>
                         </tr>
@@ -331,8 +331,8 @@
                                     </div>
                                 </td>
 
-                                <td class="py-3 px-3">
-                                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold border" 
+                                <td class="py-3 px-3 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold border whitespace-nowrap shadow-2xs" 
                                           :class="item.badge_class" 
                                           x-text="item.label_name"></span>
                                 </td>

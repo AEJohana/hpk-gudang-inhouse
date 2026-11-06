@@ -7,6 +7,7 @@ use App\Models\Location;
 use App\Models\StockBalance;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -44,8 +45,8 @@ class ComponentController extends Controller
 
         $components = $query->latest()->paginate(15)->withQueryString();
 
-        $unallocatedCount = Component::whereNull('default_location_id')->count();
-        $uncategorizedCount = Component::whereNull('category')->count();
+        $unallocatedCount = Cache::remember('components_unallocated_count', 30, fn() => Component::whereNull('default_location_id')->count());
+        $uncategorizedCount = Cache::remember('components_uncategorized_count', 30, fn() => Component::whereNull('category')->count());
 
         $categories = [
             'subframe' => 'Subframe',

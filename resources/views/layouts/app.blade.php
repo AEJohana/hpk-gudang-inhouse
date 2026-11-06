@@ -362,6 +362,10 @@
                     scanError: null,
                     html5QrCode: null,
 
+                    init() {
+                        window._stopGlobalScanner = () => this.stopCameraScanner();
+                    },
+
                     openScanner() {
                         this.scannerOpen = true;
                         this.scannedComponent = null;
