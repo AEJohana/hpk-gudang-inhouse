@@ -421,6 +421,22 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Pengujian Unit Otomatis Terisolasi:**
   - Membuat pengujian komprehensif di `tests/Unit/TransactionFormSimplificationTest.php` (3 test cases, 20 assertions) yang menguji tombol tunggal, dropdown 3 opsi, ketiadaan field SPK/PO, status readonly tanggal, dan server-side enforcement. Seluruh 62 unit test aplikasi lulus 100% (347 assertions).
 
+<<<<<<< HEAD
+### II. Integrasi Direktori NAS Server Produksi (`/mnt/nas-gudang/Gudang Komponen In House`) & .env.production (Baru Selesai & Teruji 100%)
+- **Konfigurasi Lingkungan Produksi (`.env.production` & `.env.production.example`):**
+  - Mengonfigurasi variable `COMPONENT_EXTERNAL_PHOTO_DIR='/mnt/nas-gudang/Gudang Komponen In House'` dengan enkapsulasi kutip untuk menangani spasi nama folder secara aman.
+  - Menyediakan file template `.env.production.example` yang terlacak di Git dan file `.env.production` lokal siap pakai untuk server Linux operasional.
+  - Menambahkan catatan konfigurasi transparan pada `.env.example` dan `.env` yang memisahkan jalur lokal pengembangan (`D:\Ali Magang\KOMPONEN`) dengan jalur mount Linux produksi.
+- **Normalisasi Path Linux & Resiliensi Case-Sensitivity (`ComponentPhotoStorageService`):**
+  - **Auto-Prepending Slash:** Jika konfigurasi di `.env` tertulis tanpa leading slash (`mnt/nas-gudang/...`), sistem otomatis menormalisasikannya menjadi `/mnt/nas-gudang/...`.
+  - **Dukungan Ekstensi Kapital:** Pengecekan berkas fisik di Linux mount kini mencakup ekstensi lowercase dan uppercase (`.jpg`, `.JPG`, `.jpeg`, `.JPEG`, `.png`, `.PNG`, `.webp`, `.WEBP`, `.pdf`, `.PDF`, `.svg`, `.SVG`).
+  - **Pencarian Nama File Fleksibel:** Mencari file berdasarkan kode komponen tersanitasi (`$cleanPn`), kode komponen asli dengan spasi (`$rawPn`), serta variasi huruf besar/kecil (`strtoupper`, `strtolower`).
+  - **Streaming Gateway HTTP & Resolusi Aman:** Menggunakan `resolvePublicPath()` yang terisolasi dan `realpath()` kanonikal pada streaming gateway `/components/{component}/photo-stream`.
+- **Dukungan Default Dinamis pada Perintah Konsol:**
+  - `ExportPhotosToLocalDirectoryCommand` secara dinamis mengambil folder default dari `config('services.components.photo_dir')`, sehingga perintah `php artisan components:export-to-local` di server produksi otomatis merujuk ke folder NAS.
+- **Pengujian Unit Otomatis Terisolasi:**
+  - Berhasil 100% pada SQLite `:memory:` (`tests/Unit/ComponentPhotoStorageTest.php` - 8 passed, 26 assertions; `tests/Unit/ComponentQrCodeTest.php` - 5 passed, 10 assertions).
+=======
 ### II. Migrasi Master Komponen & Berkas Sumber ke Shared Drive Z: (Baru Selesai & Teruji 100%)
 - **Migrasi Berkas Fisik ke Drive Jaringan Bersama:**
   - Menyalin 614 berkas foto & gambar teknik CAD (280 MB) dari `D:\Ali Magang\KOMPONEN` ke folder bersama perusahaan `Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House` dengan verifikasi integritas 100% berhasil (614/614 file identik).
@@ -437,6 +453,7 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - Mengubah label subtitle lokasi berkas pada `master_components/show.blade.php`, `work_requests/partials/image_preview_modal.blade.php`, dan `work_requests/show.blade.php` agar membaca konfigurasi dinamis `config('services.components.photo_dir')`.
 - **Pengujian Unit Otomatis Terisolasi:**
   - `tests/Unit/ComponentPhotoStorageTest.php` dan `tests/Unit/ComponentQrCodeTest.php` lulus 100% (10 tests, 22 assertions).
+>>>>>>> defed8d474e0865244c9936e9b6e0b3dc351beff
 
 ### JJ. Standardisasi Tata Letak Header 1 Baris Sejajar (Single-Row Header Alignment - Baru Selesai & Teruji 100%)
 - **Identifikasi Masalah & Akar Penyebab:**

@@ -101,4 +101,88 @@ class ComponentPhotoStorageTest extends TestCase
         $this->assertStringContainsString('placeholder_part.svg', $url);
         $this->assertStringNotContainsString('drive.google.com', $url);
     }
+
+    /**
+     * Test Linux mount path normalization (prepends leading slash if missing).
+     */
+    public function test_external_directory_path_normalization(): void
+    {
+        $service = new ComponentPhotoStorageService();
+
+        // Path with mnt/ without leading slash
+        config(['services.components.photo_dir' => 'mnt/nas-gudang/Gudang Komponen In House']);
+        $this->assertEquals('/mnt/nas-gudang/Gudang Komponen In House', $service->getExternalDirectory());
+
+        // Path with proper leading slash
+        config(['services.components.photo_dir' => '/mnt/nas-gudang/Gudang Komponen In House']);
+        $this->assertEquals('/mnt/nas-gudang/Gudang Komponen In House', $service->getExternalDirectory());
+
+        // Path with surrounding quotes
+        config(['services.components.photo_dir' => "'/mnt/nas-gudang/Gudang Komponen In House'"]);
+        $this->assertEquals('/mnt/nas-gudang/Gudang Komponen In House', $service->getExternalDirectory());
+
+        // Windows path remains unchanged
+        config(['services.components.photo_dir' => 'D:\Ali Magang\KOMPONEN']);
+        $this->assertEquals('D:\Ali Magang\KOMPONEN', $service->getExternalDirectory());
+    }
+
+    /**
+     * Test candidate extensions contains both lowercase and uppercase for Linux case-sensitive NAS.
+     */
+    public function test_candidate_extensions_include_uppercase(): void
+    {
+        $service = new ComponentPhotoStorageService();
+        $exts = $service->getCandidateExtensions();
+
+        $this->assertContains('jpg', $exts);
+        $this->assertContains('JPG', $exts);
+        $this->assertContains('png', $exts);
+        $this->assertContains('PNG', $exts);
+        $this->assertContains('pdf', $exts);
+        $this->assertContains('PDF', $exts);
+    }
+
+    /**
+     * Test resolving photo with uppercase extension and raw name in simulated NAS directory.
+     */
+    public function test_find_local_photo_resolves_uppercase_and_raw_names_in_nas_dir(): void
+    {
+        $service = new ComponentPhotoStorageService();
+        $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'test_nas_komponen_' . uniqid();
+        @mkdir($tempDir, 0777, true);
+
+        config(['services.components.photo_dir' => $tempDir]);
+
+        // File 1: Uppercase extension .JPG
+        $file1 = $tempDir . DIRECTORY_SEPARATOR . 'KOMP-UPPER-01.JPG';
+        file_put_contents($file1, str_repeat('X', 100));
+
+        // File 2: Raw name with space and .PNG
+        $file2 = $tempDir . DIRECTORY_SEPARATOR . 'CYLINDER 50.PNG';
+        file_put_contents($file2, str_repeat('Y', 100));
+
+        // File 3: CAD PDF with uppercase .PDF
+        $file3 = $tempDir . DIRECTORY_SEPARATOR . 'DRAWING-TEST.PDF';
+        file_put_contents($file3, str_repeat('Z', 100));
+
+        try {
+            $found1 = $service->findLocalPhoto('KOMP-UPPER-01');
+            $this->assertEquals(realpath($file1), $found1);
+
+            $found2 = $service->findLocalPhoto('CYLINDER 50');
+            $this->assertEquals(realpath($file2), $found2);
+
+            $found3 = $service->findLocalPhoto('DRAWING-TEST');
+            $this->assertEquals(realpath($file3), $found3);
+
+            // Access via Component model
+            $comp = new Component(['part_number' => 'KOMP-UPPER-01']);
+            $this->assertEquals(realpath($file1), $comp->local_photo_file_path);
+        } finally {
+            @unlink($file1);
+            @unlink($file2);
+            @unlink($file3);
+            @rmdir($tempDir);
+        }
+    }
 }
