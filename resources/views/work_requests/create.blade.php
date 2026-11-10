@@ -84,20 +84,10 @@
             @endif
 
             <!-- BAGIAN 1: KOMPONEN, KUANTITAS & PRIORITAS -->
-            <div class="space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
-                    <div>
-                        <h3 class="font-extrabold text-sm text-slate-900 leading-tight">1. Komponen & Kuantitas Pesanan</h3>
-                        <p class="text-xs text-slate-500 font-normal mt-0.5">Pilih material katalog in-house, tentukan kuantitas, dan tingkat prioritas</p>
-                    </div>
-
-                    <!-- Tombol Cepat Tambah Komponen Baru (Modal) -->
-                    <button type="button" 
-                            @click="openQuickAddModal()" 
-                            class="self-start sm:self-auto px-3 py-1.5 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold rounded-xl transition shadow-2xs flex items-center space-x-1.5 cursor-pointer">
-                        <i class="fa-solid fa-plus text-[10px] text-slate-500"></i>
-                        <span>Daftarkan Part Baru</span>
-                    </button>
+            <div class="space-y-3.5">
+                <div class="pb-3 border-b border-slate-100">
+                    <h3 class="font-extrabold text-sm text-slate-900 leading-tight">1. Komponen & Kuantitas Pesanan</h3>
+                    <p class="text-xs text-slate-500 font-normal mt-0.5">Pilih material katalog in-house, tentukan kuantitas, dan tingkat prioritas</p>
                 </div>
 
                 <!-- TOAST NOTIFIKASI SUKSES PART BARU -->
@@ -115,9 +105,9 @@
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
-                    <!-- Searchable Combobox Komponen (sm:col-span-6) -->
-                    <div class="sm:col-span-6 relative" @click.outside="isSearchOpen = false">
+                <div class="space-y-3">
+                    <!-- Baris 1: Searchable Combobox Komponen dengan Tombol Part Non-Master Terintegrasi -->
+                    <div class="relative" @click.outside="isSearchOpen = false">
                         <div class="flex items-center justify-between mb-1">
                             <label class="block text-xs font-medium text-slate-700">
                                 Cari & Pilih Komponen <span class="text-rose-500 font-bold">*</span>
@@ -125,24 +115,36 @@
                             <span class="text-[10px] text-slate-400 font-medium" x-text="componentsList.length + ' Part'"></span>
                         </div>
 
-                        <!-- Kotak Input Pencarian Interaktif -->
-                        <div class="relative">
-                            <input type="text" 
-                                   x-model="searchQuery" 
-                                   @focus="isSearchOpen = true" 
-                                   @input="isSearchOpen = true; if(!searchQuery) clearSelection()"
-                                   placeholder="Ketik nama atau kode part..." 
-                                   class="w-full px-3.5 py-2 pl-9 pr-9 text-xs border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium text-slate-900 transition">
-                            
-                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <!-- Kotak Input Pencarian dengan Tombol Terintegrasi (Addon Button Suffix) -->
+                        <div class="relative flex items-stretch rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 overflow-hidden bg-slate-50/70 focus-within:bg-white transition">
+                            <div class="relative flex-1 min-w-0 flex items-center">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 text-slate-400 text-xs pointer-events-none"></i>
+                                
+                                <input type="text" 
+                                       x-model="searchQuery" 
+                                       @focus="isSearchOpen = true" 
+                                       @input="isSearchOpen = true; if(!searchQuery) clearSelection()"
+                                       placeholder="Ketik nama atau kode part..." 
+                                       class="w-full pl-9 pr-8 py-2 text-xs border-0 focus:ring-0 focus:outline-none font-medium text-slate-900 bg-transparent">
+                                
+                                <!-- Tombol Clear / Hapus Pilihan -->
+                                <button type="button" 
+                                        x-show="searchQuery || selectedComponentId" 
+                                        @click="clearSelection()" 
+                                        class="absolute right-2 text-slate-400 hover:text-slate-600 p-1"
+                                        title="Bersihkan pilihan">
+                                    <i class="fa-solid fa-xmark text-xs"></i>
+                                </button>
+                            </div>
 
-                            <!-- Tombol Clear / Hapus Pilihan -->
+                            <!-- Tombol Aksi Menempel Sisi Kanan (Konsep Suffix Berwarna) -->
                             <button type="button" 
-                                    x-show="searchQuery || selectedComponentId" 
-                                    @click="clearSelection()" 
-                                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                                    title="Bersihkan pilihan">
-                                <i class="fa-solid fa-xmark text-xs"></i>
+                                    @click="openQuickAddModal(searchQuery)" 
+                                    class="inline-flex items-center px-3 sm:px-3.5 py-2 bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 font-bold text-xs border-l border-amber-600/30 whitespace-nowrap transition cursor-pointer select-none shrink-0 shadow-2xs"
+                                    title="Buat komponen khusus untuk WR ini jika belum terdaftar di master">
+                                <i class="fa-solid fa-plus text-[10px] me-1 sm:me-1.5"></i>
+                                <span class="hidden sm:inline">Part Belum Ada di Master</span>
+                                <span class="sm:hidden">Belum di Master</span>
                             </button>
                         </div>
 
@@ -196,13 +198,13 @@
                                     Part "<span x-text="searchQuery" class="text-indigo-600 font-extrabold"></span>" belum terdaftar di sistem.
                                 </div>
                                 <p class="text-[11px] text-slate-500">
-                                    Daftarkan part baru ini langsung ke sistem agar dapat segera diproses stasiun mesin.
+                                    Part ini belum ada di master katalog. Buat part khusus untuk pengajuan WR ini sekarang.
                                 </p>
                                 <button type="button" 
                                         @click="openQuickAddModal(searchQuery)" 
-                                        class="mt-1 inline-flex items-center space-x-1.5 px-3 py-1.5 bg-[#0a2342] hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer">
+                                        class="mt-1 inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer">
                                     <i class="fa-solid fa-plus text-[10px]"></i>
-                                    <span>Daftarkan Part Baru Ini</span>
+                                    <span>Part Belum Ada di Master</span>
                                 </button>
                             </div>
                         </div>
@@ -235,35 +237,38 @@
                         </select>
                     </div>
 
-                    <!-- Jumlah Permintaan (sm:col-span-3) -->
-                    <div class="sm:col-span-3">
-                        <label class="block text-xs font-medium text-slate-700 mb-1">
-                            Jumlah Permintaan <span class="text-rose-500 font-bold">*</span>
-                        </label>
-                        <div class="relative flex items-stretch rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 overflow-hidden bg-slate-50/70 focus-within:bg-white transition">
-                            <input type="number" 
-                                   name="quantity_requested" 
-                                   required 
-                                   min="0.1" 
-                                   step="any" 
-                                   value="{{ old('quantity_requested', 20) }}"
-                                   placeholder="0"
-                                   class="w-full min-w-0 flex-1 px-3 py-2 text-xs border-0 focus:ring-0 focus:outline-none font-bold text-slate-900 bg-transparent">
-                            <span class="inline-flex items-center px-2.5 py-2 bg-slate-100 text-slate-600 font-bold text-xs border-l border-slate-200 select-none whitespace-nowrap" 
-                                  x-text="selectedUom || 'PCS'"></span>
+                    <!-- Baris 2: Jumlah Permintaan & Tingkat Prioritas Sejajar (Side-by-Side 1 Baris) -->
+                    <div class="grid grid-cols-12 gap-3">
+                        <!-- Jumlah Permintaan (col-span-5) -->
+                        <div class="col-span-5">
+                            <label class="block text-xs font-medium text-slate-700 mb-1 truncate">
+                                Jumlah Permintaan <span class="text-rose-500 font-bold">*</span>
+                            </label>
+                            <div class="relative flex items-stretch rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 overflow-hidden bg-slate-50/70 focus-within:bg-white transition">
+                                <input type="number" 
+                                       name="quantity_requested" 
+                                       required 
+                                       min="0.1" 
+                                       step="any" 
+                                       value="{{ old('quantity_requested', 20) }}"
+                                       placeholder="0"
+                                       class="w-full min-w-0 flex-1 px-3 py-2 text-xs border-0 focus:ring-0 focus:outline-none font-bold text-slate-900 bg-transparent">
+                                <span class="inline-flex items-center px-2 sm:px-2.5 py-2 bg-slate-100 text-slate-600 font-bold text-xs border-l border-slate-200 select-none whitespace-nowrap" 
+                                      x-text="selectedUom || 'PCS'"></span>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Tingkat Prioritas (sm:col-span-3) -->
-                    <div class="sm:col-span-3">
-                        <label class="block text-xs font-medium text-slate-700 mb-1">
-                            Tingkat Prioritas <span class="text-rose-500 font-bold">*</span>
-                        </label>
-                        <select name="priority" required class="w-full px-3 py-2 text-xs border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium text-slate-800 transition">
-                            <option value="normal" {{ old('priority') == 'normal' ? 'selected' : '' }}>Normal (Produksi)</option>
-                            <option value="high" {{ old('priority') == 'high' ? 'selected' : '' }}>Tinggi (High Priority)</option>
-                            <option value="urgent_line_stop" {{ old('priority') == 'urgent_line_stop' ? 'selected' : '' }}>URGENT (Line Stop)</option>
-                        </select>
+                        <!-- Tingkat Prioritas (col-span-7) -->
+                        <div class="col-span-7">
+                            <label class="block text-xs font-medium text-slate-700 mb-1 truncate">
+                                Tingkat Prioritas <span class="text-rose-500 font-bold">*</span>
+                            </label>
+                            <select name="priority" required class="w-full px-3 py-2 text-xs border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium text-slate-800 transition">
+                                <option value="normal" {{ old('priority') == 'normal' ? 'selected' : '' }}>Normal (Produksi)</option>
+                                <option value="high" {{ old('priority') == 'high' ? 'selected' : '' }}>Tinggi (High Priority)</option>
+                                <option value="urgent_line_stop" {{ old('priority') == 'urgent_line_stop' ? 'selected' : '' }}>URGENT (Line Stop)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -457,8 +462,8 @@
                             <i class="fa-solid fa-cube"></i>
                         </div>
                         <div>
-                            <h3 class="font-extrabold text-base text-slate-900 leading-tight">Registrasi Komponen Baru</h3>
-                            <p class="text-[11px] text-slate-500 font-normal mt-0.5">Daftarkan part baru langsung ke sistem tanpa berpindah menu</p>
+                            <h3 class="font-extrabold text-base text-slate-900 leading-tight">Part Belum Ada di Master</h3>
+                            <p class="text-[11px] text-slate-500 font-normal mt-0.5">Input part khusus untuk pengajuan Work Request ini tanpa berpindah menu</p>
                         </div>
                     </div>
                     <button type="button" 

@@ -235,18 +235,21 @@ Formulir pengajuan pesanan pembuatan part (`/work-requests/create`) menerapkan a
    - Pengaju mengetik nama part atau kode part pada kolom input interaktif.
    - Panel hasil pencarian secara instan menyaring daftar katalog komponen karoseri, menampilkan foto thumbnail, kode part, nama, kategori, dimensi (P x L x T), dan saldo stok fisik gudang.
    - Memilih part langsung menampilkan kartu identitas visual dan mengisi rekomendasi stasiun mesin fabrikasi (*Smart Suggest Routing*) secara otomatis.
-2. **Fallback Pendaftaran Part Baru On-The-Fly (Modal Registrasi Komponen Minimalis):**
-   - Apabila part yang diketik belum terdaftar di sistem (*Zero Results*), sistem secara otomatis menampilkan kartu informasi ramah dengan tombol `[+ Daftarkan Part Baru Ini]`.
+2. **Fallback Pendaftaran Part Non-Master On-The-Fly (Tombol Terintegrasi Amber):**
+   - Apabila komponen yang ingin dibuatkan pesanan belum tercatat di katalog master, pengguna dapat langsung menekan tombol `[+ Part Belum Ada di Master]` yang terintegrasi di sisi kanan kolom input pencarian komponen (addon suffix button bernuansa amber).
+   - Redaksi disesuaikan dari sebelumnya *"Daftarkan Part Baru"* menjadi *"Part Belum Ada di Master"* untuk menegaskan konteks bahwa fitur ini ditujukan untuk menerbitkan Work Request atas part yang belum terdaftar di master, bukan sekadar CRUD master komponen.
+   - Apabila kata kunci yang diketik tidak ditemukan (*Zero Results*), sistem secara otomatis menampilkan kartu informasi ramah dengan tombol fallback `[+ Part Belum Ada di Master]`.
    - Nama part yang diketik otomatis diisikan (*pre-filled*) ke dalam form modal registrasi tanpa mengharuskan pengguna mengetik ulang.
    - Form modal menerapkan tipografi bersih dan santai (Sentence Case, `font-medium`, tanpa penumpukan bold kapital), input dimensi terpadu dengan micro-suffix satuan (`P (mm)`, `L (mm)`, `T (mm)`), kartu unggah foto part yang rapi, serta pilihan **Kategori Part (Opsional)** dengan default aman (*Subframe / Karoseri*).
-   - Penyimpanan via AJAX seketika menambahkan komponen ke katalog master dan langsung memilihnya di formulir WR tanpa me-refresh halaman.
+   - Penyimpanan via AJAX seketika menambahkan komponen ke katalog dan langsung memilihnya di formulir WR tanpa me-refresh halaman.
 3. **Standarisasi Zero-FOUC (Bebas Kedipan Modal):**
    - Seluruh modal dilindungi oleh deklarasi CSS global `[x-cloak] { display: none !important; }` dan inline style `style="display: none;"` untuk menjamin tidak ada modal yang muncul sekilas saat halaman pertama kali dibuka.
-4. **Desain Formulir Single Unified Card Minimalis:**
-   - Formulir pengajuan WR meninggalkan pola kotak multi-warna bertingkat (*rainbow cards*) dan beralih ke struktur kartu tunggal putih yang bersih (*Single Unified Card*) dengan border halus `border-slate-200/80`.
-   - Menggunakan tipografi Sentence Case yang proporsional (`font-medium text-slate-700`), menghilangkan penumpukan label uppercase dan bold tebal.
+4. **Desain Formulir Kompak & Sejajar (Side-by-Side Kuantitas & Prioritas):**
+   - Formulir pengajuan WR beralih ke struktur kartu tunggal putih yang bersih (*Single Unified Card*) dengan border halus `border-slate-200/80` dan tipografi Sentence Case yang proporsional.
+   - **Pemangkasan Ketinggian Form (Zero Clutter):** Menghilangkan tombol terpisah di header Bagian 1, menghemat ruang vertikal secara drastis.
+   - **Tombol Addon Terintegrasi:** Tombol `[+ Part Belum Ada di Master]` disatukan langsung ke dalam kolom pencarian komponen (`flex items-stretch`) berkonsep mirip addon satuan `PCS`, memberikan estetika rapi dan hemat ruang.
+   - **Side-by-Side Kuantitas & Prioritas:** Kolom `Jumlah Permintaan` (`col-span-5`) dan `Tingkat Prioritas` (`col-span-7`) disusun sejajar berdampingan dalam satu baris (grid 12 kolom) baik di mode desktop maupun mobile, mengoptimalkan tata letak tanpa memakan ruang vertikal bertumpuk.
    - Sub-header identitas pemohon (*Applicant Bar*) berformat bar horizontal ringkas abu-abu lembut (`bg-slate-50/70 border border-slate-100 rounded-xl`), menampilkan nama pemohon, shift kerja, dan waktu sistem secara rapi tanpa memakan ruang vertikal berlebih.
-   - Pilihan prioritas menggunakan segmen pill minimalis (Normal, Mendesak, Darurat).
    - Repeater rute departemen (*Routing Stepper*) menggunakan nomor step monokrom halus dengan tombol aksi ikonik yang rapi.
 5. **Optimasi Performa Loading Formulir (Zero Latency & Anti-Timeout):**
    - **On-Demand Photo Streaming:** Pemanggilan URL foto komponen `$c->image_url` pada 627+ daftar master part digantikan oleh route streaming asinkron `route('components.photo-stream', ['component' => $c->id])`. Ini mengeliminasi 45.000+ operasi I/O `file_exists()` sinkron ke penyimpanan SMB/NAS saat halaman dirender.
@@ -385,8 +388,8 @@ Untuk memastikan kelancaran operasional para operator mesin, kurir Material Hand
    - Kartu katalog komponen pada tampilan ponsel menyematkan baris aksi 4-kolom berjarak seragam (`QR`, `Edit`, `Detail`, `Transaksi`), memberikan kemudahan pemilihan aksi tanpa risiko salah tekan (*misclick*).
    - Seluruh elemen sentuh memenuhi batas ergonomis minimal 42px – 44px (`touch-target`) yang nyaman untuk jempol tangan.
 
-3. **Kemudahan Input Formulir & Tombol Aksi Penuh (Full-Width Submit):**
-   - Formulir pembuatan pesanan produksi (`/work-requests/create`) memisahkan judul seksi dengan tombol pendaftaran part baru secara vertikal adaptif pada layar sempit, mencegah elemen saling bertumpuk.
+3. **Kemudahan Input Formulir Kompak & Tombol Aksi Penuh (Full-Width Submit):**
+   - Formulir pembuatan pesanan produksi (`/work-requests/create`) menyatukan tombol penambahan part non-master langsung ke dalam kolom pencarian komponen (`[+ Part Belum Ada di Master]`) dan menyejajarkan input `Jumlah Permintaan` (`col-span-5`) serta `Tingkat Prioritas` (`col-span-7`) dalam satu baris berdampingan (side-by-side grid), menghemat ruang vertikal secara drastis pada layar ponsel dan tablet.
    - Tombol pengiriman formulir (*Kirim & Terbitkan WR*) diubah menjadi tombol berukuran penuh (*full-width*) di bagian bawah layar ponsel untuk memudahkan pengiriman pesanan dalam satu kali sentuhan.
 
 4. **Navigasi & Tabel Lebar Geser Samping (Horizontal Swipe):**
