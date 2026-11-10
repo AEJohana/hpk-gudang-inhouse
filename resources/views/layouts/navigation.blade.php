@@ -1,48 +1,48 @@
-<nav class="bg-[#0a2342] border-b border-white/10 text-slate-200 sticky top-0 z-40 shadow-lg">
+@php
+    $currentNavbarMenu = match(true) {
+        request()->routeIs('work-requests.*') => 'Work Request Mesin',
+        request()->routeIs('components.*') => 'Master Komponen',
+        request()->routeIs('transactions.*') => 'Transaksi Komponen',
+        request()->routeIs('work-station-supplies.*') => 'Material Handling',
+        request()->routeIs('ecrs.*') => 'ECR Revisi Part',
+        request()->routeIs('cycle-counts.*') => 'Cycle Count',
+        request()->routeIs('qr-requests.*') => 'Cetak Label QR',
+        request()->routeIs('disposals.*') => 'Pengajuan Disposal',
+        request()->routeIs('locations.*') => 'Peta Denah Gudang',
+        request()->routeIs('activities.*') => 'Log Aktivitas Sistem',
+        request()->routeIs('admin.*') => 'Panel Administrasi',
+        default => null,
+    };
+@endphp
+<nav class="bg-[#0a2342] border-b border-white/10 text-slate-200 sticky top-0 z-40 shadow-lg w-full max-w-full overflow-hidden">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
+        <div class="flex justify-between items-center h-16 gap-2">
             <!-- Left: Sidebar Toggle & Brand Logo -->
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
                 <!-- Hamburger Drawer Toggle Button (Visible all screens) -->
                 <button type="button" 
                         @click="sidebarOpen = true" 
                         title="Buka Menu Navigasi"
-                        class="p-2 text-white hover:text-teal-300 rounded-xl hover:bg-white/10 transition flex items-center justify-center focus:outline-none">
-                    <i class="fa-solid fa-bars text-xl"></i>
+                        class="p-2 text-white hover:text-teal-300 rounded-xl hover:bg-white/10 transition flex items-center justify-center focus:outline-none shrink-0">
+                    <i class="fa-solid fa-bars text-lg sm:text-xl"></i>
                 </button>
 
                 <!-- Brand Logo & Title -->
-                <a href="{{ route('dashboard') }}" class="flex items-center space-x-2.5 sm:space-x-3 group min-w-0">
-                    <div class="w-9 h-9 sm:w-10 sm:h-10 p-1 bg-white rounded-xl shadow-sm border border-slate-700/50 flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
+                <a href="{{ route('dashboard') }}" class="flex items-center space-x-2 sm:space-x-3 group min-w-0 shrink-0">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 p-1 bg-white rounded-xl shadow-sm border border-slate-700/50 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
                         <img src="{{ asset('images/logo_hpk.webp') }}" alt="HPK Logo" class="w-full h-full object-contain">
                     </div>
-                    <div class="flex flex-col min-w-0">
+                    <div class="flex-col min-w-0 {{ $currentNavbarMenu ? 'hidden sm:flex' : 'flex' }}">
                         <span class="font-extrabold text-xs sm:text-sm tracking-wide text-white leading-tight truncate max-w-[125px] sm:max-w-none">HYDRAXLE PERKASA</span>
                         <span class="text-[9px] sm:text-[10px] font-semibold text-teal-400 tracking-wider uppercase truncate max-w-[125px] sm:max-w-none">WMS In-House</span>
                     </div>
                 </a>
 
-                @php
-                    $currentNavbarMenu = match(true) {
-                        request()->routeIs('work-requests.*') => 'Work Request Mesin',
-                        request()->routeIs('components.*') => 'Master Komponen',
-                        request()->routeIs('transactions.*') => 'Transaksi Komponen',
-                        request()->routeIs('work-station-supplies.*') => 'Material Handling',
-                        request()->routeIs('ecrs.*') => 'ECR Revisi Part',
-                        request()->routeIs('cycle-counts.*') => 'Cycle Count',
-                        request()->routeIs('qr-requests.*') => 'Cetak Label QR',
-                        request()->routeIs('disposals.*') => 'Pengajuan Disposal',
-                        request()->routeIs('locations.*') => 'Peta Denah Gudang',
-                        request()->routeIs('activities.*') => 'Log Aktivitas Sistem',
-                        request()->routeIs('admin.*') => 'Panel Administrasi',
-                        default => null,
-                    };
-                @endphp
                 @if($currentNavbarMenu)
-                <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0 pl-1 sm:pl-2">
-                    <div class="h-5 sm:h-6 w-px bg-white/30 shrink-0"></div>
-                    <span class="font-bold text-xs sm:text-sm text-white tracking-wide truncate max-w-[150px] sm:max-w-none">
+                <div class="flex items-center space-x-2 sm:space-x-3 min-w-0 pl-1 sm:pl-2">
+                    <div class="h-4 sm:h-6 w-px bg-white/30 shrink-0"></div>
+                    <span class="font-bold text-xs sm:text-sm text-white tracking-wide truncate max-w-[130px] sm:max-w-none">
                         {{ $currentNavbarMenu }}
                     </span>
                 </div>
@@ -50,12 +50,12 @@
             </div>
 
             <!-- Right: User Glass Pill -->
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
                 <!-- User Profile Glass Pill (Reference Design) -->
                 <x-dropdown align="right" width="56">
                     <x-slot name="trigger">
                         <button class="user-glass-pill focus:outline-none">
-                            <div class="w-8 h-8 rounded-full bg-teal-500/30 border border-teal-400/50 text-teal-200 font-extrabold text-xs flex items-center justify-center shadow-xs">
+                            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-teal-500/30 border border-teal-400/50 text-teal-200 font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
                                 {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
                             </div>
                             <div class="flex flex-col text-left leading-tight hidden md:flex">

@@ -19,6 +19,11 @@
   --text-dark: #0a2342;     /* Navy Text */
 }
 
+html, body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 body {
   font-family: 'Poppins', sans-serif !important;
   background-color: #f1f5f9;
@@ -116,6 +121,13 @@ body {
 .user-glass-pill:hover {
   background: rgba(255, 255, 255, 0.22);
   transform: translateY(-2px);
+}
+
+@media (max-width: 639px) {
+  .user-glass-pill {
+    padding: 4px 8px 4px 6px;
+    gap: 6px;
+  }
 }
 
 /* =======================================================

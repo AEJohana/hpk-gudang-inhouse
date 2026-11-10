@@ -9,7 +9,7 @@
 @endphp
 
 <!-- WRI SEGMENTED SUB-NAVIGATION CARD (ELEVATED WHITE PILL CONTAINER - ADAPTIVE COLLAPSIBLE) -->
-<div class="flex items-center justify-between gap-2.5 sm:gap-4 border-b border-slate-200/80 pb-3 sm:pb-4 w-full">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 border-b border-slate-200/80 pb-3 sm:pb-4 w-full">
     <!-- Left: Segmented Tabs Container (w-fit shrink-0 to prevent stretching in tablet/mobile) -->
     <div class="bg-white p-1 sm:p-1.5 rounded-2xl border border-slate-200/80 shadow-xs sm:shadow-sm inline-flex items-center gap-1 sm:gap-1.5 w-fit shrink-0 max-w-full overflow-x-auto no-scrollbar">
         <!-- Tab 1: Antrean WRI -->
@@ -77,7 +77,7 @@
 
     <!-- Right: Contextual Status / Department Pill -->
     @if($isSafety && isset($totalCritical))
-        <div class="flex items-center space-x-2 text-xs shrink-0 ml-auto">
+        <div class="flex items-center space-x-2 text-xs shrink-0 self-start sm:self-auto sm:ml-auto">
             <span class="text-slate-400 font-semibold hidden sm:inline">Status:</span>
             <span class="px-2.5 py-1.5 rounded-xl bg-white border border-rose-200 text-rose-700 font-extrabold flex items-center space-x-1.5 shadow-xs">
                 <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
@@ -85,7 +85,7 @@
             </span>
         </div>
     @elseif($isMonitoring)
-        <div class="flex items-center space-x-2 text-xs shrink-0 ml-auto">
+        <div class="flex items-center space-x-2 text-xs shrink-0 self-start sm:self-auto sm:ml-auto">
             <span class="text-slate-400 font-semibold hidden sm:inline">Toleransi:</span>
             <span class="px-2.5 py-1.5 rounded-xl bg-white border border-amber-200 text-amber-800 font-extrabold flex items-center space-x-1.5 shadow-xs">
                 <i class="fa-solid fa-clock text-amber-600"></i>
@@ -93,7 +93,7 @@
             </span>
         </div>
     @else
-        <div class="flex items-center space-x-2 text-xs shrink-0 ml-auto">
+        <div class="flex items-center space-x-2 text-xs shrink-0 self-start sm:self-auto sm:ml-auto">
             <span class="text-slate-400 font-semibold hidden sm:inline">Departemen:</span>
             <span class="px-2.5 py-1.5 rounded-xl bg-white border border-slate-200/80 text-slate-800 font-extrabold flex items-center space-x-1.5 shadow-xs">
                 <i class="fa-solid fa-building-user text-indigo-600"></i>

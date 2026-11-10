@@ -235,13 +235,23 @@ Formulir pengajuan pesanan pembuatan part (`/work-requests/create`) menerapkan a
    - Pengaju mengetik nama part atau kode part pada kolom input interaktif.
    - Panel hasil pencarian secara instan menyaring daftar katalog komponen karoseri, menampilkan foto thumbnail, kode part, nama, kategori, dimensi (P x L x T), dan saldo stok fisik gudang.
    - Memilih part langsung menampilkan kartu identitas visual dan mengisi rekomendasi stasiun mesin fabrikasi (*Smart Suggest Routing*) secara otomatis.
-2. **Fallback Pendaftaran Part Baru On-The-Fly:**
+2. **Fallback Pendaftaran Part Baru On-The-Fly (Modal Registrasi Komponen Minimalis):**
    - Apabila part yang diketik belum terdaftar di sistem (*Zero Results*), sistem secara otomatis menampilkan kartu informasi ramah dengan tombol `[+ Daftarkan Part Baru Ini]`.
    - Nama part yang diketik otomatis diisikan (*pre-filled*) ke dalam form modal registrasi tanpa mengharuskan pengguna mengetik ulang.
-   - Form modal menyediakan pilihan **Kategori Part (Opsional)** dengan default aman (*Subframe / Karoseri*) dan input dimensi teknis.
+   - Form modal menerapkan tipografi bersih dan santai (Sentence Case, `font-medium`, tanpa penumpukan bold kapital), input dimensi terpadu dengan micro-suffix satuan (`P (mm)`, `L (mm)`, `T (mm)`), kartu unggah foto part yang rapi, serta pilihan **Kategori Part (Opsional)** dengan default aman (*Subframe / Karoseri*).
    - Penyimpanan via AJAX seketika menambahkan komponen ke katalog master dan langsung memilihnya di formulir WR tanpa me-refresh halaman.
 3. **Standarisasi Zero-FOUC (Bebas Kedipan Modal):**
    - Seluruh modal dilindungi oleh deklarasi CSS global `[x-cloak] { display: none !important; }` dan inline style `style="display: none;"` untuk menjamin tidak ada modal yang muncul sekilas saat halaman pertama kali dibuka.
+4. **Desain Formulir Single Unified Card Minimalis:**
+   - Formulir pengajuan WR meninggalkan pola kotak multi-warna bertingkat (*rainbow cards*) dan beralih ke struktur kartu tunggal putih yang bersih (*Single Unified Card*) dengan border halus `border-slate-200/80`.
+   - Menggunakan tipografi Sentence Case yang proporsional (`font-medium text-slate-700`), menghilangkan penumpukan label uppercase dan bold tebal.
+   - Sub-header identitas pemohon (*Applicant Bar*) berformat bar horizontal ringkas abu-abu lembut (`bg-slate-50/70 border border-slate-100 rounded-xl`), menampilkan nama pemohon, shift kerja, dan waktu sistem secara rapi tanpa memakan ruang vertikal berlebih.
+   - Pilihan prioritas menggunakan segmen pill minimalis (Normal, Mendesak, Darurat).
+   - Repeater rute departemen (*Routing Stepper*) menggunakan nomor step monokrom halus dengan tombol aksi ikonik yang rapi.
+5. **Optimasi Performa Loading Formulir (Zero Latency & Anti-Timeout):**
+   - **On-Demand Photo Streaming:** Pemanggilan URL foto komponen `$c->image_url` pada 627+ daftar master part digantikan oleh route streaming asinkron `route('components.photo-stream', ['component' => $c->id])`. Ini mengeliminasi 45.000+ operasi I/O `file_exists()` sinkron ke penyimpanan SMB/NAS saat halaman dirender.
+   - **In-Memory Eager Loading Stock:** Pengecekan saldo stok pada `Component::getTotalStockAttribute()` dioptimalkan dengan memeriksa apakah relasi `stockBalances` telah di-eager-load. Jika sudah, kalkulasi dilakukan langsung pada memori koleksi (`$this->stockBalances->sum('quantity')`), menghilangkan 627+ query SQL redundan (N+1 query problem).
+   - Mengatasi secara tuntas masalah waktu muat halaman yang lama (15–45 detik) dan risiko *connection timeout* atau mental kembali ke menu monitoring WR.
 
 ---
 
@@ -382,6 +392,15 @@ Untuk memastikan kelancaran operasional para operator mesin, kurir Material Hand
 4. **Navigasi & Tabel Lebar Geser Samping (Horizontal Swipe):**
    - Tabel pratinjau impor komponen (10 kolom) dan tabel data padat lainnya dilindungi batas lebar minimum (`min-w-[720px]`) disertai petunjuk gestur sentuh *"Geser tabel ke samping"*, menjamin tidak ada kolom atau badge status yang remuk atau terpotong pada layar ponsel.
    - Tombol konfirmasi pada modal dialog dialihkan ke susunan vertikal terbalik (`flex-col-reverse sm:flex-row`), memprioritaskan tombol aksi utama di bagian atas jangkauan jari.
+5. **Anti-Overflow Global Navbar & Vaksin Kanvas (`overflow-x-clip`):**
+   - Mengeliminasi kebocoran warna latar belakang dan pemotongan tampilan pada mode HP dengan menyembunyikan teks brand panjang secara adaptif pada navbar ponsel (`hidden sm:flex`) saat judul submenu aktif ditampilkan, menjaga total lebar navbar < 280px sehingga avatar profil akun `PA` tetap berada di dalam batas navbar biru navy.
+   - Menerapkan `overflow-x-clip` dan `max-w-full` pada `html, body` serta `<nav>` untuk menjamin tidak ada elemen anak yang dapat merentangkan kanvas secara liar ke samping.
+   - Sub-navigasi WRI mengadopsi susunan bertumpuk fleksibel (`flex-col sm:flex-row`), mencegah tab navigasi dan pill status peringatan saling mendesak pada layar ponsel.
+6. **Standarisasi Badge Defisit Anti-Nekuk & Dual View Safety Stock:**
+   - Badge angka defisit dilindungi atribut `whitespace-nowrap inline-flex items-center gap-1` dengan tipografi monospaced dan micro-suffix satuan (`-7,936 PCS`), mencegah teks tertekuk (*wrapped*) menjadi dua baris vertikal yang merusak bentuk pill.
+   - Halaman Safety Stock menerapkan arsitektur **Dual View**:
+     - *Desktop & Tablet (`hidden md:block`):* Tabel komprehensif dengan `min-w-[720px]` dan pembagian kolom yang proporsional.
+     - *Mode Ponsel (`block md:hidden`):* Kartu komponen vertikal ramah sentuh jempol (foto thumbnail streaming bebas latensi, info part & rak, grid metrik 3 kolom: Stok Fisik, Safety Stock, Defisit, serta tombol aksi penuh *Pesan WRI Sekarang*), menghadirkan fleksibilitas maksimal tanpa keharusan menggeser tabel secara canggung.
 
 ---
 

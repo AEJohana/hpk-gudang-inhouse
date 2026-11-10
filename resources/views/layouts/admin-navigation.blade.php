@@ -1,28 +1,28 @@
-<nav class="bg-[#0a2342] border-b border-white/10 text-slate-200 sticky top-0 z-40 shadow-lg">
+<nav class="bg-[#0a2342] border-b border-white/10 text-slate-200 sticky top-0 z-40 shadow-lg w-full max-w-full overflow-hidden">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
+        <div class="flex justify-between items-center h-16 gap-2">
             <!-- Left: Sidebar Toggle, Brand & Desktop Links -->
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
                 <!-- Hamburger Drawer Toggle Button -->
                 <button type="button" 
                         @click="sidebarOpen = true" 
                         title="Buka Menu Navigasi"
-                        class="p-2 text-white hover:text-amber-400 rounded-xl hover:bg-white/10 transition flex items-center justify-center focus:outline-none">
-                    <i class="fa-solid fa-bars text-xl"></i>
+                        class="p-2 text-white hover:text-amber-400 rounded-xl hover:bg-white/10 transition flex items-center justify-center focus:outline-none shrink-0">
+                    <i class="fa-solid fa-bars text-lg sm:text-xl"></i>
                 </button>
 
                 <!-- Brand Logo & Title -->
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center space-x-3 group">
-                    <div class="w-10 h-10 p-1 bg-white rounded-xl shadow-sm border border-slate-700/50 flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
+                <a href="{{ route('admin.dashboard') }}" class="flex items-center space-x-2.5 sm:space-x-3 group min-w-0 shrink-0">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 p-1 bg-white rounded-xl shadow-sm border border-slate-700/50 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
                         <img src="{{ asset('images/logo_hpk.webp') }}" alt="HPK Logo" class="w-full h-full object-contain">
                     </div>
-                    <div class="flex flex-col">
-                        <div class="flex items-center space-x-2">
-                            <span class="font-extrabold text-sm tracking-wide text-white leading-tight">HYDRAXLE PERKASA</span>
-                            <span class="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase">ADMIN</span>
+                    <div class="flex flex-col min-w-0">
+                        <div class="flex items-center space-x-1.5 sm:space-x-2">
+                            <span class="font-extrabold text-xs sm:text-sm tracking-wide text-white leading-tight truncate">HYDRAXLE PERKASA</span>
+                            <span class="bg-amber-400 text-slate-950 text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">ADMIN</span>
                         </div>
-                        <span class="text-[10px] font-semibold text-amber-300 tracking-wider uppercase">Pusat Kendali Sistem</span>
+                        <span class="text-[9px] sm:text-[10px] font-semibold text-amber-300 tracking-wider uppercase hidden sm:block">Pusat Kendali Sistem</span>
                     </div>
                 </a>
 
@@ -71,7 +71,7 @@
             </div>
 
             <!-- Right: Return to App & User Glass Pill -->
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
                 <!-- Return to Main App Button -->
                 <a href="{{ route('dashboard') }}" 
                    class="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 hover:text-teal-200 border border-teal-400/30 text-xs font-bold transition shadow-xs">

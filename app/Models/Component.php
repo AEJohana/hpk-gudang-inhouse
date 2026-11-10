@@ -77,6 +77,9 @@ class Component extends Model
 
     public function getTotalStockAttribute(): float
     {
+        if ($this->relationLoaded('stockBalances')) {
+            return (float) $this->stockBalances->sum('quantity');
+        }
         return (float) $this->stockBalances()->sum('quantity');
     }
 

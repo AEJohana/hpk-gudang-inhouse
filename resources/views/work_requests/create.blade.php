@@ -1,17 +1,33 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col items-start gap-1 sm:gap-1.5">
-            <div>
+        <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center space-x-3 min-w-0">
                 <a href="{{ route('work-requests.index') }}" 
-                   class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer shrink-0" 
-                   title="Kembali ke Antrian WRI">
-                    <i class="fa-solid fa-arrow-left text-[11px] text-slate-500"></i>
-                    <span>Kembali</span>
+                   class="w-9 h-9 rounded-xl bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200/90 shadow-2xs flex items-center justify-center transition cursor-pointer shrink-0" 
+                   title="Kembali ke Antrean WRI">
+                    <i class="fa-solid fa-arrow-left text-xs"></i>
                 </a>
+                <div class="min-w-0">
+                    <h2 class="font-extrabold text-lg sm:text-xl text-slate-900 tracking-tight leading-tight">
+                        Membuat Work Request Baru
+                    </h2>
+                    <p class="text-xs text-slate-500 font-normal truncate mt-0.5">
+                        Penerbitan pesanan tiket fabrikasi komponen ke stasiun mesin center
+                    </p>
+                </div>
             </div>
-            <h2 class="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight leading-tight">
-                Membuat WR (Work Request)
-            </h2>
+
+            <!-- Compact Sub-Header Bar: Pengaju & Tanggal (Desktop) -->
+            <div class="hidden md:flex items-center space-x-2 text-xs bg-white px-3.5 py-1.5 rounded-xl border border-slate-200/80 shadow-2xs text-slate-600 font-medium">
+                <span class="inline-flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-circle text-slate-400"></i>
+                    <strong>{{ auth()->user()->name }}</strong>
+                </span>
+                <span class="text-slate-300">&bull;</span>
+                <span class="text-slate-500">{{ $userDept }}</span>
+                <span class="text-slate-300">&bull;</span>
+                <span class="text-slate-500">{{ now()->translatedFormat('d M Y') }}</span>
+            </div>
         </div>
     </x-slot>
 
@@ -24,7 +40,7 @@
             'category' => $c->category ?? 'subframe',
             'uom' => $c->uom ?: 'PCS',
             'specs' => $c->specification ?: '',
-            'image_url' => $c->image_url,
+            'image_url' => route('components.photo-stream', ['component' => $c->id]),
             'length_mm' => (string) ($c->length_mm ?? ''),
             'width_mm' => (string) ($c->width_or_diameter_mm ?? ''),
             'thickness_mm' => (string) ($c->thickness_or_height_mm ?? ''),
@@ -37,11 +53,20 @@
 @endphp
 
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="membuatWrForm(@js($componentsJsonData))">
-        <form method="POST" action="{{ route('work-requests.store') }}" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+        <!-- Compact Info Strip (Mobile) -->
+        <div class="md:hidden mb-4 p-3 bg-white border border-slate-200/80 rounded-2xl flex items-center justify-between text-xs text-slate-600 font-medium shadow-2xs">
+            <div class="flex items-center space-x-2 truncate">
+                <i class="fa-solid fa-user-circle text-slate-400"></i>
+                <span class="truncate"><strong>{{ auth()->user()->name }}</strong> ({{ $userDept }})</span>
+            </div>
+            <span class="text-[11px] text-slate-400 font-mono flex-shrink-0">{{ now()->translatedFormat('d M Y') }}</span>
+        </div>
+
+        <form method="POST" action="{{ route('work-requests.store') }}" class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-7">
             @csrf
 
             @if ($components->isEmpty())
-                <div class="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start space-x-3">
+                <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start space-x-3">
                     <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg mt-0.5"></i>
                     <div class="flex-1">
                         <h4 class="font-bold text-xs text-amber-900">Belum Ada Master Komponen di Gudang</h4>
@@ -49,7 +74,7 @@
                             Untuk membuat Work Request (pesanan produksi ke mesin center), silakan daftarkan master komponen terlebih dahulu.
                         </p>
                         <div class="mt-2.5">
-                            <button type="button" @click="showQuickAddModal = true" class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold transition shadow-xs">
+                            <button type="button" @click="showQuickAddModal = true" class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer">
                                 <i class="fa-solid fa-plus text-[10px]"></i>
                                 <span>Tambah Komponen Sekarang</span>
                             </button>
@@ -58,79 +83,20 @@
                 </div>
             @endif
 
-            <!-- Bagian 1: Identitas Pemohon, Waktu & Tujuan Penggunaan -->
-            <div class="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
-                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-                    <div class="flex items-center space-x-2">
-                        <i class="fa-solid fa-id-badge text-indigo-600 text-sm"></i>
-                        <h3 class="font-bold text-sm text-slate-900">1. Identitas Pemohon, Waktu & Tujuan Penggunaan</h3>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- 1. Dept Pengaju (Terkunci Penuh) -->
+            <!-- BAGIAN 1: KOMPONEN, KUANTITAS & PRIORITAS -->
+            <div class="space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                            Departemen Pengaju (Pemohon)
-                        </label>
-                        <div class="relative">
-                            <input type="text" 
-                                   readonly 
-                                   value="{{ $userDept }}" 
-                                   class="w-full px-3.5 py-2 pl-9 text-xs border border-slate-200 bg-slate-100/90 rounded-xl font-bold text-slate-800 cursor-not-allowed select-none">
-                            <i class="fa-solid fa-building-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                        </div>
-                        <p class="text-[10px] text-slate-400 mt-1">
-                            Diajukan oleh: <strong class="text-slate-600">{{ auth()->user()->name }}</strong>
-                        </p>
-                    </div>
-
-                    <!-- 2. Tanggal Pengajuan (Aktual Terkunci) -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                            Tanggal Pengajuan (Aktual)
-                        </label>
-                        <div class="relative">
-                            <input type="text" 
-                                   readonly 
-                                   value="{{ now()->translatedFormat('d F Y') }} (Hari Ini)" 
-                                   class="w-full px-3.5 py-2 pl-9 text-xs border border-slate-200 bg-slate-100/90 rounded-xl font-bold text-slate-800 cursor-not-allowed select-none">
-                            <i class="fa-regular fa-calendar-check absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                        </div>
-                        <p class="text-[10px] text-slate-400 mt-1">Tanggal tercatat otomatis sesuai waktu server.</p>
-                    </div>
-
-                    <!-- 3. Tingkat Prioritas -->
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                Tingkat Prioritas <span class="text-rose-500">*</span>
-                            </label>
-                        </div>
-                        <select name="priority" required class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-bold text-slate-800">
-                            <option value="normal" {{ old('priority') == 'normal' ? 'selected' : '' }}>Normal (Produksi Rutin)</option>
-                            <option value="high" {{ old('priority') == 'high' ? 'selected' : '' }}>Tinggi (High Priority)</option>
-                            <option value="urgent_line_stop" {{ old('priority') == 'urgent_line_stop' ? 'selected' : '' }}>URGENT (Line Stop / Bypass)</option>
-                        </select>
-                        <p class="text-[10px] text-slate-400 mt-1">Status URGENT auto-bypass antrian otorisasi.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bagian 2: Pemilihan Komponen & Kotak Identitas Visual -->
-            <div class="p-5 bg-white rounded-xl border border-slate-200 space-y-4 shadow-xs">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2">
-                    <div class="flex items-center space-x-2">
-                        <i class="fa-solid fa-cubes-stacked text-amber-600 text-sm"></i>
-                        <h3 class="font-bold text-sm text-slate-900">2. Komponen & Kuantitas Pesanan</h3>
+                        <h3 class="font-extrabold text-sm text-slate-900 leading-tight">1. Komponen & Kuantitas Pesanan</h3>
+                        <p class="text-xs text-slate-500 font-normal mt-0.5">Pilih material katalog in-house, tentukan kuantitas, dan tingkat prioritas</p>
                     </div>
 
                     <!-- Tombol Cepat Tambah Komponen Baru (Modal) -->
                     <button type="button" 
                             @click="openQuickAddModal()" 
-                            class="self-start sm:self-auto px-2.5 py-1 text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-lg transition shadow-2xs flex items-center space-x-1 cursor-pointer">
-                        <i class="fa-solid fa-plus text-[10px] text-amber-600"></i>
-                        <span>Daftarkan Komponen Baru</span>
+                            class="self-start sm:self-auto px-3 py-1.5 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold rounded-xl transition shadow-2xs flex items-center space-x-1.5 cursor-pointer">
+                        <i class="fa-solid fa-plus text-[10px] text-slate-500"></i>
+                        <span>Daftarkan Part Baru</span>
                     </button>
                 </div>
 
@@ -139,7 +105,7 @@
                      x-transition 
                      x-cloak 
                      style="display: none;" 
-                     class="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-xl text-xs flex items-center justify-between shadow-xs">
+                     class="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between shadow-xs">
                     <div class="flex items-center space-x-2">
                         <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
                         <span>Komponen baru berhasil didaftarkan dan langsung terpilih di formulir pesanan!</span>
@@ -149,14 +115,14 @@
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                    <!-- Searchable Combobox Komponen (Opsi A) -->
-                    <div class="sm:col-span-8 relative" @click.outside="isSearchOpen = false">
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+                    <!-- Searchable Combobox Komponen (sm:col-span-6) -->
+                    <div class="sm:col-span-6 relative" @click.outside="isSearchOpen = false">
                         <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                                Cari & Pilih Komponen In-House <span class="text-rose-500">*</span>
+                            <label class="block text-xs font-medium text-slate-700">
+                                Cari & Pilih Komponen <span class="text-rose-500 font-bold">*</span>
                             </label>
-                            <span class="text-[10px] text-slate-400 font-semibold" x-text="componentsList.length + ' Master Part Tersedia'"></span>
+                            <span class="text-[10px] text-slate-400 font-medium" x-text="componentsList.length + ' Part'"></span>
                         </div>
 
                         <!-- Kotak Input Pencarian Interaktif -->
@@ -165,8 +131,8 @@
                                    x-model="searchQuery" 
                                    @focus="isSearchOpen = true" 
                                    @input="isSearchOpen = true; if(!searchQuery) clearSelection()"
-                                   placeholder="Cari nama atau kode part (contoh: BUMPER, ADR)..." 
-                                   class="w-full px-3.5 py-2 pl-9 pr-9 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-medium text-slate-900 transition shadow-2xs">
+                                   placeholder="Ketik nama atau kode part..." 
+                                   class="w-full px-3.5 py-2 pl-9 pr-9 text-xs border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium text-slate-900 transition">
                             
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
 
@@ -189,24 +155,24 @@
                             <!-- Daftar Hasil Filter -->
                             <template x-for="comp in filteredComponents()" :key="comp.id">
                                 <div @click="selectComponent(comp)" 
-                                     :class="{ 'bg-amber-50/80 font-bold': selectedComponentId == comp.id }"
+                                     :class="{ 'bg-indigo-50/70 font-semibold': selectedComponentId == comp.id }"
                                      class="p-2.5 hover:bg-slate-50 cursor-pointer flex items-center space-x-3 transition">
                                     
                                     <!-- Thumbnail Foto Part -->
                                     <img :src="comp.image_url" 
                                          :alt="comp.name" 
-                                         class="w-10 h-10 rounded-lg object-cover bg-slate-100 border border-slate-200 flex-shrink-0"
+                                         class="w-9 h-9 rounded-lg object-cover bg-slate-100 border border-slate-200 flex-shrink-0"
                                          x-on:error="$el.src = '{{ asset('images/placeholder_part.svg') }}'">
                                     
                                     <!-- Rincian Identitas Part -->
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center space-x-2">
-                                            <span class="font-mono text-[11px] font-bold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200" x-text="comp.part_number"></span>
-                                            <span class="text-[10px] text-slate-500 font-semibold uppercase" x-text="'[' + (comp.category || 'subframe') + ']'"></span>
+                                            <span class="font-mono text-[10px] font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200" x-text="comp.part_number"></span>
+                                            <span class="text-[9px] text-slate-400 uppercase font-medium" x-text="'[' + (comp.category || 'subframe') + ']'"></span>
                                         </div>
-                                        <div class="font-bold text-xs text-slate-900 truncate mt-0.5" x-text="comp.name"></div>
+                                        <div class="font-semibold text-xs text-slate-900 truncate mt-0.5" x-text="comp.name"></div>
                                         <div class="text-[10px] text-slate-400 flex items-center space-x-2 mt-0.5">
-                                            <span x-text="'Dimensi: ' + comp.dimensions"></span>
+                                            <span x-text="'Dim: ' + comp.dimensions"></span>
                                             <span>&bull;</span>
                                             <span x-text="'Rak: ' + comp.rack"></span>
                                         </div>
@@ -214,34 +180,34 @@
 
                                     <!-- Ketersediaan Stok -->
                                     <div class="text-right flex-shrink-0">
-                                        <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full"
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
                                               :class="comp.stock > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'"
                                               x-text="'Stok: ' + comp.stock + ' ' + comp.uom"></span>
                                     </div>
                                 </div>
                             </template>
 
-                            <!-- Kondisi: Part Tidak Ditemukan (Fallback Pendaftaran Baru Cepat) -->
+                            <!-- Kondisi: Part Tidak Ditemukan -->
                             <div x-show="filteredComponents().length === 0" class="p-4 text-center space-y-2">
-                                <div class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 mx-auto flex items-center justify-center text-sm border border-amber-200">
+                                <div class="w-9 h-9 rounded-full bg-slate-100 text-slate-500 mx-auto flex items-center justify-center text-xs border border-slate-200">
                                     <i class="fa-solid fa-cube"></i>
                                 </div>
                                 <div class="text-xs font-bold text-slate-800">
-                                    Part "<span x-text="searchQuery" class="text-amber-700 font-extrabold"></span>" belum terdaftar di sistem.
+                                    Part "<span x-text="searchQuery" class="text-indigo-600 font-extrabold"></span>" belum terdaftar di sistem.
                                 </div>
                                 <p class="text-[11px] text-slate-500">
                                     Daftarkan part baru ini langsung ke sistem agar dapat segera diproses stasiun mesin.
                                 </p>
                                 <button type="button" 
                                         @click="openQuickAddModal(searchQuery)" 
-                                        class="mt-1 inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition shadow-xs">
+                                        class="mt-1 inline-flex items-center space-x-1.5 px-3 py-1.5 bg-[#0a2342] hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer">
                                     <i class="fa-solid fa-plus text-[10px]"></i>
                                     <span>Daftarkan Part Baru Ini</span>
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Hidden Native Select untuk POST Form (Menjaga Kompatibilitas) -->
+                        <!-- Hidden Native Select untuk POST Form -->
                         <select name="component_id" 
                                 id="componentSelect" 
                                 required 
@@ -255,7 +221,7 @@
                                         data-category="{{ $comp->category }}"
                                         data-uom="{{ $comp->uom ?: 'PCS' }}"
                                         data-specs="{{ $comp->specification }}"
-                                        data-image="{{ $comp->image_url }}"
+                                        data-image="{{ route('components.photo-stream', ['component' => $comp->id]) }}"
                                         data-length="{{ $comp->length_mm }}"
                                         data-width="{{ $comp->width_or_diameter_mm }}"
                                         data-thickness="{{ $comp->thickness_or_height_mm }}"
@@ -267,15 +233,14 @@
                                 </option>
                             @endforeach
                         </select>
-                        <p class="text-[10px] text-slate-400 mt-1">Pilih part karoseri atau daftarkan baru jika belum ada.</p>
                     </div>
 
-                    <!-- Jumlah Permintaan & UoM (Integrated Anti-Overflow Input Group) -->
-                    <div class="sm:col-span-4">
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                            Jumlah Permintaan <span class="text-rose-500">*</span>
+                    <!-- Jumlah Permintaan (sm:col-span-3) -->
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-medium text-slate-700 mb-1">
+                            Jumlah Permintaan <span class="text-rose-500 font-bold">*</span>
                         </label>
-                        <div class="relative flex items-stretch rounded-xl border border-slate-300 focus-within:ring-2 focus-within:ring-amber-500 focus-within:border-amber-500 overflow-hidden bg-white shadow-2xs">
+                        <div class="relative flex items-stretch rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 overflow-hidden bg-slate-50/70 focus-within:bg-white transition">
                             <input type="number" 
                                    name="quantity_requested" 
                                    required 
@@ -283,24 +248,35 @@
                                    step="any" 
                                    value="{{ old('quantity_requested', 20) }}"
                                    placeholder="0"
-                                   class="w-full min-w-0 flex-1 px-3.5 py-2 text-xs border-0 focus:ring-0 focus:outline-none font-black text-slate-900">
-                            <span class="inline-flex items-center px-3.5 py-2 bg-slate-100 text-slate-700 font-extrabold text-xs border-l border-slate-200 select-none whitespace-nowrap" 
+                                   class="w-full min-w-0 flex-1 px-3 py-2 text-xs border-0 focus:ring-0 focus:outline-none font-bold text-slate-900 bg-transparent">
+                            <span class="inline-flex items-center px-2.5 py-2 bg-slate-100 text-slate-600 font-bold text-xs border-l border-slate-200 select-none whitespace-nowrap" 
                                   x-text="selectedUom || 'PCS'"></span>
                         </div>
-                        <p class="text-[10px] text-slate-400 mt-1">Jumlah unit yang dipesan.</p>
+                    </div>
+
+                    <!-- Tingkat Prioritas (sm:col-span-3) -->
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-medium text-slate-700 mb-1">
+                            Tingkat Prioritas <span class="text-rose-500 font-bold">*</span>
+                        </label>
+                        <select name="priority" required class="w-full px-3 py-2 text-xs border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium text-slate-800 transition">
+                            <option value="normal" {{ old('priority') == 'normal' ? 'selected' : '' }}>Normal (Produksi)</option>
+                            <option value="high" {{ old('priority') == 'high' ? 'selected' : '' }}>Tinggi (High Priority)</option>
+                            <option value="urgent_line_stop" {{ old('priority') == 'urgent_line_stop' ? 'selected' : '' }}>URGENT (Line Stop)</option>
+                        </select>
                     </div>
                 </div>
 
-                <!-- KOTAK IDENTITAS KOMPONEN (Visual Card) -->
+                <!-- KOTAK IDENTITAS KOMPONEN (Preview Card Bersih & Minimalis) -->
                 <div x-show="selectedComponentId" 
                      x-transition:enter="transition ease-out duration-200"
-                     x-transition:enter-start="opacity-0 -translate-y-2"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
                      x-transition:enter-end="opacity-100 translate-y-0"
-                     class="mt-4 p-4 sm:p-5 bg-gradient-to-br from-slate-50 via-white to-amber-50/30 rounded-2xl border border-amber-200/80 shadow-xs">
+                     class="mt-3 p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 shadow-2xs">
                     
                     <div class="flex flex-col sm:flex-row gap-4 items-start">
-                        <!-- Thumbnail / Foto Komponen -->
-                        <div class="w-full sm:w-40 sm:h-40 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 relative group">
+                        <!-- Thumbnail Komponen -->
+                        <div class="w-full sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center flex-shrink-0 relative group shadow-2xs">
                             <img :src="selectedImage" 
                                  :alt="selectedName" 
                                  class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
@@ -312,50 +288,32 @@
                         </div>
 
                         <!-- Data Rincian Identitas Part -->
-                        <div class="flex-1 space-y-3 w-full">
+                        <div class="flex-1 space-y-2.5 w-full min-w-0">
                             <div>
                                 <div class="flex items-center space-x-2">
-                                    <span class="font-mono text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-lg border border-amber-200" x-text="selectedPartNumber"></span>
-                                    <span class="text-[10px] text-slate-400 uppercase font-semibold">Identitas Part Karoseri</span>
+                                    <span class="font-mono text-xs font-bold text-slate-900 bg-white px-2 py-0.5 rounded-lg border border-slate-200 shadow-2xs" x-text="selectedPartNumber"></span>
+                                    <span class="text-[10px] text-slate-400 font-medium">Part Terpilih</span>
                                 </div>
-                                <h4 class="font-extrabold text-base text-slate-900 mt-1" x-text="selectedName"></h4>
-                                <p class="text-xs text-slate-500 mt-0.5" x-text="selectedSpecs || 'Spesifikasi standar fabrikasi karoseri PT Hydraxle Perkasa.'"></p>
+                                <h4 class="font-bold text-sm text-slate-900 mt-1 truncate" x-text="selectedName"></h4>
+                                <p class="text-[11px] text-slate-500 font-normal truncate mt-0.5" x-text="selectedSpecs || 'Spesifikasi standar fabrikasi karoseri.'"></p>
                             </div>
 
-                            <!-- KOTAK UKURAN & DIMENSI TEKNIS -->
-                            <div class="p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5 flex items-center space-x-1">
-                                    <i class="fa-solid fa-ruler-combined text-indigo-500 text-[10px]"></i>
-                                    <span>Dimensi / Ukuran Komponen:</span>
-                                </span>
-                                <div class="grid grid-cols-3 gap-2 text-center text-xs">
-                                    <div class="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                                        <span class="text-[9px] uppercase font-bold text-slate-400 block">Panjang (P)</span>
-                                        <span class="font-bold text-slate-800" x-text="lengthMm ? lengthMm + ' mm' : '-'"></span>
-                                    </div>
-                                    <div class="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                                        <span class="text-[9px] uppercase font-bold text-slate-400 block">Lebar / Dia. (L/D)</span>
-                                        <span class="font-bold text-slate-800" x-text="widthMm ? (widthMm.includes('⌀') ? widthMm : widthMm + ' mm') : '-'"></span>
-                                    </div>
-                                    <div class="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                                        <span class="text-[9px] uppercase font-bold text-slate-400 block">Tebal / Tggi (T)</span>
-                                        <span class="font-bold text-slate-800" x-text="thicknessMm ? (thicknessMm.includes('⌀') ? thicknessMm : thicknessMm + ' mm') : '-'"></span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- KOTAK STATUS SALDO & LOKASI SIMPAN GUDANG -->
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 text-xs">
+                            <!-- Baris Ukuran & Status Saldo -->
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-slate-200/60 text-xs">
                                 <div>
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Saldo Fisik Gudang</span>
-                                    <span class="font-extrabold text-sm text-slate-900" x-text="totalStock + ' ' + selectedUom"></span>
+                                    <span class="text-[10px] text-slate-400 font-medium block">Dimensi (P x L x T)</span>
+                                    <span class="font-medium text-slate-800" x-text="selectedDimensions || '-'"></span>
                                 </div>
                                 <div>
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Batas Minimum Stok</span>
-                                    <span class="font-bold text-slate-700" x-text="minimumStock + ' ' + selectedUom"></span>
+                                    <span class="text-[10px] text-slate-400 font-medium block">Stok Gudang</span>
+                                    <span class="font-extrabold text-slate-900" x-text="totalStock + ' ' + selectedUom"></span>
                                 </div>
-                                <div class="col-span-2 sm:col-span-1">
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Lokasi Rak Standar</span>
+                                <div>
+                                    <span class="text-[10px] text-slate-400 font-medium block">Batas Minimum</span>
+                                    <span class="font-medium text-slate-700" x-text="minimumStock + ' ' + selectedUom"></span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400 font-medium block">Lokasi Rak</span>
                                     <span class="font-mono font-bold text-indigo-700" x-text="rackCode || 'Belum di Rak'"></span>
                                 </div>
                             </div>
@@ -364,40 +322,36 @@
                 </div>
             </div>
 
-            <!-- Bagian 3: Departemen Tujuan & Alur Proses Fabrikasi (Multi-Dept) -->
-            <div class="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-3.5">
-                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-                    <div class="flex items-center space-x-2">
-                        <i class="fa-solid fa-route text-purple-600 text-sm"></i>
-                        <h3 class="font-bold text-sm text-slate-900">3. Departemen Tujuan & Alur Proses Fabrikasi</h3>
+            <!-- SECTION 2: DEPARTEMEN TUJUAN & ALUR STASIUN MESIN -->
+            <div class="space-y-4 pt-2 border-t border-slate-100">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div>
+                        <h3 class="font-extrabold text-sm text-slate-900 leading-tight">2. Alur Stasiun Mesin Fabrikasi</h3>
+                        <p class="text-xs text-slate-500 font-normal mt-0.5">Tentukan urutan stasiun mesin yang akan memproses komponen secara berurutan</p>
                     </div>
                     <button type="button" 
                             @click="addDepartment()" 
-                            class="px-2.5 py-1 text-xs bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition shadow-xs flex items-center space-x-1">
-                        <i class="fa-solid fa-plus text-[10px]"></i>
+                            class="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-semibold rounded-xl transition shadow-2xs flex items-center space-x-1.5 cursor-pointer">
+                        <i class="fa-solid fa-plus text-[10px] text-slate-500"></i>
                         <span>Tambah Proses</span>
                     </button>
                 </div>
 
-                <p class="text-xs text-slate-500">
-                    Tentukan urutan stasiun mesin pengerjaan part.
-                </p>
-
-                <!-- LIVE ROUTING PREVIEW BADGE (SERAGAM MONOKROM SLATE) -->
-                <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-2">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center">
-                        <i class="fa-solid fa-diagram-project me-1 text-slate-600"></i> Alur Fabrikasi & Logistik MH:
+                <!-- LIVE ROUTING PREVIEW (Alur Visual Monokrom Minimalis) -->
+                <div class="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/80 shadow-2xs space-y-2">
+                    <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-route me-1.5 text-slate-400"></i> Alur Fabrikasi & Logistik MH:
                     </span>
                     <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
                         <template x-for="(dept, idx) in targetDepartments" :key="idx">
                             <div class="flex items-center">
-                                <span class="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-300 flex items-center space-x-1">
-                                    <span class="w-4 h-4 rounded-full bg-slate-700 text-white text-[10px] flex items-center justify-center me-1" x-text="idx + 1"></span>
+                                <span class="font-mono text-xs font-semibold text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs flex items-center space-x-1">
+                                    <span class="w-4 h-4 rounded-full bg-slate-800 text-white text-[10px] flex items-center justify-center me-1" x-text="idx + 1"></span>
                                     <span x-text="dept.department_name ? dept.department_name.replace('Dept ', '') : 'Pilih Mesin'"></span>
                                 </span>
                                 <span x-show="idx < targetDepartments.length - 1" class="text-slate-400 mx-1.5 text-xs flex items-center">
                                     <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 me-1"></i>
-                                    <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold border border-slate-200">MH Transfer</span>
+                                    <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-semibold border border-slate-200">MH Transfer</span>
                                     <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 ms-1"></i>
                                 </span>
                             </div>
@@ -406,35 +360,35 @@
                         <!-- MH Pengantaran Kembali ke Pengaju / Gudang -->
                         <span class="text-slate-400 mx-1 text-xs flex items-center">
                             <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 me-1"></i>
-                            <span class="text-[9px] bg-slate-100 text-slate-700 border border-slate-300 px-2 py-0.5 rounded font-bold flex items-center">
-                                <i class="fa-solid fa-truck-ramp-box me-1 text-slate-500"></i> MH Antar ke Pengaju
+                            <span class="text-[9px] bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded font-semibold flex items-center">
+                                <i class="fa-solid fa-truck-ramp-box me-1 text-slate-400"></i> MH Antar
                             </span>
                             <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 ms-1"></i>
                         </span>
 
                         <!-- Titik Akhir: Gudang / Selesai -->
-                        <span class="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-300 flex items-center">
-                            <i class="fa-solid fa-warehouse me-1 text-slate-600"></i> Gudang (Diterima)
+                        <span class="font-mono text-xs font-semibold text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs flex items-center">
+                            <i class="fa-solid fa-warehouse me-1 text-slate-400"></i> Gudang (Selesai)
                         </span>
                     </div>
                 </div>
 
-                <!-- DAFTAR TAHAPAN DEPARTEMEN TUJUAN -->
-                <div class="space-y-2.5">
+                <!-- DAFTAR TAHAPAN STASIUN MESIN -->
+                <div class="space-y-2">
                     <template x-for="(dept, index) in targetDepartments" :key="index">
-                        <div class="p-3 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center gap-2.5 shadow-2xs">
+                        <div class="p-3 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center gap-2.5 shadow-2xs">
                             <!-- Step Badge -->
                             <div class="flex items-center space-x-2 sm:w-24 flex-shrink-0">
-                                <span class="w-5 h-5 rounded-full bg-purple-700 text-white font-bold text-xs flex items-center justify-center flex-shrink-0" x-text="index + 1"></span>
-                                <span class="font-bold text-xs text-slate-800 whitespace-nowrap" x-text="'Tahap ' + (index + 1)"></span>
+                                <span class="w-6 h-6 rounded-lg bg-slate-800 text-white font-bold text-xs flex items-center justify-center flex-shrink-0" x-text="index + 1"></span>
+                                <span class="font-semibold text-xs text-slate-800 whitespace-nowrap" x-text="'Tahap ' + (index + 1)"></span>
                             </div>
 
-                            <!-- Pilihan Departemen Fabrikasi (14 Stasiun Mesin) -->
+                            <!-- Pilihan Departemen Fabrikasi -->
                             <div class="flex-1">
                                 <select :name="'target_departments[' + index + '][department_name]'" 
                                         x-model="dept.department_name" 
                                         required 
-                                        class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none font-bold text-slate-800">
+                                        class="w-full px-3 py-1.5 text-xs border border-slate-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium text-slate-800 transition">
                                     <option value="">-- Pilih Stasiun Mesin Tujuan --</option>
                                     @foreach($fabricationDepartments as $fDept)
                                         <option value="{{ $fDept->name }}">
@@ -450,14 +404,14 @@
                                        :name="'target_departments[' + index + '][notes]'" 
                                        x-model="dept.notes" 
                                        placeholder="Instruksi khusus tahapan ini (opsional)..." 
-                                       class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none text-slate-700">
+                                       class="w-full px-3 py-1.5 text-xs border border-slate-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-normal text-slate-700 placeholder:text-slate-400 transition">
                             </div>
 
                             <!-- Tombol Hapus Tahap -->
                             <button type="button" 
                                     @click="removeDepartment(index)" 
                                     x-show="targetDepartments.length > 1" 
-                                    class="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition self-end sm:self-center" 
+                                    class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition self-end sm:self-center cursor-pointer" 
                                     title="Hapus tahapan">
                                 <i class="fa-solid fa-trash-can text-sm"></i>
                             </button>
@@ -466,25 +420,25 @@
                 </div>
             </div>
 
-            <!-- Bagian 4: Catatan Fabrikasi Keseluruhan -->
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Instruksi Khusus / Catatan Fabrikasi Keseluruhan (Opsional)
+            <!-- SECTION 3: CATATAN FABRIKASI KESELURUHAN (OPSIONAL) -->
+            <div class="pt-2 border-t border-slate-100">
+                <label class="block text-xs font-medium text-slate-700 mb-1">
+                    Catatan Fabrikasi Keseluruhan <span class="text-slate-400 text-[11px] font-normal">(opsional)</span>
                 </label>
                 <textarea name="notes" 
                           rows="2" 
-                          placeholder="Tuliskan catatan atau instruksi khusus pengerjaan (opsional)..." 
-                          class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-800"></textarea>
+                          placeholder="Tuliskan catatan atau instruksi khusus pengerjaan jika ada..." 
+                          class="w-full px-3.5 py-2 text-xs border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-normal text-slate-800 placeholder:text-slate-400 transition"></textarea>
             </div>
 
-            <!-- Tombol Aksi Submit -->
+            <!-- FOOTER TOMBOL SUBMIT -->
             <div class="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
-                <a href="{{ route('work-requests.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 text-center">
-                    <i class="fa-solid fa-arrow-left text-xs"></i>
-                    <span>Kembali / Batal</span>
+                <a href="{{ route('work-requests.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center justify-center space-x-1.5 text-center cursor-pointer">
+                    <i class="fa-solid fa-arrow-left text-xs text-slate-500"></i>
+                    <span>Batal / Kembali</span>
                 </a>
-                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl shadow-md transition flex items-center justify-center space-x-2 text-center cursor-pointer">
-                    <i class="fa-solid fa-paper-plane"></i>
+                <button type="submit" class="px-6 py-2.5 bg-[#0a2342] hover:bg-slate-800 active:scale-98 text-white text-xs font-extrabold rounded-xl shadow-md transition flex items-center justify-center space-x-2 text-center cursor-pointer">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
                     <span>Kirim & Terbitkan WR</span>
                 </button>
             </div>
@@ -494,43 +448,56 @@
         <div x-show="showQuickAddModal" 
              x-cloak 
              style="display: none;"
-             class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4" @click.outside="showQuickAddModal = false">
+             class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200/80 space-y-4" @click.outside="showQuickAddModal = false">
+                <!-- Modal Header -->
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/70 flex items-center justify-center text-base shadow-2xs">
                             <i class="fa-solid fa-cube"></i>
                         </div>
                         <div>
-                            <h3 class="font-extrabold text-base text-slate-900">Registrasi Komponen Baru</h3>
-                            <p class="text-xs text-slate-500">Daftarkan part baru langsung ke sistem tanpa berpindah menu</p>
+                            <h3 class="font-extrabold text-base text-slate-900 leading-tight">Registrasi Komponen Baru</h3>
+                            <p class="text-[11px] text-slate-500 font-normal mt-0.5">Daftarkan part baru langsung ke sistem tanpa berpindah menu</p>
                         </div>
                     </div>
-                    <button type="button" @click="showQuickAddModal = false" class="text-slate-400 hover:text-slate-600 p-1">
-                        <i class="fa-solid fa-xmark text-lg"></i>
+                    <button type="button" 
+                            @click="showQuickAddModal = false" 
+                            class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition">
+                        <i class="fa-solid fa-xmark text-sm"></i>
                     </button>
                 </div>
 
-                <form @submit.prevent="submitQuickAdd()" class="space-y-4 text-xs">
+                <form @submit.prevent="submitQuickAdd()" class="space-y-3.5 text-xs">
+                    <!-- Nama Komponen -->
                     <div>
-                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">
-                            Nama Komponen <span class="text-rose-500">*</span>
+                        <label class="block font-medium text-slate-700 text-xs mb-1">
+                            Nama Komponen <span class="text-rose-500 font-bold">*</span>
                         </label>
-                        <input type="text" x-model="newComp.name" required placeholder="Contoh: PLANGKON BUMPER BELAKANG ADR 25" class="w-full px-3.5 py-2 border border-slate-300 rounded-xl font-bold text-slate-900">
+                        <input type="text" 
+                               x-model="newComp.name" 
+                               required 
+                               placeholder="Contoh: Plangkon Bumper Belakang ADR 25" 
+                               class="w-full px-3.5 py-2 border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl font-medium text-slate-800 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-slate-400 placeholder:font-normal transition">
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
+                    <!-- Kode & Kategori Part -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                Kode Komponen (Opsional)
+                            <label class="block font-medium text-slate-700 text-xs mb-1">
+                                Kode Komponen <span class="text-slate-400 text-[11px] font-normal">(opsional)</span>
                             </label>
-                            <input type="text" x-model="newComp.part_number" placeholder="Otomatis jika kosong" class="w-full px-3 py-1.5 border border-slate-300 rounded-xl font-mono text-slate-800">
+                            <input type="text" 
+                                   x-model="newComp.part_number" 
+                                   placeholder="Otomatis dibuat jika kosong" 
+                                   class="w-full px-3 py-2 border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl font-mono text-slate-800 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-slate-400 placeholder:font-normal transition">
                         </div>
                         <div>
-                            <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                Kategori Part (Opsional)
+                            <label class="block font-medium text-slate-700 text-xs mb-1">
+                                Kategori Part <span class="text-slate-400 text-[11px] font-normal">(opsional)</span>
                             </label>
-                            <select x-model="newComp.category" class="w-full px-3 py-1.5 border border-slate-300 rounded-xl font-bold text-slate-800">
+                            <select x-model="newComp.category" 
+                                    class="w-full px-3 py-2 border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl font-normal text-slate-800 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
                                 <option value="">-- Bawaan: Subframe --</option>
                                 <option value="subframe">Subframe (Sasis Karoseri)</option>
                                 <option value="karoseri">Karoseri (Panel & Bodi)</option>
@@ -545,45 +512,83 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
+                    <!-- Satuan & Spesifikasi -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                Satuan (UoM)
+                            <label class="block font-medium text-slate-700 text-xs mb-1">
+                                Satuan <span class="text-slate-400 text-[11px] font-normal">(UOM)</span>
                             </label>
-                            <input type="text" x-model="newComp.uom" placeholder="PCS / SET / BATANG" class="w-full px-3 py-1.5 border border-slate-300 rounded-xl font-bold text-slate-800">
+                            <input type="text" 
+                                   x-model="newComp.uom" 
+                                   placeholder="PCS / SET / BATANG" 
+                                   class="w-full px-3 py-2 border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl font-medium text-slate-800 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-slate-400 placeholder:font-normal transition uppercase">
                         </div>
                         <div>
-                            <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                Material / Spesifikasi
+                            <label class="block font-medium text-slate-700 text-xs mb-1">
+                                Material / Spesifikasi <span class="text-slate-400 text-[11px] font-normal">(opsional)</span>
                             </label>
-                            <input type="text" x-model="newComp.specification" placeholder="Contoh: Plat SPHC 6mm / Pipa Seamless..." class="w-full px-3 py-1.5 border border-slate-300 rounded-xl">
+                            <input type="text" 
+                                   x-model="newComp.specification" 
+                                   placeholder="Contoh: Plat SPHC 6mm / Pipa Seamless..." 
+                                   class="w-full px-3 py-2 border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl font-normal text-slate-800 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-slate-400 placeholder:font-normal transition">
                         </div>
                     </div>
 
                     <!-- Dimensi P x L x T -->
                     <div>
-                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">
-                            Ukuran Dimensi (Panjang x Lebar/Dia x Tebal/Tinggi) mm
+                        <label class="block font-medium text-slate-700 text-xs mb-1">
+                            Dimensi Ukuran <span class="text-slate-400 text-[11px] font-normal">(Panjang x Lebar x Tebal) mm - opsional</span>
                         </label>
                         <div class="grid grid-cols-3 gap-2">
-                            <input type="text" x-model="newComp.length_mm" placeholder="P (mm)" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-center font-bold">
-                            <input type="text" x-model="newComp.width_or_diameter_mm" placeholder="L / ⌀ (mm)" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-center font-bold">
-                            <input type="text" x-model="newComp.thickness_or_height_mm" placeholder="T (mm)" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-center font-bold">
+                            <div class="relative">
+                                <input type="text" 
+                                       x-model="newComp.length_mm" 
+                                       placeholder="0" 
+                                       class="w-full pl-3 pr-11 py-2 border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl font-mono text-slate-800 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none text-left transition">
+                                <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium select-none pointer-events-none">P (mm)</span>
+                            </div>
+                            <div class="relative">
+                                <input type="text" 
+                                       x-model="newComp.width_or_diameter_mm" 
+                                       placeholder="0" 
+                                       class="w-full pl-3 pr-11 py-2 border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl font-mono text-slate-800 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none text-left transition">
+                                <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium select-none pointer-events-none">L (mm)</span>
+                            </div>
+                            <div class="relative">
+                                <input type="text" 
+                                       x-model="newComp.thickness_or_height_mm" 
+                                       placeholder="0" 
+                                       class="w-full pl-3 pr-11 py-2 border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl font-mono text-slate-800 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none text-left transition">
+                                <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium select-none pointer-events-none">T (mm)</span>
+                            </div>
                         </div>
                     </div>
 
+                    <!-- Foto Komponen -->
                     <div>
-                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">
-                            Foto Komponen (Opsional)
+                        <label class="block font-medium text-slate-700 text-xs mb-1">
+                            Foto / Gambar Part <span class="text-slate-400 text-[11px] font-normal">(opsional)</span>
                         </label>
-                        <input type="file" @change="handleFileUpload($event)" accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                        <div class="flex items-center space-x-2">
+                            <label class="px-3 py-2 bg-slate-100 hover:bg-slate-200 active:scale-98 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 cursor-pointer flex items-center space-x-1.5 transition">
+                                <i class="fa-solid fa-camera text-slate-500"></i>
+                                <span>Pilih Gambar</span>
+                                <input type="file" @change="handleFileUpload($event)" accept="image/*" class="hidden">
+                            </label>
+                            <span class="text-[11px] text-slate-500 truncate flex-1 font-normal" x-text="newComp.file ? newComp.file.name : 'Belum ada gambar dipilih'"></span>
+                        </div>
                     </div>
 
+                    <!-- Footer Tombol -->
                     <div class="pt-3 border-t border-slate-100 flex items-center justify-end space-x-2">
-                        <button type="button" @click="showQuickAddModal = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">
+                        <button type="button" 
+                                @click="showQuickAddModal = false" 
+                                class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition cursor-pointer">
                             Batal
                         </button>
-                        <button type="submit" :disabled="isSubmittingNewComp" class="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white font-extrabold rounded-xl shadow-xs transition flex items-center space-x-1.5">
+                        <button type="submit" 
+                                :disabled="isSubmittingNewComp" 
+                                class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-98 text-white font-extrabold rounded-xl text-xs shadow-md shadow-amber-600/20 transition flex items-center space-x-1.5 cursor-pointer disabled:opacity-50">
                             <i class="fa-solid fa-spinner fa-spin" x-show="isSubmittingNewComp"></i>
                             <span x-text="isSubmittingNewComp ? 'Mendaftarkan...' : 'Simpan & Pilih Part'"></span>
                         </button>

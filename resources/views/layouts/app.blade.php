@@ -21,7 +21,7 @@
             [x-cloak] { display: none !important; }
         </style>
     </head>
-    <body class="font-sans antialiased bg-slate-100 text-slate-800 min-h-screen flex flex-col" 
+    <body class="font-sans antialiased bg-slate-100 text-slate-800 min-h-screen flex flex-col overflow-x-clip max-w-full" 
           x-data="globalApp()" 
           @open-global-scanner.window="openScanner()">
 
