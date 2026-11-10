@@ -352,7 +352,11 @@ class WorkRequest extends Model
      */
     public function getRoutingStepsList(): array
     {
-        $steps = $this->steps()->orderBy('step_number')->pluck('process_name')->toArray();
+        if ($this->relationLoaded('steps')) {
+            $steps = $this->steps->sortBy('step_number')->pluck('process_name')->toArray();
+        } else {
+            $steps = $this->steps()->orderBy('step_number')->pluck('process_name')->toArray();
+        }
         if (empty($steps) && !empty($this->routing_text)) {
             $parts = preg_split('/(->|-|,)/', $this->routing_text);
             $steps = array_values(array_filter(array_map('trim', $parts)));
@@ -367,6 +371,24 @@ class WorkRequest extends Model
     {
         $cleanTarget = strtolower(trim(preg_replace('/^Parsial\s*>\s*/i', '', $targetStatus)));
         $altTarget = strtolower(trim(preg_replace('/dept\s+/i', '', $cleanTarget)));
+
+        if ($this->relationLoaded('logs')) {
+            return (float) $this->logs
+                ->filter(function ($log) use ($cleanTarget, $altTarget) {
+                    if ($log->action_type === 'defect' || str_starts_with($log->status_label ?? '', 'Defect >')) {
+                        return false;
+                    }
+                    $statusLabel = strtolower($log->status_label ?? '');
+                    $notes = strtolower($log->notes ?? '');
+                    $matchClean = str_contains($statusLabel, $cleanTarget) || str_contains($notes, $cleanTarget);
+                    if ($matchClean) return true;
+                    if ($altTarget !== $cleanTarget) {
+                        return str_contains($statusLabel, $altTarget) || str_contains($notes, $altTarget);
+                    }
+                    return false;
+                })
+                ->sum('quantity');
+        }
 
         return (float) $this->logs()
             ->where(function ($q) use ($cleanTarget, $altTarget) {
@@ -435,33 +457,66 @@ class WorkRequest extends Model
             ? $totalReq
             : $this->getTotalProcessedForStatus("MH Pickup: " . ($steps[$stepIndex - 1] ?? ''));
 
-        // Defect pada tahapan pengerjaan mesin (sebelum atau saat Out)
-        $stepMachineDefects = (float) $this->logs()
-            ->where('action_type', 'defect')
-            ->where(function ($q) use ($stepName, $isLastStep) {
-                $q->where('status_label', 'like', "%{$stepName}%")
-                  ->orWhere('notes', 'like', "%{$stepName}%");
+        if ($this->relationLoaded('logs')) {
+            $stepMachineDefects = (float) $this->logs
+                ->filter(function ($log) use ($stepName, $isLastStep) {
+                    if ($log->action_type !== 'defect') return false;
+                    $status = strtolower($log->status_label ?? '');
+                    $notes = strtolower($log->notes ?? '');
+                    $stepLower = strtolower($stepName);
 
-                if ($isLastStep) {
-                    $q->orWhere('status_label', 'like', '%Siap Diambil%')
-                      ->orWhere('notes', 'like', '%Siap Diambil%');
-                }
-            })
-            ->where('status_label', 'not like', '%Pickup%')
-            ->where('status_label', 'not like', '%Menuju Pengaju%')
-            ->where('status_label', 'not like', '%Gudang%')
-            ->where('notes', 'not like', '%Pickup%')
-            ->where('notes', 'not like', '%Penerimaan Gudang%')
-            ->sum('quantity');
+                    $matchesStep = str_contains($status, $stepLower) || str_contains($notes, $stepLower);
+                    if (!$matchesStep && $isLastStep) {
+                        $matchesStep = str_contains($status, 'siap diambil') || str_contains($notes, 'siap diambil');
+                    }
+                    if (!$matchesStep) return false;
 
-        // Defect / barang hilang saat penjemputan MH pada mesin ini
-        $stepPickupDefects = (float) $this->logs()
-            ->where('action_type', 'defect')
-            ->where(function ($q) use ($stepName) {
-                $q->where('status_label', 'like', "%Pickup: {$stepName}%")
-                  ->orWhere('notes', 'like', "%Pickup: {$stepName}%");
-            })
-            ->sum('quantity');
+                    // Exclude pickup, menuju pengaju, gudang
+                    if (str_contains($status, 'pickup') || str_contains($status, 'menuju pengaju') || str_contains($status, 'gudang')) return false;
+                    if (str_contains($notes, 'pickup') || str_contains($notes, 'penerimaan gudang')) return false;
+
+                    return true;
+                })
+                ->sum('quantity');
+
+            $stepPickupDefects = (float) $this->logs
+                ->filter(function ($log) use ($stepName) {
+                    if ($log->action_type !== 'defect') return false;
+                    $status = strtolower($log->status_label ?? '');
+                    $notes = strtolower($log->notes ?? '');
+                    $needle = strtolower("pickup: {$stepName}");
+                    return str_contains($status, $needle) || str_contains($notes, $needle);
+                })
+                ->sum('quantity');
+        } else {
+            // Defect pada tahapan pengerjaan mesin (sebelum atau saat Out)
+            $stepMachineDefects = (float) $this->logs()
+                ->where('action_type', 'defect')
+                ->where(function ($q) use ($stepName, $isLastStep) {
+                    $q->where('status_label', 'like', "%{$stepName}%")
+                      ->orWhere('notes', 'like', "%{$stepName}%");
+
+                    if ($isLastStep) {
+                        $q->orWhere('status_label', 'like', '%Siap Diambil%')
+                          ->orWhere('notes', 'like', '%Siap Diambil%');
+                    }
+                })
+                ->where('status_label', 'not like', '%Pickup%')
+                ->where('status_label', 'not like', '%Menuju Pengaju%')
+                ->where('status_label', 'not like', '%Gudang%')
+                ->where('notes', 'not like', '%Pickup%')
+                ->where('notes', 'not like', '%Penerimaan Gudang%')
+                ->sum('quantity');
+
+            // Defect / barang hilang saat penjemputan MH pada mesin ini
+            $stepPickupDefects = (float) $this->logs()
+                ->where('action_type', 'defect')
+                ->where(function ($q) use ($stepName) {
+                    $q->where('status_label', 'like', "%Pickup: {$stepName}%")
+                      ->orWhere('notes', 'like', "%Pickup: {$stepName}%");
+                })
+                ->sum('quantity');
+        }
 
         $saldoIn = max(0, $totalSupply - $totalIn);
         $saldoOut = max(0, min($totalIn - $totalOut - $stepMachineDefects, $totalReq - $totalOut));
@@ -561,14 +616,25 @@ class WorkRequest extends Model
                     }
                 } else {
                     $totalMenuju = $this->getTotalProcessedForStatus('Menuju Pengaju');
-                    $finalPickupDefects = (float) $this->logs()
-                        ->where('action_type', 'defect')
-                        ->where(function ($q) {
-                            $q->where('status_label', 'like', '%Menuju Pengaju%')
-                              ->orWhere('status_label', 'like', '%Pickup Final%')
-                              ->orWhere('notes', 'like', '%Menuju Pengaju%');
-                        })
-                        ->sum('quantity');
+                    if ($this->relationLoaded('logs')) {
+                        $finalPickupDefects = (float) $this->logs
+                            ->filter(function ($log) {
+                                if ($log->action_type !== 'defect') return false;
+                                $status = strtolower($log->status_label ?? '');
+                                $notes = strtolower($log->notes ?? '');
+                                return str_contains($status, 'menuju pengaju') || str_contains($status, 'pickup final') || str_contains($notes, 'menuju pengaju');
+                            })
+                            ->sum('quantity');
+                    } else {
+                        $finalPickupDefects = (float) $this->logs()
+                            ->where('action_type', 'defect')
+                            ->where(function ($q) {
+                                $q->where('status_label', 'like', '%Menuju Pengaju%')
+                                  ->orWhere('status_label', 'like', '%Pickup Final%')
+                                  ->orWhere('notes', 'like', '%Menuju Pengaju%');
+                            })
+                            ->sum('quantity');
+                    }
 
                     $waitingFinal = max(0, $bal['total_out'] - $totalMenuju - $finalPickupDefects);
                     if ($waitingFinal > 0) {
@@ -593,15 +659,26 @@ class WorkRequest extends Model
         if ($isPengajuUser) {
             $totalMenuju = $this->getTotalProcessedForStatus('Menuju Pengaju');
             $totalSudah = (float) $this->quantity_received ?: $this->getTotalProcessedForStatus('Sudah diambil');
-            $gudangDefects = (float) $this->logs()
-                ->where('action_type', 'defect')
-                ->where(function ($q) {
-                    $q->where('status_label', 'like', '%Sudah Diambil%')
-                      ->orWhere('status_label', 'like', '%Gudang%')
-                      ->orWhere('notes', 'like', '%Sudah Diambil%')
-                      ->orWhere('notes', 'like', '%Penerimaan Gudang%');
-                })
-                ->sum('quantity');
+            if ($this->relationLoaded('logs')) {
+                $gudangDefects = (float) $this->logs
+                    ->filter(function ($log) {
+                        if ($log->action_type !== 'defect') return false;
+                        $status = strtolower($log->status_label ?? '');
+                        $notes = strtolower($log->notes ?? '');
+                        return str_contains($status, 'sudah diambil') || str_contains($status, 'gudang') || str_contains($notes, 'sudah diambil') || str_contains($notes, 'penerimaan gudang');
+                    })
+                    ->sum('quantity');
+            } else {
+                $gudangDefects = (float) $this->logs()
+                    ->where('action_type', 'defect')
+                    ->where(function ($q) {
+                        $q->where('status_label', 'like', '%Sudah Diambil%')
+                          ->orWhere('status_label', 'like', '%Gudang%')
+                          ->orWhere('notes', 'like', '%Sudah Diambil%')
+                          ->orWhere('notes', 'like', '%Penerimaan Gudang%');
+                    })
+                    ->sum('quantity');
+            }
 
             // Gerbang Wajib: Gudang HANYA boleh menerima barang jika barang SUDAH DI-PICKUP MH dan sedang dalam perjalanan ('Menuju Pengaju')
             $saldoTerima = max(0, $totalMenuju - $totalSudah - $gudangDefects);
@@ -691,15 +768,26 @@ class WorkRequest extends Model
 
             $totalMenuju = $this->getTotalProcessedForStatus('Menuju Pengaju');
             $totalSudah = (float) $this->quantity_received ?: $this->getTotalProcessedForStatus('Sudah diambil');
-            $gudangDefects = (float) $this->logs()
-                ->where('action_type', 'defect')
-                ->where(function ($q) {
-                    $q->where('status_label', 'like', '%Sudah Diambil%')
-                      ->orWhere('status_label', 'like', '%Gudang%')
-                      ->orWhere('notes', 'like', '%Sudah Diambil%')
-                      ->orWhere('notes', 'like', '%Penerimaan Gudang%');
-                })
-                ->sum('quantity');
+            if ($this->relationLoaded('logs')) {
+                $gudangDefects = (float) $this->logs
+                    ->filter(function ($log) {
+                        if ($log->action_type !== 'defect') return false;
+                        $status = strtolower($log->status_label ?? '');
+                        $notes = strtolower($log->notes ?? '');
+                        return str_contains($status, 'sudah diambil') || str_contains($status, 'gudang') || str_contains($notes, 'sudah diambil') || str_contains($notes, 'penerimaan gudang');
+                    })
+                    ->sum('quantity');
+            } else {
+                $gudangDefects = (float) $this->logs()
+                    ->where('action_type', 'defect')
+                    ->where(function ($q) {
+                        $q->where('status_label', 'like', '%Sudah Diambil%')
+                          ->orWhere('status_label', 'like', '%Gudang%')
+                          ->orWhere('notes', 'like', '%Sudah Diambil%')
+                          ->orWhere('notes', 'like', '%Penerimaan Gudang%');
+                    })
+                    ->sum('quantity');
+            }
 
             if (($totalMenuju - $totalSudah - $gudangDefects) > 0) {
                 return "Sudah Diambil";
@@ -894,6 +982,9 @@ class WorkRequest extends Model
      */
     public function getPrintCountAttribute(): int
     {
+        if ($this->relationLoaded('logs')) {
+            return $this->logs->where('action_type', 'printed')->count();
+        }
         return $this->logs()->where('action_type', 'printed')->count();
     }
 

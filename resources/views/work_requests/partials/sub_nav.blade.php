@@ -9,7 +9,7 @@
 @endphp
 
 <!-- WRI SEGMENTED SUB-NAVIGATION CARD (ELEVATED WHITE PILL CONTAINER - ADAPTIVE COLLAPSIBLE) -->
-<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 border-b border-slate-200/80 pb-3 sm:pb-4 w-full">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 border-b border-slate-200/80 pb-3 sm:pb-4 w-full" data-turbo="false">
     <!-- Left: Segmented Tabs Container (w-fit shrink-0 to prevent stretching in tablet/mobile) -->
     <div class="bg-white p-1 sm:p-1.5 rounded-2xl border border-slate-200/80 shadow-xs sm:shadow-sm inline-flex items-center gap-1 sm:gap-1.5 w-fit shrink-0 max-w-full overflow-x-auto no-scrollbar">
         <!-- Tab 1: Antrean WRI -->

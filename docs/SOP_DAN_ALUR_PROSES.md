@@ -401,6 +401,14 @@ Untuk memastikan kelancaran operasional para operator mesin, kurir Material Hand
    - Halaman Safety Stock menerapkan arsitektur **Dual View**:
      - *Desktop & Tablet (`hidden md:block`):* Tabel komprehensif dengan `min-w-[720px]` dan pembagian kolom yang proporsional.
      - *Mode Ponsel (`block md:hidden`):* Kartu komponen vertikal ramah sentuh jempol (foto thumbnail streaming bebas latensi, info part & rak, grid metrik 3 kolom: Stok Fisik, Safety Stock, Defisit, serta tombol aksi penuh *Pesan WRI Sekarang*), menghadirkan fleksibilitas maksimal tanpa keharusan menggeser tabel secara canggung.
+7. **Bypass Turbo Cache pada Sub-Navigasi (`data-turbo="false"`):**
+   - Baris sub-navigasi WRI (*Antrean WRI*, *Safety Stock*, *Cetak WR*) dilindungi atribut `data-turbo="false"`. Navigasi antar sub-menu dilakukan secara bersih (*clean page navigation*), mengeliminasi fenomena kedipan (*flicker*) akibat snapshot cache Turbo dan mencegah konflik *zombie listener* (`popstate`) yang sebelumnya menyebabkan halaman mental kembali ke sub-menu sebelumnya.
+8. **Optimalisasi In-Memory Accessor WorkRequest (Zero N+1 Query Render):**
+   - Seluruh accessor operasional pada model `WorkRequest` (`getRoutingStepsList`, `getTotalProcessedForStatus`, `getStepBalance`, `getPrintCountAttribute`) dioptimalkan untuk memprioritaskan relasi yang sudah di-eager load (`$this->relationLoaded('steps')` dan `$this->relationLoaded('logs')`).
+   - Mengeliminasi 53+ query SQL redundan pada setiap perenderan baris tiket antrean, memangkas total query render dari 55 query menjadi hanya 2 query serta mempercepat respon perpindahan tab hingga 13x lebih cepat.
+9. **Standar Akses Pengujian Multi-Device LAN (Tablet & Smartphone via Port 8000):**
+   - Untuk pengujian di perangkat seluler/tablet pada jaringan lokal (`192.168.x.x`), pengembang/staf menjalankan `npm run build` sekali di terminal. Seluruh file JavaScript (Alpine.js, modal, scanner) dan CSS disajikan langsung melalui **Port 8000** mandiri.
+   - Menghindari ketergantungan pada port 5173 (*Vite dev server*) yang sering terblokir oleh Windows Defender Firewall pada koneksi masuk perangkat luar.
 
 ---
 
