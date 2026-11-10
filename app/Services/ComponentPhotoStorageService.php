@@ -15,7 +15,6 @@ class ComponentPhotoStorageService
     public const SUPPORTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'svg'];
 
     /**
-<<<<<<< HEAD
      * Get candidate extensions including uppercase variants for Linux case-sensitive filesystems.
      */
     public function getCandidateExtensions(): array
@@ -26,32 +25,6 @@ class ComponentPhotoStorageService
             $exts[] = strtoupper($ext);
         }
         return array_values(array_unique($exts));
-    }
-
-    /**
-     * Get the primary external storage directory (e.g. D:\Ali Magang\KOMPONEN or /mnt/nas-gudang/Gudang Komponen In House).
-=======
-     * Get the primary external storage directory (e.g. Z:\... or D:\Ali Magang\KOMPONEN).
->>>>>>> defed8d474e0865244c9936e9b6e0b3dc351beff
-     */
-    public function getExternalDirectory(): string
-    {
-        $dir = '';
-        if (function_exists('config') && app()->has('config')) {
-<<<<<<< HEAD
-            $dir = config('services.components.photo_dir') ?: env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN');
-        } else {
-            $dir = env('COMPONENT_EXTERNAL_PHOTO_DIR', 'D:\Ali Magang\KOMPONEN');
-        }
-
-        $dir = trim((string)$dir, " \t\n\r\0\x0B\"'");
-
-        // Normalisasi path Linux jika pengguna menulis mnt/... tanpa leading slash
-        if (!empty($dir) && !str_starts_with($dir, '/') && !preg_match('/^[a-zA-Z]:/', $dir) && str_starts_with($dir, 'mnt/')) {
-            $dir = '/' . $dir;
-        }
-
-        return $dir;
     }
 
     /**
@@ -70,11 +43,28 @@ class ComponentPhotoStorageService
 
         $cleanPath = ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), '\\/');
         return $cleanPath ? rtrim($base, '\\/') . DIRECTORY_SEPARATOR . $cleanPath : $base;
-=======
-            return config('services.components.photo_dir') ?: env('COMPONENT_EXTERNAL_PHOTO_DIR', 'Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House');
+    }
+
+    /**
+     * Get the primary external storage directory (e.g. Z:\... or D:\Ali Magang\KOMPONEN or /mnt/nas-gudang/...).
+     */
+    public function getExternalDirectory(): string
+    {
+        $dir = '';
+        if (function_exists('config') && app()->has('config')) {
+            $dir = config('services.components.photo_dir') ?: env('COMPONENT_EXTERNAL_PHOTO_DIR', 'Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House');
+        } else {
+            $dir = env('COMPONENT_EXTERNAL_PHOTO_DIR', 'Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House');
         }
-        return env('COMPONENT_EXTERNAL_PHOTO_DIR', 'Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House');
->>>>>>> defed8d474e0865244c9936e9b6e0b3dc351beff
+
+        $dir = trim((string)$dir, " \t\n\r\0\x0B\"'");
+
+        // Normalisasi path Linux jika pengguna menulis mnt/... tanpa leading slash
+        if (!empty($dir) && !str_starts_with($dir, '/') && !preg_match('/^[a-zA-Z]:/', $dir) && !str_starts_with($dir, '\\\\') && str_starts_with($dir, 'mnt/')) {
+            $dir = '/' . $dir;
+        }
+
+        return $dir;
     }
 
     /**
@@ -180,58 +170,75 @@ class ComponentPhotoStorageService
 
         $cleanPn = $this->sanitizePartNumber($partNumber);
         $rawPn = trim($partNumber);
+        $condensedPn = preg_replace('/[^a-zA-Z0-9]/', '', $partNumber);
         $candidateExts = $this->getCandidateExtensions();
 
-<<<<<<< HEAD
-        // Variasi nama file yang mungkin tersimpan di folder NAS (sanitasi, raw, upper, lower)
+        // Variasi nama file yang mungkin tersimpan di folder NAS (sanitasi, raw, condensed, upper, lower)
         $candidateNames = array_values(array_unique(array_filter([
             $cleanPn,
             $rawPn,
+            $condensedPn,
             strtoupper($cleanPn),
             strtolower($cleanPn),
             strtoupper($rawPn),
             strtolower($rawPn),
+            strtoupper($condensedPn),
+            strtolower($condensedPn),
         ])));
 
-        // 1. Cek folder eksternal / NAS (Prioritas Utama, misal: /mnt/nas-gudang/Gudang Komponen In House)
-=======
-        // 1. Cek folder eksternal utama (Prioritas Utama, misal Drive Z:)
->>>>>>> defed8d474e0865244c9936e9b6e0b3dc351beff
+        // 1. Cek folder eksternal utama (Prioritas Utama, misal Drive Z: atau UNC \\192.168.1.150\...)
         $extDir = $this->getExternalDirectory();
-        if (!empty($extDir) && file_exists($extDir)) {
-            $extDirTrimmed = rtrim($extDir, '\\/');
-            foreach ($candidateNames as $name) {
-                foreach ($candidateExts as $ext) {
-                    $fullPath = $extDirTrimmed . DIRECTORY_SEPARATOR . "{$name}.{$ext}";
-                    if (file_exists($fullPath) && filesize($fullPath) > 50) {
-                        return realpath($fullPath) ?: $fullPath;
-                    }
-                }
-            }
-
-            // Cek jika imagePath di database merupakan nama file langsung yang ada di NAS
-            if ($imagePath && !str_starts_with($imagePath, 'http')) {
-                $baseImg = basename($imagePath);
-                $directExtPath = $extDirTrimmed . DIRECTORY_SEPARATOR . $baseImg;
-                if (file_exists($directExtPath) && filesize($directExtPath) > 50) {
-                    return realpath($directExtPath) ?: $directExtPath;
+        $externalDirsToCheck = [];
+        if (!empty($extDir)) {
+            $externalDirsToCheck[] = $extDir;
+            // Jika path berupa Z:\, tambahkan padanan UNC path \\192.168.1.150\... sebagai fallback otomatis di Windows
+            if (preg_match('/^[zZ]:/i', $extDir)) {
+                $uncDir = preg_replace('/^[zZ]:/i', '\\\\192.168.1.150\\HPK_Eng_Online', $extDir);
+                if (!in_array($uncDir, $externalDirsToCheck, true)) {
+                    $externalDirsToCheck[] = $uncDir;
                 }
             }
         }
 
-        // 1b. Fallback Cadangan Fisik Lokal (D:\Ali Magang\KOMPONEN jika folder Z tidak terjangkau)
+        foreach ($externalDirsToCheck as $dir) {
+            if (file_exists($dir)) {
+                $dirTrimmed = rtrim($dir, '\\/');
+                foreach ($candidateNames as $name) {
+                    foreach ($candidateExts as $ext) {
+                        $fullPath = $dirTrimmed . DIRECTORY_SEPARATOR . "{$name}.{$ext}";
+                        if (file_exists($fullPath) && filesize($fullPath) > 50) {
+                            return realpath($fullPath) ?: $fullPath;
+                        }
+                    }
+                }
+
+                // Cek jika imagePath di database merupakan nama file langsung yang ada di NAS
+                if ($imagePath && !str_starts_with($imagePath, 'http')) {
+                    $baseImg = basename($imagePath);
+                    $directExtPath = $dirTrimmed . DIRECTORY_SEPARATOR . $baseImg;
+                    if (file_exists($directExtPath) && filesize($directExtPath) > 50) {
+                        return realpath($directExtPath) ?: $directExtPath;
+                    }
+                }
+            }
+        }
+
+        // 1b. Fallback Cadangan Fisik Lokal (D:\Ali Magang\KOMPONEN jika folder Z tidak terjangkau / offline)
         $localBackupDir = 'D:\Ali Magang\KOMPONEN';
-        if ($extDir !== $localBackupDir && file_exists($localBackupDir)) {
-            foreach (self::SUPPORTED_EXTENSIONS as $ext) {
-                $backupPath = rtrim($localBackupDir, '\\/') . DIRECTORY_SEPARATOR . "{$cleanPn}.{$ext}";
-                if (file_exists($backupPath) && filesize($backupPath) > 50) {
-                    return $backupPath;
+        if (!in_array($localBackupDir, $externalDirsToCheck, true) && file_exists($localBackupDir)) {
+            $localTrimmed = rtrim($localBackupDir, '\\/');
+            foreach ($candidateNames as $name) {
+                foreach ($candidateExts as $ext) {
+                    $backupPath = $localTrimmed . DIRECTORY_SEPARATOR . "{$name}.{$ext}";
+                    if (file_exists($backupPath) && filesize($backupPath) > 50) {
+                        return realpath($backupPath) ?: $backupPath;
+                    }
                 }
             }
         }
 
         // 2. Cek folder cermin lokal public/uploads/components/
-        $candidateMirrorNames = array_values(array_unique(array_filter([$cleanPn, $rawPn])));
+        $candidateMirrorNames = array_values(array_unique(array_filter([$cleanPn, $rawPn, $condensedPn])));
         foreach ($candidateMirrorNames as $name) {
             foreach ($candidateExts as $ext) {
                 $localRel = "uploads/components/{$name}.{$ext}";

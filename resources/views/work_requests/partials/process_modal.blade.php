@@ -64,13 +64,8 @@
                 <!-- Tiket & Info Komponen Ringkas -->
                 <div class="mt-3 p-2.5 bg-slate-50 border border-slate-200/70 rounded-2xl flex items-center justify-between text-xs">
                     <div class="min-w-0 flex-1 pr-2">
-                        <div class="flex items-center space-x-1.5">
-                            <span class="text-[10px] font-mono font-black uppercase text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/60" x-text="processData.wriNumber"></span>
-                            <template x-if="processData.assignedOperator">
-                                <span class="text-[10px] text-slate-500 font-medium truncate">
-                                    Op: <strong class="text-slate-800" x-text="processData.assignedOperator"></strong>
-                                </span>
-                            </template>
+                        <div>
+                            <span class="text-[10px] font-mono font-black uppercase text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/60 inline-block truncate max-w-full" x-text="processData.wriNumber"></span>
                         </div>
                         <div class="font-bold text-slate-800 text-xs truncate mt-1" x-text="processData.componentName"></div>
                     </div>
@@ -84,15 +79,30 @@
                     </div>
                 </div>
 
-                <!-- Breadcrumb Alur Mini Satu Baris -->
-                <div class="mt-2 flex items-center justify-between text-[11px] px-1 text-slate-500">
-                    <span class="truncate max-w-[45%]" x-text="processData.currentStatus || 'Dalam antrian'"></span>
-                    <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 mx-1"></i>
-                    <span class="font-extrabold truncate max-w-[50%]"
-                          :class="processData.nextStatus.includes('Sudah Diambil') ? 'text-emerald-700' : 
-                                 (processData.nextStatus.includes('MH Pickup') || processData.nextStatus.includes('Menuju Pengaju') ? 'text-amber-700' : 
-                                 (processData.nextStatus.includes('(In)') ? 'text-teal-700' : 'text-indigo-700'))"
-                          x-text="processData.nextStatus"></span>
+                <!-- Workflow Transition Strip (Alur Pergerakan Tiket) -->
+                <div class="mt-2.5 p-2 bg-slate-50/90 border border-slate-200/70 rounded-xl flex items-center justify-between gap-1.5">
+                    <!-- Sisi Asal (Status Saat Ini) -->
+                    <div class="min-w-0 flex-1 flex items-center space-x-1.5 px-2.5 py-1 bg-white border border-slate-200/80 rounded-lg shadow-2xs">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400 flex-shrink-0"></span>
+                        <span class="text-[10px] text-slate-600 font-medium truncate" x-text="processData.currentStatus || 'Dalam antrian'"></span>
+                    </div>
+
+                    <!-- Indikator Transisi -->
+                    <div class="w-5 h-5 rounded-full bg-slate-200/70 text-slate-500 flex items-center justify-center flex-shrink-0 text-[9px]">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+
+                    <!-- Sisi Target (Langkah Berikutnya) -->
+                    <div class="min-w-0 flex-1 flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border shadow-2xs"
+                         :class="processData.nextStatus.includes('Sudah Diambil') ? 'bg-emerald-50/90 border-emerald-200 text-emerald-800' : 
+                                (processData.nextStatus.includes('MH Pickup') || processData.nextStatus.includes('Menuju Pengaju') ? 'bg-amber-50/90 border-amber-200 text-amber-800' : 
+                                (processData.nextStatus.includes('(In)') ? 'bg-teal-50/90 border-teal-200 text-teal-800' : 'bg-indigo-50/90 border-indigo-200 text-indigo-800'))">
+                        <i class="text-[10px] flex-shrink-0"
+                           :class="processData.nextStatus.includes('Sudah Diambil') ? 'fa-solid fa-warehouse text-emerald-600' : 
+                                  (processData.nextStatus.includes('MH Pickup') || processData.nextStatus.includes('Menuju Pengaju') ? 'fa-solid fa-truck-ramp-box text-amber-600' : 
+                                  (processData.nextStatus.includes('(In)') ? 'fa-solid fa-play text-teal-600' : 'fa-solid fa-check text-indigo-600'))"></i>
+                        <span class="text-[10px] font-extrabold truncate" x-text="processData.nextStatus"></span>
+                    </div>
                 </div>
             </div>
 
@@ -105,22 +115,49 @@
 
                 <!-- KASUS A: PROSES MASUK / (In) - KUANTITAS TERKUNCI & BERSIH -->
                 <template x-if="processData.nextStatus.includes('(In)')">
-                    <div class="space-y-3">
-                        <div class="p-4 bg-teal-50/70 border border-teal-200 rounded-2xl text-center space-y-1.5">
+                    <div class="space-y-3" x-data="{ showTip: false }">
+                        <div class="p-4 bg-teal-50/70 border border-teal-200 rounded-2xl text-center space-y-2">
                             <span class="text-[10px] font-extrabold text-teal-800 uppercase tracking-wider block">Kuantitas Masuk Mesin</span>
                             <div class="flex items-center justify-center space-x-2">
                                 <span class="text-3xl font-black text-teal-950 font-mono" x-text="processData.remainingQty"></span>
                                 <span class="text-xs font-extrabold text-teal-700" x-text="processData.uom"></span>
                             </div>
-                            <div class="inline-flex items-center space-x-1.5 px-3 py-1 bg-teal-100/90 text-teal-800 text-[10px] font-bold rounded-full">
-                                <i class="fa-solid fa-lock text-[9px]"></i>
-                                <span>Terkunci Penuh (Tahap Awal Pengerjaan)</span>
+
+                            <!-- Badge Terkunci Penuh + Tooltip Interaktif (i) -->
+                            <div class="relative inline-flex items-center justify-center">
+                                <div class="inline-flex items-center space-x-1.5 px-3 py-1 bg-teal-100/90 text-teal-800 text-[10px] font-bold rounded-full">
+                                    <i class="fa-solid fa-lock text-[9px]"></i>
+                                    <span>Terkunci Penuh (Tahap Awal Pengerjaan)</span>
+                                </div>
+
+                                <!-- Tombol Ikon (i) -->
+                                <button type="button" 
+                                        @mouseenter="showTip = true" 
+                                        @mouseleave="showTip = false" 
+                                        @click.stop="showTip = !showTip" 
+                                        @click.outside="showTip = false"
+                                        class="ms-1.5 w-5 h-5 rounded-full bg-teal-200/80 hover:bg-teal-300 text-teal-800 text-[10px] flex items-center justify-center transition cursor-pointer shadow-2xs"
+                                        aria-label="Informasi Pengerjaan">
+                                    <i class="fa-solid fa-info font-bold"></i>
+                                </button>
+
+                                <!-- Popover Tooltip Melayang -->
+                                <div x-show="showTip" 
+                                     x-cloak 
+                                     x-transition:enter="transition ease-out duration-150"
+                                     x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                                     x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                     x-transition:leave="transition ease-in duration-100"
+                                     x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                     x-transition:leave-end="opacity-0 translate-y-1 scale-95"
+                                     class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 p-2.5 bg-slate-900 text-white text-[11px] font-normal leading-snug rounded-xl shadow-xl z-30 pointer-events-none text-center border border-slate-700">
+                                    <span>Seluruh unit diproses mesin. Input kuantitas hasil dan defect/reject diisi saat proses selesai (Out).</span>
+                                    <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-900"></div>
+                                </div>
                             </div>
+
                             <input type="hidden" name="process_qty" :value="processData.remainingQty">
                         </div>
-                        <p class="text-[11px] text-slate-500 leading-relaxed text-center px-2">
-                            <i class="fa-solid fa-circle-info text-teal-600 me-0.5"></i> Seluruh unit diproses mesin. Input kuantitas hasil dan defect/reject diisi saat proses selesai (Out).
-                        </p>
                     </div>
                 </template>
 
@@ -256,16 +293,16 @@
                     </div>
                 </template>
 
-                <!-- Catatan Proses / Shift (Opsional & Bersih) -->
+                <!-- Catatan Proses / Shift (Opsional & Tipis) -->
                 <div>
-                    <label class="block font-bold text-slate-500 uppercase tracking-wider text-[10px] mb-1">
-                        Catatan Proses <span class="font-normal text-slate-400 lowercase">(opsional)</span>
+                    <label class="block text-slate-500 text-xs font-normal mb-1">
+                        Catatan <span class="text-slate-400 text-[11px]">(opsional)</span>
                     </label>
                     <input type="text" 
                            name="notes" 
                            x-model="processData.notes" 
-                           placeholder="Catatan pengerjaan mesin, shift, atau kondisi material..." 
-                           class="w-full px-3 py-2 text-xs border border-slate-200 bg-slate-50 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium text-slate-800 transition">
+                           placeholder="Tambahkan catatan jika perlu..." 
+                           class="w-full px-3 py-2 text-xs border border-slate-200 bg-slate-50 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-normal text-slate-800 placeholder:text-slate-400 transition">
                 </div>
 
                 <!-- Footer Tombol Aksi Simetris -->

@@ -393,11 +393,24 @@
                                 </div>
                             </div>
 
-                            <!-- Breadcrumb Alur Mini Satu Baris -->
-                            <div class="mt-2 flex items-center justify-between text-[11px] px-1 text-slate-500">
-                                <span class="truncate max-w-[45%]">{{ $workRequest->status ?: 'Dalam antrian' }}</span>
-                                <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 mx-1"></i>
-                                <span class="font-extrabold truncate max-w-[50%] text-indigo-700">{{ $nextStatus }}</span>
+                            <!-- Workflow Transition Strip (Alur Pergerakan Tiket) -->
+                            <div class="mt-2.5 p-2 bg-slate-50/90 border border-slate-200/70 rounded-xl flex items-center justify-between gap-1.5">
+                                <!-- Sisi Asal (Status Saat Ini) -->
+                                <div class="min-w-0 flex-1 flex items-center space-x-1.5 px-2.5 py-1 bg-white border border-slate-200/80 rounded-lg shadow-2xs">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400 flex-shrink-0"></span>
+                                    <span class="text-[10px] text-slate-600 font-medium truncate">{{ $workRequest->status ?: 'Dalam antrian' }}</span>
+                                </div>
+
+                                <!-- Indikator Transisi -->
+                                <div class="w-5 h-5 rounded-full bg-slate-200/70 text-slate-500 flex items-center justify-center flex-shrink-0 text-[9px]">
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </div>
+
+                                <!-- Sisi Target (Langkah Berikutnya) -->
+                                <div class="min-w-0 flex-1 flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border shadow-2xs {{ stripos($nextStatus, 'Sudah Diambil') !== false ? 'bg-emerald-50/90 border-emerald-200 text-emerald-800' : (stripos($nextStatus, 'Pickup') !== false || stripos($nextStatus, 'Menuju Pengaju') !== false ? 'bg-amber-50/90 border-amber-200 text-amber-800' : (stripos($nextStatus, '(In)') !== false ? 'bg-teal-50/90 border-teal-200 text-teal-800' : 'bg-indigo-50/90 border-indigo-200 text-indigo-800')) }}">
+                                    <i class="text-[10px] flex-shrink-0 {{ stripos($nextStatus, 'Sudah Diambil') !== false ? 'fa-solid fa-warehouse text-emerald-600' : (stripos($nextStatus, 'Pickup') !== false || stripos($nextStatus, 'Menuju Pengaju') !== false ? 'fa-solid fa-truck-ramp-box text-amber-600' : (stripos($nextStatus, '(In)') !== false ? 'fa-solid fa-play text-teal-600' : 'fa-solid fa-check text-indigo-600')) }}"></i>
+                                    <span class="text-[10px] font-extrabold truncate">{{ $nextStatus }}</span>
+                                </div>
                             </div>
                         </div>
 
@@ -529,14 +542,14 @@
                                            class="w-full px-2.5 py-1.5 text-xs border border-slate-200 bg-slate-50 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800">
                                 </div>
                                 <div>
-                                    <label class="block font-bold text-slate-500 uppercase tracking-wider text-[10px] mb-1">
-                                        Catatan <span class="font-normal text-slate-400 lowercase">(opsional)</span>:
+                                    <label class="block text-slate-500 text-xs font-normal mb-1">
+                                        Catatan <span class="text-slate-400 text-[11px]">(opsional)</span>
                                     </label>
                                     <input type="text" 
                                            name="notes" 
                                            x-model="notes" 
-                                           placeholder="Catatan pengerjaan..." 
-                                           class="w-full px-2.5 py-1.5 text-xs border border-slate-200 bg-slate-50 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800">
+                                           placeholder="Tambahkan catatan jika perlu..." 
+                                           class="w-full px-2.5 py-1.5 text-xs border border-slate-200 bg-slate-50 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 font-normal text-slate-800 placeholder:text-slate-400 transition">
                                 </div>
                             </div>
                         </div>
