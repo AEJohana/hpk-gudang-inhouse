@@ -222,7 +222,8 @@ Pop-up modal input kuantitas pengerjaan dan serah terima (`process_modal.blade.p
 6. **Smart Defect Drawer (Opsional & Dapat Dilipat):** Tombol toggle `[+ Ada Defect / Rusak? (Opsional)]` menyembunyikan form defect jika tidak ada reject (90%+ kondisi normal). Jika dibuka, menyediakan input kuantitas defect dan alasan secara kompak dengan kalkulasi otomatis pemotongan kuota.
 7. **Penguncian Tahap Mesin Masuk `(In)` & Popover Tooltip `(i)`:** Kuantitas otomatis terkunci penuh dengan lencana gembok. Paragraf penjelasan panjang dialihkan ke dalam tombol ikon info interaktif `(i)` dengan tooltip melayang (*hover & click popover*) di samping teks *Terkunci Penuh*, menjaga tinggi modal tetap ramping.
 8. **Catatan Proses Minimalis:** Label catatan proses menggunakan tipografi tipis normal `Catatan (opsional)` dengan placeholder ringkas `Tambahkan catatan jika perlu...`.
-9. **Integritas Fungsi & Zero Regression:** Seluruh 7 parameter form (`action_type`, `target_status`, `operator_name`, `process_qty`, `defect_qty`, `defect_reason`, `notes`), route aksi, dan validasi database tetap berjalan 100% identik tanpa perubahan logika backend.
+9. **Logistics Route Strip pada Modal Verifikasi Ambil MH (`work_station_supplies/index.blade.php`):** Rute penjemputan komponen logistik (`Asal → Tujuan`) dipisahkan ke dalam kontainer alur tersendiri dengan penanda titik asal (`📍 Asal`), bulatan transisi kurir, dan target pengantaran (`🎯 Tujuan`) secara simetris, mengeliminasi masalah tumpang tindih teks rute dengan nomor tiket WRI.
+10. **Integritas Fungsi & Zero Regression:** Seluruh parameter form (`action_type`, `target_status`, `work_request_id`, `process_qty`, `defect_qty`, `defect_reason`, `notes`), route aksi, dan validasi database tetap berjalan 100% identik tanpa perubahan logika backend.
 
 ---
 

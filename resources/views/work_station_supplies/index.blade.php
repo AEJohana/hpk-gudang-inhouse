@@ -880,15 +880,42 @@
                         <!-- Tiket & Info Komponen Ringkas -->
                         <div class="mt-3 p-2.5 bg-slate-50 border border-slate-200/70 rounded-2xl flex items-center justify-between text-xs">
                             <div class="min-w-0 flex-1 pr-2">
-                                <div class="flex items-center space-x-1.5">
-                                    <span class="text-[10px] font-mono font-black uppercase text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/60" x-text="activeItem?.wri_number"></span>
-                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="activeItem?.target_status"></span>
+                                <div>
+                                    <span class="text-[10px] font-mono font-black uppercase text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/60 inline-block truncate max-w-full" x-text="activeItem?.wri_number"></span>
                                 </div>
                                 <div class="font-bold text-slate-800 text-xs truncate mt-1" x-text="activeItem?.component_name"></div>
                             </div>
                             <div class="text-right flex-shrink-0">
-                                <span class="text-[10px] text-slate-400 font-medium block">Rute:</span>
-                                <span class="text-[11px] font-bold text-slate-700" x-text="(activeItem?.origin || activeItem?.location || '-') + ' → ' + (activeItem?.destination || '-')"></span>
+                                <span class="text-[10px] text-slate-400 font-mono block" x-text="activeItem?.part_number"></span>
+                                <template x-if="activeItem?.target_status">
+                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200/80 inline-block mt-0.5" x-text="activeItem?.target_status"></span>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Logistics Route Strip (Rute Penjemputan Kurir MH) -->
+                        <div class="mt-2.5 p-2 bg-slate-50/90 border border-slate-200/70 rounded-xl flex items-center justify-between gap-1.5">
+                            <!-- Titik Asal (Pickup Point) -->
+                            <div class="min-w-0 flex-1 flex items-center space-x-1.5 px-2.5 py-1 bg-white border border-slate-200/80 rounded-lg shadow-2xs">
+                                <i class="fa-solid fa-location-dot text-rose-500 text-[10px] flex-shrink-0"></i>
+                                <div class="min-w-0 flex-1">
+                                    <span class="text-[9px] text-slate-400 uppercase font-bold block leading-none">Asal</span>
+                                    <span class="text-[11px] font-bold text-slate-800 truncate block mt-0.5" x-text="activeItem?.origin || activeItem?.location || '-'"></span>
+                                </div>
+                            </div>
+
+                            <!-- Indikator Transisi Logistik Kurir -->
+                            <div class="w-6 h-6 rounded-full bg-amber-100/90 border border-amber-200/80 text-amber-800 flex items-center justify-center flex-shrink-0 text-[10px] shadow-2xs" title="Kurir Material Handling">
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </div>
+
+                            <!-- Titik Tujuan (Drop/Delivery Point) -->
+                            <div class="min-w-0 flex-1 flex items-center space-x-1.5 px-2.5 py-1 bg-blue-50/90 border border-blue-200/80 rounded-lg shadow-2xs">
+                                <i class="fa-solid fa-bullseye text-blue-600 text-[10px] flex-shrink-0"></i>
+                                <div class="min-w-0 flex-1">
+                                    <span class="text-[9px] text-blue-500 uppercase font-bold block leading-none">Tujuan</span>
+                                    <span class="text-[11px] font-extrabold text-blue-900 truncate block mt-0.5" x-text="activeItem?.destination || '-'"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1007,13 +1034,13 @@
 
                         <!-- Catatan Kurir Logistik -->
                         <div>
-                            <label class="block font-bold text-slate-500 uppercase tracking-wider text-[10px] mb-1">
-                                Catatan Kurir MH <span class="font-normal text-slate-400 lowercase">(opsional)</span>:
+                            <label class="block text-slate-500 text-xs font-normal mb-1">
+                                Catatan Kurir MH <span class="text-slate-400 text-[11px]">(opsional)</span>
                             </label>
                             <input type="text" 
                                    name="notes" 
                                    placeholder="Catatan nomor pallet / troli..." 
-                                   class="w-full px-3 py-2 text-xs border border-slate-200 bg-slate-50 focus:bg-white rounded-xl focus:ring-2 focus:ring-amber-500 font-medium text-slate-800 transition">
+                                   class="w-full px-3 py-2 text-xs border border-slate-200 bg-slate-50 focus:bg-white rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-normal text-slate-800 placeholder:text-slate-400 transition">
                         </div>
 
                         <!-- Footer Tombol Aksi Simetris -->
