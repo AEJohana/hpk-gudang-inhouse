@@ -144,7 +144,7 @@
                                     title="Buat komponen khusus untuk WR ini jika belum terdaftar di master">
                                 <i class="fa-solid fa-plus text-[10px] me-1 sm:me-1.5"></i>
                                 <span class="hidden sm:inline">Part Belum Ada di Master</span>
-                                <span class="sm:hidden">Belum di Master</span>
+                                <span class="sm:hidden">Komponen Baru</span>
                             </button>
                         </div>
 
@@ -209,32 +209,12 @@
                             </div>
                         </div>
 
-                        <!-- Hidden Native Select untuk POST Form -->
-                        <select name="component_id" 
-                                id="componentSelect" 
-                                required 
-                                x-model="selectedComponentId" 
-                                class="hidden">
-                            <option value="">-- Cari / Pilih Komponen Karoseri --</option>
-                            @foreach($components as $comp)
-                                <option value="{{ $comp->id }}" 
-                                        data-part="{{ $comp->part_number }}"
-                                        data-name="{{ $comp->name }}"
-                                        data-category="{{ $comp->category }}"
-                                        data-uom="{{ $comp->uom ?: 'PCS' }}"
-                                        data-specs="{{ $comp->specification }}"
-                                        data-image="{{ route('components.photo-stream', ['component' => $comp->id]) }}"
-                                        data-length="{{ $comp->length_mm }}"
-                                        data-width="{{ $comp->width_or_diameter_mm }}"
-                                        data-thickness="{{ $comp->thickness_or_height_mm }}"
-                                        data-dimensions="{{ $comp->dimension_formatted }}"
-                                        data-stock="{{ $comp->total_stock }}"
-                                        data-min-stock="{{ $comp->minimum_stock ?: 0 }}"
-                                        data-rack="{{ $comp->default_full_location_code }}">
-                                    {{ $comp->part_number }} &bull; {{ $comp->name }} ({{ $comp->uom ?: 'PCS' }})
-                                </option>
-                            @endforeach
-                        </select>
+                        <!-- Hidden Input untuk POST Form -->
+                        <input type="hidden" 
+                               name="component_id" 
+                               id="componentSelect" 
+                               :value="selectedComponentId" 
+                               required>
                     </div>
 
                     <!-- Baris 2: Jumlah Permintaan & Tingkat Prioritas Sejajar (Side-by-Side 1 Baris) -->
@@ -328,8 +308,9 @@
             </div>
 
             <!-- SECTION 2: DEPARTEMEN TUJUAN & ALUR STASIUN MESIN -->
-            <div class="space-y-4 pt-2 border-t border-slate-100">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="space-y-3 pt-2 border-t border-slate-100">
+                <!-- Section Header -->
+                <div class="flex items-center justify-between pb-2.5 border-b border-slate-100">
                     <div>
                         <h3 class="font-extrabold text-sm text-slate-900 leading-tight">2. Alur Stasiun Mesin Fabrikasi</h3>
                         <p class="text-xs text-slate-500 font-normal mt-0.5">Tentukan urutan stasiun mesin yang akan memproses komponen secara berurutan</p>
@@ -342,84 +323,89 @@
                     </button>
                 </div>
 
-                <!-- LIVE ROUTING PREVIEW (Alur Visual Monokrom Minimalis) -->
-                <div class="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/80 shadow-2xs space-y-2">
-                    <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center">
-                        <i class="fa-solid fa-route me-1.5 text-slate-400"></i> Alur Fabrikasi & Logistik MH:
-                    </span>
-                    <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <!-- PITA ALUR HORIZONTAL (Clean Stepper Ribbon) -->
+                <div class="p-2.5 sm:p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 shadow-2xs">
+                    <div class="flex items-center flex-wrap gap-1.5 sm:gap-2 text-xs">
+                        <!-- Looping Stasiun Mesin -->
                         <template x-for="(dept, idx) in targetDepartments" :key="idx">
-                            <div class="flex items-center">
-                                <span class="font-mono text-xs font-semibold text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs flex items-center space-x-1">
-                                    <span class="w-4 h-4 rounded-full bg-slate-800 text-white text-[10px] flex items-center justify-center me-1" x-text="idx + 1"></span>
+                            <div class="flex items-center space-x-1.5">
+                                <span class="inline-flex items-center space-x-1.5 font-semibold text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs text-xs">
+                                    <span class="w-4 h-4 rounded-full bg-slate-900 text-white text-[10px] font-bold flex items-center justify-center" x-text="idx + 1"></span>
                                     <span x-text="dept.department_name ? dept.department_name.replace('Dept ', '') : 'Pilih Mesin'"></span>
                                 </span>
-                                <span x-show="idx < targetDepartments.length - 1" class="text-slate-400 mx-1.5 text-xs flex items-center">
-                                    <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 me-1"></i>
-                                    <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-semibold border border-slate-200">MH Transfer</span>
-                                    <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 ms-1"></i>
+
+                                <!-- MH Transfer Antar Mesin -->
+                                <span x-show="idx < targetDepartments.length - 1" class="text-slate-400 text-xs flex items-center space-x-1">
+                                    <i class="fa-solid fa-arrow-right text-[10px] text-slate-400"></i>
+                                    <span class="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-semibold whitespace-nowrap">MH Transfer</span>
+                                    <i class="fa-solid fa-arrow-right text-[10px] text-slate-400"></i>
                                 </span>
                             </div>
                         </template>
 
-                        <!-- MH Pengantaran Kembali ke Pengaju / Gudang -->
-                        <span class="text-slate-400 mx-1 text-xs flex items-center">
-                            <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 me-1"></i>
-                            <span class="text-[9px] bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded font-semibold flex items-center">
-                                <i class="fa-solid fa-truck-ramp-box me-1 text-slate-400"></i> MH Antar
-                            </span>
-                            <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 ms-1"></i>
+                        <!-- MH Antar Menuju Gudang -->
+                        <span class="text-slate-400 text-xs flex items-center space-x-1">
+                            <i class="fa-solid fa-arrow-right text-[10px] text-slate-400"></i>
+                            <span class="text-[10px] bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded font-semibold whitespace-nowrap">MH Antar</span>
+                            <i class="fa-solid fa-arrow-right text-[10px] text-slate-400"></i>
                         </span>
 
-                        <!-- Titik Akhir: Gudang / Selesai -->
-                        <span class="font-mono text-xs font-semibold text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs flex items-center">
-                            <i class="fa-solid fa-warehouse me-1 text-slate-400"></i> Gudang (Selesai)
+                        <!-- Titik Selesai: Gudang -->
+                        <span class="inline-flex items-center space-x-1 font-semibold text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs text-xs">
+                            <i class="fa-solid fa-warehouse text-slate-500 text-xs me-1"></i>
+                            <span>Gudang (Selesai)</span>
                         </span>
                     </div>
                 </div>
 
-                <!-- DAFTAR TAHAPAN STASIUN MESIN -->
+                <!-- DAFTAR BARIS TAHAPAN ULTRA-COMPACT -->
                 <div class="space-y-2">
                     <template x-for="(dept, index) in targetDepartments" :key="index">
-                        <div class="p-3 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center gap-2.5 shadow-2xs">
-                            <!-- Step Badge -->
-                            <div class="flex items-center space-x-2 sm:w-24 flex-shrink-0">
-                                <span class="w-6 h-6 rounded-lg bg-slate-800 text-white font-bold text-xs flex items-center justify-center flex-shrink-0" x-text="index + 1"></span>
-                                <span class="font-semibold text-xs text-slate-800 whitespace-nowrap" x-text="'Tahap ' + (index + 1)"></span>
+                        <div class="p-2.5 sm:p-3 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50/40 transition shadow-2xs space-y-2">
+                            <!-- Baris Header Tahapan -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <span class="w-5 h-5 rounded-md bg-slate-800 text-white font-bold text-xs flex items-center justify-center" x-text="index + 1"></span>
+                                    <span class="font-bold text-xs text-slate-800" x-text="'Tahap ' + (index + 1)"></span>
+                                    <span class="text-[10px] text-slate-400 font-medium" x-show="dept.department_name" x-text="'(' + dept.department_name + ')'"></span>
+                                </div>
+                                
+                                <button type="button" 
+                                        @click="removeDepartment(index)" 
+                                        x-show="targetDepartments.length > 1" 
+                                        class="inline-flex items-center text-slate-400 hover:text-rose-600 text-xs font-semibold px-2 py-0.5 rounded hover:bg-rose-50 transition cursor-pointer" 
+                                        title="Hapus tahapan">
+                                    <i class="fa-solid fa-trash-can text-xs me-1"></i>
+                                    <span>Hapus</span>
+                                </button>
                             </div>
 
-                            <!-- Pilihan Departemen Fabrikasi -->
-                            <div class="flex-1">
-                                <select :name="'target_departments[' + index + '][department_name]'" 
-                                        x-model="dept.department_name" 
-                                        required 
-                                        class="w-full px-3 py-1.5 text-xs border border-slate-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium text-slate-800 transition">
-                                    <option value="">-- Pilih Stasiun Mesin Tujuan --</option>
-                                    @foreach($fabricationDepartments as $fDept)
-                                        <option value="{{ $fDept->name }}">
-                                            [{{ $fDept->code }}] {{ $fDept->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
+                            <!-- Baris Kontrol Input (Simetris & Full-Width) -->
+                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                                <!-- Dropdown Pilihan Stasiun Mesin -->
+                                <div class="w-full sm:w-5/12 min-w-0">
+                                    <select :name="'target_departments[' + index + '][department_name]'" 
+                                            x-model="dept.department_name" 
+                                            required 
+                                            class="w-full px-3 py-2 text-xs border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-semibold text-slate-800 transition">
+                                        <option value="">-- Pilih Stasiun Mesin --</option>
+                                        @foreach($fabricationDepartments as $fDept)
+                                            <option value="{{ $fDept->name }}">
+                                                [{{ $fDept->code }}] {{ $fDept->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
 
-                            <!-- Catatan Instruksi per Tahap -->
-                            <div class="flex-1">
-                                <input type="text" 
-                                       :name="'target_departments[' + index + '][notes]'" 
-                                       x-model="dept.notes" 
-                                       placeholder="Instruksi khusus tahapan ini (opsional)..." 
-                                       class="w-full px-3 py-1.5 text-xs border border-slate-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-normal text-slate-700 placeholder:text-slate-400 transition">
+                                <!-- Catatan Instruksi per Tahap -->
+                                <div class="w-full sm:w-7/12 min-w-0">
+                                    <input type="text" 
+                                           :name="'target_departments[' + index + '][notes]'" 
+                                           x-model="dept.notes" 
+                                           placeholder="Instruksi khusus tahapan ini (opsional)..." 
+                                           class="w-full px-3 py-2 text-xs border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-normal text-slate-700 placeholder:text-slate-400 transition">
+                                </div>
                             </div>
-
-                            <!-- Tombol Hapus Tahap -->
-                            <button type="button" 
-                                    @click="removeDepartment(index)" 
-                                    x-show="targetDepartments.length > 1" 
-                                    class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition self-end sm:self-center cursor-pointer" 
-                                    title="Hapus tahapan">
-                                <i class="fa-solid fa-trash-can text-sm"></i>
-                            </button>
                         </div>
                     </template>
                 </div>
@@ -624,6 +610,16 @@
                 minimumStock: 0,
                 rackCode: '',
 
+                init() {
+                    const preselectedId = '{{ request("component_id", old("component_id")) }}';
+                    if (preselectedId) {
+                        const comp = this.componentsList.find(c => c.id == preselectedId);
+                        if (comp) {
+                            this.selectComponent(comp);
+                        }
+                    }
+                },
+
                 // Multi-Departemen Tujuan
                 targetDepartments: [
                     { 
@@ -722,7 +718,7 @@
                 smartSuggestRouting(name) {
                     const upper = (name || '').toUpperCase();
                     if (upper.includes('UNP')) {
-                        this.targetDepartments = [{ department_name: 'Dept Laser UNP', notes: '' }];
+                        this.targetDepartments = [{ department_name: 'Dept UNP', notes: 'Potong pelat profil UNP' }];
                     } else if (upper.includes('BENDING') || upper.includes('SIKU') || upper.includes('COVER') || upper.includes('BUMPER')) {
                         this.targetDepartments = [
                             { department_name: 'Dept Laser Cutting', notes: 'Potong pelat profil' },

@@ -651,8 +651,167 @@ class WorkRequestController extends Controller
             ->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) <= components.minimum_stock')
             ->count();
         $departments = Department::active()->orderBy('id')->get();
+        $fabricationDepartments = Department::active()
+            ->where('code', '!=', '11')
+            ->where('name', 'not like', '%Gudang%')
+            ->orderBy('id')
+            ->get();
 
-        return view('work_requests.safety_stock', compact('criticalComponents', 'totalCritical', 'departments'));
+        return view('work_requests.safety_stock', compact('criticalComponents', 'totalCritical', 'departments', 'fabricationDepartments'));
+    }
+
+    /**
+     * Store multiple Work Requests in bulk from Safety Stock Cart.
+     */
+    public function bulkStore(Request $request)
+    {
+        $user = auth()->user();
+
+        $rawCart = $request->input('cart_data');
+        if (is_string($rawCart)) {
+            $cartItems = json_decode($rawCart, true) ?: [];
+        } elseif (is_array($rawCart)) {
+            $cartItems = $rawCart;
+        } else {
+            $cartItems = [];
+        }
+
+        if (empty($cartItems)) {
+            return redirect()->route('work-requests.safety-stock')
+                ->with('error', 'Keranjang pemesanan WRI masih kosong. Silakan pilih komponen defisit terlebih dahulu.');
+        }
+
+        $createdWris = [];
+
+        DB::transaction(function () use ($cartItems, $user, &$createdWris) {
+            $deptPengaju = $user->effective_department_name;
+            $cleanDept = preg_replace('/[^a-zA-Z0-9]/', '', $deptPengaju);
+            if (empty($cleanDept)) {
+                $cleanDept = 'GUDANG';
+            }
+
+            $datePrefix = date('Ymd');
+            $todayPrefix = "WRI/{$cleanDept}/{$datePrefix}/";
+            $latestWri = WorkRequest::where('wri_number', 'like', "{$todayPrefix}%")
+                ->orderBy('id', 'desc')
+                ->first();
+
+            $nextNum = 1;
+            if ($latestWri) {
+                $parts = explode('/', $latestWri->wri_number);
+                if (isset($parts[3])) {
+                    $nextNum = ((int) $parts[3]) + 1;
+                }
+            }
+
+            $machines = Machine::all();
+            $defaultMachine = $machines->first();
+            $isPrivileged = $user->isSupervisor() || $user->isAdmin();
+
+            foreach ($cartItems as $item) {
+                $componentId = $item['component_id'] ?? null;
+                if (!$componentId) continue;
+
+                $component = Component::find($componentId);
+                if (!$component) continue;
+
+                $qty = (float) ($item['quantity'] ?? 1);
+                if ($qty <= 0) $qty = 1;
+
+                $priority = in_array($item['priority'] ?? '', ['normal', 'high', 'urgent_line_stop']) 
+                    ? $item['priority'] 
+                    : 'normal';
+
+                $deptName = trim($item['department_name'] ?? '');
+                if (!$deptName) {
+                    $deptName = 'Dept Laser Cutting';
+                }
+
+                $cleanDeptLabel = str_starts_with($deptName, 'Dept ') ? $deptName : 'Dept ' . $deptName;
+
+                $matchedMachine = $machines->first(function ($m) use ($cleanDeptLabel) {
+                    return stripos($m->name, $cleanDeptLabel) !== false || stripos($m->machine_type, $cleanDeptLabel) !== false;
+                }) ?? $defaultMachine;
+
+                $cleanPartNo = preg_replace('/[^a-zA-Z0-9_-]/', '', $component->part_number ?: $component->id);
+                $wriNumber = "WRI/{$cleanDept}/{$datePrefix}/{$nextNum}/{$cleanPartNo}";
+                $nextNum++;
+
+                $isUrgent = ($priority === 'urgent_line_stop');
+                $approvalPengaju = ($isPrivileged || $isUrgent) ? 'Diterima' : 'Menunggu';
+                $approvalPenerima = 'Menunggu';
+
+                $targetLocationId = $component->default_location_id;
+                $targetShelf = $component->default_shelf_level ?? 'L1';
+                $targetSlot = $component->default_slot_number ?? '01';
+                $targetWarehouseId = $component->defaultLocation?->warehouse_id ?? Warehouse::first()?->id;
+
+                $notes = !empty($item['notes']) ? trim($item['notes']) : null;
+
+                $workRequest = WorkRequest::create([
+                    'wri_number' => $wriNumber,
+                    'component_id' => $component->id,
+                    'requested_by_user_id' => $user->id,
+                    'dept_pengaju' => $deptPengaju,
+                    'dept_penerima' => $cleanDeptLabel,
+                    'routing_text' => $cleanDeptLabel,
+                    'approval_pengaju' => $approvalPengaju,
+                    'approval_penerima' => $approvalPenerima,
+                    'target_warehouse_id' => $targetWarehouseId,
+                    'target_location_id' => $targetLocationId,
+                    'target_shelf_level' => $targetShelf,
+                    'target_slot_number' => $targetSlot,
+                    'quantity_requested' => $qty,
+                    'quantity_produced' => 0,
+                    'quantity_received' => 0,
+                    'quantity_defect' => 0,
+                    'is_final' => false,
+                    'priority' => $priority,
+                    'status' => 'Dalam antrian',
+                    'current_process_status' => 'Dalam antrian',
+                    'notes' => $notes,
+                ]);
+
+                WorkRequestStep::create([
+                    'work_request_id' => $workRequest->id,
+                    'step_number' => 1,
+                    'machine_id' => $matchedMachine?->id ?? 1,
+                    'process_name' => $cleanDeptLabel,
+                    'status' => 'pending',
+                    'notes' => $notes,
+                ]);
+
+                $logNotes = 'Tiket WRI Diterbitkan Massal via Safety Stock Cart oleh ' . $user->name . ' (' . $deptPengaju . ')';
+                if ($isUrgent) {
+                    $logNotes .= ' [Auto-Bypass Darurat: Urgent Line Stop]';
+                } elseif ($approvalPengaju === 'Menunggu') {
+                    $logNotes .= ' [Menunggu Otorisasi Ka. Bagian]';
+                }
+
+                WorkRequestLog::create([
+                    'work_request_id' => $workRequest->id,
+                    'action_type' => 'created',
+                    'status_label' => 'Dalam antrian',
+                    'quantity' => $qty,
+                    'quantity_accumulated' => 0,
+                    'operator_name' => $user->name,
+                    'notes' => $logNotes,
+                ]);
+
+                ActivityLogger::workRequest(
+                    'created',
+                    "Menerbitkan tiket Work Request massal {$workRequest->wri_number} untuk part [{$component->part_number}] {$component->name} sejumlah {$qty} {$component->uom}.",
+                    $workRequest,
+                    ['wri_number' => $workRequest->wri_number, 'part_number' => $component->part_number, 'quantity' => $qty]
+                );
+
+                $createdWris[] = $workRequest->wri_number;
+            }
+        });
+
+        $count = count($createdWris);
+        return redirect()->route('work-requests.index')
+            ->with('success', "Berhasil menerbitkan {$count} tiket Work Request secara massal dari Safety Stock!");
     }
 
     /**

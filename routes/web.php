@@ -130,6 +130,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/work-requests/bulk-print', [\App\Http\Controllers\WorkRequestController::class, 'bulkPrint'])
             ->middleware('can:work-request.print')
             ->name('work-requests.bulk-print');
+        Route::post('/work-requests/bulk-store', [\App\Http\Controllers\WorkRequestController::class, 'bulkStore'])
+            ->middleware('can:work-request.create')
+            ->name('work-requests.bulk-store');
 
         // CRUD Work Requests
         Route::get('/work-requests', [\App\Http\Controllers\WorkRequestController::class, 'index'])->name('work-requests.index');

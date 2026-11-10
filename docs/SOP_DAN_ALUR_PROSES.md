@@ -250,11 +250,24 @@ Formulir pengajuan pesanan pembuatan part (`/work-requests/create`) menerapkan a
    - **Tombol Addon Terintegrasi:** Tombol `[+ Part Belum Ada di Master]` disatukan langsung ke dalam kolom pencarian komponen (`flex items-stretch`) berkonsep mirip addon satuan `PCS`, memberikan estetika rapi dan hemat ruang.
    - **Side-by-Side Kuantitas & Prioritas:** Kolom `Jumlah Permintaan` (`col-span-5`) dan `Tingkat Prioritas` (`col-span-7`) disusun sejajar berdampingan dalam satu baris (grid 12 kolom) baik di mode desktop maupun mobile, mengoptimalkan tata letak tanpa memakan ruang vertikal bertumpuk.
    - Sub-header identitas pemohon (*Applicant Bar*) berformat bar horizontal ringkas abu-abu lembut (`bg-slate-50/70 border border-slate-100 rounded-xl`), menampilkan nama pemohon, shift kerja, dan waktu sistem secara rapi tanpa memakan ruang vertikal berlebih.
-   - Repeater rute departemen (*Routing Stepper*) menggunakan nomor step monokrom halus dengan tombol aksi ikonik yang rapi.
-5. **Optimasi Performa Loading Formulir (Zero Latency & Anti-Timeout):**
+   - **Pita Alur Horizontal Profesional (Clean Stepper Ribbon):** Menyajikan visual alur pengerjaan stasiun fabrikasi dan logistik Material Handling dalam bentuk pita horizontal yang ringkas (~38px), rapi, dan formal tanpa emoji (`[ 1 Laser Cutting ] ➔ [ MH Transfer ] ➔ [ 2 Bending ] ➔ [ MH Antar ] ➔ [ Gudang (Selesai) ]`).
+   - **Baris Tahapan Ultra-Compact Simetris (Zero Overlap):** Setiap tahapan disusun dalam kontainer putih bersih berborder halus dengan penomoran badge formal `[1] Tahap 1`, tombol aksi `[ ✕ Hapus ]`, serta grid 12 kolom simetris (5 kolom dropdown stasiun mesin dan 7 kolom catatan pengerjaan) tanpa tumpang tindih margin negatif.
+   - **Tombol Tambah Proses Standar:** Tombol `[ + Tambah Proses ]` diletakkan di header seksi kanan atas dengan estetika minimalis, memudahkan operator menambahkan tahapan baru secara tertib.
+5. **Optimasi Performa Loading Formulir (Zero Latency, Anti-Timeout & Payload 60% Ramping):**
    - **On-Demand Photo Streaming:** Pemanggilan URL foto komponen `$c->image_url` pada 627+ daftar master part digantikan oleh route streaming asinkron `route('components.photo-stream', ['component' => $c->id])`. Ini mengeliminasi 45.000+ operasi I/O `file_exists()` sinkron ke penyimpanan SMB/NAS saat halaman dirender.
    - **In-Memory Eager Loading Stock:** Pengecekan saldo stok pada `Component::getTotalStockAttribute()` dioptimalkan dengan memeriksa apakah relasi `stockBalances` telah di-eager-load. Jika sudah, kalkulasi dilakukan langsung pada memori koleksi (`$this->stockBalances->sum('quantity')`), menghilangkan 627+ query SQL redundan (N+1 query problem).
-   - Mengatasi secara tuntas masalah waktu muat halaman yang lama (15–45 detik) dan risiko *connection timeout* atau mental kembali ke menu monitoring WR.
+   - **Eliminasi 627 Tag Option Tersembunyi:** Mengganti elemen `<select class="hidden">` yang memuat 627 `<option>` dengan 13 atribut `data-*` panjang menjadi satu tag input tersembunyi murni `<input type="hidden" name="component_id">`, memangkas ukuran payload HTML mentah dari **1.074 KB menjadi 437 KB** (pemangkasan > 60%) dan memangkas waktu render hingga 50%, sehingga formulir terbuka secara instan.
+6. **Sistem Keranjang Pemesanan WRI Massal Safety Stock (*Multi-Select Cart Workflow & Kartu Order*):**
+   - Pada halaman **Safety Stock Alert** (`/work-requests/safety-stock`), staf gudang dapat memilih lebih dari satu komponen defisit sekaligus melalui checkbox baris tabel desktop, master checkbox (*Pilih Semua*), maupun kartu mobile, atau dengan mengklik tombol `[+ Pesan WRI]`.
+   - **Floating Action Bar Melayang:** Saat ada komponen yang dipilih, muncul bar aksi melayang di bagian bawah layar yang merangkum jumlah part terpilih serta tombol `[ Atur Kartu Order ]`.
+   - **Modal Kartu Order Komprehensif:**
+     - Menampilkan kartu order tersendiri untuk setiap part defisit.
+     - **Jumlah Permintaan (Qty):** Nilai awal otomatis diisi sebesar **nilai defisit riil** (misal defisit -7.936, langsung otomatis terisi `7936 PCS`, fleksibel untuk diedit).
+     - **Stasiun Mesin Tujuan:** Dropdown pilihan stasiun mesin fabrikasi dengan default cerdas (*Smart Suggest Routing* berdasarkan nama part).
+     - **Tingkat Prioritas:** Pilihan *Normal (Produksi)*, *Tinggi (High Priority)*, atau *URGENT (Line Stop)*.
+     - **Keterangan:** Kolom catatan pengerjaan khusus per part (opsional).
+     - **Tanggal Otomatis:** Kolom tanggal disembunyikan dari antarmuka karena penanggalan tiket diisi otomatis oleh waktu sistem.
+   - **Penerbitan Sekaligus (`/work-requests/bulk-store`):** Menerbitkan tiket Work Request untuk seluruh item keranjang dalam satu `DB::transaction` atomik dengan nomor urut WRI yang sekuensial dan pencatatan log audit otomatis.
 
 ---
 
