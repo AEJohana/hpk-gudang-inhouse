@@ -154,6 +154,23 @@ class WorkRequestController extends Controller
                 $approvalPenerimaBy = $appPenerimaLog?->operator_name ?? ($targetWr->approval_penerima === 'Diterima' ? 'Ka. ' . ($targetWr->dept_penerima ?: 'Mesin') : 'Menunggu');
                 $approvalPenerimaAt = $appPenerimaLog?->created_at?->format('d/m/Y H:i') ?? '-';
 
+                $processPayload = [
+                    'id' => $targetWr->id,
+                    'wriNumber' => $targetWr->wri_number,
+                    'componentName' => $targetWr->component?->name ?? 'Komponen',
+                    'partNumber' => $targetWr->component?->part_number ?? '-',
+                    'uom' => $targetWr->component?->uom ?? 'PCS',
+                    'currentStatus' => $targetWr->status,
+                    'nextStatus' => $nextStatus,
+                    'nextActionLabel' => 'Lanjutkan Pengerjaan',
+                    'totalQty' => (float) $targetWr->quantity_requested,
+                    'remainingQty' => $remainingQty > 0 ? $remainingQty : (float) $targetWr->quantity_requested,
+                    'currentBatchQty' => (float) $targetWr->current_batch_qty,
+                    'targetRack' => $targetWr->target_specific_location_code ?: 'Belum di Rak',
+                    'assignedOperator' => $targetWr->assigned_operator_name ?? '',
+                    'actionUrl' => route('work-requests.process-action', $targetWr),
+                ];
+
                 $openDetailPayload = [
                     'id' => $targetWr->id,
                     'wriNumber' => $targetWr->wri_number,
@@ -205,6 +222,7 @@ class WorkRequestController extends Controller
                     'actionUrl' => route('work-requests.process-action', $targetWr),
                     'isFinal' => (bool) $targetWr->is_final,
                     'isOverdue' => (bool) $targetWr->isOverdue(),
+                    'processPayload' => $processPayload,
                 ];
             }
         }

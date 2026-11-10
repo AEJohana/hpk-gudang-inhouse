@@ -439,105 +439,30 @@
                     </div>
                 </div>
 
-                <!-- 5. FORM EKSEKUSI PENGERJAAN LANGSUNG DI MODAL -->
+                <!-- 5. KARTU AKSI CEPAT: LANGKAH PENGERJAAN BERIKUTNYA -->
                 <template x-if="detailData.canProcessAction && !detailData.isFinal">
-                    <div class="p-4 bg-gradient-to-br from-indigo-50/90 via-slate-50 to-indigo-50/70 border-2 border-indigo-200 rounded-3xl space-y-3.5 shadow-xs" 
-                         x-data="{ 
-                             hasDefectModal: false, 
-                             defectQty: 0, 
-                             processQty: detailData.remainingQty,
-                             getMax() { return Math.max(0, Number(detailData.remainingQty) - (this.hasDefectModal && this.defectQty > 0 ? Number(this.defectQty) : 0)); },
-                             sync() { if (Number(this.processQty) > this.getMax()) this.processQty = this.getMax(); }
-                         }"
-                         x-init="processQty = detailData.remainingQty">
-                        <div class="flex items-center justify-between border-b border-indigo-100 pb-2.5">
-                            <div class="flex items-center space-x-2.5">
-                                <span class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-xs">
-                                    <i class="fa-solid fa-play"></i>
-                                </span>
-                                <div>
-                                    <h4 class="font-black text-xs text-indigo-950 uppercase tracking-wider">Eksekusi Langkah Selanjutnya</h4>
-                                    <p class="text-[11px] text-indigo-700 font-mono font-extrabold" x-text="'&rarr; ' + detailData.nextStatus"></p>
-                                </div>
+                    <div class="p-4 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50/90 via-blue-50/50 to-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+                        <div class="flex items-center space-x-3 min-w-0 flex-1">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-2xs">
+                                <i class="fa-solid fa-play"></i>
                             </div>
-                            <span class="text-[10px] px-2.5 py-1 rounded-full font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
-                                Sisa Order: <b x-text="detailData.remainingQty + ' ' + detailData.uom"></b>
-                            </span>
+                            <div class="min-w-0 flex-1">
+                                <span class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">Langkah Siap Dikerjakan:</span>
+                                <h4 class="font-extrabold text-slate-900 text-xs truncate mt-0.5" x-text="detailData.nextStatus"></h4>
+                                <span class="text-[11px] text-slate-500 font-medium block">
+                                    Sisa kuota order: <strong class="text-slate-800" x-text="detailData.remainingQty + ' ' + detailData.uom"></strong>
+                                </span>
+                            </div>
                         </div>
 
-                        <form method="POST" :action="detailData.actionUrl" class="space-y-3">
-                            <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="action_type" value="process">
-                            <input type="hidden" name="target_status" :value="detailData.nextStatus">
-
-                            <!-- Input Qty Pengerjaan / Keluar -->
-                            <div>
-                                <div class="flex items-center justify-between mb-1">
-                                    <label class="block font-bold text-slate-700 uppercase tracking-wider text-[10px]">
-                                        Jumlah Komponen yang Diproses / Dikeluarkan: <span class="text-rose-500">*</span>
-                                    </label>
-                                    <span class="text-[10px] text-slate-500 font-medium">Batas Maksimal: <b x-text="getMax() + ' ' + detailData.uom"></b></span>
-                                </div>
-                                <div class="relative">
-                                    <input type="number" 
-                                           name="process_qty" 
-                                           x-model.number="processQty"
-                                           @input="if(Number(processQty) > getMax()) processQty = getMax()"
-                                           required 
-                                           step="any" 
-                                           min="0" 
-                                           :max="getMax()" 
-                                           class="w-full px-3.5 py-2 text-sm font-black border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                                    <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400" x-text="detailData.uom"></span>
-                                </div>
-
-                                <!-- Allocation Card -->
-                                <div class="p-2 bg-indigo-100/70 border border-indigo-200 rounded-xl flex items-center justify-between text-[11px] font-bold text-indigo-950 mt-1.5">
-                                    <span>Sedia: <b x-text="detailData.remainingQty"></b> | Defect: <b class="text-rose-600" x-text="hasDefectModal && defectQty > 0 ? defectQty : 0"></b></span>
-                                    <span>Batas Unit Bagus: <b class="text-indigo-700" x-text="getMax() + ' ' + detailData.uom"></b></span>
-                                </div>
-                            </div>
-
-                            <!-- Checkbox Defect / Reject -->
-                            <div class="pt-1">
-                                <label class="inline-flex items-center cursor-pointer text-xs font-bold text-rose-600 hover:text-rose-700 p-2 bg-rose-50 border border-rose-200 rounded-xl w-full">
-                                    <input type="checkbox" x-model="hasDefectModal" @change="sync()" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500 me-2">
-                                    <span>Terdapat Komponen Rusak / Defect saat Pengerjaan?</span>
-                                </label>
-
-                                <div x-show="hasDefectModal" x-transition class="mt-2 p-3 bg-rose-50/80 border border-rose-200 rounded-xl space-y-2 text-xs">
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                        <div>
-                                            <label class="block font-bold text-rose-900 uppercase text-[9px] mb-0.5">Jumlah Defect (PCS)</label>
-                                            <input type="number" name="defect_qty" x-model.number="defectQty" @input="sync()" step="any" min="0.01" :max="detailData.remainingQty" placeholder="Contoh: 5" class="w-full px-2.5 py-1.5 text-xs border border-rose-300 rounded-lg font-bold text-rose-900 bg-white">
-                                        </div>
-                                        <div>
-                                            <label class="block font-bold text-rose-900 uppercase text-[9px] mb-0.5">Alasan Defect</label>
-                                            <input type="text" name="defect_reason" placeholder="Contoh: Salah tekuk, material bengkok..." class="w-full px-2.5 py-1.5 text-xs border border-rose-300 rounded-lg bg-white">
-                                        </div>
-                                    </div>
-                                    <p class="text-[9px] text-rose-700">Defect akan otomatis memotong kuota total tiket WRI & dicatat pada audit log.</p>
-                                </div>
-                            </div>
-
-                            <!-- Petugas & Catatan -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
-                                <div>
-                                    <label class="block font-bold text-slate-700 uppercase mb-0.5">Petugas / Operator:</label>
-                                    <input type="text" name="operator_name" value="{{ auth()->user()->name }}" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-semibold">
-                                </div>
-                                <div>
-                                    <label class="block font-bold text-slate-700 uppercase mb-0.5">Catatan Operasional:</label>
-                                    <input type="text" name="notes" placeholder="Catatan shift / nomor pallet..." class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg">
-                                </div>
-                            </div>
-
-                            <!-- Tombol Konfirmasi -->
-                            <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-1.5">
-                                <i class="fa-solid fa-circle-check"></i>
-                                <span>Konfirmasi & Simpan Langkah Pengerjaan</span>
-                            </button>
-                        </form>
+                        <!-- Tombol Buka Modal Proses Khusus -->
+                        <button type="button" 
+                                @click="openProcessFromDetail()" 
+                                class="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-2 flex-shrink-0 cursor-pointer">
+                            <i class="fa-solid fa-bolt"></i>
+                            <span x-text="detailData.nextStatus.includes('(In)') ? 'Mulai Pengerjaan Mesin' : (detailData.nextStatus.includes('Sudah Diambil') ? 'Terima di Gudang' : 'Lanjutkan Pengerjaan')"></span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </button>
                     </div>
                 </template>
 

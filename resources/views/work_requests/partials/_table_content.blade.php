@@ -150,6 +150,7 @@
                     'actionUrl' => route('work-requests.process-action', $wri),
                     'isFinal' => (bool) $wri->is_final,
                     'isOverdue' => (bool) $wri->isOverdue(),
+                    'processPayload' => $processPayload,
                 ];
             @endphp
             <tr class="hover:bg-slate-50/70 transition">

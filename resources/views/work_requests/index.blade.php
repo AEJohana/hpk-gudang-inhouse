@@ -578,6 +578,26 @@
                 closeDetailModal() {
                     this.detailModalOpen = false;
                 },
+                openProcessFromDetail() {
+                    const payload = this.detailData.processPayload || {
+                        id: this.detailData.id,
+                        wriNumber: this.detailData.wriNumber,
+                        componentName: this.detailData.componentName,
+                        partNumber: this.detailData.partNumber,
+                        uom: this.detailData.uom,
+                        currentStatus: this.detailData.currentStatus,
+                        nextStatus: this.detailData.nextStatus,
+                        nextActionLabel: this.detailData.nextActionLabel || 'Lanjutkan Pengerjaan',
+                        totalQty: this.detailData.totalQty,
+                        remainingQty: this.detailData.remainingQty,
+                        currentBatchQty: this.detailData.currentBatchQty || 0,
+                        targetRack: this.detailData.targetRack,
+                        assignedOperator: (this.detailData.assignedOperator && this.detailData.assignedOperator !== 'Belum ditentukan') ? this.detailData.assignedOperator : '',
+                        actionUrl: this.detailData.actionUrl,
+                    };
+                    this.closeDetailModal();
+                    this.openProcessModal(payload);
+                },
                 openImageModal(data) {
                     this.imageData = { 
                         ...data, 
