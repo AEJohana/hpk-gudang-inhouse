@@ -545,6 +545,12 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Zero Clipboard Risk (Pabrik Security Best Practice):** Menghilangkan fungsi copy ke clipboard agar kredensial tidak tertinggal di komputer kerja bersama (*shared terminal*).
 - **Automated Unit Testing:** Lulus 100% pada `tests/Unit/LoginPasswordToggleTest.php` (1 passed, 13 assertions).
 
+### RR. Auto-Dismiss & Smooth Fade-Out Flash Notification Banner (Baru Selesai & Teruji 100%)
+- **Auto-Dismiss 3.5 Detik & Transisi Halus:** Menambahkan Alpine.js controller `x-data="{ show: true }"` dengan `x-init="setTimeout(() => show = false, 3500)"` pada banner notifikasi sukses/error layout utama, layout admin, dan halaman detail tiket.
+- **Transisi Fade-Out:** Menggunakan `x-transition:leave` (`opacity-100 scale-100` ke `opacity-0 scale-95`) dengan durasi 300ms agar banner menghilang secara halus tanpa patah.
+- **Tombol Tutup Manual [ ✕ ]:** Menyematkan tombol tutup silang cepat di sisi kanan notifikasi (`@click="show = false"`).
+- **Automated Unit Testing:** Lulus 100% pada `tests/Unit/FlashNotificationDismissTest.php` (2 passed, 11 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

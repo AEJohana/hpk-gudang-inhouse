@@ -210,6 +210,13 @@ Users have specific roles and departmental scopes that dictate their permissions
 - **Keamanan Terminal Bersama (Zero Clipboard Risk):** Sesuai kesepakatan, fitur copy ke clipboard dihilangkan agar kata sandi tidak tertinggal di clipboard mesin bersama di area operasional pabrik.
 - **Pengujian Otomatis:** Dilengkapi pengujian unit terisolasi `tests/Unit/LoginPasswordToggleTest.php` (13 assertions) yang memverifikasi pathLength SVG, stroke color, warna pastel, dan ketiadaan fungsi copy clipboard.
 
+### 24. Auto-Dismiss & Smooth Fade-Out Flash Notification Banner (Notifikasi Toast Global)
+- **Auto-Dismiss Timer (3.5 Detik):** Banner notifikasi sukses/error (`session('success')` & `session('error')`) yang muncul setelah membuat/menyetujui tiket WRI atau mutasi data kini dilengkapi timer otomatis Alpine.js `x-init="setTimeout(() => show = false, 3500)"`. Banner otomatis menghilang secara mandiri setelah 3.5 detik tanpa membebani layar pengguna.
+- **Smooth Fade-Out Transition:** Transisi penutupan berjalan sangat halus menggunakan direktif `x-transition:leave="transition ease-in duration-300 transform"` (`opacity-100 scale-100` meluncur ke `opacity-0 scale-95`).
+- **Tombol Tutup Manual Instan (`[ ✕ ]`):** Setiap banner dilengkapi tombol silang di sisi kanan dengan latar lembut (`@click="show = false"`), memungkinkan operator langsung menutup notifikasi seketika jika diinginkan.
+- **Dukungan Menyeluruh:** Diimplementasikan secara serentak pada layout operasional (`layouts/app.blade.php`), layout admin (`layouts/admin.blade.php`), dan tampilan detail tiket (`work_requests/show.blade.php`).
+- **Pengujian Unit Otomatis:** Diverifikasi penuh oleh `tests/Unit/FlashNotificationDismissTest.php` (2 passed, 11 assertions).
+
 ## Technical Documentation References
 - [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
 - [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - Standar Operasional Prosedur, Diagram Alur Proses & Aturan Bisnis (BR-01 s/d BR-14)

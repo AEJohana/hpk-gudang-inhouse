@@ -88,29 +88,56 @@
          }">
 
         @if(session('success'))
-            <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center justify-between shadow-xs">
+            <div x-data="{ show: true }"
+                 x-init="setTimeout(() => show = false, 3500)"
+                 x-show="show"
+                 x-transition:leave="transition ease-in duration-300 transform"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center justify-between shadow-xs transition-all">
                 <div class="flex items-center space-x-2">
                     <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
                     <span>{{ session('success') }}</span>
                 </div>
+                <button type="button" @click="show = false" class="text-emerald-700 hover:text-emerald-900 p-1 rounded-lg hover:bg-emerald-100 transition cursor-pointer">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
             </div>
         @endif
 
         @if(session('error'))
-            <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-2xl flex items-center justify-between shadow-xs">
+            <div x-data="{ show: true }"
+                 x-init="setTimeout(() => show = false, 5000)"
+                 x-show="show"
+                 x-transition:leave="transition ease-in duration-300 transform"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-2xl flex items-center justify-between shadow-xs transition-all">
                 <div class="flex items-center space-x-2">
                     <i class="fa-solid fa-circle-xmark text-rose-600 text-base"></i>
                     <span>{{ session('error') }}</span>
                 </div>
+                <button type="button" @click="show = false" class="text-rose-700 hover:text-rose-900 p-1 rounded-lg hover:bg-rose-100 transition cursor-pointer">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
             </div>
         @endif
 
         @if(session('warning'))
-            <div class="p-4 bg-amber-50 border border-amber-300 text-amber-900 text-xs font-bold rounded-2xl flex items-center justify-between shadow-xs">
+            <div x-data="{ show: true }"
+                 x-init="setTimeout(() => show = false, 4000)"
+                 x-show="show"
+                 x-transition:leave="transition ease-in duration-300 transform"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="p-4 bg-amber-50 border border-amber-300 text-amber-900 text-xs font-bold rounded-2xl flex items-center justify-between shadow-xs transition-all">
                 <div class="flex items-center space-x-2">
                     <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base"></i>
                     <span>{{ session('warning') }}</span>
                 </div>
+                <button type="button" @click="show = false" class="text-amber-800 hover:text-amber-950 p-1 rounded-lg hover:bg-amber-100 transition cursor-pointer">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
             </div>
         @endif
 
