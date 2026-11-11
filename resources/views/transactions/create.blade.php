@@ -99,7 +99,10 @@
                     <div class="w-full min-h-[120px] rounded-xl border border-slate-200 bg-slate-50/60 flex flex-col items-center justify-center p-3 overflow-hidden text-center transition">
                         <template x-if="selectedComp && selectedComp.image_url">
                             <div class="flex flex-col items-center space-y-1">
-                                <img :src="selectedComp.image_url" :alt="selectedComp.name" class="h-24 max-w-full object-contain rounded-lg border border-slate-200 bg-white shadow-2xs">
+                                <img :src="selectedComp.image_url" 
+                                     onerror="this.src='{{ asset('images/placeholder_part.svg') }}'" 
+                                     :alt="selectedComp.name" 
+                                     class="h-24 max-w-full object-contain rounded-lg border border-slate-200 bg-white shadow-2xs">
                                 <span class="text-[10px] font-mono text-slate-600 bg-slate-200/70 px-2 py-0.5 rounded" x-text="selectedComp.part_number"></span>
                             </div>
                         </template>
@@ -309,8 +312,8 @@
                     <div>
                         <input type="hidden" name="items[0][component_id]" :value="selectedComp.id">
                         <input type="hidden" name="items[0][quantity]" :value="itemQty">
-                        <input type="hidden" name="items[0][from_location_id]" :value="fromLocId || ''">
-                        <input type="hidden" name="items[0][to_location_id]" :value="toLocId || ''">
+                        <input type="hidden" name="items[0][from_location_id]" :value="(txType === 'inbound') ? '' : (fromLocId || '')">
+                        <input type="hidden" name="items[0][to_location_id]" :value="(txType === 'outbound') ? '' : (toLocId || '')">
                     </div>
                 </template>
 
@@ -354,14 +357,14 @@
 
                 allComponents: {!! json_encode($components->map(function($c) {
                     return [
-                        'id' => $c->id,
+                        'id' => (int) $c->id,
                         'part_number' => $c->part_number,
                         'name' => $c->name,
-                        'uom' => $c->uom,
-                        'total_stock' => $c->total_stock,
+                        'uom' => $c->uom ?: 'PCS',
+                        'total_stock' => (float) ($c->total_stock ?? 0),
+                        'minimum_stock' => (float) ($c->minimum_stock ?? 0),
                         'default_location_id' => $c->default_location_id,
-                        'image_url' => $c->image_url,
-                        'is_low_stock' => $c->is_low_stock,
+                        'is_low_stock' => (($c->minimum_stock ?? 0) > 0 && ($c->total_stock ?? 0) <= $c->minimum_stock),
                     ];
                 })) !!},
 
@@ -385,14 +388,39 @@
 
                 setTxType(type) {
                     this.txType = type;
+                    if (type === 'inbound') {
+                        this.fromLocId = '';
+                        if (this.selectedComp && this.selectedComp.default_location_id) {
+                            this.toLocId = String(this.selectedComp.default_location_id);
+                        }
+                    } else if (type === 'outbound') {
+                        this.toLocId = '';
+                        if (this.selectedComp && this.selectedComp.default_location_id) {
+                            this.fromLocId = String(this.selectedComp.default_location_id);
+                        }
+                    }
                 },
 
                 selectComponent(comp) {
-                    this.selectedComp = comp;
+                    this.selectedComp = {
+                        ...comp,
+                        image_url: '/components/' + comp.id + '/photo-stream'
+                    };
                     this.searchQuery = comp.part_number + ' - ' + comp.name;
                     this.itemQty = 1;
-                    this.fromLocId = comp.default_location_id ? String(comp.default_location_id) : '';
-                    this.toLocId = comp.default_location_id ? String(comp.default_location_id) : '';
+
+                    // Contextual location defaults based on transaction type:
+                    if (this.txType === 'inbound') {
+                        this.fromLocId = '';
+                        this.toLocId = comp.default_location_id ? String(comp.default_location_id) : '';
+                    } else if (this.txType === 'outbound') {
+                        this.fromLocId = comp.default_location_id ? String(comp.default_location_id) : '';
+                        this.toLocId = '';
+                    } else {
+                        this.fromLocId = comp.default_location_id ? String(comp.default_location_id) : '';
+                        this.toLocId = comp.default_location_id ? String(comp.default_location_id) : '';
+                    }
+
                     this.dropdownOpen = false;
                     this.errorMessage = null;
                 },
@@ -544,6 +572,9 @@
                         ? toLocElem.options[toLocElem.selectedIndex]?.text
                         : (this.toLocId ? null : '- (Tanpa Rak)');
 
+                    const fromLocIdVal = (this.txType === 'inbound') ? null : (this.fromLocId || null);
+                    const toLocIdVal = (this.txType === 'outbound') ? null : (this.toLocId || null);
+
                     this.items.push({
                         component_id: this.selectedComp.id,
                         part_number: this.selectedComp.part_number,
@@ -551,10 +582,10 @@
                         uom: this.selectedComp.uom,
                         image_url: this.selectedComp.image_url,
                         quantity: Math.floor(this.itemQty),
-                        from_location_id: this.fromLocId || null,
-                        from_location_name: fromLocText,
-                        to_location_id: this.toLocId || null,
-                        to_location_name: toLocText,
+                        from_location_id: fromLocIdVal,
+                        from_location_name: (this.txType === 'inbound') ? '- (Supplier / Eksternal)' : fromLocText,
+                        to_location_id: toLocIdVal,
+                        to_location_name: (this.txType === 'outbound') ? '- (Lini / Karoseri)' : toLocText,
                     });
 
                     // Reset staging box for next item

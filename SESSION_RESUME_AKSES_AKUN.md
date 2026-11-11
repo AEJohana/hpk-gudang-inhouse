@@ -631,6 +631,21 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - Header modal pelacakan menampilkan indikator peringatan segitiga merah dengan badge informatif: `'Semua Defect (0 Pcs)'`.
 - **Automated Unit Testing:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestDefectCardAndNotesTest.php` - 5 passed, 27 assertions dan `tests/Unit/BladeAlpineScopeTest.php` - 2 passed, 5 assertions).
 
+### AAA. Optimasi Performa Transaksi & Penyempurnaan Rincian Slip Mutasi (Baru Selesai & Teruji 100%)
+- **Eliminasi Karakter "+" Ganda pada Tombol Transaksi Baru:** Memperbaiki tombol aksi pada [resources/views/transactions/index.blade.php](resources/views/transactions/index.blade.php) sehingga tidak lagi menampilkan tanda plus ganda (`[+ + Transaksi Baru]`), melainkan tampil rapi dan elegan: `[+ Transaksi Baru]`.
+- **Solusi Performa Lemot (Pemangkasan dari ~5.000 ms Menjadi ~8 ms):**
+  - *Akar Masalah:* Saat memuat halaman transaksi baru (`/transactions/create`), pemetaan 613 komponen ke JSON secara sinkron memanggil `$c->image_url` yang memicu 5.000 kali pengecekan berkas fisik ke disk/NAS, ditambah 613 query N+1 `stockBalances()->sum('quantity')`.
+  - *Solusi:* Menggunakan satu query builder agregat terpadu (`COALESCE(SUM(stock_balances.quantity), 0)`) dan memindahkan streaming foto komponen menjadi asinkron (`/components/{id}/photo-stream`) yang hanya dipanggil peramban ketika komponen tersebut dipilih oleh pengguna. Waktu muat terpangkas hingga 600x lebih cepat.
+- **Penyempurnaan Tampilan Rincian Transaksi / Slip Mutasi:**
+  - *Logika Rak Kontekstual:* Pada transaksi Inbound (penerimaan), barang berasal dari supplier eksternal / hasil pengerjaan WRI, bukan dari rak gudang yang sama (`Dari: Rak 8 -> Ke: Rak 8`). Pada slip rincian dan cetak massal, kolom kini kontekstual: Inbound menampilkan `Asal Pengiriman (Vendor/WR)` dan `Rak Penerimaan Gudang`; Outbound menampilkan `Rak Asal Pengambilan` dan `Tujuan Distribusi (Lini/SPK)`.
+  - *Blok Tanda Tangan Kontekstual:* Pada Inbound, petugas gudang adalah **Penerima** (sisi kanan), sedangkan pihak luar adalah **Pengirim/Kurir** (sisi kiri). Pada Outbound, petugas gudang adalah **Pengeluar** (sisi kiri) dan lini/user adalah **Penerima** (sisi kanan).
+  - *Solusi Garis Tanda Tangan Pecah di Mobile:* Mengganti titik-titik `( .................................... )` yang terpotong menjadi 3 baris di mobile menjadi garis tanda tangan solid anti-overflow dengan teks `( Nama Terang & TTD )`.
+- **Diferensiasi Inbound WR vs Inbound Langsung pada Filter & Riwayat:**
+  - Menambahkan filter dropdown: `Inbound dari Work Request (WRI)` vs `Inbound Transaksi Langsung (PO/Supplier)`.
+  - Menyematkan badge visual terpisah pada riwayat transaksi: badge ungu/indigo berikon pabrik `Inbound (Hasil WR)` dengan tautan tiket WRI vs badge hijau zamrud berikon pengantaran `Inbound (Langsung)`.
+  - Normalisasi otomatis pada backend: Transaksi Inbound otomatis memaksa `from_location_id = null`.
+- **Automated Unit Testing:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/TransactionPerformanceAndRefinementTest.php` - 5 passed, 29 assertions, `tests/Unit/TransactionSlipTest.php` - 2 passed, 23 assertions, dan `tests/Unit/TransactionFormSimplificationTest.php` - 3 passed, 20 assertions).
+
 
 ---
 

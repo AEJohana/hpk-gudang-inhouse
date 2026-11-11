@@ -96,9 +96,11 @@ class TransactionSlipTest extends TestCase
 
         $mockTransaction = (object) [
             'transaction_number' => 'TRX/IN-WRI/20261103/ICKXA',
+            'type' => 'inbound',
             'transaction_date' => Carbon::create(2026, 11, 3),
             'type_badge' => [
                 'label' => 'Penerimaan (Inbound)',
+                'icon' => 'fa-truck-ramp-box',
                 'class' => 'bg-emerald-100 text-emerald-800 border-emerald-300',
             ],
             'spk_number' => null,
@@ -133,8 +135,8 @@ class TransactionSlipTest extends TestCase
 
         // 4. Assert QC column is removed and receiver signature format is customized
         $this->assertStringNotContainsString('QC Inspeksi', $renderedHtml);
-        $this->assertStringContainsString('Diterima Oleh:', $renderedHtml);
-        $this->assertStringContainsString('( .................................... )', $renderedHtml);
+        $this->assertStringContainsString('Diterima Oleh (Gudang):', $renderedHtml);
+        $this->assertStringContainsString('( Nama Terang &amp; TTD )', $renderedHtml);
 
         // 5. Assert Background Grid is removed
         $this->assertStringContainsString('background-image: none !important;', $renderedHtml);
@@ -168,6 +170,7 @@ class TransactionSlipTest extends TestCase
         $tx1 = (object) [
             'id' => 101,
             'transaction_number' => 'TRX/IN/001',
+            'type' => 'inbound',
             'transaction_date' => Carbon::now(),
             'type_badge' => ['label' => 'Inbound', 'class' => 'bg-emerald-100'],
             'spk_number' => 'SPK-001',
@@ -180,6 +183,7 @@ class TransactionSlipTest extends TestCase
         $tx2 = (object) [
             'id' => 102,
             'transaction_number' => 'TRX/IN/002',
+            'type' => 'outbound',
             'transaction_date' => Carbon::now(),
             'type_badge' => ['label' => 'Outbound', 'class' => 'bg-blue-100'],
             'spk_number' => 'SPK-002',
@@ -197,8 +201,8 @@ class TransactionSlipTest extends TestCase
         $this->assertStringContainsString('TRX/IN/002', $renderedHtml);
         $this->assertStringContainsString('✂ POTONG DI SINI / TEAR HERE', $renderedHtml);
         $this->assertStringContainsString('Hemat Kertas: Otomatis 2 Slip per 1 Lembar A4', $renderedHtml);
-        $this->assertStringContainsString('Diterima Oleh:', $renderedHtml);
-        $this->assertStringContainsString('( .................................... )', $renderedHtml);
+        $this->assertStringContainsString('Diterima Oleh (Gudang):', $renderedHtml);
+        $this->assertStringContainsString('( Nama Terang &amp; TTD )', $renderedHtml);
         $this->assertStringNotContainsString('QC Inspeksi', $renderedHtml);
         $this->assertStringContainsString('background-image: none !important;', $renderedHtml);
     }

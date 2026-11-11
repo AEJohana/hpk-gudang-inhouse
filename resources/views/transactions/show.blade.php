@@ -11,8 +11,9 @@
                 <div class="min-w-0">
                     <div class="flex items-center space-x-2">
                         <span class="font-mono text-xs font-bold text-slate-900 bg-slate-200 px-2 py-0.5 rounded">{{ $transaction->transaction_number }}</span>
-                        <span class="px-2 py-0.5 rounded text-[11px] font-semibold border {{ $transaction->type_badge['class'] }}">
-                            {{ $transaction->type_badge['label'] }}
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-bold border {{ $transaction->type_badge['class'] }}">
+                            <i class="fa-solid {{ $transaction->type_badge['icon'] }} text-[10px]"></i>
+                            <span>{{ $transaction->type_badge['label'] }}</span>
                         </span>
                     </div>
                     <h2 class="font-bold text-lg sm:text-xl text-slate-900 leading-tight mt-1 truncate">
@@ -53,15 +54,27 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 print:grid-cols-4 gap-3 sm:gap-4 print:gap-3 text-xs bg-slate-50/80 print:bg-slate-50/60 p-3.5 sm:p-4 print:p-3 rounded-xl border border-slate-200/80">
                 <div class="min-w-0">
                     <span class="text-slate-400 block uppercase font-semibold text-[10px] tracking-wider">Tipe Transaksi</span>
-                    <span class="font-bold text-slate-900 mt-0.5 block truncate">{{ $transaction->type_badge['label'] }}</span>
+                    <span class="font-bold text-slate-900 mt-0.5 flex items-center gap-1.5 truncate">
+                        <i class="fa-solid {{ $transaction->type_badge['icon'] }} text-[11px] text-teal-600"></i>
+                        <span>{{ $transaction->type_badge['label'] }}</span>
+                    </span>
                 </div>
                 <div class="min-w-0">
                     <span class="text-slate-400 block uppercase font-semibold text-[10px] tracking-wider">No. SPK Karoseri</span>
                     <span class="font-mono font-bold text-blue-900 mt-0.5 block truncate">{{ $transaction->spk_number ?: '-' }}</span>
                 </div>
                 <div class="min-w-0">
-                    <span class="text-slate-400 block uppercase font-semibold text-[10px] tracking-wider">Dokumen Acuan (PO/SJ)</span>
-                    <span class="font-mono font-semibold text-slate-800 mt-0.5 block text-[11px] print:text-[10px] leading-tight break-all">{{ $transaction->reference_document ?: '-' }}</span>
+                    <span class="text-slate-400 block uppercase font-semibold text-[10px] tracking-wider">Dokumen Acuan (PO/SJ/WRI)</span>
+                    <span class="font-mono font-semibold text-slate-800 mt-0.5 block text-[11px] print:text-[10px] leading-tight break-all">
+                        @if (!empty($transaction->is_from_work_request))
+                            <span class="text-indigo-700 font-bold inline-flex items-center">
+                                <i class="fa-solid fa-industry text-[9px] mr-1 text-indigo-500"></i>
+                                {{ $transaction->reference_document ?: (!empty($transaction->workRequest) ? $transaction->workRequest->wri_number : '-') }}
+                            </span>
+                        @else
+                            {{ $transaction->reference_document ?: '-' }}
+                        @endif
+                    </span>
                 </div>
                 <div class="min-w-0">
                     <span class="text-slate-400 block uppercase font-semibold text-[10px] tracking-wider">Petugas Gudang</span>
@@ -82,9 +95,11 @@
                 <!-- Mobile Card List (< sm screens) -->
                 <div class="block sm:hidden space-y-2.5 print:hidden">
                     @foreach ($transaction->items as $item)
-                        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
-                            <div class="flex items-start space-x-2.5">
-                                <img src="{{ $item->component->image_url }}" class="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-white shrink-0">
+                        <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2.5">
+                            <div class="flex items-start space-x-3">
+                                <img src="{{ $item->component->image_url }}" 
+                                     onerror="this.src='{{ asset('images/placeholder_part.svg') }}'"
+                                     class="w-12 h-12 rounded-lg object-contain border border-slate-200 bg-white shrink-0 p-0.5">
                                 <div class="min-w-0 flex-1">
                                     <span class="font-mono font-bold text-slate-900 block text-xs truncate">{{ $item->component->part_number }}</span>
                                     <span class="text-xs text-slate-700 font-semibold line-clamp-1">{{ $item->component->name }}</span>
@@ -93,11 +108,52 @@
                                     {{ number_format($item->quantity, 0) }} <span class="text-xs font-normal text-slate-500">{{ $item->component->uom }}</span>
                                 </span>
                             </div>
-                            <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] font-mono text-slate-600">
-                                <span><span class="text-slate-400">Dari:</span> {{ $item->fromLocation ? $item->fromLocation->full_location_code : 'Gudang' }}</span>
-                                <i class="fa-solid fa-arrow-right text-[10px] text-slate-400"></i>
-                                <span><span class="text-slate-400">Ke:</span> {{ $item->toLocation ? $item->toLocation->full_location_code : 'Lini' }}</span>
-                            </div>
+                            
+                            <!-- Contextual Rack & Flow Display per Transaction Type -->
+                            @if (($transaction->type ?? 'inbound') === 'inbound')
+                                <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between text-[11px] bg-emerald-50/40 -mx-3.5 -mb-3.5 p-2.5 rounded-b-xl border-t border-emerald-100">
+                                    <span class="text-slate-600 truncate mr-2">
+                                        <i class="fa-solid fa-truck-ramp-box text-emerald-600 mr-1"></i>
+                                        Asal: <strong class="text-slate-800 font-mono">{{ !empty($transaction->is_from_work_request) ? ($transaction->reference_document ?: 'Hasil WR') : ($transaction->reference_document ? 'PO/SJ: ' . $transaction->reference_document : 'Supplier / Vendor Eksternal') }}</strong>
+                                    </span>
+                                    <span class="text-emerald-800 font-mono font-bold shrink-0">
+                                        <i class="fa-solid fa-warehouse text-emerald-600 mr-1"></i>
+                                        Rak: {{ $item->toLocation ? $item->toLocation->full_location_code : 'Area Transit' }}
+                                    </span>
+                                </div>
+                            @elseif (($transaction->type ?? '') === 'outbound')
+                                <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between text-[11px] bg-blue-50/40 -mx-3.5 -mb-3.5 p-2.5 rounded-b-xl border-t border-blue-100">
+                                    <span class="text-blue-800 font-mono font-bold truncate mr-2">
+                                        <i class="fa-solid fa-box-open text-blue-600 mr-1"></i>
+                                        Ambil: {{ $item->fromLocation ? $item->fromLocation->full_location_code : 'Gudang' }}
+                                    </span>
+                                    <span class="text-slate-600 shrink-0">
+                                        <i class="fa-solid fa-arrow-right text-slate-400 mr-1"></i>
+                                        Tujuan: <strong class="text-slate-800 font-mono">{{ $transaction->spk_number ? ('SPK ' . $transaction->spk_number) : 'Lini Karoseri' }}</strong>
+                                    </span>
+                                </div>
+                            @elseif (($transaction->type ?? '') === 'transfer')
+                                <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between text-[11px] bg-amber-50/40 -mx-3.5 -mb-3.5 p-2.5 rounded-b-xl border-t border-amber-100 font-mono">
+                                    <span class="text-slate-700 truncate mr-2">
+                                        <span class="text-slate-400">Dari:</span> {{ $item->fromLocation ? $item->fromLocation->full_location_code : 'Gudang' }}
+                                    </span>
+                                    <i class="fa-solid fa-arrow-right text-[10px] text-amber-500 mx-1"></i>
+                                    <span class="text-amber-800 font-bold shrink-0">
+                                        <span class="text-slate-400">Ke:</span> {{ $item->toLocation ? $item->toLocation->full_location_code : 'Gudang' }}
+                                    </span>
+                                </div>
+                            @else
+                                <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between text-[11px] bg-purple-50/40 -mx-3.5 -mb-3.5 p-2.5 rounded-b-xl border-t border-purple-100">
+                                    <span class="text-slate-600 truncate mr-2">
+                                        <i class="fa-solid fa-rotate-left text-purple-600 mr-1"></i>
+                                        Asal: <strong class="text-slate-800 font-mono">{{ $transaction->reference_document ?: 'Lini' }}</strong>
+                                    </span>
+                                    <span class="text-purple-800 font-mono font-bold shrink-0">
+                                        <i class="fa-solid fa-warehouse text-purple-600 mr-1"></i>
+                                        Rak: {{ $item->toLocation ? $item->toLocation->full_location_code : 'Area Retur' }}
+                                    </span>
+                                </div>
+                            @endif
                         </div>
                     @endforeach
                 </div>
@@ -108,8 +164,28 @@
                         <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200 print:bg-slate-100">
                             <tr>
                                 <th class="py-2.5 px-3 print:py-1.5 print:px-2">Part Number & Nama Komponen</th>
-                                <th class="py-2.5 px-3 print:py-1.5 print:px-2">Rak Asal</th>
-                                <th class="py-2.5 px-3 print:py-1.5 print:px-2">Rak Tujuan</th>
+                                <th class="py-2.5 px-3 print:py-1.5 print:px-2">
+                                    @if (($transaction->type ?? 'inbound') === 'inbound')
+                                        Asal Pengiriman (Vendor/WR)
+                                    @elseif (($transaction->type ?? '') === 'outbound')
+                                        Rak Asal Pengambilan
+                                    @elseif (($transaction->type ?? '') === 'transfer')
+                                        Rak Asal
+                                    @else
+                                        Asal Retur
+                                    @endif
+                                </th>
+                                <th class="py-2.5 px-3 print:py-1.5 print:px-2">
+                                    @if (($transaction->type ?? 'inbound') === 'inbound')
+                                        Rak Penerimaan Gudang
+                                    @elseif (($transaction->type ?? '') === 'outbound')
+                                        Tujuan Distribusi (Lini/SPK)
+                                    @elseif (($transaction->type ?? '') === 'transfer')
+                                        Rak Tujuan Simpan
+                                    @else
+                                        Rak Penempatan Retur
+                                    @endif
+                                </th>
                                 <th class="py-2.5 px-3 print:py-1.5 print:px-2 text-right">Kuantitas</th>
                             </tr>
                         </thead>
@@ -118,7 +194,9 @@
                                 <tr class="print:break-inside-avoid">
                                     <td class="py-3 px-3 print:py-2 print:px-2">
                                         <div class="flex items-center space-x-2.5">
-                                            <img src="{{ $item->component->image_url }}" class="w-9 h-9 print:w-8 print:h-8 rounded object-cover border border-slate-200 bg-white shrink-0">
+                                            <img src="{{ $item->component->image_url }}" 
+                                                 onerror="this.src='{{ asset('images/placeholder_part.svg') }}'"
+                                                 class="w-9 h-9 print:w-8 print:h-8 rounded object-contain border border-slate-200 bg-white shrink-0 p-0.5">
                                             <div class="min-w-0">
                                                 <span class="font-mono font-bold text-slate-900 block text-xs print:text-[11px]">{{ $item->component->part_number }}</span>
                                                 <span class="text-[11px] print:text-[10px] text-slate-600 block line-clamp-1 print:line-clamp-none">{{ $item->component->name }}</span>
@@ -126,10 +204,26 @@
                                         </div>
                                     </td>
                                     <td class="py-3 px-3 print:py-2 print:px-2 font-mono text-[11px] print:text-[10px] break-words">
-                                        {{ $item->fromLocation ? $item->fromLocation->full_location_code : 'Gudang Luar / Vendor' }}
+                                        @if (($transaction->type ?? 'inbound') === 'inbound')
+                                            <span class="text-slate-800 font-semibold">{{ !empty($transaction->is_from_work_request) ? ($transaction->reference_document ?: 'Hasil Fabrikasi WR') : ($transaction->reference_document ? 'PO/SJ: ' . $transaction->reference_document : 'Supplier / Vendor Eksternal') }}</span>
+                                        @elseif (($transaction->type ?? '') === 'outbound')
+                                            {{ $item->fromLocation ? $item->fromLocation->full_location_code : 'Gudang' }}
+                                        @elseif (($transaction->type ?? '') === 'transfer')
+                                            {{ $item->fromLocation ? $item->fromLocation->full_location_code : 'Gudang' }}
+                                        @else
+                                            {{ $transaction->reference_document ?: 'Lini Perakitan' }}
+                                        @endif
                                     </td>
                                     <td class="py-3 px-3 print:py-2 print:px-2 font-mono text-[11px] print:text-[10px] break-words">
-                                        {{ $item->toLocation ? $item->toLocation->full_location_code : 'Lini Perakitan Karoseri' }}
+                                        @if (($transaction->type ?? 'inbound') === 'inbound')
+                                            <span class="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block">{{ $item->toLocation ? $item->toLocation->full_location_code : 'Area Transit / Holding' }}</span>
+                                        @elseif (($transaction->type ?? '') === 'outbound')
+                                            <span class="text-blue-900 font-semibold">{{ $transaction->spk_number ? ('SPK: ' . $transaction->spk_number) : 'Lini Karoseri' }}</span>
+                                        @elseif (($transaction->type ?? '') === 'transfer')
+                                            <span class="font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-block">{{ $item->toLocation ? $item->toLocation->full_location_code : 'Gudang' }}</span>
+                                        @else
+                                            <span class="font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 inline-block">{{ $item->toLocation ? $item->toLocation->full_location_code : 'Area Retur' }}</span>
+                                        @endif
                                     </td>
                                     <td class="py-3 px-3 print:py-2 print:px-2 text-right font-extrabold text-slate-900 text-sm print:text-xs whitespace-nowrap">
                                         {{ number_format($item->quantity, 0) }} {{ $item->component->uom }}
@@ -141,18 +235,74 @@
                 </div>
             </div>
 
-            <!-- Signatures Section for Karoseri Handover (2 Kolom: Gudang & Penerima) -->
+            <!-- Signatures Section (Kontekstual Sesuai Jenis Transaksi) -->
             <div class="grid grid-cols-2 print:grid-cols-2 gap-4 sm:gap-8 print:gap-8 pt-6 print:pt-4 border-t border-slate-200 text-center text-xs text-slate-600 print:break-inside-avoid">
-                <div class="p-3 bg-slate-50 sm:bg-transparent print:bg-transparent rounded-xl sm:rounded-none print:rounded-none border sm:border-0 print:border-0 border-slate-200">
-                    <p class="font-semibold text-slate-700">Dikeluarkan Oleh (Gudang):</p>
-                    <div class="h-12 sm:h-16 print:h-14"></div>
-                    <p class="font-bold text-slate-900 border-t border-slate-300 pt-1 w-44 sm:w-48 mx-auto">{{ $transaction->user->name }}</p>
-                </div>
-                <div class="p-3 bg-slate-50 sm:bg-transparent print:bg-transparent rounded-xl sm:rounded-none print:rounded-none border sm:border-0 print:border-0 border-slate-200">
-                    <p class="font-semibold text-slate-700">Diterima Oleh:</p>
-                    <div class="h-12 sm:h-16 print:h-14"></div>
-                    <p class="font-bold text-slate-900 border-t border-slate-300 pt-1 w-44 sm:w-48 mx-auto font-mono text-[11px]">( .................................... )</p>
-                </div>
+                @if (($transaction->type ?? 'inbound') === 'inbound')
+                    <div class="p-3 bg-slate-50/80 sm:bg-transparent print:bg-transparent rounded-xl sm:rounded-none print:rounded-none border sm:border-0 print:border-0 border-slate-200">
+                        <p class="font-semibold text-slate-700">Diserahkan Oleh (Supplier / Kurir):</p>
+                        <div class="h-12 sm:h-16 print:h-14"></div>
+                        <div class="border-b border-slate-400 w-40 sm:w-48 mx-auto pb-1">
+                            <span class="text-[11px] text-slate-400 italic block whitespace-nowrap">( Nama Terang &amp; TTD )</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-slate-50/80 sm:bg-transparent print:bg-transparent rounded-xl sm:rounded-none print:rounded-none border sm:border-0 print:border-0 border-slate-200">
+                        <p class="font-semibold text-slate-700">Diterima Oleh (Gudang):</p>
+                        <div class="h-12 sm:h-16 print:h-14"></div>
+                        <p class="font-bold text-slate-900 border-b border-slate-400 pb-1 w-40 sm:w-48 mx-auto truncate">{{ $transaction->user->name }}</p>
+                    </div>
+                @elseif (($transaction->type ?? '') === 'outbound')
+                    <div class="p-3 bg-slate-50/80 sm:bg-transparent print:bg-transparent rounded-xl sm:rounded-none print:rounded-none border sm:border-0 print:border-0 border-slate-200">
+                        <p class="font-semibold text-slate-700">Diserahkan Oleh (Supplier / Kurir):</p>
+                        <div class="h-12 sm:h-16 print:h-14"></div>
+                        <div class="border-b border-slate-400 w-40 sm:w-48 mx-auto pb-1">
+                            <span class="text-[11px] text-slate-400 italic block whitespace-nowrap">( Nama Terang &amp; TTD )</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-slate-50/80 sm:bg-transparent print:bg-transparent rounded-xl sm:rounded-none print:rounded-none border sm:border-0 print:border-0 border-slate-200">
+                        <p class="font-semibold text-slate-700">Diterima Oleh (Gudang):</p>
+                        <div class="h-12 sm:h-16 print:h-14"></div>
+                        <p class="font-bold text-slate-900 border-b border-slate-400 pb-1 w-40 sm:w-48 mx-auto truncate">{{ $transaction->user->name }}</p>
+                    </div>
+                @elseif ($transaction->type === 'outbound')
+                    <div class="p-3 bg-slate-50/80 sm:bg-transparent print:bg-transparent rounded-xl sm:rounded-none print:rounded-none border sm:border-0 print:border-0 border-slate-200">
+                        <p class="font-semibold text-slate-700">Dikeluarkan Oleh (Gudang):</p>
+                        <div class="h-12 sm:h-16 print:h-14"></div>
+                        <p class="font-bold text-slate-900 border-b border-slate-400 pb-1 w-40 sm:w-48 mx-auto truncate">{{ $transaction->user->name }}</p>
+                    </div>
+                    <div class="p-3 bg-slate-50/80 sm:bg-transparent print:bg-transparent rounded-xl sm:rounded-none print:rounded-none border sm:border-0 print:border-0 border-slate-200">
+                        <p class="font-semibold text-slate-700">Diterima Oleh (Lini / User):</p>
+                        <div class="h-12 sm:h-16 print:h-14"></div>
+                        <div class="border-b border-slate-400 w-40 sm:w-48 mx-auto pb-1">
+                            <span class="text-[11px] text-slate-400 italic block whitespace-nowrap">( Nama Terang &amp; TTD )</span>
+                        </div>
+                    </div>
+                @elseif ($transaction->type === 'transfer')
+                    <div class="p-3 bg-slate-50/80 sm:bg-transparent print:bg-transparent rounded-xl sm:rounded-none print:rounded-none border sm:border-0 print:border-0 border-slate-200">
+                        <p class="font-semibold text-slate-700">Dipindahkan Oleh:</p>
+                        <div class="h-12 sm:h-16 print:h-14"></div>
+                        <p class="font-bold text-slate-900 border-b border-slate-400 pb-1 w-40 sm:w-48 mx-auto truncate">{{ $transaction->user->name }}</p>
+                    </div>
+                    <div class="p-3 bg-slate-50/80 sm:bg-transparent print:bg-transparent rounded-xl sm:rounded-none print:rounded-none border sm:border-0 print:border-0 border-slate-200">
+                        <p class="font-semibold text-slate-700">Diverifikasi Oleh (Gudang):</p>
+                        <div class="h-12 sm:h-16 print:h-14"></div>
+                        <div class="border-b border-slate-400 w-40 sm:w-48 mx-auto pb-1">
+                            <span class="text-[11px] text-slate-400 italic block whitespace-nowrap">( Nama Terang &amp; TTD )</span>
+                        </div>
+                    </div>
+                @else
+                    <div class="p-3 bg-slate-50/80 sm:bg-transparent print:bg-transparent rounded-xl sm:rounded-none print:rounded-none border sm:border-0 print:border-0 border-slate-200">
+                        <p class="font-semibold text-slate-700">Dikembalikan Oleh (Lini):</p>
+                        <div class="h-12 sm:h-16 print:h-14"></div>
+                        <div class="border-b border-slate-400 w-40 sm:w-48 mx-auto pb-1">
+                            <span class="text-[11px] text-slate-400 italic block whitespace-nowrap">( Nama Terang &amp; TTD )</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-slate-50/80 sm:bg-transparent print:bg-transparent rounded-xl sm:rounded-none print:rounded-none border sm:border-0 print:border-0 border-slate-200">
+                        <p class="font-semibold text-slate-700">Diterima Kembali (Gudang):</p>
+                        <div class="h-12 sm:h-16 print:h-14"></div>
+                        <p class="font-bold text-slate-900 border-b border-slate-400 pb-1 w-40 sm:w-48 mx-auto truncate">{{ $transaction->user->name }}</p>
+                    </div>
+                @endif
             </div>
 
         </div>

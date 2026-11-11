@@ -159,8 +159,28 @@
                                 <thead class="bg-slate-100 uppercase font-bold text-slate-700 text-[9px] border-b border-slate-200">
                                     <tr>
                                         <th class="py-1 px-2">Part Number &amp; Nama Komponen</th>
-                                        <th class="py-1 px-2">Rak Asal</th>
-                                        <th class="py-1 px-2">Rak Tujuan</th>
+                                        <th class="py-1 px-2">
+                                            @if (($tx->type ?? 'outbound') === 'inbound')
+                                                Asal Pengiriman (Vendor/WR)
+                                            @elseif (($tx->type ?? '') === 'outbound')
+                                                Rak Asal Pengambilan
+                                            @elseif (($tx->type ?? '') === 'transfer')
+                                                Rak Asal
+                                            @else
+                                                Asal Retur
+                                            @endif
+                                        </th>
+                                        <th class="py-1 px-2">
+                                            @if (($tx->type ?? 'outbound') === 'inbound')
+                                                Rak Penerimaan Gudang
+                                            @elseif (($tx->type ?? '') === 'outbound')
+                                                Tujuan Distribusi (Lini/SPK)
+                                            @elseif (($tx->type ?? '') === 'transfer')
+                                                Rak Tujuan Simpan
+                                            @else
+                                                Rak Penempatan Retur
+                                            @endif
+                                        </th>
                                         <th class="py-1 px-2 text-right">Kuantitas</th>
                                     </tr>
                                 </thead>
@@ -169,7 +189,9 @@
                                         <tr>
                                             <td class="py-1.5 px-2">
                                                 <div class="flex items-center space-x-2">
-                                                    <img src="{{ $item->component->image_url }}" class="w-6 h-6 rounded object-cover border border-slate-200 shrink-0">
+                                                    <img src="{{ $item->component->image_url }}" 
+                                                         onerror="this.src='{{ asset('images/placeholder_part.svg') }}'"
+                                                         class="w-6 h-6 rounded object-contain border border-slate-200 shrink-0 p-0.5">
                                                     <div class="min-w-0">
                                                         <span class="font-mono font-bold text-slate-900 block leading-tight">{{ $item->component->part_number }}</span>
                                                         <span class="text-[9px] text-slate-600 block truncate max-w-[220px]">{{ $item->component->name }}</span>
@@ -177,10 +199,26 @@
                                                 </div>
                                             </td>
                                             <td class="py-1.5 px-2 font-mono text-[9px] break-words">
-                                                {{ $item->fromLocation ? $item->fromLocation->full_location_code : 'Gudang Luar / Vendor' }}
+                                                @if (($tx->type ?? 'outbound') === 'inbound')
+                                                    <span class="text-slate-800 font-semibold">{{ !empty($tx->is_from_work_request) ? ($tx->reference_document ?: 'Hasil Fabrikasi WR') : ($tx->reference_document ? 'PO/SJ: ' . $tx->reference_document : 'Supplier / Vendor Eksternal') }}</span>
+                                                @elseif (($tx->type ?? '') === 'outbound')
+                                                    {{ $item->fromLocation ? $item->fromLocation->full_location_code : 'Gudang' }}
+                                                @elseif (($tx->type ?? '') === 'transfer')
+                                                    {{ $item->fromLocation ? $item->fromLocation->full_location_code : 'Gudang' }}
+                                                @else
+                                                    {{ $tx->reference_document ?: 'Lini Perakitan' }}
+                                                @endif
                                             </td>
                                             <td class="py-1.5 px-2 font-mono text-[9px] break-words">
-                                                {{ $item->toLocation ? $item->toLocation->full_location_code : 'Lini Perakitan Karoseri' }}
+                                                @if (($tx->type ?? 'outbound') === 'inbound')
+                                                    <span class="font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-block">{{ $item->toLocation ? $item->toLocation->full_location_code : 'Area Transit / Holding' }}</span>
+                                                @elseif (($tx->type ?? '') === 'outbound')
+                                                    <span class="text-blue-900 font-semibold">{{ $tx->spk_number ? ('SPK: ' . $tx->spk_number) : 'Lini Karoseri' }}</span>
+                                                @elseif (($tx->type ?? '') === 'transfer')
+                                                    <span class="font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-block">{{ $item->toLocation ? $item->toLocation->full_location_code : 'Gudang' }}</span>
+                                                @else
+                                                    <span class="font-bold text-purple-800 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 inline-block">{{ $item->toLocation ? $item->toLocation->full_location_code : 'Area Retur' }}</span>
+                                                @endif
                                             </td>
                                             <td class="py-1.5 px-2 text-right font-extrabold text-slate-900 whitespace-nowrap">
                                                 {{ number_format($item->quantity, 0) }} {{ $item->component->uom }}
@@ -191,18 +229,61 @@
                             </table>
                         </div>
 
-                        <!-- Signatures Section: 2 Kolom (Gudang & Penerima) Sesuai Permintaan -->
+                        <!-- Signatures Section: 2 Kolom Kontekstual -->
                         <div class="grid grid-cols-2 gap-6 pt-3 border-t border-slate-200 text-center text-[10px] text-slate-600">
-                            <div>
-                                <p class="font-semibold text-slate-700">Dikeluarkan Oleh (Gudang):</p>
-                                <div class="h-10"></div>
-                                <p class="font-bold text-slate-900 border-t border-slate-300 pt-0.5 w-40 mx-auto">{{ $tx->user->name }}</p>
-                            </div>
-                            <div>
-                                <p class="font-semibold text-slate-700">Diterima Oleh:</p>
-                                <div class="h-10"></div>
-                                <p class="font-bold text-slate-900 border-t border-slate-300 pt-0.5 w-40 mx-auto font-mono text-[10px]">( .................................... )</p>
-                            </div>
+                            @if ($tx->type === 'inbound')
+                                <div>
+                                    <p class="font-semibold text-slate-700">Diserahkan Oleh (Supplier / Kurir):</p>
+                                    <div class="h-10"></div>
+                                    <div class="border-b border-slate-400 w-36 mx-auto pb-0.5">
+                                        <span class="text-[9px] text-slate-400 italic block whitespace-nowrap">( Nama Terang &amp; TTD )</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-slate-700">Diterima Oleh (Gudang):</p>
+                                    <div class="h-10"></div>
+                                    <p class="font-bold text-slate-900 border-b border-slate-400 pb-0.5 w-36 mx-auto truncate">{{ $tx->user->name }}</p>
+                                </div>
+                            @elseif ($tx->type === 'outbound')
+                                <div>
+                                    <p class="font-semibold text-slate-700">Dikeluarkan Oleh (Gudang):</p>
+                                    <div class="h-10"></div>
+                                    <p class="font-bold text-slate-900 border-b border-slate-400 pb-0.5 w-36 mx-auto truncate">{{ $tx->user->name }}</p>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-slate-700">Diterima Oleh (Lini / User):</p>
+                                    <div class="h-10"></div>
+                                    <div class="border-b border-slate-400 w-36 mx-auto pb-0.5">
+                                        <span class="text-[9px] text-slate-400 italic block whitespace-nowrap">( Nama Terang &amp; TTD )</span>
+                                    </div>
+                                </div>
+                            @elseif ($tx->type === 'transfer')
+                                <div>
+                                    <p class="font-semibold text-slate-700">Dipindahkan Oleh:</p>
+                                    <div class="h-10"></div>
+                                    <p class="font-bold text-slate-900 border-b border-slate-400 pb-0.5 w-36 mx-auto truncate">{{ $tx->user->name }}</p>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-slate-700">Diverifikasi Oleh (Gudang):</p>
+                                    <div class="h-10"></div>
+                                    <div class="border-b border-slate-400 w-36 mx-auto pb-0.5">
+                                        <span class="text-[9px] text-slate-400 italic block whitespace-nowrap">( Nama Terang &amp; TTD )</span>
+                                    </div>
+                                </div>
+                            @else
+                                <div>
+                                    <p class="font-semibold text-slate-700">Dikembalikan Oleh (Lini):</p>
+                                    <div class="h-10"></div>
+                                    <div class="border-b border-slate-400 w-36 mx-auto pb-0.5">
+                                        <span class="text-[9px] text-slate-400 italic block whitespace-nowrap">( Nama Terang &amp; TTD )</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-slate-700">Diterima Kembali (Gudang):</p>
+                                    <div class="h-10"></div>
+                                    <p class="font-bold text-slate-900 border-b border-slate-400 pb-0.5 w-36 mx-auto truncate">{{ $tx->user->name }}</p>
+                                </div>
+                            @endif
                         </div>
 
                     </div>

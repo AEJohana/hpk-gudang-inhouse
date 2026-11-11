@@ -16,10 +16,28 @@ class TransactionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Transaction::with(['user', 'items.component', 'items.fromLocation', 'items.toLocation']);
+        $query = Transaction::with(['user', 'items.component', 'items.fromLocation', 'items.toLocation', 'workRequest']);
 
         if ($request->filled('type')) {
-            $query->where('type', $request->type);
+            $type = $request->type;
+            if ($type === 'inbound_wr') {
+                $query->where('type', 'inbound')
+                      ->where(function ($q) {
+                          $q->whereNotNull('work_request_id')
+                            ->orWhere('reference_document', 'like', 'WRI%')
+                            ->orWhere('transaction_number', 'like', '%IN-WRI%');
+                      });
+            } elseif ($type === 'inbound_manual') {
+                $query->where('type', 'inbound')
+                      ->whereNull('work_request_id')
+                      ->where(function ($q) {
+                          $q->where('reference_document', 'not like', 'WRI%')
+                            ->orWhereNull('reference_document');
+                      })
+                      ->where('transaction_number', 'not like', '%IN-WRI%');
+            } else {
+                $query->where('type', $type);
+            }
         }
 
         if ($request->filled('search')) {
@@ -45,7 +63,23 @@ class TransactionController extends Controller
             Location::ensureDefaultLocationExists();
             $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
         }
-        $components = Component::with('defaultLocation')->where('is_active', true)->orderBy('name')->get();
+
+        // Ultra-fast query builder aggregation (eliminates 5000 disk I/O file_exists calls and 613 N+1 queries)
+        $components = DB::table('components')
+            ->leftJoin('stock_balances', 'components.id', '=', 'stock_balances.component_id')
+            ->where('components.is_active', true)
+            ->groupBy('components.id', 'components.part_number', 'components.name', 'components.uom', 'components.minimum_stock', 'components.default_location_id')
+            ->select(
+                'components.id',
+                'components.part_number',
+                'components.name',
+                'components.uom',
+                'components.minimum_stock',
+                'components.default_location_id',
+                DB::raw('COALESCE(SUM(stock_balances.quantity), 0) as total_stock')
+            )
+            ->orderBy('components.name')
+            ->get();
 
         return view('transactions.create', compact('defaultType', 'locations', 'components'));
     }
@@ -90,8 +124,12 @@ class TransactionController extends Controller
             foreach ($validated['items'] as $itemData) {
                 $componentId = $itemData['component_id'];
                 $qty = (float) $itemData['quantity'];
-                $fromLocId = $itemData['from_location_id'] ?? null;
-                $toLocId = $itemData['to_location_id'] ?? null;
+                
+                // Sanitize location based on transaction type:
+                // Inbound comes from supplier/external (no from_location rack).
+                // Outbound goes to line/customer (no to_location rack).
+                $fromLocId = $validated['type'] === 'inbound' ? null : ($itemData['from_location_id'] ?? null);
+                $toLocId = $validated['type'] === 'outbound' ? null : ($itemData['to_location_id'] ?? null);
 
                 TransactionItem::create([
                     'transaction_id' => $transaction->id,
@@ -162,7 +200,7 @@ class TransactionController extends Controller
 
     public function show(Transaction $transaction)
     {
-        $transaction->load(['user', 'items.component', 'items.fromLocation', 'items.toLocation']);
+        $transaction->load(['user', 'items.component', 'items.fromLocation', 'items.toLocation', 'workRequest']);
         return view('transactions.show', compact('transaction'));
     }
 
@@ -184,7 +222,7 @@ class TransactionController extends Controller
             return redirect()->route('transactions.index')->with('error', 'Silakan pilih minimal 1 transaksi untuk dicetak.');
         }
 
-        $transactions = Transaction::with(['user', 'items.component', 'items.fromLocation', 'items.toLocation'])
+        $transactions = Transaction::with(['user', 'items.component', 'items.fromLocation', 'items.toLocation', 'workRequest'])
             ->whereIn('id', $ids)
             ->latest('transaction_date')
             ->latest('id')

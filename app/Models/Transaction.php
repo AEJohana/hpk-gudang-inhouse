@@ -49,14 +49,57 @@ class Transaction extends Model
         return $this->hasMany(TransactionItem::class);
     }
 
+    public function getIsFromWorkRequestAttribute(): bool
+    {
+        return !empty($this->work_request_id) 
+            || str_starts_with($this->reference_document ?? '', 'WRI') 
+            || str_contains($this->transaction_number ?? '', 'IN-WRI');
+    }
+
     public function getTypeBadgeAttribute(): array
     {
+        if ($this->type === 'inbound') {
+            if ($this->is_from_work_request) {
+                return [
+                    'label' => 'Inbound (Hasil WR)',
+                    'channel' => 'wr',
+                    'class' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                    'icon' => 'fa-industry',
+                ];
+            }
+            return [
+                'label' => 'Inbound (Langsung)',
+                'channel' => 'manual',
+                'class' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                'icon' => 'fa-truck-ramp-box',
+            ];
+        }
+
         return match($this->type) {
-            'inbound' => ['label' => 'Penerimaan (Inbound)', 'class' => 'bg-emerald-100 text-emerald-800 border-emerald-300'],
-            'outbound' => ['label' => 'Pengeluaran (Outbound)', 'class' => 'bg-blue-100 text-blue-800 border-blue-300'],
-            'transfer' => ['label' => 'Transfer Lokasi', 'class' => 'bg-amber-100 text-amber-800 border-amber-300'],
-            'return' => ['label' => 'Retur Barang', 'class' => 'bg-purple-100 text-purple-800 border-purple-300'],
-            default => ['label' => ucfirst($this->type), 'class' => 'bg-gray-100 text-gray-800 border-gray-300'],
+            'outbound' => [
+                'label' => 'Pengeluaran (Outbound)',
+                'channel' => 'outbound',
+                'class' => 'bg-blue-50 text-blue-700 border-blue-200',
+                'icon' => 'fa-arrow-up-right-from-square',
+            ],
+            'transfer' => [
+                'label' => 'Transfer Lokasi',
+                'channel' => 'transfer',
+                'class' => 'bg-amber-50 text-amber-700 border-amber-200',
+                'icon' => 'fa-arrows-rotate',
+            ],
+            'return' => [
+                'label' => 'Retur Barang',
+                'channel' => 'return',
+                'class' => 'bg-purple-50 text-purple-700 border-purple-200',
+                'icon' => 'fa-arrow-rotate-left',
+            ],
+            default => [
+                'label' => ucfirst($this->type),
+                'channel' => 'other',
+                'class' => 'bg-slate-100 text-slate-700 border-slate-200',
+                'icon' => 'fa-circle',
+            ],
         };
     }
 }

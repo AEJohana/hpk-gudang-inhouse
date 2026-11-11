@@ -20,7 +20,7 @@
             <div class="flex items-center space-x-1.5 sm:space-x-2 shrink-0 ml-auto">
                 <a href="{{ route('transactions.create') }}" class="px-3.5 py-2 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap">
                     <i class="fa-solid fa-plus text-teal-400 text-xs"></i>
-                    <span>+ Transaksi Baru</span>
+                    <span>Transaksi Baru</span>
                 </a>
             </div>
         </div>
@@ -56,12 +56,14 @@
                 </div>
 
                 <!-- Jenis Transaksi Filter (Auto-Submit Saat Memilih) -->
-                <div class="w-36 sm:w-56 shrink-0">
+                <div class="w-44 sm:w-64 shrink-0">
                     <select name="type" 
                             onchange="this.form.submit()" 
                             class="w-full py-2 px-2.5 sm:px-3 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-700 font-semibold bg-white cursor-pointer shadow-2xs">
                         <option value="">Semua Jenis Transaksi</option>
-                        <option value="inbound" {{ request('type') == 'inbound' ? 'selected' : '' }}>Penerimaan (Inbound)</option>
+                        <option value="inbound" {{ request('type') == 'inbound' ? 'selected' : '' }}>Semua Penerimaan (Inbound)</option>
+                        <option value="inbound_wr" {{ request('type') == 'inbound_wr' ? 'selected' : '' }}>↳ Inbound dari Work Request (WRI)</option>
+                        <option value="inbound_manual" {{ request('type') == 'inbound_manual' ? 'selected' : '' }}>↳ Inbound Transaksi Langsung (PO/Supplier)</option>
                         <option value="outbound" {{ request('type') == 'outbound' ? 'selected' : '' }}>Pengeluaran (Outbound)</option>
                         <option value="transfer" {{ request('type') == 'transfer' ? 'selected' : '' }}>Transfer Antar Rak</option>
                         <option value="return" {{ request('type') == 'return' ? 'selected' : '' }}>Retur Material</option>
@@ -103,17 +105,25 @@
                                 <span class="text-[10px] text-slate-400 font-medium">{{ $tx->transaction_date->format('d M Y') }}</span>
                             </div>
                         </div>
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold border {{ $tx->type_badge['class'] }}">
-                            {{ $tx->type_badge['label'] }}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold border {{ $tx->type_badge['class'] }}">
+                            <i class="fa-solid {{ $tx->type_badge['icon'] }} text-[9px]"></i>
+                            <span>{{ $tx->type_badge['label'] }}</span>
                         </span>
                     </div>
 
                     @if ($tx->spk_number || $tx->reference_document)
                     <div class="p-2 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
                         <span class="text-[10px] text-slate-400">Referensi:</span>
-                        <span class="font-mono font-bold text-slate-700 text-[11px] truncate max-w-[200px]">
-                            {{ $tx->spk_number ?: ($tx->reference_document ?: 'Internal Memo') }}
-                        </span>
+                        <div class="font-mono font-bold text-slate-700 text-[11px] truncate max-w-[200px]">
+                            @if ($tx->is_from_work_request)
+                                <span class="inline-flex items-center text-indigo-700">
+                                    <i class="fa-solid fa-industry text-[9px] mr-1 text-indigo-500"></i>
+                                    {{ $tx->reference_document ?: ($tx->workRequest?->wri_number ?: 'Tiket WRI') }}
+                                </span>
+                            @else
+                                <span>{{ $tx->spk_number ?: ($tx->reference_document ?: 'Internal Memo') }}</span>
+                            @endif
+                        </div>
                     </div>
                     @endif
 
@@ -185,8 +195,9 @@
 
                             <!-- Type Badge -->
                             <td class="py-4 px-4">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border {{ $tx->type_badge['class'] }}">
-                                    {{ $tx->type_badge['label'] }}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border {{ $tx->type_badge['class'] }}">
+                                    <i class="fa-solid {{ $tx->type_badge['icon'] }} text-[10px]"></i>
+                                    <span>{{ $tx->type_badge['label'] }}</span>
                                 </span>
                             </td>
 
@@ -198,7 +209,14 @@
                                     </span>
                                 @endif
                                 <span class="text-[11px] text-slate-500 block {{ $tx->spk_number ? 'mt-1' : '' }}">
-                                    Ref: {{ $tx->reference_document ?: 'Internal Memo' }}
+                                    @if ($tx->is_from_work_request)
+                                        <span class="inline-flex items-center font-mono font-semibold text-indigo-700 bg-indigo-50/70 px-2 py-0.5 rounded border border-indigo-200">
+                                            <i class="fa-solid fa-industry text-[9px] mr-1.5 text-indigo-500"></i>
+                                            {{ $tx->reference_document ?: ($tx->workRequest?->wri_number ?: 'Tiket WRI') }}
+                                        </span>
+                                    @else
+                                        Ref: {{ $tx->reference_document ?: 'Internal Memo' }}
+                                    @endif
                                 </span>
                             </td>
 
