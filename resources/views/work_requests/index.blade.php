@@ -782,6 +782,15 @@
                         return false;
                     });
                 },
+                formatDefectNotes(notes) {
+                    if (!notes || notes === '-') return 'Cacat / reject fisik';
+                    // Bersihkan pola kalimat legacy jika ada: "Reject/Defect pada tahap ...: {alasan}. Kuota total tiket dipotong..."
+                    const match = notes.match(/:\s*(.+?)\.\s*Kuota\s+(?:total|order)\s+tiket\s+dipotong/i);
+                    if (match && match[1]) {
+                        return match[1].trim();
+                    }
+                    return notes;
+                },
                 getGudangLogs() {
                     if (!this.detailData || !this.detailData.logs) return [];
                     return this.detailData.logs.filter(l => {
@@ -792,10 +801,12 @@
                         const status = (l.status || '').toLowerCase();
                         const notes = (l.notes || '').toLowerCase();
                         const isMh = status.includes('menuju pengaju') || notes.includes('menuju pengaju') || status.includes('pickup') || notes.includes('pickup');
+                        const isDefect = Boolean(l.is_defect || l.action_type === 'defect' || status.includes('defect') || notes.includes('reject/defect'));
                         return {
                             ...l,
                             is_mh: isMh,
-                            is_gudang: !isMh
+                            is_gudang: !isMh,
+                            is_defect: isDefect,
                         };
                     });
                 }

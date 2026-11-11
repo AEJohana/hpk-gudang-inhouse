@@ -257,7 +257,7 @@
                                                     </div>
                                                     <div class="mt-2 pt-2 border-t border-rose-200 text-[11px] text-rose-900 font-medium flex items-start space-x-1">
                                                         <span class="font-bold shrink-0">Alasan:</span>
-                                                        <span class="break-words" x-text="log.notes || 'Komponen cacat / reject pengerjaan'"></span>
+                                                        <span class="break-words" x-text="formatDefectNotes(log.notes) || 'Komponen cacat / reject pengerjaan'"></span>
                                                     </div>
                                                     <span class="block text-[9px] text-rose-500 font-medium italic mt-1">* Kuota pesanan tiket otomatis dikurangi</span>
                                                 </div>
@@ -341,27 +341,57 @@
                             </div>
                         </template>
 
-                        <!-- Final Destination Card: Pengiriman ke Dept Gudang -->
+                        <!-- Final Destination Card: Pengiriman ke Dept Gudang (Auto-Close Defect Handled) -->
                         <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-2.5">
                             <div class="flex items-center justify-between border-b border-slate-100 pb-2">
                                 <div class="flex items-center space-x-2">
                                     <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-                                         :class="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-600 text-white' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'bg-purple-600 text-white animate-bounce' : (detailData.currentStatus.toLowerCase().includes('siap diambil') ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-200 text-slate-600'))">
-                                        <i class="fa-solid fa-warehouse text-[9px]"></i>
+                                         :class="(detailData.totalQty === 0 && detailData.defectQty > 0) ? 'bg-rose-600 text-white' : (detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-600 text-white' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'bg-purple-600 text-white animate-bounce' : (detailData.currentStatus.toLowerCase().includes('siap diambil') ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-200 text-slate-600')))">
+                                        <i :class="(detailData.totalQty === 0 && detailData.defectQty > 0) ? 'fa-solid fa-triangle-exclamation text-[9px]' : 'fa-solid fa-warehouse text-[9px]'"></i>
                                     </div>
                                     <h4 class="font-black text-xs text-slate-900" x-text="'Pengiriman ke ' + (detailData.deptPengaju || 'Dept Gudang')"></h4>
                                 </div>
                                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase"
-                                      :class="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-100 text-emerald-800' : (detailData.receivedQty > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'bg-purple-100 text-purple-900 font-extrabold' : (detailData.currentStatus.toLowerCase().includes('siap diambil') ? 'bg-amber-100 text-amber-900 font-extrabold border border-amber-300' : 'bg-slate-100 text-slate-500')))"
-                                      x-text="detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'Selesai Diterima' : (detailData.receivedQty > 0 ? 'Diterima Parsial (' + detailData.receivedQty + '/' + detailData.totalQty + ')' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'Sedang Diantar MH' : (detailData.currentStatus.toLowerCase().includes('siap diambil') ? 'Menunggu Diambil MH' : 'Menunggu Selesai')))"></span>
+                                      :class="(detailData.totalQty === 0 && detailData.defectQty > 0) ? 'bg-rose-100 text-rose-800 border border-rose-300 font-extrabold' : (detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'bg-emerald-100 text-emerald-800' : (detailData.receivedQty > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'bg-purple-100 text-purple-900 font-extrabold' : (detailData.currentStatus.toLowerCase().includes('siap diambil') ? 'bg-amber-100 text-amber-900 font-extrabold border border-amber-300' : 'bg-slate-100 text-slate-500'))))"
+                                      x-text="(detailData.totalQty === 0 && detailData.defectQty > 0) ? 'Semua Defect (0 Pcs)' : (detailData.receivedQty >= detailData.totalQty && detailData.totalQty > 0 ? 'Selesai Diterima' : (detailData.receivedQty > 0 ? 'Diterima Parsial (' + detailData.receivedQty + '/' + detailData.totalQty + ')' : (detailData.currentStatus.toLowerCase().includes('menuju pengaju') ? 'Sedang Diantar MH' : (detailData.currentStatus.toLowerCase().includes('siap diambil') ? 'Menunggu Diambil MH' : 'Menunggu Selesai'))))"></span>
                             </div>
 
                             <!-- Final Logs / Status -->
                             <div class="space-y-2">
                                 <template x-for="(gLog, gIdx) in getGudangLogs()" :key="gIdx">
                                     <div>
-                                        <!-- A. LOG BIRU: MATERIAL HANDLING (MENUJU PENGAJU / TRANSIT) -->
-                                        <template x-if="gLog.is_mh">
+                                        <!-- A. LOG MERAH: DEFECT / REJECT LOGISTIK ATAU GUDANG -->
+                                        <template x-if="gLog.is_defect">
+                                            <div class="p-3 rounded-2xl border border-rose-200 bg-rose-50/80 shadow-2xs">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center space-x-2.5">
+                                                        <div class="w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs font-bold shadow-xs shrink-0">
+                                                            <i class="fa-solid fa-triangle-exclamation"></i>
+                                                        </div>
+                                                        <div>
+                                                            <span class="font-black text-xs uppercase tracking-wide text-rose-900" 
+                                                                  x-text="gLog.is_mh ? 'DEFECT / REJECT SAAT PICKUP MH' : 'DEFECT / REJECT PENERIMAAN GUDANG'"></span>
+                                                            <span class="block text-[10px] text-rose-600 font-medium" 
+                                                                  x-text="gLog.time + ' • ' + (gLog.is_mh ? 'Cacat / Hilang saat Serah Terima' : 'Cacat Fisik Penerimaan')"></span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <div class="font-extrabold text-sm sm:text-base text-rose-600 leading-tight" 
+                                                             x-text="'-' + gLog.qty + ' ' + detailData.uom"></div>
+                                                        <div class="text-[10px] text-rose-800 font-semibold" 
+                                                             x-text="gLog.operator ? (gLog.is_mh ? 'Kurir MH: ' + gLog.operator : 'Pemeriksa: ' + gLog.operator) : ''"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-2 pt-2 border-t border-rose-200 text-[11px] text-rose-900 font-medium flex items-start space-x-1">
+                                                    <span class="font-bold shrink-0">Alasan:</span>
+                                                    <span class="break-words" x-text="formatDefectNotes(gLog.notes) || 'Komponen cacat / reject fisik'"></span>
+                                                </div>
+                                                <span class="block text-[9px] text-rose-500 font-medium italic mt-1">* Kuota pesanan tiket otomatis dikurangi</span>
+                                            </div>
+                                        </template>
+
+                                        <!-- B. LOG BIRU: MATERIAL HANDLING (MENUJU PENGAJU / TRANSIT) -->
+                                        <template x-if="!gLog.is_defect && gLog.is_mh">
                                             <div class="p-3 rounded-2xl border border-blue-300 bg-blue-50/80 shadow-2xs">
                                                 <div class="flex items-center justify-between">
                                                     <div class="flex items-center space-x-2.5">
@@ -382,8 +412,8 @@
                                             </div>
                                         </template>
 
-                                        <!-- B. LOG HIJAU: DITERIMA GUDANG (SUDAH DIAMBIL) -->
-                                        <template x-if="!gLog.is_mh">
+                                        <!-- C. LOG HIJAU: DITERIMA GUDANG (SUDAH DIAMBIL) -->
+                                        <template x-if="!gLog.is_defect && !gLog.is_mh">
                                             <div class="p-3 rounded-2xl border border-emerald-300 bg-emerald-50/80 shadow-2xs">
                                                 <div class="flex items-center justify-between">
                                                     <div class="flex items-center space-x-2.5">

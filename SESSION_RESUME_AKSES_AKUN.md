@@ -614,6 +614,23 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Dukungan Menyeluruh di Seluruh Modul:** Diterapkan serentak pada layout operasional (`layouts/app.blade.php`), layout admin (`layouts/admin.blade.php`), Material Handling (`work_station_supplies/index.blade.php`), dan form transaksi (`transactions/create.blade.php`).
 - **Automated Unit Testing:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/GlobalScannerSafetyTest.php` - 4 passed, 21 assertions dan `tests/Unit/BladeAlpineScopeTest.php` - 2 passed, 5 assertions).
 
+### ZZ. Format Catatan Defect Ringkas & Pemisahan Kartu Defect Logistik / Gudang (Baru Selesai & Teruji 100%)
+- **Catatan Defect Presisi & Ringkas (Issue 1):**
+  - Jika pengguna mengisi alasan defect pada modal aksi, sistem menyimpan dan menampilkan alasan tersebut secara persis (*verbatim* tanpa tambahan teks bertele-tele).
+  - Jika pengguna mengosongkan alasan defect, sistem secara otomatis menetapkan catatan ringkas `"Cacat / reject fisik"` menggantikan teks *boilerplate* lama yang terlalu panjang.
+  - Di frontend Alpine.js, ditambahkan pembantu `formatDefectNotes(notes)` yang secara cerdas membersihkan dan mengekstrak alasan inti dari data historis/lama sehingga tampilan selalu bersih dan elegan.
+- **Kartu Khusus Riwayat Defect pada Timeline Logistik / Gudang (Issue 2):**
+  - Sebelumnya, saat Material Handling menginput defect pada tahap *Menuju Pengaju* atau Gudang menginput defect pada tahap *Sudah Diambil*, riwayat ditampilkan keliru dalam format kartu pengiriman biru (*MATERIAL HANDLING*) atau kartu penerimaan hijau (*DITERIMA GUDANG*).
+  - Kini dipisahkan menjadi kartu khusus bernuansa rose/merah lembut (`bg-rose-50/80 border-rose-200`) dengan judul spesifik:
+    - `DEFECT / REJECT SAAT PICKUP MH` (untuk penjemputan logistik)
+    - `DEFECT / REJECT PENERIMAAN GUDANG` (untuk serah terima fisik gudang)
+  - Menampilkan angka pengurangan kuantitas tegas bernuansa merah (`-X PCS`), ikon peringatan tanda seru bulat `fa-circle-exclamation text-rose-600`, nama kurir/penerima, serta catatan alasan defect yang ringkas dan jelas.
+- **Penutupan Otomatis Tiket Jika 100% Kuantitas Defect:**
+  - Jika seluruh kuantitas tiket dicatat sebagai defect oleh MH atau operator (sehingga kuota aktif tersisa 0 pcs), sistem tidak lagi mencatat *ghost process log* berkuantitas 0 pcs.
+  - Tiket secara otomatis ditandai `is_final = true` dengan status `'Selesai (Defect Penuh)'`.
+  - Header modal pelacakan menampilkan indikator peringatan segitiga merah dengan badge informatif: `'Semua Defect (0 Pcs)'`.
+- **Automated Unit Testing:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestDefectCardAndNotesTest.php` - 5 passed, 27 assertions dan `tests/Unit/BladeAlpineScopeTest.php` - 2 passed, 5 assertions).
+
 
 ---
 

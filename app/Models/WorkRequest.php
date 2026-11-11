@@ -866,6 +866,13 @@ class WorkRequest extends Model
             ];
         }
 
+        if (stripos($clean, 'Defect Penuh') !== false || ($this->is_final && (float)$this->quantity_requested <= 0 && (float)$this->quantity_defect > 0 && (float)$this->quantity_received == 0)) {
+            return [
+                'label' => 'Selesai (Defect 100%)',
+                'class' => 'bg-rose-100 text-rose-800 border-rose-300 font-bold'
+            ];
+        }
+
         if (stripos($clean, 'Sudah Diambil') !== false || $clean === 'received') {
             $label = $this->is_final 
                 ? 'Sudah Diambil (Final)' 

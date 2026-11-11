@@ -1082,14 +1082,19 @@ class WorkRequestController extends Controller
             // SCENARIO 1: REPORT STANDALONE DEFECT / REJECT
             if ($validated['action_type'] === 'defect') {
                 $defectQty = (float) ($validated['defect_qty'] ?? 0);
-                $reason = !empty($validated['defect_reason']) ? $validated['defect_reason'] : 'Komponen rusak/cacat pengerjaan mesin';
+                $hasUserReason = !empty(trim($validated['defect_reason'] ?? ''));
+                $reason = $hasUserReason ? trim($validated['defect_reason']) : 'Cacat / reject fisik';
 
                 $newTotalDefect = $accumDefect + $defectQty;
                 $newReq = max(0, $totalReq - $defectQty);
+                $isAllDefect = ($newReq <= 0);
 
                 $workRequest->update([
                     'quantity_defect' => $newTotalDefect,
                     'quantity_requested' => $newReq,
+                    'is_final' => $isAllDefect ? true : (bool) ($workRequest->is_final ?? false),
+                    'status' => $isAllDefect ? 'Selesai (Defect Penuh)' : $workRequest->status,
+                    'current_process_status' => $isAllDefect ? 'Selesai (Defect Penuh)' : $workRequest->current_process_status,
                     'notes' => trim(($workRequest->notes ? $workRequest->notes . "\n" : '') . "[Koreksi Defect] -{$defectQty} pcs: {$reason}"),
                 ]);
 
@@ -1101,11 +1106,14 @@ class WorkRequestController extends Controller
                     'quantity' => $defectQty,
                     'quantity_accumulated' => $newTotalDefect,
                     'operator_name' => $operator,
-                    'notes' => "Reject/Defect" . ($activeStepName ? " ({$activeStepName})" : '') . ": {$reason}. Kuota order dipotong {$defectQty} pcs menjadi {$newReq} pcs.",
+                    'notes' => $reason,
                 ]);
 
-                return redirect()->back()
-                    ->with('warning', "Pencatatan defect sebanyak {$defectQty} pcs berhasil! Kuota order tiket disesuaikan menjadi {$newReq} pcs.");
+                $msg = $isAllDefect 
+                    ? "Pencatatan defect sebanyak {$defectQty} pcs berhasil! Seluruh kuota tiket telah dicatat defect sehingga tiket ditutup (Selesai)."
+                    : "Pencatatan defect sebanyak {$defectQty} pcs berhasil! Kuota order tiket disesuaikan menjadi {$newReq} pcs.";
+
+                return redirect()->back()->with('warning', $msg);
             }
 
             // SCENARIO 2: PROGRESS LIFECYCLE (PARTIAL OR FULL)
@@ -1115,7 +1123,8 @@ class WorkRequestController extends Controller
             $defectQty = 0;
             if ($hasDefectReport && stripos($cleanTarget, '(In)') === false) {
                 $defectQty = (float) $validated['defect_qty'];
-                $reason = !empty($validated['defect_reason']) ? $validated['defect_reason'] : 'Komponen cacat / rusak fisik serah terima';
+                $hasUserReason = !empty(trim($validated['defect_reason'] ?? ''));
+                $reason = $hasUserReason ? trim($validated['defect_reason']) : 'Cacat / reject fisik';
 
                 $accumDefect += $defectQty;
                 $totalReq = max(0, $totalReq - $defectQty);
@@ -1133,7 +1142,7 @@ class WorkRequestController extends Controller
                     'quantity' => $defectQty,
                     'quantity_accumulated' => $accumDefect,
                     'operator_name' => $operator,
-                    'notes' => "Reject/Defect pada tahap {$cleanTarget}" . ($activeStepName ? " ({$activeStepName})" : '') . ": {$reason}. Kuota total tiket dipotong {$defectQty} pcs menjadi {$totalReq} pcs.",
+                    'notes' => $reason,
                 ]);
 
                 ActivityLogger::workRequest(
@@ -1142,6 +1151,19 @@ class WorkRequestController extends Controller
                     $workRequest,
                     ['defect_qty' => $defectQty, 'reason' => $reason, 'operator' => $operator]
                 );
+
+                // Jika seluruh kuota aktif habis (100% defect, totalReq <= 0):
+                if ($totalReq <= 0) {
+                    $workRequest->update([
+                        'status' => 'Selesai (Defect Penuh)',
+                        'current_process_status' => 'Selesai (Defect Penuh)',
+                        'is_final' => true,
+                        'current_batch_qty' => 0,
+                    ]);
+
+                    return redirect()->back()
+                        ->with('warning', "Pencatatan defect {$defectQty} pcs berhasil. Seluruh kuota tiket ({$accumDefect} pcs) telah dicatat defect sehingga tiket ditutup (Selesai).");
+                }
             }
 
             // Pada Proses (In): kuantitas dipaksa penuh sesuai sisa kebutuhan
