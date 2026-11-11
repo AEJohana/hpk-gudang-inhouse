@@ -527,6 +527,15 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - Membuat test suite `tests/Unit/BladeAlpineScopeTest.php` untuk memvalidasi kesimetrisan pembuka & penutup tag HTML (`<div>`, `<form>`, `<table>`, `<template>`) di seluruh file `.blade.php` dan memastikan `taskGudangHandler()` tidak pernah ditutup prematur.
   - Lulus 100% pada SQLite in-memory `:memory:` (2 passed, 5 assertions).
 
+### PP. Desain Minimalis Modal Penugasan Operator Mesin (Baru Selesai & Teruji 100%)
+- **Penyederhanaan Visual & Ukuran Ramping:** Merampingkan modal `assign_operator_modal.blade.php` dari `sm:max-w-lg` (512px) menjadi `sm:max-w-md` (420px) berlatar putih bersih dengan soft badge, senada dengan bahasa desain modal proses kuantitas.
+- **Peniadaan Textarea Catatan Jadwal Mesin & Baris Chips:** Menghapus textarea catatan kesanggupan/jadwal mesin yang memakan tempat serta mengeliminasi baris chips repetitif di bawah input.
+- **Pemilihan Operator Cerdas Berbasis Stasiun Tujuan (Combobox):** Memetakan operator aktif per departemen (`$departmentOperatorsMap`) sehingga dropdown hanya memuat nama operator dari stasiun tujuan tiket (misal: Dept M1 hanya menampilkan operator Dept M1).
+- **Auto-Fallback Diri Sendiri:** Jika departemen tujuan belum memiliki operator yang terdaftar di sistem, input otomatis diarahkan ke nama user yang sedang login (*Ka. Mesin / Diri Sendiri*). Dropdown juga selalu menyertakan opsi *"Saya Sendiri ([Nama])"*.
+- **Input Bebas / Hybrid:** Pengguna tetap dapat memilih via dropdown atau mengetik nama baru secara bebas di dalam input.
+- **Perbaikan Posisi Checkmark Tombol Verifikasi:** Menyelaraskan tombol "Verifikasi & Masukkan Antrian" dengan `whitespace-nowrap`, `gap-2`, dan ikon checkmark putih (`shrink-0`) sehingga tidak lagi terpotong/menempel aneh di pinggir tombol.
+- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestAssignOperatorModalTest.php` - 3 passed, 21 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

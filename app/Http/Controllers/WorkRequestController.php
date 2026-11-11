@@ -9,6 +9,7 @@ use App\Models\Machine;
 use App\Models\StockBalance;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WorkRequest;
 use App\Models\WorkRequestLog;
@@ -232,6 +233,40 @@ class WorkRequestController extends Controller
             return view('work_requests.partials._table_content', compact('workRequests', 'scope'));
         }
 
+        // Prepare department operators lookup for operator assignment modal
+        $departmentOperatorsMap = [];
+        $departments = Department::active()->with(['users' => function ($q) {
+            $q->where('is_active', true);
+        }])->get();
+
+        foreach ($departments as $dept) {
+            $cleanName = preg_replace('/[^a-z0-9]/', '', strtolower($dept->name));
+            $userNames = $dept->users->pluck('name')->unique()->values()->all();
+            if ($cleanName) {
+                $departmentOperatorsMap[$cleanName] = $userNames;
+            }
+            if ($dept->alias) {
+                $cleanAlias = preg_replace('/[^a-z0-9]/', '', strtolower($dept->alias));
+                if ($cleanAlias) {
+                    $departmentOperatorsMap[$cleanAlias] = $userNames;
+                }
+            }
+        }
+
+        // Include users with string department column if not associated with department_id
+        $usersWithoutDeptId = User::where('is_active', true)->whereNull('department_id')->get();
+        foreach ($usersWithoutDeptId as $u) {
+            $clean = preg_replace('/[^a-z0-9]/', '', strtolower($u->department ?? ''));
+            if ($clean) {
+                if (!isset($departmentOperatorsMap[$clean])) {
+                    $departmentOperatorsMap[$clean] = [];
+                }
+                if (!in_array($u->name, $departmentOperatorsMap[$clean])) {
+                    $departmentOperatorsMap[$clean][] = $u->name;
+                }
+            }
+        }
+
         return view('work_requests.index', compact(
             'workRequests',
             'scope',
@@ -245,7 +280,8 @@ class WorkRequestController extends Controller
             'needsApprovalCount',
             'overdueSlaCount',
             'printableCount',
-            'openDetailPayload'
+            'openDetailPayload',
+            'departmentOperatorsMap'
         ));
     }
 

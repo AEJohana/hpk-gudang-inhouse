@@ -333,6 +333,8 @@
                 activeTab: '{{ request()->boolean('overdue_sla') ? 'overdue' : (request('status') ?: 'all') }}',
                 tabLoading: false,
                 tabCache: {},
+                departmentOperators: @json($departmentOperatorsMap ?? []),
+                currentUserName: @json(auth()->user()->name),
                 init() {
                     const container = document.getElementById('wri-table-container');
                     if (container) {
@@ -443,7 +445,7 @@
                     totalQty: 0,
                     uom: 'PCS',
                     operatorName: '',
-                    notes: '',
+                    availableOperators: [],
                     actionUrl: '',
                 },
                 processData: {
@@ -505,10 +507,23 @@
                     isOverdue: false,
                 },
                 openAssignModal(data) {
+                    const cleanDept = (data.deptPenerima || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                    let operators = [];
+                    for (const [key, names] of Object.entries(this.departmentOperators || {})) {
+                        if (cleanDept.includes(key) || key.includes(cleanDept)) {
+                            names.forEach(n => {
+                                if (!operators.includes(n)) operators.push(n);
+                            });
+                        }
+                    }
+
+                    const hasOperators = operators.length > 0;
+                    const defaultOperator = data.assignedOperator || (hasOperators ? operators[0] : this.currentUserName);
+
                     this.assignData = {
                         ...data,
-                        operatorName: data.assignedOperator || '',
-                        notes: '',
+                        operatorName: defaultOperator,
+                        availableOperators: operators,
                     };
                     this.assignModalOpen = true;
                 },

@@ -193,6 +193,14 @@ Users have specific roles and departmental scopes that dictate their permissions
 - **Keseimbangan Tag Import Modal:** Melengkapi penutup pembungkus `</div>` pada modal import massal komponen (`master_components/partials/import_modal.blade.php`).
 - **Automated Blade Alpine Scope Test:** Menambahkan test suite otomatis `tests/Unit/BladeAlpineScopeTest.php` yang secara berkala memvalidasi kesimetrisan pembuka & penutup tag HTML di seluruh file `.blade.php` serta mengunci agar seluruh modal dan direktif Alpine selalu berada di dalam scope reaktifnya.
 
+### 22. Desain Minimalis Modal Penugasan Operator (Receiver Approval & Operator Assignment)
+- **Visual Ramping & Bersih (`max-w-md` ~420px):** Mengubah header gelap kontras menjadi header putih bersih berbingkai lembut dengan icon badge `<i class="fa-solid fa-user-gear"></i>`, selaras dengan modal proses operasional.
+- **Pemilihan Operator Cerdas Berbasis Departemen (Combobox Dropdown):** Memetakan operator aktif spesifik per departemen penerima (`$departmentOperatorsMap`) sehingga dropdown hanya menampilkan operator dari stasiun tujuan (misal: Dept M1 hanya menampilkan operator Dept M1).
+- **Auto-Fallback Diri Sendiri & Pilihan Cepat:** Jika departemen tujuan belum memiliki operator terdaftar di sistem, input otomatis diarahkan ke nama user yang sedang login (*Ka. Mesin / Diri Sendiri*). Dropdown juga selalu menyediakan opsi "Saya Sendiri ([Nama])".
+- **Input Bebas / Hybrid:** Pengguna tetap dapat memilih via dropdown atau mengetik nama baru secara bebas langsung pada kolom input.
+- **Peniadaan Chips Redundan & Textarea:** Menghilangkan baris tombol chip di bawah input agar modal tetap lapang serta menghapus textarea catatan kesanggupan mesin yang memakan tempat.
+- **Tombol Konfirmasi Simetris & Anti-Wrap:** Tombol "Batal" dan "Verifikasi & Masukkan Antrian" diselaraskan dengan ikon checkmark putih (`shrink-0`) dan `whitespace-nowrap` sehingga tidak terpotong atau tertekan di pinggir.
+
 ## Technical Documentation References
 - [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
 - [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - Standar Operasional Prosedur, Diagram Alur Proses & Aturan Bisnis (BR-01 s/d BR-14)
