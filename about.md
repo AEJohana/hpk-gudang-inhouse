@@ -188,6 +188,11 @@ Users have specific roles and departmental scopes that dictate their permissions
 - **Dual-Action Navigation:** Operator dapat menggeser manual dengan jari (*swipe gesture*) atau cukup mengetuk tombol panah untuk scroll otomatis sejauh 160px. Panah kiri `[ < ]` otomatis muncul saat bar digeser ke kanan, dan seluruh elemen bantuan otomatis bersembunyi di layar desktop lebar.
 - **Global Touch Padding:** Menambahkan padding akhir responsif pada seluruh komponen pill tab horizontal agar tab terakhir tidak terpotong kaku di layar sentuh.
 
+### 21. Stabilitas DOM Antarmuka & Kepatuhan Scope Alpine.js (DOM Integrity & Zero-Orphan Modals)
+- **Eliminasi Tag Duplikat Prematur:** Memperbaiki duplikasi tag penutup HTML `</form></div></div>` pada modul Material Handling (`work_station_supplies/index.blade.php`) yang sebelumnya memotong kontainer `x-data="taskGudangHandler()"` lebih awal dan menyebabkan error `detailModalOpen is not defined` di console web.
+- **Keseimbangan Tag Import Modal:** Melengkapi penutup pembungkus `</div>` pada modal import massal komponen (`master_components/partials/import_modal.blade.php`).
+- **Automated Blade Alpine Scope Test:** Menambahkan test suite otomatis `tests/Unit/BladeAlpineScopeTest.php` yang secara berkala memvalidasi kesimetrisan pembuka & penutup tag HTML di seluruh file `.blade.php` serta mengunci agar seluruh modal dan direktif Alpine selalu berada di dalam scope reaktifnya.
+
 ## Technical Documentation References
 - [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
 - [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - Standar Operasional Prosedur, Diagram Alur Proses & Aturan Bisnis (BR-01 s/d BR-14)

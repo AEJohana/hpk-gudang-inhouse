@@ -1060,9 +1060,6 @@
                 </form>
             </div>
         </div>
-                </form>
-            </div>
-        </div>
 
         <!-- ======================================================== -->
         <!-- MODAL: DETAIL STATUS & TIMELINE ALUR (PERSIS LEGACY)     -->
