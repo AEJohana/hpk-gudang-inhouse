@@ -350,6 +350,14 @@
                         <div x-show="isScanning" class="absolute inset-x-8 top-1/2 -translate-y-1/2 h-1 bg-amber-500 shadow-[0_0_8px_#f59e0b] animate-pulse pointer-events-none"></div>
                     </div>
 
+                    <!-- Camera Error / Permission Notice -->
+                    <div x-show="cameraErrorMessage" style="display: none;" class="p-3 bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs rounded-xl flex items-start space-x-2">
+                        <svg class="w-4 h-4 text-amber-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <span x-text="cameraErrorMessage"></span>
+                    </div>
+
                     <!-- Manual Input / Barcode Gun field -->
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Input Manual / Barcode Scanner Gun:</label>
@@ -413,6 +421,7 @@
                     manualCode: '',
                     scannedComponent: null,
                     scanError: null,
+                    cameraErrorMessage: null,
                     html5QrCode: null,
 
                     init() {
@@ -423,6 +432,7 @@
                         this.scannerOpen = true;
                         this.scannedComponent = null;
                         this.scanError = null;
+                        this.cameraErrorMessage = null;
                         this.manualCode = '';
                         this.$nextTick(() => {
                             this.startCameraScanner();
@@ -430,8 +440,9 @@
                     },
 
                     closeScanner() {
-                        this.stopCameraScanner();
                         this.scannerOpen = false;
+                        this.cameraErrorMessage = null;
+                        this.stopCameraScanner();
                     },
 
                     startCameraScanner() {
@@ -440,39 +451,69 @@
 
                         if (typeof Html5Qrcode === 'undefined') {
                             console.error('Html5Qrcode library not loaded');
+                            this.cameraErrorMessage = 'Library pemindai barcode belum dimuat.';
                             return;
                         }
 
-                        this.html5QrCode = new Html5Qrcode('global-scanner-reader');
-                        const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+                        if (this.html5QrCode) {
+                            this.stopCameraScanner();
+                        }
 
-                        this.html5QrCode.start(
-                            { facingMode: 'environment' },
-                            config,
-                            (decodedText, decodedResult) => {
-                                // Scanned successfully
-                                this.manualCode = decodedText;
-                                this.lookupCode(decodedText);
-                            },
-                            (errorMessage) => {
-                                // QR code parsing error - ignore background noise
-                            }
-                        ).then(() => {
-                            this.isScanning = true;
-                        }).catch(err => {
-                            console.warn('Camera scan could not start:', err);
+                        try {
+                            this.html5QrCode = new Html5Qrcode('global-scanner-reader');
+                            const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+
+                            this.html5QrCode.start(
+                                { facingMode: 'environment' },
+                                config,
+                                (decodedText, decodedResult) => {
+                                    // Scanned successfully
+                                    this.manualCode = decodedText;
+                                    this.lookupCode(decodedText);
+                                },
+                                (errorMessage) => {
+                                    // QR code parsing error - ignore background noise
+                                }
+                            ).then(() => {
+                                if (!this.scannerOpen) {
+                                    this.stopCameraScanner();
+                                    return;
+                                }
+                                this.isScanning = true;
+                                this.cameraErrorMessage = null;
+                            }).catch(err => {
+                                console.warn('Camera scan could not start:', err);
+                                this.isScanning = false;
+                                if (this.scannerOpen) {
+                                    this.cameraErrorMessage = 'Kamera tidak dapat diakses (izin kamera belum diberikan atau diblokir browser). Silakan masukkan kode part atau gunakan barcode scanner gun.';
+                                }
+                            });
+                        } catch (err) {
+                            console.warn('Failed to start scanner:', err);
                             this.isScanning = false;
-                        });
+                            this.cameraErrorMessage = 'Kamera tidak dapat diinisialisasi.';
+                        }
                     },
 
-                    stopCameraScanner() {
+                    async stopCameraScanner() {
+                        this.isScanning = false;
                         if (this.html5QrCode) {
-                            this.html5QrCode.stop().then(() => {
-                                this.html5QrCode.clear();
-                                this.isScanning = false;
-                            }).catch(err => {
-                                console.warn('Error stopping scanner:', err);
-                            });
+                            const scanner = this.html5QrCode;
+                            this.html5QrCode = null;
+                            try {
+                                const state = typeof scanner.getState === 'function' ? scanner.getState() : null;
+                                // Html5QrcodeScannerState: 2 = SCANNING, 3 = PAUSED
+                                if (state === 2 || state === 3) {
+                                    await scanner.stop();
+                                }
+                            } catch (err) {
+                                console.warn('Silently handled scanner stop:', err);
+                            }
+                            try {
+                                scanner.clear();
+                            } catch (err) {
+                                // Ignore clear error
+                            }
                         }
                     },
 

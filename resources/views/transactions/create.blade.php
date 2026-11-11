@@ -445,25 +445,50 @@
 
                 startCamera() {
                     if (typeof Html5Qrcode === 'undefined') return;
-                    this.html5QrCode = new Html5Qrcode('tx-camera-reader');
-                    this.html5QrCode.start(
-                        { facingMode: 'environment' },
-                        { fps: 10, qrbox: { width: 180, height: 180 } },
-                        (text) => {
-                            this.searchQuery = text;
-                            this.onEnterKey();
-                            this.stopCamera();
-                            this.scannerActive = false;
-                        },
-                        (err) => {}
-                    ).catch(e => {
-                        console.warn('Tx camera start error:', e);
-                    });
+
+                    if (this.html5QrCode) {
+                        this.stopCamera();
+                    }
+
+                    try {
+                        this.html5QrCode = new Html5Qrcode('tx-camera-reader');
+                        this.html5QrCode.start(
+                            { facingMode: 'environment' },
+                            { fps: 10, qrbox: { width: 180, height: 180 } },
+                            (text) => {
+                                this.searchQuery = text;
+                                this.onEnterKey();
+                                this.scannerActive = false;
+                                this.stopCamera();
+                            },
+                            (err) => {}
+                        ).then(() => {
+                            if (!this.scannerActive) {
+                                this.stopCamera();
+                            }
+                        }).catch(e => {
+                            console.warn('Tx camera start error:', e);
+                        });
+                    } catch (e) {
+                        console.warn('Tx camera init error:', e);
+                    }
                 },
 
-                stopCamera() {
+                async stopCamera() {
                     if (this.html5QrCode) {
-                        this.html5QrCode.stop().then(() => this.html5QrCode.clear()).catch(e => {});
+                        const scanner = this.html5QrCode;
+                        this.html5QrCode = null;
+                        try {
+                            const state = typeof scanner.getState === 'function' ? scanner.getState() : null;
+                            if (state === 2 || state === 3) {
+                                await scanner.stop();
+                            }
+                        } catch (e) {
+                            console.warn('Tx camera stop error:', e);
+                        }
+                        try {
+                            scanner.clear();
+                        } catch (e) {}
                     }
                 },
 

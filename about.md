@@ -228,6 +228,13 @@ Users have specific roles and departmental scopes that dictate their permissions
 - **Rampingkan Panel Filter (Simetris 2x2):** Menyusun ulang panel filter dari yang sebelumnya 3 baris boros menjadi format grid 2x2 simetris di tablet/mobile (Baris 1: Tanggal & Asal, Baris 2: Tujuan & Cari Kata Kunci) dan otomatis mengalir rapi dalam 1 baris lurus di desktop (`lg:`/`md:`).
 - **Pengujian Unit Otomatis:** Diverifikasi oleh `tests/Unit/MaterialHandlingResponsiveLayoutTest.php` (1 passed, 6 assertions).
 
+### 26. Safe Scanner Teardown & Fail-Safe Modal Dismissal (Solusi Error Kamera & Modal Macet)
+- **Akar Masalah Error "Cannot stop, scanner is not running":** Pustaka `html5-qrcode` melemparkan exception sinkron (`throw "Cannot stop..."`) saat metode `.stop()` dipanggil pada scanner yang belum aktif atau gagal start (misalnya karena izin kamera belum diberikan pengguna). Hal ini menyebabkan pemanggilan `closeScanner()` terhenti di tengah jalan dan melemparkan uncaught promise error pada Alpine.js, sehingga variabel penutup modal `scannerOpen = false` tidak pernah dieksekusi dan modal kamera menjadi macet tidak bisa ditutup.
+- **Fail-Safe Close Execution:** Mengubah urutan penutupan modal pada seluruh layout (`layouts/app.blade.php`, `layouts/admin.blade.php`, `work_station_supplies/index.blade.php`, dan `transactions/create.blade.php`) di mana variabel status modal (`scannerOpen = false`) dieksekusi seketika di baris pertama, menjamin jendela modal selalu langsung tertutup tanpa terpengaruh kondisi perangkat keras kamera.
+- **Safe Scanner State Checking & Exception Shielding:** Memeriksa state scanner (`scanner.getState() === 2 || scanner.getState() === 3`) sebelum memanggil `.stop()`, membungkus proses teardown dalam blok `try ... catch` kedap error, serta melepaskan referensi instance (`this.html5QrCode = null`) untuk mencegah *memory leak* atau *double-stop race conditions*.
+- **Pesan Panduan Izin Kamera Ramah Pengguna:** Menambahkan notifikasi informatif berlatar amber lembut (`x-show="cameraErrorMessage"`) saat izin kamera ditolak atau belum aktif, mengarahkan pengguna bahwa mereka tetap leluasa melakukan pencarian dengan mengetik kode part atau memindai barcode menggunakan alat scanner gun USB/Bluetooth.
+- **Pengujian Unit Otomatis:** Diverifikasi penuh oleh `tests/Unit/GlobalScannerSafetyTest.php` (4 passed, 21 assertions).
+
 ## Technical Documentation References
 - [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
 - [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - Standar Operasional Prosedur, Diagram Alur Proses & Aturan Bisnis (BR-01 s/d BR-14)

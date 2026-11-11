@@ -1346,33 +1346,62 @@
                 },
 
                 closeMhScanner() {
-                    this.stopCameraMh();
                     this.mhScannerOpen = false;
+                    this.stopCameraMh();
                 },
 
                 startCameraMh() {
                     const el = document.getElementById('mh-scanner-reader');
                     if (!el || typeof Html5Qrcode === 'undefined') return;
 
-                    this.html5QrMh = new Html5Qrcode('mh-scanner-reader');
-                    const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+                    if (this.html5QrMh) {
+                        this.stopCameraMh();
+                    }
 
-                    this.html5QrMh.start(
-                        { facingMode: 'environment' },
-                        config,
-                        (decodedText) => {
+                    try {
+                        this.html5QrMh = new Html5Qrcode('mh-scanner-reader');
+                        const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+
+                        this.html5QrMh.start(
+                            { facingMode: 'environment' },
+                            config,
+                            (decodedText) => {
+                                this.isScanningMh = true;
+                                this.performLookup(decodedText);
+                            },
+                            (error) => {}
+                        ).then(() => {
+                            if (!this.mhScannerOpen) {
+                                this.stopCameraMh();
+                                return;
+                            }
                             this.isScanningMh = true;
-                            this.performLookup(decodedText);
-                        },
-                        (error) => {}
-                    ).catch(err => {
-                        console.warn('Camera start issue:', err);
-                    });
+                        }).catch(err => {
+                            console.warn('Camera start issue:', err);
+                            this.isScanningMh = false;
+                        });
+                    } catch (e) {
+                        console.warn('Failed to init MH camera:', e);
+                        this.isScanningMh = false;
+                    }
                 },
 
-                stopCameraMh() {
-                    if (this.html5QrMh && this.html5QrMh.isScanning) {
-                        this.html5QrMh.stop().catch(e => console.error(e));
+                async stopCameraMh() {
+                    this.isScanningMh = false;
+                    if (this.html5QrMh) {
+                        const scanner = this.html5QrMh;
+                        this.html5QrMh = null;
+                        try {
+                            const state = typeof scanner.getState === 'function' ? scanner.getState() : null;
+                            if (state === 2 || state === 3) {
+                                await scanner.stop();
+                            }
+                        } catch (e) {
+                            console.warn('Silently handled MH scanner stop:', e);
+                        }
+                        try {
+                            scanner.clear();
+                        } catch (e) {}
                     }
                 },
 

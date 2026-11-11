@@ -603,6 +603,17 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Opsi ke-6 pada Dropdown Popover WRI:** Menambahkan item ke-6 pada menu dropdown status serta memperbarui pemicu dropdown untuk menampilkan ikon `fa-ban text-rose-600`, label `Ditolak / Batal`, dan badge `bg-rose-100 text-rose-800` saat status 'ditolak' aktif.
 - **Automated Unit Testing:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestControlBarDropdownTest.php` - 1 passed, 16 assertions dan `tests/Unit/WorkRequestSlaAndStatusFilterTest.php` - 2 passed, 26 assertions).
 
+### YY. Safe Scanner Teardown & Fail-Safe Camera Modal Dismissal (Baru Selesai & Teruji 100%)
+- **Akar Masalah Crash "Cannot stop, scanner is not running":** Pustaka `html5-qrcode` melemparkan *synchronous exception* (`throw "Cannot stop..."`) saat metode `.stop()` dipanggil pada scanner yang belum berhasil aktif (misalnya saat pengguna belum mengizinkan akses kamera browser). Exception ini menginterupsi eksekusi Alpine.js pada `@click="closeScanner()"`, sehingga baris `this.scannerOpen = false` tidak pernah dicapai dan modal pemindai terkunci tidak bisa ditutup.
+- **Fail-Safe Close (Prioritas Penutupan Modal):** Mengubah urutan eksekusi pada `closeScanner()` dan `closeMhScanner()` di mana variabel status modal (`this.scannerOpen = false` / `this.mhScannerOpen = false`) dieksekusi seketika di baris pertama sebelum proses teardown kamera. Modal dijamin 100% langsung tertutup tanpa hambatan.
+- **Pengecekan State Kamera & Proteksi Try-Catch Menyeluruh:**
+  - Memeriksa state scanner secara aman melalui `scanner.getState() === 2 || scanner.getState() === 3` sebelum memanggil `scanner.stop()`.
+  - Membungkus seluruh proses `stop()` dan `clear()` ke dalam blok `try ... catch` terisolasi sehingga kegagalan perangkat keras kamera tidak akan memicu unhandled rejection di browser console.
+  - Memutus referensi instance `this.html5QrCode = null` seketika untuk mencegah kondisi balapan (*race conditions*) atau *double-stop*.
+- **Pemberitahuan Izin Kamera Ramah Pengguna:** Menambahkan panel pesan informatif bernuansa amber lembut (`x-show="cameraErrorMessage"`) ketika izin kamera ditolak atau kamera sedang sibuk, mengedukasi pengguna bahwa mereka tetap dapat mencari part dengan mengetik kode secara manual atau memindai menggunakan scanner gun barcode USB/Bluetooth.
+- **Dukungan Menyeluruh di Seluruh Modul:** Diterapkan serentak pada layout operasional (`layouts/app.blade.php`), layout admin (`layouts/admin.blade.php`), Material Handling (`work_station_supplies/index.blade.php`), dan form transaksi (`transactions/create.blade.php`).
+- **Automated Unit Testing:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/GlobalScannerSafetyTest.php` - 4 passed, 21 assertions dan `tests/Unit/BladeAlpineScopeTest.php` - 2 passed, 5 assertions).
+
 
 ---
 
