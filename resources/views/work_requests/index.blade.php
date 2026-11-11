@@ -517,13 +517,14 @@
                         }
                     }
 
-                    const hasOperators = operators.length > 0;
-                    const defaultOperator = data.assignedOperator || (hasOperators ? operators[0] : this.currentUserName);
+                    // Filter out current user from available operators so no duplicate name appears (current user has "Saya Sendiri")
+                    const otherOperators = operators.filter(n => n.toLowerCase().trim() !== (this.currentUserName || '').toLowerCase().trim());
+                    const defaultOperator = data.assignedOperator || (otherOperators.length > 0 ? otherOperators[0] : this.currentUserName);
 
                     this.assignData = {
                         ...data,
                         operatorName: defaultOperator,
-                        availableOperators: operators,
+                        availableOperators: otherOperators,
                     };
                     this.assignModalOpen = true;
                 },

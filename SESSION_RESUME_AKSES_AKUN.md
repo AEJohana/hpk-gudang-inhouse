@@ -531,10 +531,19 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Penyederhanaan Visual & Ukuran Ramping:** Merampingkan modal `assign_operator_modal.blade.php` dari `sm:max-w-lg` (512px) menjadi `sm:max-w-md` (420px) berlatar putih bersih dengan soft badge, senada dengan bahasa desain modal proses kuantitas.
 - **Peniadaan Textarea Catatan Jadwal Mesin & Baris Chips:** Menghapus textarea catatan kesanggupan/jadwal mesin yang memakan tempat serta mengeliminasi baris chips repetitif di bawah input.
 - **Pemilihan Operator Cerdas Berbasis Stasiun Tujuan (Combobox):** Memetakan operator aktif per departemen (`$departmentOperatorsMap`) sehingga dropdown hanya memuat nama operator dari stasiun tujuan tiket (misal: Dept M1 hanya menampilkan operator Dept M1).
-- **Auto-Fallback Diri Sendiri:** Jika departemen tujuan belum memiliki operator yang terdaftar di sistem, input otomatis diarahkan ke nama user yang sedang login (*Ka. Mesin / Diri Sendiri*). Dropdown juga selalu menyertakan opsi *"Saya Sendiri ([Nama])"*.
+- **Auto-Fallback Diri Sendiri & Zero Duplication:** Jika departemen tujuan belum memiliki operator yang terdaftar di sistem, input otomatis diarahkan ke nama user yang sedang login (*Ka. Mesin / Diri Sendiri*). User yang sedang login secara otomatis difilter dari daftar operator rekanan (`otherOperators`) sehingga namanya tidak pernah muncul ganda di dropdown.
 - **Input Bebas / Hybrid:** Pengguna tetap dapat memilih via dropdown atau mengetik nama baru secara bebas di dalam input.
 - **Perbaikan Posisi Checkmark Tombol Verifikasi:** Menyelaraskan tombol "Verifikasi & Masukkan Antrian" dengan `whitespace-nowrap`, `gap-2`, dan ikon checkmark putih (`shrink-0`) sehingga tidak lagi terpotong/menempel aneh di pinggir tombol.
-- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestAssignOperatorModalTest.php` - 3 passed, 21 assertions).
+- **Pengujian Unit Otomatis Terisolasi:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestAssignOperatorModalTest.php` - 4 passed, 23 assertions).
+
+### QQ. Fitur Show / Hide Password Presisi Lampiran 3 & 4 gaya recent.design (Baru Selesai & Teruji 100%)
+- **Wadah Kapsul & Tombol Pastel (Lampiran 3):** Input password ditata ulang menjadi kapsul lapang dengan tombol kotak rounded pastel ungu/biru lembut (`bg-[#EEF0FE] text-[#4F46E5]`) dan ikon mata `<i class="fa-solid fa-eye"></i>` di ujung kanan.
+- **Animated Countdown Line Indicator (Lampiran 4):**
+  - Saat tombol diklik untuk melihat password, latar tombol berganti menjadi hijau pastel lembut (`bg-[#E8FAF0] text-[#16A34A]`) dan ikon berganti menjadi `<i class="fa-solid fa-eye-slash"></i>`.
+  - Dilengkapi garis tepi border SVG animasi (`stroke="#22c55e"` dengan `pathLength="100"`) yang melingkari sudut tombol secara halus menghitung mundur dari 5 detik hingga 0 detik.
+  - Setelah 5 detik habis (atau diklik ulang), password otomatis tersamarkan kembali dan tombol kembali ke kondisi awal Lampiran 3.
+- **Zero Clipboard Risk (Pabrik Security Best Practice):** Menghilangkan fungsi copy ke clipboard agar kredensial tidak tertinggal di komputer kerja bersama (*shared terminal*).
+- **Automated Unit Testing:** Lulus 100% pada `tests/Unit/LoginPasswordToggleTest.php` (1 passed, 13 assertions).
 
 ---
 

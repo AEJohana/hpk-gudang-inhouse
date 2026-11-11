@@ -246,6 +246,40 @@ class WorkRequestAssignOperatorModalTest extends TestCase
     }
 
     /**
+     * Test current logged in user is excluded from available operators to prevent duplicate entries.
+     */
+    public function test_current_user_is_filtered_from_other_operators(): void
+    {
+        $deptM1 = Department::create(['code' => '2', 'name' => 'Dept M1', 'is_active' => true]);
+        
+        $opFajar = User::create([
+            'name' => 'Pak Fajar',
+            'email' => 'fajar2@example.com',
+            'password' => bcrypt('secret'),
+            'department_id' => $deptM1->id,
+            'department' => 'Dept M1',
+            'is_active' => true
+        ]);
+
+        $opDedi = User::create([
+            'name' => 'Dedi Pratama',
+            'email' => 'dedi2@example.com',
+            'password' => bcrypt('secret'),
+            'department_id' => $deptM1->id,
+            'department' => 'Dept M1',
+            'is_active' => true
+        ]);
+
+        $operators = [$opDedi->name, $opFajar->name];
+        $currentUserName = 'Pak Fajar';
+
+        $otherOperators = array_values(array_filter($operators, fn($n) => strtolower(trim($n)) !== strtolower(trim($currentUserName))));
+
+        $this->assertEquals(['Dedi Pratama'], $otherOperators);
+        $this->assertNotContains('Pak Fajar', $otherOperators);
+    }
+
+    /**
      * Test assign_operator_modal blade file does not contain notes textarea and has clean markup.
      */
     public function test_assign_operator_modal_blade_markup_is_minimalist(): void

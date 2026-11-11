@@ -28,10 +28,10 @@
              x-transition:leave="ease-in duration-200" 
              x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" 
              x-transition:leave-end="opacity-0 translate-y-3 sm:translate-y-0 sm:scale-95" 
-             class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 w-full sm:max-w-md border border-slate-200/80">
+             class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 w-full sm:max-w-md border border-slate-200/80 max-h-[92vh] flex flex-col">
             
             <!-- Modal Header Bersih & Kompak -->
-            <div class="p-5 pb-3 border-b border-slate-100 relative">
+            <div class="p-5 pb-3 border-b border-slate-100 relative shrink-0">
                 <button type="button" 
                         @click="closeAssignModal()" 
                         class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer">
@@ -90,7 +90,7 @@
             </div>
 
             <!-- Form Approval & Operator Assignment (Minimalis Tanpa Notes) -->
-            <form method="POST" :action="assignData.actionUrl" class="p-5 space-y-3.5 text-xs">
+            <form method="POST" :action="assignData.actionUrl" class="p-5 space-y-3.5 text-xs overflow-y-auto flex-1">
                 @csrf
 
                 <!-- Input Nama Operator Mesin Pelaksana (Combobox: Dropdown Pilihan + Ketik Bebas) -->
@@ -120,15 +120,15 @@
                             </button>
                         </div>
 
-                        <!-- Dropdown Menu List -->
+                        <!-- Dropdown Menu List In-Flow (Menyesuaikan Tinggi Modal Otomatis Tanpa Terpotong) -->
                         <div x-show="openDropdown" 
                              x-transition:enter="transition ease-out duration-150"
-                             x-transition:enter-start="opacity-0 translate-y-1"
+                             x-transition:enter-start="opacity-0 -translate-y-1"
                              x-transition:enter-end="opacity-100 translate-y-0"
                              x-transition:leave="transition ease-in duration-100"
                              x-transition:leave-start="opacity-100 translate-y-0"
-                             x-transition:leave-end="opacity-0 translate-y-1"
-                             class="absolute z-30 left-0 right-0 mt-1.5 bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden max-h-56 overflow-y-auto p-1.5 space-y-1 text-xs"
+                             x-transition:leave-end="opacity-0 -translate-y-1"
+                             class="mt-2 bg-slate-50/80 border border-slate-200 rounded-2xl p-1.5 space-y-1 max-h-48 overflow-y-auto text-xs"
                              style="display: none;">
                             
                             <!-- Header Keterangan Bagian -->
@@ -141,20 +141,20 @@
                                 <button type="button" 
                                         @click="assignData.operatorName = op; openDropdown = false" 
                                         class="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between transition cursor-pointer"
-                                        :class="assignData.operatorName === op ? 'bg-blue-50 text-blue-900 font-extrabold' : 'hover:bg-slate-50 text-slate-700 font-bold'">
+                                        :class="assignData.operatorName === op ? 'bg-blue-600 text-white font-extrabold shadow-2xs' : 'bg-white hover:bg-slate-100 text-slate-800 font-bold border border-slate-200/60'">
                                     <div class="flex items-center space-x-2 truncate">
-                                        <i class="fa-solid fa-user-check text-[11px]" :class="assignData.operatorName === op ? 'text-blue-600' : 'text-slate-400'"></i>
+                                        <i class="fa-solid fa-user-check text-[11px]" :class="assignData.operatorName === op ? 'text-white' : 'text-blue-600'"></i>
                                         <span x-text="op" class="truncate"></span>
                                     </div>
                                     <template x-if="assignData.operatorName === op">
-                                        <i class="fa-solid fa-check text-xs text-blue-600 shrink-0"></i>
+                                        <i class="fa-solid fa-check text-xs text-white shrink-0"></i>
                                     </template>
                                 </button>
                             </template>
 
                             <!-- Jika Belum Ada Operator Terdaftar di Bagian Ini -->
                             <template x-if="!assignData.availableOperators || assignData.availableOperators.length === 0">
-                                <div class="px-3 py-2 text-[11px] text-amber-700 bg-amber-50 rounded-xl font-medium">
+                                <div class="px-3 py-2 text-[11px] text-amber-700 bg-amber-50 rounded-xl font-medium border border-amber-200/60">
                                     <i class="fa-solid fa-circle-info me-1"></i> Tidak ada operator terdaftar di bagian ini
                                 </div>
                             </template>
@@ -162,14 +162,14 @@
                             <!-- Opsi Diri Sendiri (User Login) -->
                             <button type="button" 
                                     @click="assignData.operatorName = currentUserName; openDropdown = false" 
-                                    class="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between transition cursor-pointer border-t border-slate-100"
-                                    :class="assignData.operatorName === currentUserName ? 'bg-emerald-50 text-emerald-900 font-extrabold' : 'hover:bg-slate-50 text-slate-700 font-bold'">
+                                    class="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between transition cursor-pointer"
+                                    :class="assignData.operatorName === currentUserName ? 'bg-emerald-600 text-white font-extrabold shadow-2xs' : 'bg-white hover:bg-emerald-50 text-slate-800 font-bold border border-emerald-200/80'">
                                 <div class="flex items-center space-x-2 truncate">
-                                    <i class="fa-solid fa-circle-user text-[11px]" :class="assignData.operatorName === currentUserName ? 'text-emerald-600' : 'text-slate-400'"></i>
+                                    <i class="fa-solid fa-circle-user text-[11px]" :class="assignData.operatorName === currentUserName ? 'text-white' : 'text-emerald-600'"></i>
                                     <span class="truncate">Saya Sendiri (<strong x-text="currentUserName"></strong>)</span>
                                 </div>
                                 <template x-if="assignData.operatorName === currentUserName">
-                                    <i class="fa-solid fa-check text-xs text-emerald-600 shrink-0"></i>
+                                    <i class="fa-solid fa-check text-xs text-white shrink-0"></i>
                                 </template>
                             </button>
                         </div>

@@ -196,10 +196,19 @@ Users have specific roles and departmental scopes that dictate their permissions
 ### 22. Desain Minimalis Modal Penugasan Operator (Receiver Approval & Operator Assignment)
 - **Visual Ramping & Bersih (`max-w-md` ~420px):** Mengubah header gelap kontras menjadi header putih bersih berbingkai lembut dengan icon badge `<i class="fa-solid fa-user-gear"></i>`, selaras dengan modal proses operasional.
 - **Pemilihan Operator Cerdas Berbasis Departemen (Combobox Dropdown):** Memetakan operator aktif spesifik per departemen penerima (`$departmentOperatorsMap`) sehingga dropdown hanya menampilkan operator dari stasiun tujuan (misal: Dept M1 hanya menampilkan operator Dept M1).
-- **Auto-Fallback Diri Sendiri & Pilihan Cepat:** Jika departemen tujuan belum memiliki operator terdaftar di sistem, input otomatis diarahkan ke nama user yang sedang login (*Ka. Mesin / Diri Sendiri*). Dropdown juga selalu menyediakan opsi "Saya Sendiri ([Nama])".
+- **Auto-Fallback Diri Sendiri & Eliminasi Duplikasi:** Jika departemen tujuan belum memiliki operator terdaftar di sistem, input otomatis diarahkan ke nama user yang sedang login (*Ka. Mesin / Diri Sendiri*). User yang sedang login secara otomatis difilter dari daftar operator rekanan (`otherOperators`) sehingga namanya tidak pernah muncul ganda di dropdown.
 - **Input Bebas / Hybrid:** Pengguna tetap dapat memilih via dropdown atau mengetik nama baru secara bebas langsung pada kolom input.
 - **Peniadaan Chips Redundan & Textarea:** Menghilangkan baris tombol chip di bawah input agar modal tetap lapang serta menghapus textarea catatan kesanggupan mesin yang memakan tempat.
 - **Tombol Konfirmasi Simetris & Anti-Wrap:** Tombol "Batal" dan "Verifikasi & Masukkan Antrian" diselaraskan dengan ikon checkmark putih (`shrink-0`) dan `whitespace-nowrap` sehingga tidak terpotong atau tertekan di pinggir.
+
+### 23. Interaksi Taktil Show/Hide Password Presisi Lampiran 3 & 4 (recent.design Pattern)
+- **Kotak Tombol Pastel & Kapsul Lapang (Persis Lampiran 3):** Menyematkan wadah kapsul input modern (`rounded-xl p-1 bg-slate-50 focus-within:bg-white`) dan tombol kotak rounded empuk (`w-8 h-8 rounded-lg`) di ujung kanan dengan warna pastel ungu/biru lembut (`bg-[#EEF0FE] text-[#4F46E5]`) dan ikon mata bersih `<i class="fa-solid fa-eye text-xs"></i>`.
+- **Animated Countdown Line Indicator (Persis Lampiran 4):**
+  - Saat tombol diklik untuk melihat password, latar tombol berganti menjadi hijau pastel lembut (`bg-[#E8FAF0] text-[#16A34A]`) dan ikon berganti menjadi `<i class="fa-solid fa-eye-slash"></i>`.
+  - Dilengkapi garis tepi border SVG animasi (`stroke="#22c55e"` dengan `pathLength="100"`) yang berjalan melingkari sudut tombol secara halus (*countdown timer line*) menghitung mundur dari 5 detik hingga 0 detik.
+  - Setelah 5 detik habis (atau jika tombol diklik ulang), password otomatis tersamarkan kembali dan tombol kembali ke kondisi Lampiran 3.
+- **Keamanan Terminal Bersama (Zero Clipboard Risk):** Sesuai kesepakatan, fitur copy ke clipboard dihilangkan agar kata sandi tidak tertinggal di clipboard mesin bersama di area operasional pabrik.
+- **Pengujian Otomatis:** Dilengkapi pengujian unit terisolasi `tests/Unit/LoginPasswordToggleTest.php` (13 assertions) yang memverifikasi pathLength SVG, stroke color, warna pastel, dan ketiadaan fungsi copy clipboard.
 
 ## Technical Documentation References
 - [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
