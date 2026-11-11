@@ -74,9 +74,11 @@
                     <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 text-xs"></i>
                 </div>
 
-                <!-- Category Select Dropdown -->
+                <!-- Category Select Dropdown (Auto-Submit Saat Memilih) -->
                 <div class="w-full sm:w-44 flex-shrink-0">
-                    <select name="category" class="w-full py-2 px-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-700 font-medium">
+                    <select name="category" 
+                            onchange="this.form.submit()" 
+                            class="w-full py-2 px-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-700 font-medium cursor-pointer">
                         <option value="">-- Semua Kategori --</option>
                         @foreach ($categories as $catKey => $catLabel)
                             <option value="{{ $catKey }}" {{ request('category') == $catKey ? 'selected' : '' }}>{{ $catLabel }}</option>

@@ -324,6 +324,18 @@ class WorkRequest extends Model
         });
     }
 
+    /**
+     * Scope: Tiket yang ditolak atau dibatalkan
+     */
+    public function scopeRejected(Builder $query): Builder
+    {
+        return $query->where(function ($q) {
+            $q->where('approval_pengaju', 'Ditolak')
+              ->orWhere('approval_penerima', 'Ditolak')
+              ->orWhere('status', 'cancelled');
+        });
+    }
+
     public function isPendingApproval(): bool
     {
         return ($this->approval_pengaju === 'Menunggu' || $this->approval_penerima === 'Menunggu');

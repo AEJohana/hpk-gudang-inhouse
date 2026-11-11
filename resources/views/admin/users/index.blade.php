@@ -95,7 +95,8 @@
                         </label>
                         <select name="role" 
                                 id="role" 
-                                class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white shadow-xs transition">
+                                onchange="this.form.submit()"
+                                class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white shadow-xs transition cursor-pointer">
                             <option value="">Semua Role</option>
                             @foreach($roles as $roleKey => $roleLabel)
                                 <option value="{{ $roleKey }}" {{ request('role') == $roleKey ? 'selected' : '' }}>
@@ -112,7 +113,8 @@
                         </label>
                         <select name="work_area" 
                                 id="work_area" 
-                                class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white shadow-xs transition">
+                                onchange="this.form.submit()"
+                                class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white shadow-xs transition cursor-pointer">
                             <option value="">Semua Bagian</option>
                             @foreach($workAreas as $areaKey => $areaLabel)
                                 <option value="{{ $areaKey }}" {{ request('work_area') == $areaKey ? 'selected' : '' }}>
@@ -129,7 +131,8 @@
                         </label>
                         <select name="department_id" 
                                 id="department_id" 
-                                class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white shadow-xs transition">
+                                onchange="this.form.submit()"
+                                class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white shadow-xs transition cursor-pointer">
                             <option value="">Semua Departemen ({{ $departments->count() }})</option>
                             @foreach($departments as $dept)
                                 <option value="{{ $dept->id }}" {{ request('department_id') == $dept->id ? 'selected' : '' }}>

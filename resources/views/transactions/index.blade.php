@@ -42,35 +42,46 @@
              }
          }">
 
-        <!-- Search & Filter Bar -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
-            <form method="GET" action="{{ route('transactions.index') }}" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                <div class="sm:col-span-6 relative">
+        <!-- Search & Filter Bar (Sejajar & Otomatis Filter Saat Memilih) -->
+        <div class="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200/80 shadow-xs">
+            <form method="GET" action="{{ route('transactions.index') }}" class="flex items-center gap-2 w-full">
+                <!-- Search Input -->
+                <div class="relative flex-1 min-w-[130px]">
                     <input type="text" 
                            name="search" 
                            value="{{ request('search') }}" 
                            placeholder="Cari No. Transaksi, No. SPK Unit, atau Surat Jalan..." 
-                           class="w-full pl-10 pr-4 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                    <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-3.5 top-3 text-xs"></i>
+                           class="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none bg-slate-50/50 focus:bg-white transition">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none"></i>
                 </div>
 
-                <div class="sm:col-span-4">
-                    <select name="type" class="w-full py-2 px-3 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-700">
-                        <option value="">-- Semua Jenis Transaksi --</option>
+                <!-- Jenis Transaksi Filter (Auto-Submit Saat Memilih) -->
+                <div class="w-36 sm:w-56 shrink-0">
+                    <select name="type" 
+                            onchange="this.form.submit()" 
+                            class="w-full py-2 px-2.5 sm:px-3 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-700 font-semibold bg-white cursor-pointer shadow-2xs">
+                        <option value="">Semua Jenis Transaksi</option>
                         <option value="inbound" {{ request('type') == 'inbound' ? 'selected' : '' }}>Penerimaan (Inbound)</option>
-                        <option value="outbound" {{ request('type') == 'outbound' ? 'selected' : '' }}>Pengeluaran (Outbound Karoseri)</option>
+                        <option value="outbound" {{ request('type') == 'outbound' ? 'selected' : '' }}>Pengeluaran (Outbound)</option>
                         <option value="transfer" {{ request('type') == 'transfer' ? 'selected' : '' }}>Transfer Antar Rak</option>
                         <option value="return" {{ request('type') == 'return' ? 'selected' : '' }}>Retur Material</option>
                     </select>
                 </div>
 
-                <div class="sm:col-span-2 flex space-x-2">
-                    <button type="submit" class="flex-1 py-2 px-4 bg-[#0a2342] hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition">
-                        <i class="fa-solid fa-filter me-1 text-teal-400"></i> Cari
+                <!-- Action Buttons: Cari & Reset (Sejajar) -->
+                <div class="flex items-center space-x-1.5 shrink-0">
+                    <button type="submit" 
+                            class="py-2 px-3 sm:px-4 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
+                            title="Terapkan Filter Transaksi">
+                        <i class="fa-solid fa-filter text-teal-400 text-xs"></i>
+                        <span class="hidden sm:inline">Cari</span>
                     </button>
                     @if (request()->hasAny(['search', 'type']))
-                        <a href="{{ route('transactions.index') }}" class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs rounded-xl flex items-center justify-center font-semibold">
-                            Reset
+                        <a href="{{ route('transactions.index') }}" 
+                           class="py-2 px-2.5 sm:px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs rounded-xl flex items-center justify-center font-bold transition shadow-2xs"
+                           title="Reset Seluruh Filter">
+                            <i class="fa-solid fa-rotate-left text-xs sm:mr-1"></i>
+                            <span class="hidden sm:inline">Reset</span>
                         </a>
                     @endif
                 </div>

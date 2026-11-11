@@ -26,13 +26,6 @@
             <!-- Right: Action Buttons (Anchored to Far Right) -->
             <div class="flex items-center space-x-1.5 sm:space-x-2 shrink-0 ml-auto">
                 <button type="button" 
-                        onclick="window.location.reload()" 
-                        class="px-3 py-2 sm:px-3.5 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-2xs transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
-                        title="Segarkan antrean tugas MH">
-                    <i class="fa-solid fa-arrows-rotate text-xs text-teal-600"></i>
-                    <span class="hidden md:inline">Refresh</span>
-                </button>
-                <button type="button" 
                         @click="$dispatch('open-mh-scanner')" 
                         class="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center text-center cursor-pointer whitespace-nowrap">
                     <i class="fa-solid fa-qrcode me-1 text-xs"></i>
@@ -51,14 +44,14 @@
          @open-mh-scanner.window="openMhScanner()">
 
         <!-- 1. FLOATING NAVIGATION PANEL (2 TAB UTAMA PERSIS SISTEM LAMA) -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-2 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div class="flex items-center gap-2 w-full sm:w-auto">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-2 flex items-center justify-between gap-2 w-full">
+            <div class="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
                 <button type="button" 
                         @click="mainTab = 'transfer'" 
-                        class="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-xs"
+                        class="flex-1 sm:flex-initial px-3 sm:px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 sm:gap-2 shadow-xs cursor-pointer"
                         :class="mainTab === 'transfer' ? 'bg-[#0f172a] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
                     <i class="fa-solid fa-right-left"></i>
-                    <span>Antar Mesin</span>
+                    <span class="truncate">Antar Mesin</span>
                     <span class="px-2 py-0.5 rounded-full text-[10px] font-black"
                           :class="mainTab === 'transfer' ? 'bg-amber-400 text-slate-950' : 'bg-slate-200 text-slate-700'">
                         {{ count($transferWaiting) }}
@@ -67,10 +60,10 @@
 
                 <button type="button" 
                         @click="mainTab = 'final'" 
-                        class="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-xs"
+                        class="flex-1 sm:flex-initial px-3 sm:px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 sm:gap-2 shadow-xs cursor-pointer"
                         :class="mainTab === 'final' ? 'bg-[#0f172a] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
                     <i class="fa-solid fa-box-open"></i>
-                    <span>Siap Diambil</span>
+                    <span class="truncate">Siap Diambil</span>
                     <span class="px-2 py-0.5 rounded-full text-[10px] font-black"
                           :class="mainTab === 'final' ? 'bg-emerald-400 text-slate-950' : 'bg-slate-200 text-slate-700'">
                         {{ count($finalWaiting) }}
@@ -78,11 +71,11 @@
                 </button>
             </div>
 
-            <div class="flex items-center gap-2 self-end sm:self-auto">
+            <div class="flex items-center shrink-0">
                 <button type="button" 
                         onclick="window.location.reload()" 
                         title="Segarkan Data"
-                        class="px-3.5 py-2.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 font-bold text-xs transition flex items-center gap-1.5 shadow-xs">
+                        class="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 font-bold text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer">
                     <i class="fa-solid fa-rotate"></i>
                     <span class="hidden md:inline">Refresh Data</span>
                 </button>
@@ -124,28 +117,24 @@
                     </button>
                 </div>
 
-                <!-- Filter Panel Antar Mesin -->
-                <div class="p-3 sm:p-4 bg-white border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <span class="px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full text-xs font-bold self-start sm:self-auto">
-                        <span x-text="transferSubTab === 'waiting' ? '{{ count($transferWaiting) }} Item Menunggu Ambil' : (transferSubTab === 'transit' ? '{{ count($transferTransit) }} Item Dalam Perjalanan' : '{{ count($transferHistory) }} Riwayat')"></span>
-                    </span>
-
-                    <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full md:w-auto">
-                        <select x-model="filterDate" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
+                <!-- Filter Panel Antar Mesin (Grid 2x2 Ramping di Mobile/Tablet, 1 Baris di Desktop) -->
+                <div class="p-3 bg-white border-b border-slate-100">
+                    <div class="grid grid-cols-2 md:flex md:items-center gap-2 w-full">
+                        <select x-model="filterDate" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 w-full md:w-auto">
                             <option value="all">Semua Tgl</option>
                             <option value="today">Hari Ini</option>
                             <option value="last3">3 Hari</option>
                             <option value="week">Minggu Ini</option>
                         </select>
 
-                        <select x-model="filterOrigin" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
+                        <select x-model="filterOrigin" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 w-full md:w-auto">
                             <option value="all">Semua Asal</option>
                             @foreach($filterOrigins as $orig)
                             <option value="{{ $orig }}">{{ $orig }}</option>
                             @endforeach
                         </select>
 
-                        <select x-model="filterDestination" class="col-span-2 sm:col-span-1 text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
+                        <select x-model="filterDestination" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 w-full md:w-auto">
                             <option value="all">Semua Tujuan</option>
                             @foreach($filterDestinations as $dest)
                             <option value="{{ $dest }}">{{ $dest }}</option>
@@ -155,7 +144,7 @@
                         <input type="text" 
                                x-model="searchQuery" 
                                placeholder="Cari No WR / Komponen..." 
-                               class="col-span-2 sm:col-span-1 text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 px-3 w-full sm:w-48">
+                               class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 px-3 w-full md:w-56 md:ml-auto">
                     </div>
                 </div>
 
@@ -509,21 +498,17 @@
                     </button>
                 </div>
 
-                <!-- Filter Panel Siap Diambil -->
-                <div class="p-3 sm:p-4 bg-white border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <span class="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold self-start sm:self-auto">
-                        <span x-text="finalSubTab === 'waiting' ? '{{ count($finalWaiting) }} Item Siap Diambil' : (finalSubTab === 'transit' ? '{{ count($finalTransit) }} Item Dalam Perjalanan ke Pengaju' : '{{ count($finalHistory) }} Riwayat Selesai')"></span>
-                    </span>
-
-                    <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full md:w-auto">
-                        <select x-model="filterDate" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
+                <!-- Filter Panel Siap Diambil (Ramping Tanpa Badge Redundan) -->
+                <div class="p-3 bg-white border-b border-slate-100">
+                    <div class="grid grid-cols-2 md:flex md:items-center gap-2 w-full">
+                        <select x-model="filterDate" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 w-full md:w-auto">
                             <option value="all">Semua Tgl</option>
                             <option value="today">Hari Ini</option>
                             <option value="last3">3 Hari</option>
                             <option value="week">Minggu Ini</option>
                         </select>
 
-                        <select x-model="filterFinalLocation" class="col-span-1 text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5">
+                        <select x-model="filterFinalLocation" class="text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 w-full md:w-auto">
                             <option value="all">Semua Lokasi Selesai</option>
                             @foreach($filterFinalLocations as $floc)
                             <option value="{{ $floc }}">{{ $floc }}</option>
@@ -533,7 +518,7 @@
                         <input type="text" 
                                x-model="searchQuery" 
                                placeholder="Cari No WR / Komponen..." 
-                               class="col-span-2 sm:col-span-1 text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 px-3 w-full sm:w-48">
+                               class="col-span-2 md:col-span-1 text-xs font-semibold rounded-xl border-slate-200 focus:ring-teal-500 py-1.5 px-3 w-full md:w-56 md:ml-auto">
                     </div>
                 </div>
 

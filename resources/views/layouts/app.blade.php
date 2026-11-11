@@ -258,19 +258,24 @@
                 <span>Komponen</span>
             </a>
             @elsecan('work-request.view')
-            <a href="{{ route('work-requests.index') }}" class="mobile-nav-item {{ request()->routeIs('work-requests.*') ? 'active' : '' }}">
+            <a href="{{ route('work-requests.index') }}" class="mobile-nav-item {{ request()->routeIs('work-requests.*') && !request()->routeIs('work-requests.create') ? 'active' : '' }}">
                 <i class="fa-solid fa-industry"></i>
                 <span>WRI</span>
             </a>
+            @else
+            <a href="{{ route('dashboard') }}" class="mobile-nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Ringkasan</span>
+            </a>
             @endcan
 
-            <!-- 3. Central Scanner FAB Button -->
+            <!-- 3. Central Scanner FAB Button (Selalu Presisi di Tengah / 50% Center) -->
             <button type="button" @click="openScanner()" class="mobile-scanner-fab" title="Scan QR Code / Barcode">
                 <i class="fa-solid fa-qrcode"></i>
                 <span class="text-[8px] font-black tracking-tighter uppercase mt-0.5">SCAN</span>
             </button>
 
-            <!-- 4. Transaksi Barang / MH Shortcut -->
+            <!-- 4. Transaksi Barang / MH Shortcut / Dynamic Action Balance (2-1-2 Simetris) -->
             @can('transaksi-komponen.view')
             <a href="{{ route('transactions.index') }}" class="mobile-nav-item {{ request()->routeIs('transactions.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-right-left"></i>
@@ -280,6 +285,28 @@
             <a href="{{ route('work-station-supplies.index') }}" class="mobile-nav-item {{ request()->routeIs('work-station-supplies.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-truck-ramp-box"></i>
                 <span>MH</span>
+            </a>
+            @elsecan('work-request.view')
+                @can('work-request.create')
+                <a href="{{ route('work-requests.create') }}" class="mobile-nav-item {{ request()->routeIs('work-requests.create') ? 'active' : '' }}">
+                    <i class="fa-solid fa-circle-plus"></i>
+                    <span>+ Buat WR</span>
+                </a>
+                @elsecan('work-request.print')
+                <a href="{{ route('work-requests.print-queue') }}" class="mobile-nav-item {{ request()->routeIs('work-requests.print-queue') ? 'active' : '' }}">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Cetak WR</span>
+                </a>
+                @else
+                <a href="{{ route('profile.edit') }}" class="mobile-nav-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-circle-user"></i>
+                    <span>Profil</span>
+                </a>
+                @endcan
+            @else
+            <a href="{{ route('profile.edit') }}" class="mobile-nav-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-circle-user"></i>
+                <span>Profil</span>
             </a>
             @endcan
 

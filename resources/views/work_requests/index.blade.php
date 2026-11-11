@@ -48,8 +48,8 @@
         <!-- 0. INTEGRATED WRI SUB-NAVIGATION TABS (Antrean, Safety Stock, Cetak WR) -->
         @include('work_requests.partials.sub_nav')
 
-        <!-- 1. KPI SUMMARY STATS CARDS (INTERACTIVE QUICK FILTERS) -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        <!-- 1. KPI SUMMARY STATS CARDS (INTERACTIVE QUICK FILTERS - 6 STATUS UTAMA) -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
             <a href="{{ route('work-requests.index', ['scope' => $scope]) }}" 
                @click.prevent="switchTab('all', '{{ route('work-requests.index', ['scope' => $scope]) }}')"
                class="bg-white hover:bg-slate-50 rounded-2xl p-4 border shadow-xs flex items-center space-x-3 transition group active:scale-[0.99] cursor-pointer"
@@ -112,7 +112,7 @@
 
             <a href="{{ route('work-requests.index', ['scope' => $scope, 'status' => 'selesai']) }}" 
                @click.prevent="switchTab('selesai', '{{ route('work-requests.index', ['scope' => $scope, 'status' => 'selesai']) }}')"
-               class="bg-white hover:bg-emerald-50/50 rounded-2xl p-4 border shadow-xs flex items-center space-x-3 col-span-2 sm:col-span-1 transition group active:scale-[0.99] cursor-pointer"
+               class="bg-white hover:bg-emerald-50/50 rounded-2xl p-4 border shadow-xs flex items-center space-x-3 transition group active:scale-[0.99] cursor-pointer"
                :class="activeTab === 'selesai' ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/30' : 'border-emerald-200'"
                title="Klik untuk menyaring tiket yang sudah selesai">
                 <div class="w-11 h-11 rounded-xl bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-700 flex items-center justify-center flex-shrink-0 text-lg font-bold transition">
@@ -124,130 +124,197 @@
                     <span class="text-[10px] text-emerald-600">Diterima Pengaju</span>
                 </div>
             </a>
+
+            <!-- 6. Ditolak / Batal -->
+            <a href="{{ route('work-requests.index', ['scope' => $scope, 'status' => 'ditolak']) }}" 
+               @click.prevent="switchTab('ditolak', '{{ route('work-requests.index', ['scope' => $scope, 'status' => 'ditolak']) }}')"
+               class="bg-white hover:bg-rose-50/50 rounded-2xl p-4 border shadow-xs flex items-center space-x-3 transition group active:scale-[0.99] cursor-pointer"
+               :class="activeTab === 'ditolak' ? 'border-rose-400 ring-2 ring-rose-400/20 bg-rose-50/30' : '{{ $rejectedCount > 0 ? 'border-rose-200 bg-rose-50/10' : 'border-slate-200' }}'"
+               title="Klik untuk menyaring tiket yang ditolak atau dibatalkan">
+                <div class="w-11 h-11 rounded-xl {{ $rejectedCount > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500' }} group-hover:bg-rose-600 group-hover:text-white flex items-center justify-center flex-shrink-0 text-lg font-bold transition">
+                    <i class="fa-solid fa-ban"></i>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-rose-600">Ditolak / Batal</span>
+                    <h3 class="text-xl font-black text-rose-700 leading-tight mt-0.5">{{ $rejectedCount }}</h3>
+                    <span class="text-[10px] text-rose-500 font-medium">Approval Ditolak</span>
+                </div>
+            </a>
         </div>
 
-        <!-- 2. UNIFIED WORK REQUEST CONTROL BAR (BEBAS DARI INPUT DOBEL) -->
-        <div class="bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200 shadow-xs flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            <!-- Left: 5 Status Tabs (Swipeable with Gradient Cue & Mini Chevrons) -->
-            <div class="relative w-full lg:w-auto min-w-0 shrink-0" 
-                 x-data="{
-                     canScrollLeft: false,
-                     canScrollRight: false,
-                     checkScroll() {
-                         const el = this.$refs.scrollContainer;
-                         if (!el) return;
-                         this.canScrollLeft = el.scrollLeft > 6;
-                         this.canScrollRight = el.scrollLeft < (el.scrollWidth - el.clientWidth - 6);
-                     },
-                     scrollLeft() {
-                         this.$refs.scrollContainer.scrollBy({ left: -160, behavior: 'smooth' });
-                     },
-                     scrollRight() {
-                         this.$refs.scrollContainer.scrollBy({ left: 160, behavior: 'smooth' });
-                     }
-                 }"
-                 x-init="$nextTick(() => checkScroll()); window.addEventListener('resize', () => checkScroll())">
+        <!-- 2. UNIFIED WORK REQUEST CONTROL BAR (2 KOLOM SEJAJAR: DROPDOWN STATUS & PENCARIAN) -->
+        <div class="bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-2 w-full">
+            <!-- Kolom 1: Dropdown Filter Status Kaya (Icon + Badge + Chevron) -->
+            <div class="relative w-48 sm:w-60 lg:w-64 shrink-0" 
+                 x-data="{ open: false }" 
+                 @click.outside="open = false" 
+                 @keydown.escape.window="open = false">
+                
+                <!-- Trigger Button: Menampilkan Status Aktif, Icon, Badge Angka & Chevron -->
+                <button type="button" 
+                        @click="open = !open" 
+                        class="w-full py-2 px-2.5 sm:px-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center justify-between shadow-2xs cursor-pointer active:scale-98"
+                        title="Pilih Status Work Request">
+                    <div class="flex items-center space-x-1.5 sm:space-x-2 min-w-0">
+                        <!-- Icon Dinamis Sesuai Active Tab -->
+                        <i class="text-xs shrink-0" 
+                           :class="{
+                               'fa-solid fa-list text-slate-700': activeTab === 'all',
+                               'fa-solid fa-stamp text-amber-600': activeTab === 'verifikasi',
+                               'fa-solid fa-gears text-blue-600': activeTab === 'proses',
+                               'fa-solid fa-dolly text-teal-600': activeTab === 'siap',
+                               'fa-solid fa-circle-check text-emerald-600': activeTab === 'selesai',
+                               'fa-solid fa-ban text-rose-600': activeTab === 'ditolak',
+                               'fa-solid fa-triangle-exclamation text-rose-600': activeTab === 'overdue'
+                           }"></i>
+                        
+                        <!-- Label Dinamis -->
+                        <span class="truncate text-slate-900" 
+                              x-text="{
+                                  'all': 'Semua WRI',
+                                  'verifikasi': 'Perlu Verifikasi',
+                                  'proses': 'Sedang Proses',
+                                  'siap': 'Siap Diambil',
+                                  'selesai': 'Selesai',
+                                  'ditolak': 'Ditolak / Batal',
+                                  'overdue': 'Terlambat > 3 Hari'
+                              }[activeTab] || 'Pilih Status'">Semua WRI</span>
+                        
+                        <!-- Badge Counter Dinamis -->
+                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black shrink-0"
+                              :class="{
+                                  'bg-slate-200 text-slate-800': activeTab === 'all',
+                                  'bg-rose-600 text-white animate-pulse': activeTab === 'verifikasi',
+                                  'bg-blue-100 text-blue-800': activeTab === 'proses',
+                                  'bg-teal-100 text-teal-800': activeTab === 'siap',
+                                  'bg-emerald-100 text-emerald-800': activeTab === 'selesai',
+                                  'bg-rose-100 text-rose-800': activeTab === 'ditolak',
+                                  'bg-rose-100 text-rose-800': activeTab === 'overdue'
+                              }"
+                              x-text="{
+                                  'all': '{{ $totalWri }}',
+                                  'verifikasi': '{{ $needsApprovalCount }}',
+                                  'proses': '{{ $inProcessCount }}',
+                                  'siap': '{{ $readyForWarehouseCount }}',
+                                  'selesai': '{{ $receivedCount }}',
+                                  'ditolak': '{{ $rejectedCount }}',
+                                  'overdue': '{{ $overdueSlaCount }}'
+                              }[activeTab] || '0'">{{ $totalWri }}</span>
+                    </div>
 
-                <!-- Left Scroll Gradient & Chevron Button -->
-                <div x-show="canScrollLeft" 
-                     x-transition.opacity.duration.200ms
-                     class="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-4 pl-0.5 bg-gradient-to-r from-white via-white/90 to-transparent pointer-events-none"
-                     style="display: none;">
+                    <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 shrink-0 ml-1 transition-transform duration-200" 
+                       :class="{ 'rotate-180': open }"></i>
+                </button>
+
+                <!-- Dropdown Popover Panel -->
+                <div x-show="open" 
+                     x-cloak
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 scale-95 translate-y-1"
+                     x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-100"
+                     x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 scale-95 translate-y-1"
+                     class="absolute left-0 top-full mt-1.5 w-60 sm:w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-1.5 z-50 space-y-1">
+                    
+                    <!-- 1. Semua WRI -->
                     <button type="button" 
-                            @click="scrollLeft()" 
-                            class="w-6 h-6 rounded-full bg-white border border-slate-300 shadow-xs text-slate-700 hover:text-slate-950 hover:scale-105 active:scale-95 flex items-center justify-center pointer-events-auto transition cursor-pointer text-[10px]"
-                            title="Geser ke kiri">
-                        <i class="fa-solid fa-chevron-left"></i>
-                    </button>
-                </div>
-
-                <!-- Scrollable Tabs Container -->
-                <div x-ref="scrollContainer" 
-                     @scroll.passive="checkScroll()"
-                     class="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap py-0.5 scroll-smooth pe-4 lg:pe-0">
-                    <!-- Tab: Semua -->
-                    <a href="{{ route('work-requests.index', ['scope' => $scope]) }}" 
-                       @click.prevent="switchTab('all', '{{ route('work-requests.index', ['scope' => $scope]) }}')"
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 cursor-pointer"
-                       :class="activeTab === 'all' ? 'bg-[#0a2342] text-amber-400 shadow-xs' : 'text-slate-600 hover:bg-slate-100'">
-                        <span>Semua</span>
-                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black"
+                            @click="switchTab('all', '{{ route('work-requests.index', ['scope' => $scope]) }}'); open = false;"
+                            class="w-full px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer"
+                            :class="activeTab === 'all' ? 'bg-[#0a2342] text-amber-400' : 'text-slate-700 hover:bg-slate-100'">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-list text-xs"></i>
+                            <span>Semua WRI</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black"
                               :class="activeTab === 'all' ? 'bg-amber-400 text-slate-950' : 'bg-slate-200 text-slate-700'">
                             {{ $totalWri }}
                         </span>
-                    </a>
+                    </button>
 
-                    <!-- Tab: Perlu Verifikasi -->
-                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'verifikasi', 'overdue_sla' => null])) }}" 
-                       @click.prevent="switchTab('verifikasi', '{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'verifikasi', 'overdue_sla' => null])) }}')"
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 cursor-pointer"
-                       :class="activeTab === 'verifikasi' ? 'bg-amber-400 text-slate-950 font-black shadow-xs' : 'text-slate-600 hover:bg-slate-100'">
-                        <i class="fa-solid fa-stamp text-[11px]"></i>
-                        <span>Perlu Verifikasi</span>
+                    <!-- 2. Perlu Verifikasi -->
+                    <button type="button" 
+                            @click="switchTab('verifikasi', '{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'verifikasi', 'overdue_sla' => null])) }}'); open = false;"
+                            class="w-full px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer"
+                            :class="activeTab === 'verifikasi' ? 'bg-amber-400 text-slate-950 font-black' : 'text-slate-700 hover:bg-slate-100'">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-stamp text-xs"></i>
+                            <span>Perlu Verifikasi</span>
+                        </div>
                         @if($needsApprovalCount > 0)
-                            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black"
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black"
                                   :class="activeTab === 'verifikasi' ? 'bg-slate-950 text-white' : 'bg-rose-600 text-white animate-pulse'">
                                 {{ $needsApprovalCount }}
                             </span>
+                        @else
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-200 text-slate-700">0</span>
                         @endif
-                    </a>
+                    </button>
 
-                    <!-- Tab: Sedang Proses -->
-                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'proses', 'overdue_sla' => null])) }}" 
-                       @click.prevent="switchTab('proses', '{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'proses', 'overdue_sla' => null])) }}')"
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 cursor-pointer"
-                       :class="activeTab === 'proses' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'">
-                        <i class="fa-solid fa-gears text-[11px]"></i>
-                        <span>Sedang Proses</span>
-                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black"
+                    <!-- 3. Sedang Proses -->
+                    <button type="button" 
+                            @click="switchTab('proses', '{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'proses', 'overdue_sla' => null])) }}'); open = false;"
+                            class="w-full px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer"
+                            :class="activeTab === 'proses' ? 'bg-blue-600 text-white' : 'text-slate-700 hover:bg-slate-100'">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-gears text-xs"></i>
+                            <span>Sedang Proses</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black"
                               :class="activeTab === 'proses' ? 'bg-blue-800 text-white' : 'bg-slate-200 text-slate-700'">
                             {{ $inProcessCount }}
                         </span>
-                    </a>
+                    </button>
 
-                    <!-- Tab: Siap Ambil -->
-                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'siap', 'overdue_sla' => null])) }}" 
-                       @click.prevent="switchTab('siap', '{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'siap', 'overdue_sla' => null])) }}')"
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 cursor-pointer"
-                       :class="activeTab === 'siap' ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'">
-                        <i class="fa-solid fa-dolly text-[11px]"></i>
-                        <span>Siap Ambil</span>
-                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black"
+                    <!-- 4. Siap Diambil -->
+                    <button type="button" 
+                            @click="switchTab('siap', '{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'siap', 'overdue_sla' => null])) }}'); open = false;"
+                            class="w-full px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer"
+                            :class="activeTab === 'siap' ? 'bg-teal-600 text-white' : 'text-slate-700 hover:bg-slate-100'">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-dolly text-xs"></i>
+                            <span>Siap Diambil</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black"
                               :class="activeTab === 'siap' ? 'bg-teal-800 text-white' : 'bg-slate-200 text-slate-700'">
                             {{ $readyForWarehouseCount }}
                         </span>
-                    </a>
+                    </button>
 
-                    <!-- Tab: Selesai -->
-                    <a href="{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'selesai', 'overdue_sla' => null])) }}" 
-                       @click.prevent="switchTab('selesai', '{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'selesai', 'overdue_sla' => null])) }}')"
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 cursor-pointer"
-                       :class="activeTab === 'selesai' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'">
-                        <i class="fa-solid fa-circle-check text-[11px]"></i>
-                        <span>Selesai</span>
-                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black"
+                    <!-- 5. Selesai -->
+                    <button type="button" 
+                            @click="switchTab('selesai', '{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'selesai', 'overdue_sla' => null])) }}'); open = false;"
+                            class="w-full px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer"
+                            :class="activeTab === 'selesai' ? 'bg-emerald-600 text-white' : 'text-slate-700 hover:bg-slate-100'">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-circle-check text-xs"></i>
+                            <span>Selesai</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black"
                               :class="activeTab === 'selesai' ? 'bg-emerald-800 text-white' : 'bg-slate-200 text-slate-700'">
                             {{ $receivedCount }}
                         </span>
-                    </a>
-                </div>
+                    </button>
 
-                <!-- Right Scroll Gradient & Chevron Button (Tanda Geser Halus) -->
-                <div x-show="canScrollRight" 
-                     x-transition.opacity.duration.200ms
-                     class="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-4 pr-0.5 bg-gradient-to-l from-white via-white/90 to-transparent pointer-events-none"
-                     style="display: none;">
+                    <!-- 6. Ditolak / Batal -->
                     <button type="button" 
-                            @click="scrollRight()" 
-                            class="w-6 h-6 rounded-full bg-white border border-slate-300 shadow-xs text-slate-700 hover:text-slate-950 hover:scale-105 active:scale-95 flex items-center justify-center pointer-events-auto transition cursor-pointer text-[10px] animate-pulse"
-                            title="Geser ke kanan untuk melihat tab lainnya">
-                        <i class="fa-solid fa-chevron-right"></i>
+                            @click="switchTab('ditolak', '{{ route('work-requests.index', array_merge(request()->query(), ['status' => 'ditolak', 'overdue_sla' => null])) }}'); open = false;"
+                            class="w-full px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer"
+                            :class="activeTab === 'ditolak' ? 'bg-rose-600 text-white' : 'text-slate-700 hover:bg-slate-100'">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-ban text-xs"></i>
+                            <span>Ditolak / Batal</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black"
+                              :class="activeTab === 'ditolak' ? 'bg-rose-800 text-white' : 'bg-slate-200 text-slate-700'">
+                            {{ $rejectedCount }}
+                        </span>
                     </button>
                 </div>
             </div>
 
-            <!-- Right: Search Input Form -->
-            <div class="w-full sm:w-72 lg:w-80">
+            <!-- Kolom 2: Kolom Pencarian Fleksibel -->
+            <div class="relative flex-1 min-w-0">
                 <form method="GET" action="{{ route('work-requests.index') }}" class="relative w-full">
                     @if(request()->filled('status'))
                         <input type="hidden" name="status" value="{{ request()->status }}">
@@ -255,12 +322,12 @@
                     @if(request()->boolean('overdue_sla'))
                         <input type="hidden" name="overdue_sla" value="1">
                     @endif
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
                     <input type="text" 
                            name="search" 
                            value="{{ request()->search }}" 
                            placeholder="Cari No. WRI, komponen, SPK, departemen..." 
-                           class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition shadow-2xs">
+                           class="w-full pl-8 sm:pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition shadow-2xs">
                 </form>
             </div>
         </div>

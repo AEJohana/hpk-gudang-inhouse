@@ -551,6 +551,59 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Tombol Tutup Manual [ ✕ ]:** Menyematkan tombol tutup silang cepat di sisi kanan notifikasi (`@click="show = false"`).
 - **Automated Unit Testing:** Lulus 100% pada `tests/Unit/FlashNotificationDismissTest.php` (2 passed, 11 assertions).
 
+### SS. Penataan Ulang & Optimasi Ruang UI Material Handling (Baru Selesai & Teruji 100%)
+- **Penjajaran Sebaris Permanen (Single-Row Nav):** Mengunci kontainer tab utama (`Antar Mesin` dan `Siap Diambil`) bersama tombol `Refresh Data` dalam satu baris horizontal permanen (`flex items-center justify-between gap-2`), mengeliminasi masalah tombol refresh jatuh/turun ke baris bawah pada layar tablet dan perangkat sentuh.
+- **Eliminasi Badge Indikator Redundan:** Menghapus badge teks `[ X Item Menunggu Ambil ]` dan `[ X Item Siap Diambil ]` yang memboroskan ruang horizontal, karena jumlah tiket sudah tertera jelas pada counter tab masing-masing.
+- **Rampingkan Panel Filter (Simetris 2x2):** Menyusun ulang panel filter dari yang sebelumnya 3 baris boros menjadi format grid 2x2 simetris di tablet/mobile (Baris 1: Tanggal & Asal, Baris 2: Tujuan & Cari Kata Kunci) dan otomatis mengalir rapi dalam 1 baris lurus di desktop (`lg:`/`md:`).
+- **Automated Unit Testing:** Lulus 100% pada `tests/Unit/MaterialHandlingResponsiveLayoutTest.php` (1 passed, 6 assertions).
+
+### TT. Eliminasi Tombol Refresh Redundan di Header Atas Material Handling (Baru Selesai & Teruji 100%)
+- **Penghapusan Tombol Refresh di Header Atas:** Menghapus tombol refresh yang terletak di header atas persis di samping tombol `Scan QR` pada `resources/views/work_station_supplies/index.blade.php`.
+- **Fokus Kontrol Tunggal:** Memusatkan kontrol penyegaran antrean tugas logistik MH ke tombol `Refresh Data` presisi di samping tab navigasi `Antar Mesin` dan `Siap Diambil`, menjaga kerapian header atas agar hanya menyisakan tombol aksi krusial (`Scan QR` dan `Semua WRI`).
+- **Automated Unit Testing:** Diperbarui dan lulus 100% pada `tests/Unit/MaterialHandlingResponsiveLayoutTest.php` (1 passed, 8 assertions) dan `tests/Unit/BladeAlpineScopeTest.php` (2 passed, 5 assertions).
+
+### UU. Penataan Sejajar Filter Transaksi & Auto-Submit Instan Saat Memilih Opsi (Baru Selesai & Teruji 100%)
+- **Penjajaran Sebaris (Horizontal Single Row):** Mengubah bilah pencarian & filter transaksi (`resources/views/transactions/index.blade.php`) dari format grid yang sebelumnya menumpuk vertikal menjadi 3 baris di perangkat sentuh/mobile menjadi 1 baris lurus rapi (`flex items-center gap-2 w-full`). Input pencarian fleksibel (`flex-1`), dropdown jenis transaksi proporsional (`w-36 sm:w-56`), dan tombol aksi `Cari` & `Reset` tertambat sejajar di sisi kanan.
+- **Eksekusi Filter Otomatis (Auto-Submit on Select):** Menambahkan atribut `onchange="this.form.submit()"` pada seluruh dropdown filter sistem:
+  - Transaksi Komponen: `select[name="type"]`
+  - Master Komponen: `select[name="category"]`
+  - Manajemen Pengguna (Admin Users): `role`, `work_area`, dan `department_id`
+  - Audit Trail (Admin Audit Logs): `period`, `module`, dan `user_id`
+  Pengguna tidak perlu lagi memindahkan kursor ke tombol "Cari" atau menekan tombol Enter; filter langsung aktif seketika setelah suatu opsi dipilih.
+- **Automated Unit Testing:** Berhasil 100% pada SQLite `:memory:` (`tests/Unit/TransactionFilterBarAlignmentTest.php` - 2 passed, 17 assertions).
+
+### VV. Inovasi Penyeimbangan Presisi Bottom Navigation Bar Mobile untuk Pengguna Akses Tunggal (Baru Selesai & Teruji 100%)
+- **Akar Masalah Posisi Tombol SCAN Melenceng:** Pada pengguna yang hanya memiliki 1 hak akses menu (seperti Operator Stasiun Mesin yang hanya memiliki izin `work-request.view`), Slot 2 terisi `WRI`, tetapi Slot 4 kosong karena user tidak memiliki akses `Transaksi` maupun `Material Handling`. Akibatnya, bilah navigasi hanya memuat 4 item (`Home`, `WRI`, `SCAN`, `Menu`), menyebabkan tombol SCAN terdorong ke posisi 62.5% layar (miring ke kanan) bukan di tengah-tengah.
+- **Inovasi Formasi Simetris 2-1-2:** Mengisi Slot 4 secara dinamis dan bermakna:
+  - Jika user memiliki akses `work-request.create`: Menampilkan tombol aksi cepat **`+ Buat WR`** (`route('work-requests.create')`) dengan ikon `<i class="fa-solid fa-circle-plus"></i>`.
+  - Fallback aman lainnya: `Cetak WR` (`route('work-requests.print-queue')`) atau `Profil` (`route('profile.edit')`).
+- **Hasil Visual:**
+  - Sayap Kiri: `Home` & `WRI` (2 item)
+  - Titik Tengah: `SCAN` (Floating FAB tepat di titik 50% horizontal layar)
+  - Sayap Kanan: `+ Buat WR` & `Menu` (2 item)
+  Setiap slot memiliki bobot flex yang seimbang (`flex: 1`), menjamin tombol SCAN selalu berada presisi di tengah-tengah layar ponsel pada seluruh role pengguna.
+- **Automated Unit Testing:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/MobileBottomNavSymmetryTest.php` - 3 passed, 20 assertions).
+
+### WW. Transformasi Bar Tab Work Request Menjadi Dropdown Kaya Sejajar Pencarian (Baru Selesai & Teruji 100%)
+- **Eliminasi Baris Tab Meluap & Navigasi Geser:** Mengganti barisan tab status horizontal panjang yang meluap dan membutuhkan scrollbar/tombol geser chevron di perangkat sentuh menjadi **Alpine.js Custom Dropdown** popover yang kaya dan kompak.
+- **Formasi 2-Kolom Sejajar (Single Row):** Menata bilah kontrol WRI menjadi 1 baris lurus (`flex items-center gap-2 w-full`) dengan 2 kolom:
+  - **Kolom 1:** Dropdown Status Kaya (`w-48 sm:w-60 lg:w-64 shrink-0`) menampilkan ikon dinamis (`fa-list`, `fa-stamp`, `fa-gears`, `fa-dolly`, `fa-circle-check`), label status aktif, dan badge notifikasi angka real-time.
+  - **Kolom 2:** Kotak Pencarian (`flex-1 min-w-0`) yang fleksibel melebar mengisi sisa ruang tanpa terputus ke baris bawah.
+- **Sinkronisasi Ganda (Two-Way Sync):** Mengklik salah satu dari 5 kartu ringkasan KPI di bagian atas tetap berfungsi penuh dan secara otomatis memperbarui label, ikon, dan badge tombol dropdown di bawahnya secara instan tanpa reload halaman.
+- **Automated Unit Testing:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestControlBarDropdownTest.php` - 1 passed, 13 assertions).
+
+### XX. Penambahan Indikator KPI & Tab Dropdown Filter Tiket Work Request yang Ditolak/Batal (Baru Selesai & Teruji 100%)
+- **Scope Query Rejection Terpusat:** Menambahkan metode `scopeRejected(Builder $query)` pada model [WorkRequest.php](file:///C:/xampp/htdocs/hpk-gudang-inhouse/app/Models/WorkRequest.php) untuk menyaring seluruh tiket yang mengalami penolakan (`approval_pengaju = 'Ditolak'` atau `approval_penerima = 'Ditolak'`) atau dibatalkan (`status = 'cancelled'`).
+- **Penanganan Controller & Agregasi Real-time:** Memperbarui [WorkRequestController.php](file:///C:/xampp/htdocs/hpk-gudang-inhouse/app/Http/Controllers/WorkRequestController.php) untuk menangani status filter `ditolak`, `batal`, `rejected`, maupun `cancelled`. Menambahkan kolom agregasi SQL `SUM(CASE WHEN approval_pengaju = 'Ditolak' OR approval_penerima = 'Ditolak' OR status = 'cancelled' THEN 1 ELSE 0 END) as rejected_count` dan meneruskan variabel `$rejectedCount` ke tampilan view.
+- **Simetri Grid 6 Kartu KPI Sempurna:** Memperluas kartu ringkasan KPI di antrean WRI ([resources/views/work_requests/index.blade.php](file:///C:/xampp/htdocs/hpk-gudang-inhouse/resources/views/work_requests/index.blade.php)) dari 5 menjadi 6 kartu dengan formasi responsif yang simetris sempurna di semua breakpoint:
+  - Mobile: `grid-cols-2` (3 baris x 2 kolom simetris, tanpa kartu yatim/ganjil).
+  - Tablet: `sm:grid-cols-3` (2 baris x 3 kolom simetris).
+  - Desktop: `lg:grid-cols-6` (1 baris lurus 6 kolom).
+  - Kartu ke-6 (`Ditolak / Batal`) didesain dengan aksen warna rose/merah tegas, ikon `<i class="fa-solid fa-ban"></i>`, dan badge counter reaktif. Mengklik kartu ini langsung memicu `switchTab('ditolak', ...)` tanpa reload halaman.
+- **Opsi ke-6 pada Dropdown Popover WRI:** Menambahkan item ke-6 pada menu dropdown status serta memperbarui pemicu dropdown untuk menampilkan ikon `fa-ban text-rose-600`, label `Ditolak / Batal`, dan badge `bg-rose-100 text-rose-800` saat status 'ditolak' aktif.
+- **Automated Unit Testing:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/WorkRequestControlBarDropdownTest.php` - 1 passed, 16 assertions dan `tests/Unit/WorkRequestSlaAndStatusFilterTest.php` - 2 passed, 26 assertions).
+
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

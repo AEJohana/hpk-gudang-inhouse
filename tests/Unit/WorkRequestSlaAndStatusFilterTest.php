@@ -219,6 +219,15 @@ class WorkRequestSlaAndStatusFilterTest extends TestCase
         $this->assertNotContains('WRI-PROSES', $siapList);
         $this->assertNotContains('WRI-SELESAI', $siapList);
 
+        // Tiket 6: Ditolak
+        $wrDitolak = WorkRequest::create([
+            'wri_number' => 'WRI-DITOLAK',
+            'status' => 'cancelled',
+            'approval_pengaju' => 'Ditolak',
+            'approval_penerima' => 'Menunggu',
+            'is_final' => false,
+        ]);
+
         // Test Filter Selesai
         $selesaiList = WorkRequest::where(function ($q) {
             $q->where('is_final', true)
@@ -233,5 +242,12 @@ class WorkRequestSlaAndStatusFilterTest extends TestCase
         $this->assertContains('WRI-SELESAI', $selesaiList);
         $this->assertNotContains('WRI-SIAP', $selesaiList);
         $this->assertNotContains('WRI-PROSES', $selesaiList);
+        $this->assertNotContains('WRI-DITOLAK', $selesaiList);
+
+        // Test Filter Ditolak
+        $ditolakList = WorkRequest::rejected()->pluck('wri_number')->toArray();
+        $this->assertContains('WRI-DITOLAK', $ditolakList);
+        $this->assertNotContains('WRI-SELESAI', $ditolakList);
+        $this->assertNotContains('WRI-PROSES', $ditolakList);
     }
 }

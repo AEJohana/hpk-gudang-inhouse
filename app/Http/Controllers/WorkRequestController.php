@@ -69,6 +69,8 @@ class WorkRequestController extends Controller
                           })->where('status', 'not like', '%Parsial%');
                       });
                 });
+            } elseif ($st === 'ditolak' || $st === 'batal' || $st === 'rejected' || $st === 'cancelled') {
+                $query->rejected();
             } elseif ($st === 'parsial') {
                 $query->where('status', 'like', '%Parsial%');
             } else {
@@ -118,6 +120,7 @@ class WorkRequestController extends Controller
                 SUM(CASE WHEN status LIKE '%antrian%' OR status = 'submitted' THEN 1 ELSE 0 END) as in_antrian_count,
                 SUM(CASE WHEN (status LIKE '%Siap Diambil%' OR status LIKE '%Menuju Pengaju%' OR status = 'ready_for_warehouse') AND is_final = 0 THEN 1 ELSE 0 END) as ready_count,
                 SUM(CASE WHEN is_final = 1 OR ((status LIKE '%Sudah Diambil%' OR status = 'received') AND status NOT LIKE '%Parsial%') THEN 1 ELSE 0 END) as received_count,
+                SUM(CASE WHEN approval_pengaju = 'Ditolak' OR approval_penerima = 'Ditolak' OR status = 'cancelled' THEN 1 ELSE 0 END) as rejected_count,
                 SUM(CASE WHEN status LIKE '%Parsial%' THEN 1 ELSE 0 END) as partial_count,
                 SUM(CASE WHEN is_final = 0 AND status NOT LIKE '%Sudah Diambil%' AND created_at <= ? THEN 1 ELSE 0 END) as overdue_count,
                 SUM(CASE WHEN approval_pengaju = 'Diterima' AND approval_penerima = 'Diterima' AND assigned_operator_name IS NOT NULL AND assigned_operator_name != '' THEN 1 ELSE 0 END) as printable_count
@@ -131,6 +134,7 @@ class WorkRequestController extends Controller
         $inProductionCount = $inProcessCount;
         $readyForWarehouseCount = (int) ($statsRow->ready_count ?? 0);
         $receivedCount = (int) ($statsRow->received_count ?? 0);
+        $rejectedCount = (int) ($statsRow->rejected_count ?? 0);
         $partialCount = (int) ($statsRow->partial_count ?? 0);
         $overdueSlaCount = (int) ($statsRow->overdue_count ?? 0);
         $printableCount = (int) ($statsRow->printable_count ?? 0);
@@ -278,6 +282,7 @@ class WorkRequestController extends Controller
             'receivedCount',
             'partialCount',
             'needsApprovalCount',
+            'rejectedCount',
             'overdueSlaCount',
             'printableCount',
             'openDetailPayload',

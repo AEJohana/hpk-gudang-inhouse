@@ -113,7 +113,7 @@
                         <label for="period" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Rentang Waktu
                         </label>
-                        <select name="period" id="period" class="w-full py-2 px-3 text-xs rounded-xl border border-slate-300 bg-white focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600">
+                        <select name="period" id="period" onchange="this.form.submit()" class="w-full py-2 px-3 text-xs rounded-xl border border-slate-300 bg-white focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 cursor-pointer">
                             <option value="all" {{ request('period', 'all') === 'all' ? 'selected' : '' }}>Semua Riwayat</option>
                             <option value="today" {{ request('period') === 'today' ? 'selected' : '' }}>Hari Ini (24 Jam)</option>
                             <option value="7_days" {{ request('period') === '7_days' ? 'selected' : '' }}>7 Hari Terakhir</option>
@@ -126,7 +126,7 @@
                         <label for="module" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Modul Aplikasi
                         </label>
-                        <select name="module" id="module" class="w-full py-2 px-3 text-xs rounded-xl border border-slate-300 bg-white focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600">
+                        <select name="module" id="module" onchange="this.form.submit()" class="w-full py-2 px-3 text-xs rounded-xl border border-slate-300 bg-white focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 cursor-pointer">
                             <option value="all">Semua Modul</option>
                             @foreach($modulesList as $modKey => $modLabel)
                                 <option value="{{ $modKey }}" {{ request('module') === $modKey ? 'selected' : '' }}>{{ $modLabel }}</option>
@@ -139,7 +139,7 @@
                         <label for="user_id" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Pengguna (User)
                         </label>
-                        <select name="user_id" id="user_id" class="w-full py-2 px-3 text-xs rounded-xl border border-slate-300 bg-white focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600">
+                        <select name="user_id" id="user_id" onchange="this.form.submit()" class="w-full py-2 px-3 text-xs rounded-xl border border-slate-300 bg-white focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 cursor-pointer">
                             <option value="all">Semua Pengguna</option>
                             @foreach($usersList as $u)
                                 <option value="{{ $u->id }}" {{ request('user_id') == $u->id ? 'selected' : '' }}>
