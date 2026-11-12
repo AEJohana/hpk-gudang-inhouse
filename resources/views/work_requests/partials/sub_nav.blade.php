@@ -17,12 +17,12 @@
            class="{{ $isIndex 
                 ? 'bg-[#0a2342] text-white shadow-xs px-3 sm:px-3.5 py-1.5 sm:py-2' 
                 : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 px-2.5 sm:px-3 py-1.5 sm:py-2' }} 
-                rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap group cursor-pointer"
+                rounded-xl text-xs font-bold transition-all duration-200 flex items-center whitespace-nowrap group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
            title="Antrean Tiket Work Request Inhouse">
-            <i class="fa-solid fa-list-check text-xs {{ $isIndex ? 'text-amber-400' : 'text-slate-400 group-hover:text-slate-600' }}"></i>
-            @if($isIndex)
-                <span>Antrean WRI</span>
-            @endif
+            <i class="fa-solid fa-list-check text-xs {{ $isIndex ? 'text-amber-400' : 'text-slate-400 group-hover:text-slate-700' }} transition-transform duration-200 group-hover:scale-110"></i>
+            <span class="{{ $isIndex ? 'ml-1.5 inline-block' : 'max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-300 ease-out group-hover:max-w-[130px] group-hover:opacity-100 group-hover:ml-1.5 group-focus-visible:max-w-[130px] group-focus-visible:opacity-100 group-focus-visible:ml-1.5' }}">
+                Antrean WRI
+            </span>
         </a>
 
         <!-- Tab 2: Safety Stock -->
@@ -31,14 +31,14 @@
            class="{{ $isSafety 
                 ? 'bg-[#0a2342] text-white shadow-xs px-3 sm:px-3.5 py-1.5 sm:py-2' 
                 : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 px-2.5 sm:px-3 py-1.5 sm:py-2' }} 
-                rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap group cursor-pointer"
+                rounded-xl text-xs font-bold transition-all duration-200 flex items-center whitespace-nowrap group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
            title="Safety Stock Buffer">
-            <i class="fa-solid fa-shield-halved text-xs {{ $isSafety ? 'text-amber-400' : 'text-rose-500' }}"></i>
-            @if($isSafety)
-                <span>Safety Stock</span>
-            @endif
+            <i class="fa-solid fa-shield-halved text-xs {{ $isSafety ? 'text-amber-400' : 'text-rose-500' }} transition-transform duration-200 group-hover:scale-110"></i>
+            <span class="{{ $isSafety ? 'ml-1.5 inline-block' : 'max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-300 ease-out group-hover:max-w-[130px] group-hover:opacity-100 group-hover:ml-1.5 group-focus-visible:max-w-[130px] group-focus-visible:opacity-100 group-focus-visible:ml-1.5' }}">
+                Safety Stock
+            </span>
             @if(isset($criticalBadge) && $criticalBadge > 0)
-                <span class="min-w-[18px] h-[18px] px-1.5 inline-flex items-center justify-center rounded-full text-[10px] font-black {{ $isSafety ? 'bg-amber-400 text-slate-950 shadow-2xs' : 'bg-rose-100 text-rose-700 border border-rose-200/70' }}">
+                <span class="ml-1.5 min-w-[18px] h-[18px] px-1.5 inline-flex items-center justify-center rounded-full text-[10px] font-black {{ $isSafety ? 'bg-amber-400 text-slate-950 shadow-2xs' : 'bg-rose-100 text-rose-700 border border-rose-200/70' }} transition-transform duration-200 group-hover:scale-105">
                     {{ $criticalBadge }}
                 </span>
             @endif
@@ -51,14 +51,14 @@
            class="{{ $isPrint 
                 ? 'bg-[#0a2342] text-white shadow-xs px-3 sm:px-3.5 py-1.5 sm:py-2' 
                 : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 px-2.5 sm:px-3 py-1.5 sm:py-2' }} 
-                rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap group cursor-pointer"
+                rounded-xl text-xs font-bold transition-all duration-200 flex items-center whitespace-nowrap group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
            title="Antrean Dokumen Siap Cetak (3 Rangkap)">
-            <i class="fa-solid fa-print text-xs {{ $isPrint ? 'text-amber-400' : 'text-slate-500 group-hover:text-indigo-600' }}"></i>
-            @if($isPrint)
-                <span>Cetak WR</span>
-            @endif
+            <i class="fa-solid fa-print text-xs {{ $isPrint ? 'text-amber-400' : 'text-slate-500 group-hover:text-indigo-600' }} transition-transform duration-200 group-hover:scale-110"></i>
+            <span class="{{ $isPrint ? 'ml-1.5 inline-block' : 'max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-300 ease-out group-hover:max-w-[130px] group-hover:opacity-100 group-hover:ml-1.5 group-focus-visible:max-w-[130px] group-focus-visible:opacity-100 group-focus-visible:ml-1.5' }}">
+                Cetak WR
+            </span>
             @if(isset($printBadge) && $printBadge > 0)
-                <span class="min-w-[18px] h-[18px] px-1.5 inline-flex items-center justify-center rounded-full text-[10px] font-black {{ $isPrint ? 'bg-amber-400 text-slate-950 shadow-2xs' : 'bg-indigo-50 text-indigo-700 border border-indigo-200/70' }}">
+                <span class="ml-1.5 min-w-[18px] h-[18px] px-1.5 inline-flex items-center justify-center rounded-full text-[10px] font-black {{ $isPrint ? 'bg-amber-400 text-slate-950 shadow-2xs' : 'bg-indigo-50 text-indigo-700 border border-indigo-200/70' }} transition-transform duration-200 group-hover:scale-105">
                     {{ $printBadge }}
                 </span>
             @endif
@@ -68,9 +68,9 @@
         <!-- Tab 4: Monitoring SLA (Hanya tampil jika route aktif) -->
         @if($isMonitoring)
         <a href="{{ route('work-requests.monitoring') }}" 
-           class="bg-[#0a2342] text-white shadow-xs px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap cursor-pointer">
+           class="bg-[#0a2342] text-white shadow-xs px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center whitespace-nowrap cursor-pointer">
             <i class="fa-solid fa-chart-line text-xs text-amber-400"></i>
-            <span>Monitoring SLA</span>
+            <span class="ml-1.5 inline-block">Monitoring SLA</span>
         </a>
         @endif
     </div>

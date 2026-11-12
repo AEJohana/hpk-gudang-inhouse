@@ -646,6 +646,20 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - Normalisasi otomatis pada backend: Transaksi Inbound otomatis memaksa `from_location_id = null`.
 - **Automated Unit Testing:** Lulus 100% pada SQLite `:memory:` (`tests/Unit/TransactionPerformanceAndRefinementTest.php` - 5 passed, 29 assertions, `tests/Unit/TransactionSlipTest.php` - 2 passed, 23 assertions, dan `tests/Unit/TransactionFormSimplificationTest.php` - 3 passed, 20 assertions).
 
+### BBB. Dynamic Accordion Hover Navigation & Micro-Interactions Sub-Menu WRI (Baru Selesai & Teruji 100%)
+- **Transformasi Sub-Navigasi Work Request (*Dynamic Accordion Pill*):**
+  - Mengubah perilaku sub-navigasi [resources/views/work_requests/partials/sub_nav.blade.php](resources/views/work_requests/partials/sub_nav.blade.php) yang sebelumnya menyembunyikan total label non-aktif via kondisional Blade PHP. Seluruh teks label kini dirender ke DOM dengan kelas utility Tailwind yang reaktif dan beranimasi mulus.
+  - **Status Default (Compact Pill):** Tab yang sedang aktif tetap terbuka penuh (*fully expanded*) sebagai penanda halaman aktif, sedangkan tab non-aktif berada dalam kondisi ramping (*collapsed* - hanya menampilkan Icon + Badge).
+  - **Efek Hover Meluncur (*Smooth Slide-Fade Reveal*):** Saat kursor mouse diarahkan (*hover*) atau difokuskan lewat keyboard (`focus-visible`), label teks meluncur keluar secara instan dan halus (`transition-all duration-300 ease-out max-w-0 opacity-0 -> group-hover:max-w-[130px] group-hover:opacity-100 group-hover:ml-1.5`).
+  - **Efek Menguncup Lembut (*Mouse Leave*):** Saat kursor dijauhkan, teks label menyusut kembali dengan mulus tanpa loncatan layout (*zero layout jitter/shift*).
+- **Inovasi Micro-Interactions & Gliding Badges:**
+  - **Gliding Badges:** Notifikasi counter cetak (misal antrean 15 tiket siap cetak) dan badge restock kritis bergeser ke samping secara harmonis mengikuti pergerakan teks label tanpa berkedip atau loncat.
+  - **Micro-Pop Scale Effect:** Icon tab merespons sentuhan kursor dengan pembesaran mikro halus `group-hover:scale-110 transition-transform duration-200`.
+  - **Keyboard Accessibility (`a11y`):** Mendukung navigasi tombol `Tab` keyboard via state `group-focus-visible:`, memastikan kesetaraan aksesibilitas tanpa mouse.
+- **Kompilasi & Pengujian:**
+  - Build Vite produksi: `npm run build` sukses (57 modules transformed, aset terkompilasi ke `public/build/assets/app-DSdvPfXH.css`).
+  - Integritas Blade & Tag HTML: Lulus 100% pada `tests/Unit/BladeAlpineScopeTest.php` (2 passed, 5 assertions).
+
 
 ---
 
