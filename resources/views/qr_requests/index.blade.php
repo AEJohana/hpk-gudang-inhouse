@@ -99,59 +99,72 @@
             </a>
         </div>
 
-        <!-- Status Filter Pills & Quick Search -->
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div class="super-nav-pills flex-nowrap overflow-x-auto no-scrollbar sm:flex-wrap pb-1">
-                <a href="{{ route('qr-requests.index', ['status' => 'pending'] + (request('q') ? ['q' => request('q')] : [])) }}" 
-                   class="super-nav-pill {{ $currentStatus === 'pending' ? 'active bg-amber-500 text-slate-950 font-bold' : '' }} whitespace-nowrap flex-shrink-0 inline-flex items-center gap-1.5">
-                    <i class="fa-solid fa-clock {{ $currentStatus === 'pending' ? 'text-slate-950' : 'text-amber-500' }}"></i>
-                    <span>Menunggu Dicetak</span>
-                    <span class="ms-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold {{ $currentStatus === 'pending' ? 'bg-slate-950 text-white' : 'bg-amber-100 text-amber-800' }}">
-                        {{ $counts->pending ?? 0 }}
-                    </span>
-                </a>
-                <a href="{{ route('qr-requests.index', ['status' => 'printed'] + (request('q') ? ['q' => request('q')] : [])) }}" 
-                   class="super-nav-pill {{ $currentStatus === 'printed' ? 'active bg-emerald-600 text-white font-bold' : '' }} whitespace-nowrap flex-shrink-0 inline-flex items-center gap-1.5">
-                    <i class="fa-solid fa-check-circle {{ $currentStatus === 'printed' ? 'text-white' : 'text-emerald-500' }}"></i>
-                    <span>Selesai Dicetak</span>
-                    <span class="ms-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold {{ $currentStatus === 'printed' ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-800' }}">
-                        {{ $counts->printed ?? 0 }}
-                    </span>
-                </a>
-                <a href="{{ route('qr-requests.index', ['status' => 'all'] + (request('q') ? ['q' => request('q')] : [])) }}" 
-                   class="super-nav-pill {{ $currentStatus === 'all' ? 'active bg-cyan-700 text-white font-bold' : '' }} whitespace-nowrap flex-shrink-0 inline-flex items-center gap-1.5">
-                    <i class="fa-solid fa-layer-group {{ $currentStatus === 'all' ? 'text-white' : 'text-slate-500' }}"></i>
-                    <span>Semua Antrian</span>
-                    <span class="ms-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold {{ $currentStatus === 'all' ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-700' }}">
-                        {{ $counts->total ?? 0 }}
-                    </span>
-                </a>
-            </div>
+        <!-- Centered Floating Control Dock (Windows 11 Taskbar Style) -->
+        <div class="flex justify-center w-full my-2">
+            <div class="inline-flex flex-col md:flex-row items-center gap-2 p-1.5 md:p-2 bg-white/95 backdrop-blur-md rounded-2xl md:rounded-full border border-slate-200/90 shadow-xs hover:shadow-md transition-all duration-200 w-full md:w-auto max-w-full">
+                
+                <!-- 1. Segmented Status Tabs -->
+                <div class="flex items-center gap-1 overflow-x-auto no-scrollbar w-full md:w-auto p-0.5 justify-center">
+                    <!-- Tab Menunggu -->
+                    <a href="{{ route('qr-requests.index', ['status' => 'pending'] + (request('q') ? ['q' => request('q')] : [])) }}" 
+                       class="px-3.5 py-2 rounded-xl md:rounded-full text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap {{ $currentStatus === 'pending' ? 'bg-[#0a2342] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                        <i class="fa-solid fa-clock {{ $currentStatus === 'pending' ? 'text-amber-400' : 'text-amber-500' }} text-[11px]"></i>
+                        <span>Menunggu Dicetak</span>
+                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ $currentStatus === 'pending' ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-700' }}">
+                            {{ $counts->pending ?? 0 }}
+                        </span>
+                    </a>
 
-            <!-- Quick Search Form -->
-            <form method="GET" action="{{ route('qr-requests.index') }}" class="w-full md:w-80 flex items-center gap-1.5">
-                <input type="hidden" name="status" value="{{ $currentStatus }}">
-                <div class="relative w-full">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                    </div>
-                    <input type="text" 
-                           name="q" 
-                           value="{{ request('q') }}" 
-                           placeholder="Cari no. request, part, atau nama..." 
-                           class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 bg-white">
-                    @if (request('q'))
-                        <a href="{{ route('qr-requests.index', ['status' => $currentStatus]) }}" 
-                           class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-rose-600"
-                           title="Hapus Pencarian">
-                            <i class="fa-solid fa-xmark text-xs"></i>
-                        </a>
-                    @endif
+                    <!-- Tab Selesai -->
+                    <a href="{{ route('qr-requests.index', ['status' => 'printed'] + (request('q') ? ['q' => request('q')] : [])) }}" 
+                       class="px-3.5 py-2 rounded-xl md:rounded-full text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap {{ $currentStatus === 'printed' ? 'bg-[#0a2342] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                        <i class="fa-solid fa-circle-check {{ $currentStatus === 'printed' ? 'text-emerald-400' : 'text-emerald-500' }} text-[11px]"></i>
+                        <span>Selesai Dicetak</span>
+                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ $currentStatus === 'printed' ? 'bg-emerald-400 text-slate-950' : 'bg-slate-100 text-slate-700' }}">
+                            {{ $counts->printed ?? 0 }}
+                        </span>
+                    </a>
+
+                    <!-- Tab Semua Antrian -->
+                    <a href="{{ route('qr-requests.index', ['status' => 'all'] + (request('q') ? ['q' => request('q')] : [])) }}" 
+                       class="px-3.5 py-2 rounded-xl md:rounded-full text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap {{ $currentStatus === 'all' ? 'bg-[#0a2342] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                        <i class="fa-solid fa-layer-group {{ $currentStatus === 'all' ? 'text-cyan-400' : 'text-slate-400' }} text-[11px]"></i>
+                        <span>Semua Antrian</span>
+                        <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ $currentStatus === 'all' ? 'bg-cyan-400 text-slate-950' : 'bg-slate-100 text-slate-700' }}">
+                            {{ $counts->total ?? 0 }}
+                        </span>
+                    </a>
                 </div>
-                <button type="submit" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-xs transition">
-                    Cari
-                </button>
-            </form>
+
+                <!-- 2. Subtle Divider (Desktop Only) -->
+                <div class="hidden md:block w-px h-6 bg-slate-200/90 mx-1"></div>
+
+                <!-- 3. Integrated Search Capsule -->
+                <form method="GET" action="{{ route('qr-requests.index') }}" class="w-full md:w-auto flex items-center gap-1.5">
+                    <input type="hidden" name="status" value="{{ $currentStatus }}">
+                    <div class="relative w-full md:w-64">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                        </div>
+                        <input type="text" 
+                               name="q" 
+                               value="{{ request('q') }}" 
+                               placeholder="Cari no. request, part, atau nama..." 
+                               class="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl md:rounded-full border border-slate-200 bg-slate-50/80 hover:bg-slate-100/60 focus:bg-white focus:outline-hidden focus:border-[#0a2342] focus:ring-1 focus:ring-[#0a2342] transition">
+                        @if (request('q'))
+                            <a href="{{ route('qr-requests.index', ['status' => $currentStatus]) }}" 
+                               class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-rose-600"
+                               title="Hapus Pencarian">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </a>
+                        @endif
+                    </div>
+                    <button type="submit" class="px-3.5 py-1.5 bg-[#0a2342] hover:bg-slate-800 text-white text-xs font-bold rounded-xl md:rounded-full shadow-xs transition cursor-pointer shrink-0">
+                        Cari
+                    </button>
+                </form>
+
+            </div>
         </div>
 
         <!-- Mobile Card View (< md) -->

@@ -51,18 +51,6 @@
                 </button>
             </div>
 
-            <!-- Sidebar User Profile Card -->
-            @auth
-            <div class="sidebar-user-card">
-                <div class="w-14 h-14 rounded-full bg-white/10 border-2 border-amber-400 text-white flex items-center justify-center mx-auto mb-2 text-xl font-bold shadow-inner">
-                    {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
-                </div>
-                <div class="font-bold text-white text-sm truncate">{{ Auth::user()->name }}</div>
-                <div class="text-[11px] text-amber-400 font-semibold tracking-wider uppercase mt-0.5">{{ Auth::user()->role_badge }}</div>
-                <div class="text-[10px] text-slate-300 mt-0.5">{{ Auth::user()->department ?? 'Operasional Gudang' }}</div>
-            </div>
-            @endauth
-
             <!-- Sidebar Navigation Links -->
             <nav class="space-y-1">
                 <a href="{{ route('admin.dashboard') }}" class="hpk-sidebar-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
@@ -124,20 +112,55 @@
                 </button>
             </div>
 
-            <!-- Footer Signout & Profile -->
+            <!-- Executive User Profile Dock (Modern SaaS Style) -->
             @auth
-            <div class="mt-5 pt-4 border-t border-white/10 flex items-center justify-between">
-                <a href="{{ route('profile.edit') }}" class="text-xs text-slate-300 hover:text-white flex items-center space-x-1.5 transition">
-                    <i class="fa-solid fa-user-gear"></i>
-                    <span>Profil</span>
-                </a>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="text-xs text-rose-400 hover:text-rose-300 font-semibold flex items-center space-x-1.5 transition">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                        <span>Keluar</span>
-                    </button>
-                </form>
+            <div class="mt-6 pt-4 border-t border-white/10 space-y-2.5">
+                <div class="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all duration-200 shadow-sm">
+                    <!-- Top Row: Avatar + Info + Profile Gear -->
+                    <div class="flex items-center space-x-2.5">
+                        <!-- Avatar with Live Active Pulse Dot -->
+                        <div class="relative shrink-0">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black text-sm flex items-center justify-center shadow-md">
+                                {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                            </div>
+                            <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-[#0a2342] rounded-full" title="Pengguna Aktif (Online)"></span>
+                        </div>
+
+                        <!-- User Info -->
+                        <div class="flex-1 min-w-0">
+                            <span class="font-extrabold text-white text-xs truncate block tracking-wide uppercase leading-tight">
+                                {{ Auth::user()->name }}
+                            </span>
+                            <div class="flex items-center space-x-1 mt-0.5 text-[10px] text-teal-300 font-semibold truncate">
+                                <span class="text-amber-400 truncate">{{ Auth::user()->role_badge }}</span>
+                                <span class="text-slate-400">&bull;</span>
+                                <span class="text-slate-300 truncate">{{ Auth::user()->department ?? 'Administrator' }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Quick Profile Settings Button -->
+                        <a href="{{ route('profile.edit') }}" 
+                           class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition shadow-2xs shrink-0"
+                           title="Pengaturan Profil Akun">
+                            <i class="fa-solid fa-gear text-xs"></i>
+                        </a>
+                    </div>
+
+                    <!-- Full-Width Prominent Logout Button -->
+                    <form method="POST" action="{{ route('logout') }}" class="mt-2.5">
+                        @csrf
+                        <button type="submit" 
+                                class="w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-rose-600 border border-white/15 hover:border-rose-500 text-white font-bold text-xs flex items-center justify-center space-x-2 transition shadow-xs cursor-pointer group">
+                            <i class="fa-solid fa-arrow-right-from-bracket text-xs text-rose-400 group-hover:text-white transition"></i>
+                            <span>Keluar</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Company Branding Footer -->
+                <div class="text-[10px] text-slate-400/70 text-center font-medium tracking-wider">
+                    PT. Hydraxle Perkasa
+                </div>
             </div>
             @endauth
         </aside>
