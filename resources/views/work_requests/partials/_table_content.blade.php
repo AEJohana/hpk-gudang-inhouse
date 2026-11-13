@@ -25,9 +25,21 @@
                 $remainingQty = $primaryAction ? $primaryAction['quantity'] : max(0, (float) $wri->quantity_requested - $accumReceived);
 
                 $cleanStatus = strtolower(trim(preg_replace('/^Parsial\s*>\s*/i', '', $wri->status ?: '')));
-                $isWaitingMH = in_array($cleanStatus, ['siap diambil', 'ready_for_warehouse']) || str_starts_with($cleanStatus, 'mh pickup') || str_ends_with($cleanStatus, '(out)');
-                $isInTransitMH = str_contains($cleanStatus, 'menuju pengaju');
-                $isReceivedGudang = str_contains($cleanStatus, 'sudah diambil') || $cleanStatus === 'received';
+                $cleanNext = strtolower(trim(preg_replace('/^Parsial\s*>\s*/i', '', $nextStatus ?: '')));
+
+                // Reaktif Saldo Sisa: Jika tiket belum final, periksa apakah sisa fisik masih butuh penjemputan MH
+                $hasRemainingMHPickup = !$wri->is_final && (
+                    in_array($cleanNext, ['siap diambil', 'menuju pengaju']) || 
+                    str_starts_with($cleanNext, 'mh pickup')
+                );
+
+                $isWaitingMH = in_array($cleanStatus, ['siap diambil', 'ready_for_warehouse']) 
+                    || str_starts_with($cleanStatus, 'mh pickup') 
+                    || str_ends_with($cleanStatus, '(out)')
+                    || $hasRemainingMHPickup;
+
+                $isInTransitMH = !$hasRemainingMHPickup && (str_contains($cleanStatus, 'menuju pengaju') || $cleanNext === 'sudah diambil');
+                $isReceivedGudang = $wri->is_final && (str_contains($cleanStatus, 'sudah diambil') || $cleanStatus === 'received');
 
                 $isLaserIn = stripos($nextStatus, '(In)') !== false;
                 $isLaserOut = stripos($nextStatus, '(Out)') !== false || ($primaryAction && $primaryAction['type'] === 'out');

@@ -118,6 +118,39 @@ class User extends Authenticatable
         return $this->hasRole('supervisor');
     }
 
+    /**
+     * Determine if the user is authorized to view warehouse KPI metrics & indicators.
+     * Authorized: Admin, Supervisor, Global Access, or personnel in Gudang (work_area or dept).
+     */
+    public function canViewWarehouseMetrics(): bool
+    {
+        // 1. Direct role attribute or global access check
+        $directRole = $this->role ?? '';
+        if (in_array($directRole, ['admin_gudang', 'admin', 'supervisor']) || $this->canAccessAllDepartments()) {
+            return true;
+        }
+
+        // 2. Spatie role permission check (only if model persisted in database)
+        if ($this->exists) {
+            try {
+                if ($this->hasAnyRole(['admin_gudang', 'admin', 'supervisor'])) {
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                // Fallback for tests or disconnected role tables
+            }
+        }
+
+        // 3. Work Area Gudang (Staff / Operator Gudang)
+        if ($this->work_area === 'gudang') {
+            return true;
+        }
+
+        // 4. Department name containing Gudang
+        $dept = strtolower(trim($this->effective_department_name));
+        return str_contains($dept, 'gudang');
+    }
+
     public function isStaff(): bool
     {
         return $this->hasAnyRole(['staff', 'engineering', 'qc']);

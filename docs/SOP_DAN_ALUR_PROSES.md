@@ -104,7 +104,7 @@ Seluruh logika bisnis dari sistem lama telah diimplementasikan secara terstruktu
 1. **MH Pickup:** Kurir logistik Material Handling telah memindai QR code tiket dan mengambil fisik barang dari stasiun mesin.
 2. **Siap Diambil:** Barang telah tiba di area serah terima / gudang tujuan.
 3. **Menuju Pengaju:** Kurir sedang dalam perjalanan mengantarkan barang ke departemen pemohon.
-4. **Sudah Diambil (Parsial):** Serah terima batch cicilan divalidasi oleh gudang. Kuantitas fisik batch masuk stok, sementara tiket tetap terbuka aktif (`is_final = false`) dengan rekomendasi pengerjaan kembali ke mesin sisa.
+4. **Sudah Diambil (Parsial):** Serah terima batch cicilan divalidasi oleh gudang. Kuantitas fisik batch masuk stok, sementara tiket tetap terbuka aktif (`is_final = false`). Sistem antrean WRI secara reaktif mendeteksi sisa saldo fisik yang masih tertinggal di mesin (`$hasRemainingMHPickup`) sehingga tampilan antrean tetap mempertahankan lencana amber **Menunggu Diambil MH** dan tombol pintas 1-klik **`[Buka Menu MH]`** (mengeliminasi bug lencana keliru *"Tunggu Terima Dept Gudang"* saat sisa barang belum dijemput kurir).
 5. **Sudah Diambil (Final):** Serah terima fisik telah tuntas 100% divalidasi oleh pemohon/gudang. Memicu eksekusi penambahan stok otomatis (BR-08) dan tiket resmi ditutup (*Closed*, `is_final = true`).
 
 ### D. Pengelompokan 4 Tab Antrean Operasional WRI (Unified Control Bar)

@@ -35,7 +35,8 @@
             </div>
         </div>
 
-        <!-- 2. TOP KPI METRICS STATS (2 KOLOM DI MOBILE = CUMA 2 BARIS) -->
+        <!-- 2. TOP KPI METRICS STATS (KHUSUS ADMIN, SUPERVISOR & BAGIAN GUDANG) -->
+        @if(Auth::user()->canViewWarehouseMetrics())
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             <!-- Total SKU Aktif -->
             <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between hover:shadow-md transition">
@@ -125,6 +126,7 @@
                 </p>
             </div>
         </div>
+        @endif
 
         <!-- 3. QUICK ACTION DASHBOARD CARDS GRID (DASH-CARD FROM REFERENS) -->
         <div>

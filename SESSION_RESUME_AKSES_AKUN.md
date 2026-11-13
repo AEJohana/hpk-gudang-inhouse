@@ -660,6 +660,23 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - Build Vite produksi: `npm run build` sukses (57 modules transformed, aset terkompilasi ke `public/build/assets/app-DSdvPfXH.css`).
   - Integritas Blade & Tag HTML: Lulus 100% pada `tests/Unit/BladeAlpineScopeTest.php` (2 passed, 5 assertions).
 
+### CCC. Pembatasan Hak Akses Indikator KPI Dashboard Khusus Gudang, Supervisor, & Admin (Baru Selesai & Teruji 100%)
+- **Penanganan Akses Metrik Gudang bagi Staf/Operator Lini:**
+  - Sebelumnya, 4 kartu ringkasan KPI Dashboard (*Total Komponen SKU*, *Stok Menipis Kritis*, *Transaksi Hari Ini*, dan *Menunggu Approval*) dapat dilihat oleh seluruh pengguna, termasuk operator dan staf mesin center yang tidak menangani operasional gudang.
+- **Implementasi Helper Terstandar `canViewWarehouseMetrics()` pada Model User:**
+  - Ditambahkan ke [app/Models/User.php](app/Models/User.php) untuk memeriksa hak otorisasi secara presisi:
+    1. Admin (`admin_gudang`, `admin`) atau user dengan hak akses global (`can_access_all_departments = true`).
+    2. Supervisor (`supervisor`).
+    3. Personel Bagian Gudang: Staf atau operator dengan `work_area = 'gudang'` atau departemen berlabel `Gudang`.
+  - Non-gudang (operator/staf mesin Laser, M1, UNP, Band Saw, Material Handling non-gudang) secara otomatis dievaluasi `false`.
+- **Proteksi Antarmuka Dashboard:**
+  - Seluruh blok `<!-- 2. TOP KPI METRICS STATS -->` pada [resources/views/dashboard.blade.php](resources/views/dashboard.blade.php) dibungkus dengan `@if(Auth::user()->canViewWarehouseMetrics())`.
+  - Staf/operator mesin disajikan antarmuka bersih yang langsung fokus ke menu *Work Request Mesin* tanpa interupsi metrik pergudangan.
+- **Pengujian & Integritas:**
+  - Dibuat test suite baru [tests/Unit/DashboardMetricsAccessTest.php](tests/Unit/DashboardMetricsAccessTest.php) di SQLite in-memory: 5 passed (11 assertions).
+  - Validasi Blade tag balance [tests/Unit/BladeAlpineScopeTest.php](tests/Unit/BladeAlpineScopeTest.php): 2 passed (5 assertions).
+  - Build aset Vite: `npm run build` selesai tanpa kendala.
+
 
 ---
 
