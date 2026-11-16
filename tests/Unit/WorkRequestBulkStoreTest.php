@@ -227,7 +227,7 @@ class WorkRequestBulkStoreTest extends TestCase
         $this->assertEquals(1500, $wr1->quantity_requested);
         $this->assertEquals('normal', $wr1->priority);
         $this->assertEquals('Potong pelat segera', $wr1->notes);
-        $this->assertStringContainsString('WRI/DeptGudang/', $wr1->wri_number);
+        $this->assertStringContainsString('WR/Dept Gudang/', $wr1->wri_number);
         $this->assertStringContainsString('/1/CMRMUBOLTM20152', $wr1->wri_number);
         $this->assertEquals('Dalam antrian', $wr1->status);
 

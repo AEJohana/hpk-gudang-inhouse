@@ -95,10 +95,16 @@
                 $approvalPengajuAt = $appPengajuLog?->created_at?->format('d/m/Y H:i') 
                     ?? ($wri->approval_pengaju === 'Diterima' ? $wri->created_at->format('d/m/Y H:i') : '-');
 
-                $approvalPenerimaStatus = $wri->approval_penerima ?: 'Menunggu';
-                $approvalPenerimaBy = $appPenerimaLog?->operator_name 
-                    ?? ($wri->approval_penerima === 'Diterima' ? 'Ka. ' . ($wri->dept_penerima ?: 'Mesin') : 'Menunggu');
-                $approvalPenerimaAt = $appPenerimaLog?->created_at?->format('d/m/Y H:i') ?? '-';
+                if ($wri->approval_pengaju === 'Ditolak') {
+                    $approvalPenerimaStatus = 'Ditolak';
+                    $approvalPenerimaBy = '-';
+                    $approvalPenerimaAt = '-';
+                } else {
+                    $approvalPenerimaStatus = $wri->approval_penerima ?: 'Menunggu';
+                    $approvalPenerimaBy = $appPenerimaLog?->operator_name 
+                        ?? ($wri->approval_penerima === 'Diterima' ? 'Ka. ' . ($wri->dept_penerima ?: 'Mesin') : 'Menunggu');
+                    $approvalPenerimaAt = $appPenerimaLog?->created_at?->format('d/m/Y H:i') ?? '-';
+                }
 
                 $imagePayload = [
                     'imageUrl' => $wri->component?->image_url ?? asset('images/logo_hpk.webp'),
@@ -205,7 +211,19 @@
 
                     <!-- Tombol Aksi Status / Lencana Status -->
                     <div class="mt-2">
-                        @if(!$wri->is_final)
+                        @if($wri->approval_pengaju === 'Ditolak')
+                            <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-rose-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs" title="Pengajuan tiket ini ditolak oleh Kepala Bagian Pengaju">
+                                <i class="fa-solid fa-ban text-rose-600 me-1 text-[9px]"></i> Ditolak Pengaju
+                            </span>
+                        @elseif($wri->approval_penerima === 'Ditolak')
+                            <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-rose-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs" title="Pengerjaan tiket ini ditolak oleh Kepala Bagian Penerima">
+                                <i class="fa-solid fa-ban text-rose-600 me-1 text-[9px]"></i> Ditolak Penerima
+                            </span>
+                        @elseif($wri->status === 'cancelled' || $wri->status === 'ditolak')
+                            <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-rose-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                <i class="fa-solid fa-ban text-rose-600 me-1 text-[9px]"></i> Dibatalkan
+                            </span>
+                        @elseif(!$wri->is_final)
                             @if($wri->approval_pengaju === 'Menunggu')
                                 @if($canApprovePengaju)
                                     <button type="button" 
@@ -359,7 +377,15 @@
 
                 <!-- 5. Sts Penerima -->
                 <td class="py-3 px-2 align-top text-center">
-                    @if($wri->approval_penerima === 'Menunggu')
+                    @if($wri->approval_pengaju === 'Ditolak')
+                        <span class="inline-flex items-center px-2 py-0.5 text-slate-500 bg-slate-100 border border-slate-200 rounded text-[10px] font-semibold" title="Dibatalkan karena pengajuan tiket ini ditolak oleh Kepala Bagian Pengaju">
+                            <i class="fa-solid fa-minus text-[8px] me-1 text-slate-400"></i> Batal
+                        </span>
+                    @elseif($wri->approval_pengaju === 'Menunggu')
+                        <span class="inline-flex items-center px-2 py-0.5 text-slate-400 bg-slate-50 border border-slate-200 rounded text-[10px] font-medium" title="Menunggu persetujuan Ka. Bagian Pengaju terlebih dahulu">
+                            <i class="fa-solid fa-clock text-[8px] me-1 text-slate-400"></i> Menunggu Pengaju
+                        </span>
+                    @elseif($wri->approval_penerima === 'Menunggu')
                         @if($canApprovePenerima)
                             <div class="inline-flex items-center space-x-1">
                                 <button type="button" 

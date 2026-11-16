@@ -123,3 +123,14 @@ Jika di masa mendatang pengguna ingin melakukan migrasi tambahan dari file sprea
 2. **Pertahankan Zero Stock:** Jangan pernah menambahkan trigger mutasi stok pada data berstatus `is_legacy = true`.
 3. **Patuhi Idempotensi:** Selalu gunakan pencocokan `wri_number` sebelum insert.
 4. **Sinkronisasi Dokumentasi:** Selalu perbarui berkas ini jika terdapat perubahan skema atau penambahan fitur baru pada modul Work Request.
+
+---
+
+## 9. Resolusi Hierarki Approval & Koreksi Tiket Ditolak
+
+Pada evaluasi pasca-migrasi, ditemukan bahwa 15 tiket spreadsheet yang memiliki status penolakan (`approval_pengaju = 'Ditolak'` atau `approval_penerima = 'Ditolak'`) sebelumnya masih tercatat dengan `status = 'Belum Verifikasi'` dan `approval_penerima = 'Menunggu'`.
+
+Hal ini telah diselesaikan dengan tata kelola baku:
+1. **Ka. Pengaju Rejection Hard Stop:** Tiket yang ditolak di tingkat pengaju otomatis membatalkan alur ke penerima (`approval_penerima = 'Ditolak'`, `status = 'cancelled'`, `is_final = true`).
+2. **Partisi Mutually Exclusive:** Kartu *Perlu Verifikasi* murni menyaring tiket yang sah membutuhkan approval (1 tiket aktif), sedangkan ke-16 tiket yang tertolak dikarantina penuh di kartu *Ditolak / Batal*.
+3. **Penyempurnaan UI:** Lencana bawah No WR menampilkan `✕ Ditolak Pengaju` atau `✕ Ditolak Penerima`, dan kolom status penerima menampilkan `Batal`.

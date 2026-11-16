@@ -54,14 +54,25 @@
                 
                 <!-- 1. HERO STATUS BADGE (Top Center - Lampiran 1-3 Style) -->
                 <div class="pt-2 pb-1 text-center">
-                    <!-- Icon Bulat Status -->
-                    <template x-if="detailData.approvalPengajuStatus === 'Menunggu' || detailData.approvalPenerimaStatus === 'Menunggu' || (detailData.currentStatus && detailData.currentStatus.toLowerCase().includes('antrian'))">
+                    <!-- Icon Bulat Status Ditolak / Batal (Prioritas Utama) -->
+                    <template x-if="detailData.approvalPengajuStatus === 'Ditolak' || detailData.approvalPenerimaStatus === 'Ditolak' || (detailData.currentStatus && (detailData.currentStatus.toLowerCase().includes('ditolak') || detailData.currentStatus.toLowerCase().includes('cancelled') || detailData.currentStatus.toLowerCase().includes('batal')))">
+                        <div class="inline-block">
+                            <div class="w-16 h-16 rounded-full bg-rose-100 border-4 border-rose-50 text-rose-600 flex items-center justify-center text-2xl shadow-sm mx-auto">
+                                <i class="fa-solid fa-ban"></i>
+                            </div>
+                            <h3 class="font-extrabold text-base sm:text-lg text-rose-900 mt-2" x-text="detailData.approvalPengajuStatus === 'Ditolak' ? 'Ditolak Ka. Pengaju' : 'Ditolak Ka. Penerima'"></h3>
+                            <p class="text-[11px] text-rose-600 font-medium">Tiket ditolak / dibatalkan (Closed)</p>
+                        </div>
+                    </template>
+
+                    <!-- Icon Bulat Status Belum Verifikasi -->
+                    <template x-if="!(detailData.approvalPengajuStatus === 'Ditolak' || detailData.approvalPenerimaStatus === 'Ditolak' || (detailData.currentStatus && (detailData.currentStatus.toLowerCase().includes('ditolak') || detailData.currentStatus.toLowerCase().includes('cancelled') || detailData.currentStatus.toLowerCase().includes('batal')))) && (detailData.approvalPengajuStatus === 'Menunggu' || (detailData.approvalPengajuStatus === 'Diterima' && detailData.approvalPenerimaStatus === 'Menunggu'))">
                         <div class="inline-block">
                             <div class="w-16 h-16 rounded-full bg-amber-100 border-4 border-amber-50 text-amber-500 flex items-center justify-center text-2xl shadow-sm mx-auto">
                                 <i class="fa-solid fa-clock"></i>
                             </div>
-                            <h3 class="font-extrabold text-base sm:text-lg text-slate-900 mt-2">Belum Verifikasi</h3>
-                            <p class="text-[11px] text-slate-400 font-medium">Status saat ini</p>
+                            <h3 class="font-extrabold text-base sm:text-lg text-slate-900 mt-2" x-text="detailData.approvalPengajuStatus === 'Menunggu' ? 'Menunggu Otorisasi Pengaju' : 'Menunggu Verifikasi Mesin'"></h3>
+                            <p class="text-[11px] text-slate-400 font-medium">Perlu Verifikasi</p>
                         </div>
                     </template>
 
@@ -181,8 +192,8 @@
                                 <div class="font-bold text-slate-900 text-xs mt-1" x-text="detailData.approvalPenerimaBy"></div>
                                 <div class="mt-1 flex flex-wrap items-center gap-1.5">
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
-                                          :class="detailData.approvalPenerimaStatus === 'Diterima' ? 'bg-blue-100 text-blue-800' : (detailData.approvalPenerimaStatus === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-700')"
-                                          x-text="detailData.approvalPenerimaStatus === 'Diterima' ? 'Diverifikasi' : (detailData.approvalPenerimaStatus === 'Ditolak' ? 'Ditolak' : 'Belum Verifikasi')"></span>
+                                          :class="detailData.approvalPenerimaStatus === 'Diterima' ? 'bg-blue-100 text-blue-800' : (detailData.approvalPenerimaStatus === 'Ditolak' ? 'bg-rose-100 text-rose-800' : (detailData.approvalPengajuStatus === 'Ditolak' ? 'bg-slate-200 text-slate-500' : (detailData.approvalPengajuStatus === 'Menunggu' ? 'bg-slate-200 text-slate-500' : 'bg-slate-200 text-slate-700')))"
+                                          x-text="detailData.approvalPenerimaStatus === 'Diterima' ? 'Diverifikasi' : (detailData.approvalPenerimaStatus === 'Ditolak' ? 'Ditolak' : (detailData.approvalPengajuStatus === 'Ditolak' ? 'Dibatalkan' : (detailData.approvalPengajuStatus === 'Menunggu' ? 'Menunggu Pengaju' : 'Belum Verifikasi')))"></span>
                                     <template x-if="detailData.assignedOperator && detailData.assignedOperator !== 'Belum ditentukan'">
                                         <span class="px-2 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold" x-text="'Op: ' + detailData.assignedOperator"></span>
                                     </template>

@@ -159,6 +159,14 @@ class MigrateLegacySpreadsheetWr extends Command
                 default => 'Menunggu',
             };
 
+            // Hierarki Baku: Jika Ka. Pengaju menolak, tiket batal total seketika
+            if ($approvalPengaju === 'Ditolak') {
+                $approvalPenerima = 'Ditolak';
+                $stBarang = 'cancelled';
+            } elseif ($approvalPenerima === 'Ditolak') {
+                $stBarang = 'cancelled';
+            }
+
             // Normalisasi Prioritas
             $priority = (stripos($deskripsi, 'urgent') !== false) ? 'urgent_line_stop' : 'normal';
 
@@ -192,7 +200,7 @@ class MigrateLegacySpreadsheetWr extends Command
                     $qty, $qtyProduced, $qtyReceived, $stBarang, $priority, $deskripsi,
                     $tglOrder, $matchedMachine, $dataProses
                 ) {
-                    $isFinal = ($stBarang === 'Sudah diambil');
+                    $isFinal = ($stBarang === 'Sudah diambil' || $stBarang === 'cancelled' || $approvalPengaju === 'Ditolak' || $approvalPenerima === 'Ditolak');
 
                     $wr = WorkRequest::create([
                         'wri_number' => $noWr,

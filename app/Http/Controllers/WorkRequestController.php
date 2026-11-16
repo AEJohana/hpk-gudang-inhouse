@@ -51,35 +51,56 @@ class WorkRequestController extends Controller
             $scope = 'all';
         }
 
-        // 2. Lifecycle Status Filter (4 Kategori Baru: verifikasi, proses, siap, selesai)
+        // 2. Lifecycle Status Filter (5 Kategori Baku: verifikasi, proses, siap, selesai, ditolak)
         if ($request->filled('status') && $request->status !== 'all') {
             $st = $request->status;
             if ($st === 'verifikasi') {
                 $query->needsApproval();
             } elseif ($st === 'proses' || $st === 'antrian' || $st === 'mh') {
                 $query->where(function ($q) {
-                    $q->where('status', 'like', '%antrian%')
-                      ->orWhere('status', 'submitted')
-                      ->orWhere('status', 'like', '%Proses:%')
-                      ->orWhere('status', 'in_production')
-                      ->orWhere('status', 'like', '%MH Pickup%');
-                })->where('is_final', false)
-                  ->where('status', 'not like', '%Siap Diambil%')
-                  ->where('status', 'not like', '%Menuju Pengaju%');
+                    $q->where('approval_pengaju', '!=', 'Ditolak')
+                      ->where('approval_penerima', '!=', 'Ditolak')
+                      ->whereNotIn('status', ['cancelled', 'ditolak', 'rejected'])
+                      ->where('is_final', false)
+                      ->where(function ($sub) {
+                          $sub->where('status', 'like', '%antrian%')
+                            ->orWhere('status', 'submitted')
+                            ->orWhere('status', 'like', '%Proses:%')
+                            ->orWhere('status', 'in_production')
+                            ->orWhere('status', 'like', '%MH Pickup%')
+                            ->orWhere('status', 'like', '%Parsial%');
+                      })
+                      ->where('status', 'not like', '%Siap Diambil%')
+                      ->where('status', 'not like', '%Siap diambil%')
+                      ->where('status', 'not like', '%Menuju Pengaju%');
+                });
             } elseif ($st === 'siap') {
                 $query->where(function ($q) {
-                    $q->where('status', 'like', '%Siap Diambil%')
-                      ->orWhere('status', 'like', '%Menuju Pengaju%')
-                      ->orWhere('status', 'ready_for_warehouse');
-                })->where('is_final', false);
+                    $q->where('approval_pengaju', '!=', 'Ditolak')
+                      ->where('approval_penerima', '!=', 'Ditolak')
+                      ->whereNotIn('status', ['cancelled', 'ditolak', 'rejected'])
+                      ->where('is_final', false)
+                      ->where(function ($sub) {
+                          $sub->where('status', 'like', '%Siap Diambil%')
+                            ->orWhere('status', 'like', '%Siap diambil%')
+                            ->orWhere('status', 'like', '%Menuju Pengaju%')
+                            ->orWhere('status', 'ready_for_warehouse');
+                      });
+                });
             } elseif ($st === 'selesai') {
                 $query->where(function ($q) {
-                    $q->where('is_final', true)
-                      ->orWhere(function ($sub) {
-                          $sub->where(function ($w) {
-                              $w->where('status', 'like', '%Sudah Diambil%')
-                                ->orWhere('status', 'received');
-                          })->where('status', 'not like', '%Parsial%');
+                    $q->where('approval_pengaju', '!=', 'Ditolak')
+                      ->where('approval_penerima', '!=', 'Ditolak')
+                      ->whereNotIn('status', ['cancelled', 'ditolak', 'rejected'])
+                      ->where(function ($sub) {
+                          $sub->where('is_final', true)
+                            ->orWhere(function ($w) {
+                                $w->where(function ($s) {
+                                    $s->where('status', 'like', '%Sudah Diambil%')
+                                      ->orWhere('status', 'like', '%Sudah diambil%')
+                                      ->orWhere('status', 'received');
+                                })->where('status', 'not like', '%Parsial%');
+                            });
                       });
                 });
             } elseif ($st === 'ditolak' || $st === 'batal' || $st === 'rejected' || $st === 'cancelled') {
@@ -128,15 +149,63 @@ class WorkRequestController extends Controller
         $statsRow = Cache::remember($statsCacheKey, 15, function () use ($baseStatQuery) {
             return (clone $baseStatQuery)->selectRaw("
                 COUNT(*) as total_count,
-                SUM(CASE WHEN approval_pengaju = 'Menunggu' OR approval_penerima = 'Menunggu' THEN 1 ELSE 0 END) as needs_approval_count,
-                SUM(CASE WHEN (status LIKE '%antrian%' OR status = 'submitted' OR status LIKE '%Proses:%' OR status = 'in_production' OR status LIKE '%MH Pickup%') AND is_final = 0 AND status NOT LIKE '%Siap Diambil%' AND status NOT LIKE '%Menuju Pengaju%' THEN 1 ELSE 0 END) as in_process_count,
+                SUM(CASE 
+                    WHEN approval_pengaju = 'Ditolak' 
+                      OR approval_penerima = 'Ditolak' 
+                      OR status IN ('cancelled', 'ditolak', 'rejected') 
+                    THEN 1 ELSE 0 
+                END) as rejected_count,
+
+                SUM(CASE 
+                    WHEN (approval_pengaju != 'Ditolak' AND approval_penerima != 'Ditolak' AND status NOT IN ('cancelled', 'ditolak', 'rejected'))
+                     AND (is_final = 1 OR LOWER(status) LIKE '%sudah diambil%' OR status = 'received') 
+                     AND status NOT LIKE '%Parsial%'
+                    THEN 1 ELSE 0 
+                END) as received_count,
+
+                SUM(CASE 
+                    WHEN (approval_pengaju != 'Ditolak' AND approval_penerima != 'Ditolak' AND status NOT IN ('cancelled', 'ditolak', 'rejected'))
+                     AND is_final = 0
+                     AND (
+                         approval_pengaju = 'Menunggu' 
+                         OR (approval_pengaju = 'Diterima' AND approval_penerima = 'Menunggu')
+                     )
+                    THEN 1 ELSE 0 
+                END) as needs_approval_count,
+
+                SUM(CASE 
+                    WHEN (approval_pengaju != 'Ditolak' AND approval_penerima != 'Ditolak' AND status NOT IN ('cancelled', 'ditolak', 'rejected'))
+                     AND is_final = 0
+                     AND NOT (approval_pengaju = 'Menunggu' OR (approval_pengaju = 'Diterima' AND approval_penerima = 'Menunggu'))
+                     AND (LOWER(status) LIKE '%siap diambil%' OR LOWER(status) LIKE '%menuju pengaju%' OR status = 'ready_for_warehouse')
+                    THEN 1 ELSE 0 
+                END) as ready_count,
+
+                SUM(CASE 
+                    WHEN (approval_pengaju != 'Ditolak' AND approval_penerima != 'Ditolak' AND status NOT IN ('cancelled', 'ditolak', 'rejected'))
+                     AND is_final = 0
+                     AND NOT (approval_pengaju = 'Menunggu' OR (approval_pengaju = 'Diterima' AND approval_penerima = 'Menunggu'))
+                     AND NOT (LOWER(status) LIKE '%siap diambil%' OR LOWER(status) LIKE '%menuju pengaju%' OR status = 'ready_for_warehouse')
+                     AND (LOWER(status) NOT LIKE '%sudah diambil%' OR status LIKE '%Parsial%')
+                    THEN 1 ELSE 0 
+                END) as in_process_count,
+
                 SUM(CASE WHEN status LIKE '%antrian%' OR status = 'submitted' THEN 1 ELSE 0 END) as in_antrian_count,
-                SUM(CASE WHEN (status LIKE '%Siap Diambil%' OR status LIKE '%Menuju Pengaju%' OR status = 'ready_for_warehouse') AND is_final = 0 THEN 1 ELSE 0 END) as ready_count,
-                SUM(CASE WHEN is_final = 1 OR ((status LIKE '%Sudah Diambil%' OR status = 'received') AND status NOT LIKE '%Parsial%') THEN 1 ELSE 0 END) as received_count,
-                SUM(CASE WHEN approval_pengaju = 'Ditolak' OR approval_penerima = 'Ditolak' OR status = 'cancelled' THEN 1 ELSE 0 END) as rejected_count,
                 SUM(CASE WHEN status LIKE '%Parsial%' THEN 1 ELSE 0 END) as partial_count,
-                SUM(CASE WHEN is_final = 0 AND status NOT LIKE '%Sudah Diambil%' AND created_at <= ? THEN 1 ELSE 0 END) as overdue_count,
-                SUM(CASE WHEN approval_pengaju = 'Diterima' AND approval_penerima = 'Diterima' AND assigned_operator_name IS NOT NULL AND assigned_operator_name != '' THEN 1 ELSE 0 END) as printable_count
+                SUM(CASE 
+                    WHEN (approval_pengaju != 'Ditolak' AND approval_penerima != 'Ditolak' AND status NOT IN ('cancelled', 'ditolak', 'rejected'))
+                     AND is_final = 0 
+                     AND (LOWER(status) NOT LIKE '%sudah diambil%' OR status LIKE '%Parsial%')
+                     AND created_at <= ? 
+                    THEN 1 ELSE 0 
+                END) as overdue_count,
+                SUM(CASE 
+                    WHEN approval_pengaju = 'Diterima' 
+                     AND approval_penerima = 'Diterima' 
+                     AND assigned_operator_name IS NOT NULL 
+                     AND assigned_operator_name != '' 
+                    THEN 1 ELSE 0 
+                END) as printable_count
             ", [now()->subDays(3)->toDateTimeString()])->first();
         });
 
@@ -168,9 +237,15 @@ class WorkRequestController extends Controller
                 $approvalPengajuStatus = $targetWr->approval_pengaju ?: 'Menunggu';
                 $approvalPengajuBy = $appPengajuLog?->operator_name ?? ($targetWr->approval_pengaju === 'Diterima' ? ($targetWr->requestedBy?->name ?? 'Ka. ' . ($targetWr->dept_pengaju ?: 'Pengaju')) : 'Menunggu');
                 $approvalPengajuAt = $appPengajuLog?->created_at?->format('d/m/Y H:i') ?? ($targetWr->approval_pengaju === 'Diterima' ? $targetWr->created_at->format('d/m/Y H:i') : '-');
-                $approvalPenerimaStatus = $targetWr->approval_penerima ?: 'Menunggu';
-                $approvalPenerimaBy = $appPenerimaLog?->operator_name ?? ($targetWr->approval_penerima === 'Diterima' ? 'Ka. ' . ($targetWr->dept_penerima ?: 'Mesin') : 'Menunggu');
-                $approvalPenerimaAt = $appPenerimaLog?->created_at?->format('d/m/Y H:i') ?? '-';
+                if ($targetWr->approval_pengaju === 'Ditolak') {
+                    $approvalPenerimaStatus = 'Ditolak';
+                    $approvalPenerimaBy = '-';
+                    $approvalPenerimaAt = '-';
+                } else {
+                    $approvalPenerimaStatus = $targetWr->approval_penerima ?: 'Menunggu';
+                    $approvalPenerimaBy = $appPenerimaLog?->operator_name ?? ($targetWr->approval_penerima === 'Diterima' ? 'Ka. ' . ($targetWr->dept_penerima ?: 'Mesin') : 'Menunggu');
+                    $approvalPenerimaAt = $appPenerimaLog?->created_at?->format('d/m/Y H:i') ?? '-';
+                }
 
                 $processPayload = [
                     'id' => $targetWr->id,
@@ -666,10 +741,13 @@ class WorkRequestController extends Controller
 
         $reason = $request->input('reason', 'Dibatalkan oleh Kepala Bagian.');
 
+        $isPengajuReject = ($workRequest->approval_pengaju === 'Menunggu');
+
         $workRequest->update([
-            'approval_pengaju' => $workRequest->approval_pengaju === 'Menunggu' ? 'Ditolak' : $workRequest->approval_pengaju,
-            'approval_penerima' => $workRequest->approval_penerima === 'Menunggu' ? 'Ditolak' : $workRequest->approval_penerima,
+            'approval_pengaju' => $isPengajuReject ? 'Ditolak' : $workRequest->approval_pengaju,
+            'approval_penerima' => 'Ditolak',
             'status' => 'cancelled',
+            'current_process_status' => $isPengajuReject ? 'Ditolak Pengaju' : 'Ditolak Penerima',
             'is_final' => true,
         ]);
 

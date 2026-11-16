@@ -314,13 +314,23 @@ class WorkRequest extends Model
     }
 
     /**
-     * Scope: Tiket yang masih butuh approval (Menunggu)
+     * Scope: Tiket yang masih butuh approval yang sah (Menunggu).
+     * Mengecualikan tiket yang telah ditolak atau dibatalkan.
      */
     public function scopeNeedsApproval(Builder $query): Builder
     {
         return $query->where(function ($q) {
-            $q->where('approval_pengaju', 'Menunggu')
-              ->orWhere('approval_penerima', 'Menunggu');
+            $q->where('approval_pengaju', '!=', 'Ditolak')
+              ->where('approval_penerima', '!=', 'Ditolak')
+              ->whereNotIn('status', ['cancelled', 'ditolak', 'rejected'])
+              ->where('is_final', false)
+              ->where(function ($sub) {
+                  $sub->where('approval_pengaju', 'Menunggu')
+                      ->orWhere(function ($penerima) {
+                          $penerima->where('approval_pengaju', 'Diterima')
+                                   ->where('approval_penerima', 'Menunggu');
+                      });
+              });
         });
     }
 
@@ -332,13 +342,26 @@ class WorkRequest extends Model
         return $query->where(function ($q) {
             $q->where('approval_pengaju', 'Ditolak')
               ->orWhere('approval_penerima', 'Ditolak')
-              ->orWhere('status', 'cancelled');
+              ->orWhereIn('status', ['cancelled', 'ditolak', 'rejected']);
         });
+    }
+
+    /**
+     * Periksa apakah tiket ini telah ditolak oleh Pengaju, Penerima, atau dibatalkan sistem.
+     */
+    public function isRejected(): bool
+    {
+        $st = strtolower(trim($this->status ?? ''));
+        return ($this->approval_pengaju === 'Ditolak' || $this->approval_penerima === 'Ditolak' || in_array($st, ['cancelled', 'ditolak', 'rejected']));
     }
 
     public function isPendingApproval(): bool
     {
-        return ($this->approval_pengaju === 'Menunggu' || $this->approval_penerima === 'Menunggu');
+        if ($this->isRejected() || $this->is_final) {
+            return false;
+        }
+
+        return ($this->approval_pengaju === 'Menunggu' || ($this->approval_pengaju === 'Diterima' && $this->approval_penerima === 'Menunggu'));
     }
 
     public function isApproved(): bool

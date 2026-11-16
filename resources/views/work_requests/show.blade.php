@@ -212,7 +212,7 @@
                 </div>
 
                 <!-- Status Approval Penerima -->
-                <div class="p-4 rounded-xl border {{ $workRequest->approval_penerima === 'Diterima' ? 'bg-emerald-50/50 border-emerald-200' : ($workRequest->approval_penerima === 'Ditolak' ? 'bg-rose-50/50 border-rose-200' : 'bg-amber-50/50 border-amber-200') }} flex items-center justify-between">
+                <div class="p-4 rounded-xl border {{ $workRequest->approval_pengaju === 'Ditolak' ? 'bg-slate-50/50 border-slate-200' : ($workRequest->approval_penerima === 'Diterima' ? 'bg-emerald-50/50 border-emerald-200' : ($workRequest->approval_penerima === 'Ditolak' ? 'bg-rose-50/50 border-rose-200' : ($workRequest->approval_pengaju === 'Diterima' ? 'bg-amber-50/50 border-amber-200' : 'bg-slate-50/50 border-slate-200'))) }} flex items-center justify-between">
                     <div>
                         <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">2. Verifikasi Ka. Bagian Penerima (Mesin)</span>
                         <div class="font-bold text-xs text-slate-900 mt-0.5">
@@ -220,7 +220,11 @@
                         </div>
                         <div class="text-[11px] mt-1 font-semibold flex items-center space-x-1.5">
                             <span>Status:</span>
-                            @if($workRequest->approval_penerima === 'Diterima')
+                            @if($workRequest->approval_pengaju === 'Ditolak')
+                                <span class="text-slate-500 font-extrabold"><i class="fa-solid fa-ban me-1 text-slate-400"></i> Dibatalkan (Pengaju Ditolak)</span>
+                            @elseif($workRequest->approval_pengaju === 'Menunggu')
+                                <span class="text-slate-500 font-semibold"><i class="fa-solid fa-clock me-1 text-slate-400"></i> Menunggu Otorisasi Pengaju</span>
+                            @elseif($workRequest->approval_penerima === 'Diterima')
                                 <span class="text-emerald-700 font-extrabold"><i class="fa-solid fa-circle-check me-1"></i> Disetujui</span>
                             @elseif($workRequest->approval_penerima === 'Ditolak')
                                 <span class="text-rose-700 font-extrabold"><i class="fa-solid fa-circle-xmark me-1"></i> Ditolak</span>

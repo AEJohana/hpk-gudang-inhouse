@@ -342,4 +342,68 @@ class LegacyWrMigrationTest extends TestCase
 
         $this->assertEquals(1, WorkRequest::where('wri_number', $wriNumber)->count(), 'Nomor tiket tidak boleh duplikat.');
     }
+
+    /**
+     * Uji Hierarki Penolakan:
+     * Jika Ka. Pengaju menolak tiket, tiket seketika berstatus tutup/batal (Hard Close).
+     * Tiket DILARANG masuk ke scope needsApproval() dan WAJIB masuk ke scope rejected().
+     */
+    public function test_rejection_precedence_pengaju_closes_ticket_immediately(): void
+    {
+        $comp = Component::create([
+            'name' => 'Plate U BT Lower',
+            'part_number' => 'CSFP10100070030',
+            'total_stock' => 10,
+        ]);
+
+        $wr = WorkRequest::create([
+            'wri_number' => 'WR/Dept Gudang/20260930/4/CSFP10100070030/1',
+            'component_id' => $comp->id,
+            'quantity_requested' => 2,
+            'status' => 'cancelled',
+            'approval_pengaju' => 'Ditolak',
+            'approval_penerima' => 'Ditolak',
+            'is_final' => true,
+        ]);
+
+        // Verifikasi helper
+        $this->assertTrue($wr->isRejected());
+        $this->assertFalse($wr->isPendingApproval());
+
+        // Verifikasi scope: TIDAK BOLEH muncul di needsApproval
+        $this->assertEquals(0, WorkRequest::needsApproval()->where('id', $wr->id)->count());
+
+        // Verifikasi scope: WAJIB muncul di rejected
+        $this->assertEquals(1, WorkRequest::rejected()->where('id', $wr->id)->count());
+    }
+
+    /**
+     * Uji Mutually Exclusive Scope:
+     * Tiket yang valid butuh verifikasi (approval_pengaju = Diterima, approval_penerima = Menunggu)
+     * hanya muncul di needsApproval() dan TIDAK muncul di rejected().
+     */
+    public function test_mutually_exclusive_status_partitioning(): void
+    {
+        $comp = Component::create([
+            'name' => 'Flange Bushing',
+            'part_number' => 'CSAA50550200000',
+            'total_stock' => 50,
+        ]);
+
+        $wrWaiting = WorkRequest::create([
+            'wri_number' => 'WRI/DeptGudang/20261111/5/CSAA50550200000',
+            'component_id' => $comp->id,
+            'quantity_requested' => 1,
+            'status' => 'Dalam antrian',
+            'approval_pengaju' => 'Diterima',
+            'approval_penerima' => 'Menunggu',
+            'is_final' => false,
+        ]);
+
+        $this->assertTrue($wrWaiting->isPendingApproval());
+        $this->assertFalse($wrWaiting->isRejected());
+
+        $this->assertEquals(1, WorkRequest::needsApproval()->where('id', $wrWaiting->id)->count());
+        $this->assertEquals(0, WorkRequest::rejected()->where('id', $wrWaiting->id)->count());
+    }
 }

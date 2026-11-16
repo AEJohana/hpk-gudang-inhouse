@@ -107,13 +107,18 @@ Seluruh logika bisnis dari sistem lama telah diimplementasikan secara terstruktu
 4. **Sudah Diambil (Parsial):** Serah terima batch cicilan divalidasi oleh gudang. Kuantitas fisik batch masuk stok, sementara tiket tetap terbuka aktif (`is_final = false`). Sistem antrean WRI secara reaktif mendeteksi sisa saldo fisik yang masih tertinggal di mesin (`$hasRemainingMHPickup`) sehingga tampilan antrean tetap mempertahankan lencana amber **Menunggu Diambil MH** dan tombol pintas 1-klik **`[Buka Menu MH]`** (mengeliminasi bug lencana keliru *"Tunggu Terima Dept Gudang"* saat sisa barang belum dijemput kurir).
 5. **Sudah Diambil (Final):** Serah terima fisik telah tuntas 100% divalidasi oleh pemohon/gudang. Memicu eksekusi penambahan stok otomatis (BR-08) dan tiket resmi ditutup (*Closed*, `is_final = true`).
 
-### D. Pengelompokan 4 Tab Antrean Operasional WRI (Unified Control Bar)
-Untuk mempercepat navigasi operator dan supervisor di lapangan tanpa redundansi tombol kontrol ganda, antrean WRI disederhanakan menjadi 4 kategori status operasional utama (+ Semua):
+### D. Pengelompokan 5 Tab Antrean Operasional WRI (Unified Control Bar Mutually Exclusive)
+Untuk mempercepat navigasi operator dan supervisor di lapangan tanpa redundansi, antrean WRI dikelompokkan secara terpartisi ketat (*mutually exclusive*) menjadi 5 kategori status operasional (+ Semua):
 1. **Semua:** Menampilkan seluruh tiket pada lingkup departemen user tanpa filter status.
-2. **Perlu Verifikasi:** Tiket yang statusnya masih membutuhkan persetujuan (`approval_pengaju = 'Menunggu'` atau `approval_penerima = 'Menunggu'`).
-3. **Sedang Proses:** Tiket yang telah masuk siklus produksi, mencakup antrian mesin (`Dalam antrian`, `submitted`), pengerjaan mesin (`Proses: ... (In/Out)`), dan penjemputan logistik kurir antar stasiun mesin (`MH Pickup: ...`).
-4. **Siap Ambil:** Tiket yang tahapan mesin terakhirnya telah selesai dan barang siap diambil kurir MH (`Siap Diambil`) atau sedang dalam perjalanan diantar kurir menuju pengaju/gudang (`Menuju Pengaju`).
-5. **Selesai:** Tiket yang seluruh kuotanya telah tuntas diverifikasi dan diterima fisik di rak gudang/pengaju (`Sudah Diambil`, `is_final = true`).
+2. **Perlu Verifikasi:** Tiket aktif yang sah membutuhkan persetujuan (`approval_pengaju = 'Menunggu'` atau `approval_pengaju = 'Diterima'` dengan `approval_penerima = 'Menunggu'`). Tiket yang ditolak mutlak tidak masuk ke tab ini.
+3. **Sedang Proses:** Tiket yang telah disetujui penuh oleh kedua belah pihak dan berada dalam siklus pengerjaan pabrik: antrian mesin (`Dalam antrian`, `submitted`), pengerjaan aktif mesin (`Proses: ... (In/Out)`), penjemputan logistik kurir antar-mesin (`MH Pickup: ...`), atau pengerjaan cicilan bertahap (`Parsial`).
+4. **Siap Diambil:** Tiket yang pengerjaan mesinnya tuntas dan menunggu penjemputan kurir MH (`Siap Diambil`) atau sedang dalam perjalanan kurir menuju pengaju/gudang (`Menuju Pengaju`).
+5. **Selesai:** Tiket yang kuotanya telah tuntas 100% diterima fisik di rak tujuan gudang/pengaju (`Sudah Diambil`, `is_final = true`).
+6. **Ditolak / Batal:** Tiket yang ditolak oleh Kepala Bagian Pengaju, ditolak oleh Kepala Bagian Penerima, atau dibatalkan sistem (`approval_pengaju = 'Ditolak'`, `approval_penerima = 'Ditolak'`, atau `status = 'cancelled'`).
+
+> [!IMPORTANT]
+> **Aturan Baku Hierarki Approval & Penolakan Tiket (WRI Governance):**
+> Jika Kepala Bagian Pengaju menolak tiket (`approval_pengaju = 'Ditolak'`), tiket **SEKETIKA DITUTUP PERMANEN (Hard Close)** dengan `status = 'cancelled'`, `is_final = true`, dan `approval_penerima = 'Ditolak'`. Tiket tidak pernah diteruskan ke stasiun mesin penerima, tidak meminta verifikasi penerima, dan kolom status penerima menampilkan `Batal`.
 
 ---
 
