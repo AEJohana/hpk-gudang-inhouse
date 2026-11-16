@@ -259,6 +259,7 @@ Users have specific roles and departmental scopes that dictate their permissions
 ## Technical Documentation References
 - [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
 - [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - Standar Operasional Prosedur, Diagram Alur Proses & Aturan Bisnis (BR-01 s/d BR-14)
+- [docs/MIGRASI_LOG_WR_SPREADSHEET.md](docs/MIGRASI_LOG_WR_SPREADSHEET.md) - Panduan Resmi Migrasi Data Work Request Historis & In-Progress dari Spreadsheet ke MySQL
 - [SESSION_RESUME_AKSES_AKUN.md](SESSION_RESUME_AKSES_AKUN.md) - Log Checkpoint Pengembangan & Kredensial Akun Pengujian
 
 ## Summary

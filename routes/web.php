@@ -205,6 +205,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Konfigurasi Sistem
         Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
         Route::post('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
+        Route::post('settings/sync-legacy-wr', [\App\Http\Controllers\Admin\SettingController::class, 'syncLegacyWr'])->name('settings.sync-legacy-wr');
         Route::get('audit-logs', [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
     });
 });

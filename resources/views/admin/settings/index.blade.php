@@ -125,5 +125,55 @@
             </form>
         </div>
 
+        <!-- 3. DATA MIGRATION & SYNC TOOL CARD -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div class="px-8 py-5 border-b border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg text-emerald-600 bg-emerald-50 border border-emerald-100 shadow-2xs shrink-0">
+                        <i class="fa-solid fa-file-excel"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-800">Sinkronisasi Log WR Spreadsheet (Sistem Lama)</h2>
+                        <p class="text-xs text-slate-400">Migrasi & sinkronisasi berkas Form Work Request - Log WR.csv ke sistem WMS</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/60">
+                        <i class="fa-solid fa-database text-[10px]"></i>
+                        {{ number_format($legacyWrCount ?? 0) }} Tiket Terarsip
+                    </span>
+                </div>
+            </div>
+
+            <div class="p-8 space-y-6">
+                <div class="bg-amber-50/70 border border-amber-200/60 rounded-xl p-4 text-xs text-amber-900 space-y-2">
+                    <div class="font-bold flex items-center gap-2 text-amber-800">
+                        <i class="fa-solid fa-shield-halved text-amber-600"></i>
+                        Protokol Keamanan Data & Stok (Zero Stock Disturbance)
+                    </div>
+                    <ul class="list-disc list-inside space-y-1 text-slate-600 pl-1">
+                        <li><strong>Zero Duplicate:</strong> Nomor WR lama yang sudah terdaftar akan otomatis dilewati tanpa menduplikasi data.</li>
+                        <li><strong>Zero Stock Disturbance:</strong> Migrasi ini murni mencatat riwayat tiket & antrean mesin, tanpa memodifikasi saldo stok master atau mutasi inventaris.</li>
+                        <li><strong>Status Terjaga:</strong> Tiket yang sedang berjalan di mesin/stasiun lama tetap aktif dan dapat diproses melalui antarmuka saat ini.</li>
+                    </ul>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                    <div class="text-xs text-slate-500">
+                        <i class="fa-solid fa-circle-info text-slate-400 me-1"></i>
+                        Dokumentasi lengkap alur & histori migrasi tercatat di <span class="font-mono font-semibold text-slate-700">docs/MIGRASI_LOG_WR_SPREADSHEET.md</span>
+                    </div>
+                    <form action="{{ route('admin.settings.sync-legacy-wr') }}" method="POST" onsubmit="return confirm('Mulai sinkronisasi data Work Request dari spreadsheet lama? Proses ini aman dan tidak akan merubah stok atau menduplikasi data.');">
+                        @csrf
+                        <button type="submit" 
+                                class="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                            Sinkronkan Data WR Sekarang
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
     </div>
 </x-admin-layout>

@@ -23,6 +23,19 @@ use Illuminate\Support\Str;
 class WorkRequestController extends Controller
 {
     /**
+     * Format standar 6-segmen nomor Work Request (WRI):
+     * WR/{Dept Pengaju}/{YYYYMMDD}/{Seq}/{KodePart atau "Baru"}/{SeqItem}
+     */
+    public static function generateWriNumber(string $deptPengaju, ?string $partNumber, string $datePrefix, int $dailySeq, int $componentDailySeq = 1): string
+    {
+        $deptLabel = str_starts_with($deptPengaju, 'Dept ') ? $deptPengaju : 'Dept ' . $deptPengaju;
+        $isNewPart = ($partNumber === 'Baru' || str_starts_with($partNumber ?? '', 'NEW-') || empty($partNumber));
+        $partSegment = $isNewPart ? 'Baru' : preg_replace('/[^a-zA-Z0-9_-]/', '', $partNumber);
+
+        return "WR/{$deptLabel}/{$datePrefix}/{$dailySeq}/{$partSegment}/{$componentDailySeq}";
+    }
+
+    /**
      * Display a listing of Work Requests Inhouse with user department scoping.
      */
     public function index(Request $request)
@@ -368,22 +381,36 @@ class WorkRequestController extends Controller
                 $cleanDept = 'GUDANG';
             }
 
-            // Format Nomor WR: WRI/{Dept}/{YYYYMMDD}/{Seq}/{PartNumber}
+            // Format Nomor WR Standar 6-Segmen: WR/{Dept Pengaju}/{YYYYMMDD}/{Seq}/{PartNo atau "Baru"}/{ItemSeq}
             $datePrefix = date('Ymd');
-            $todayPrefix = "WRI/{$cleanDept}/{$datePrefix}/";
-            $latestWri = WorkRequest::where('wri_number', 'like', "{$todayPrefix}%")
+            $todayPrefix = "WR/{$deptPengaju}/{$datePrefix}/";
+            $legacyPrefix = "WRI/" . preg_replace('/[^a-zA-Z0-9]/', '', $deptPengaju) . "/{$datePrefix}/";
+
+            $latestWri = WorkRequest::where(function ($q) use ($todayPrefix, $legacyPrefix) {
+                    $q->where('wri_number', 'like', "{$todayPrefix}%")
+                      ->orWhere('wri_number', 'like', "{$legacyPrefix}%");
+                })
                 ->orderBy('id', 'desc')
                 ->first();
 
             $nextNum = 1;
             if ($latestWri) {
                 $parts = explode('/', $latestWri->wri_number);
-                if (isset($parts[3])) {
+                if (isset($parts[3]) && is_numeric($parts[3])) {
                     $nextNum = ((int) $parts[3]) + 1;
                 }
             }
-            $cleanPartNo = preg_replace('/[^a-zA-Z0-9_-]/', '', $component->part_number ?: $component->id);
-            $wriNumber = "WRI/{$cleanDept}/{$datePrefix}/{$nextNum}/{$cleanPartNo}";
+
+            // Hitung sudah berapa kali komponen ini diajukan hari ini oleh departemen pengaju
+            $itemCountToday = WorkRequest::whereDate('created_at', today())
+                ->where('dept_pengaju', $deptPengaju)
+                ->where('component_id', $component->id)
+                ->count() + 1;
+
+            $isNewPart = ($component->status === 'pending_catalog' || str_starts_with($component->part_number ?? '', 'NEW-') || $component->part_number === 'Baru');
+            $partSegment = $isNewPart ? 'Baru' : ($component->part_number ?: (string) $component->id);
+
+            $wriNumber = self::generateWriNumber($deptPengaju, $partSegment, $datePrefix, $nextNum, $itemCountToday);
 
             // Target penyimpanan gudang otomatis diset dari data master komponen
             $targetLocationId = $component->default_location_id;
@@ -732,15 +759,20 @@ class WorkRequestController extends Controller
             }
 
             $datePrefix = date('Ymd');
-            $todayPrefix = "WRI/{$cleanDept}/{$datePrefix}/";
-            $latestWri = WorkRequest::where('wri_number', 'like', "{$todayPrefix}%")
+            $todayPrefix = "WR/{$deptPengaju}/{$datePrefix}/";
+            $legacyPrefix = "WRI/" . preg_replace('/[^a-zA-Z0-9]/', '', $deptPengaju) . "/{$datePrefix}/";
+
+            $latestWri = WorkRequest::where(function ($q) use ($todayPrefix, $legacyPrefix) {
+                    $q->where('wri_number', 'like', "{$todayPrefix}%")
+                      ->orWhere('wri_number', 'like', "{$legacyPrefix}%");
+                })
                 ->orderBy('id', 'desc')
                 ->first();
 
             $nextNum = 1;
             if ($latestWri) {
                 $parts = explode('/', $latestWri->wri_number);
-                if (isset($parts[3])) {
+                if (isset($parts[3]) && is_numeric($parts[3])) {
                     $nextNum = ((int) $parts[3]) + 1;
                 }
             }
@@ -748,6 +780,9 @@ class WorkRequestController extends Controller
             $machines = Machine::all();
             $defaultMachine = $machines->first();
             $isPrivileged = $user->isSupervisor() || $user->isAdmin();
+
+            // Track item count per component within this batch & today
+            $itemDailyCounters = [];
 
             foreach ($cartItems as $item) {
                 $componentId = $item['component_id'] ?? null;
@@ -774,8 +809,19 @@ class WorkRequestController extends Controller
                     return stripos($m->name, $cleanDeptLabel) !== false || stripos($m->machine_type, $cleanDeptLabel) !== false;
                 }) ?? $defaultMachine;
 
-                $cleanPartNo = preg_replace('/[^a-zA-Z0-9_-]/', '', $component->part_number ?: $component->id);
-                $wriNumber = "WRI/{$cleanDept}/{$datePrefix}/{$nextNum}/{$cleanPartNo}";
+                if (!isset($itemDailyCounters[$component->id])) {
+                    $itemDailyCounters[$component->id] = WorkRequest::whereDate('created_at', today())
+                        ->where('dept_pengaju', $deptPengaju)
+                        ->where('component_id', $component->id)
+                        ->count();
+                }
+                $itemDailyCounters[$component->id]++;
+                $itemCountToday = $itemDailyCounters[$component->id];
+
+                $isNewPart = ($component->status === 'pending_catalog' || str_starts_with($component->part_number ?? '', 'NEW-') || $component->part_number === 'Baru');
+                $partSegment = $isNewPart ? 'Baru' : ($component->part_number ?: (string) $component->id);
+
+                $wriNumber = self::generateWriNumber($deptPengaju, $partSegment, $datePrefix, $nextNum, $itemCountToday);
                 $nextNum++;
 
                 $isUrgent = ($priority === 'urgent_line_stop');

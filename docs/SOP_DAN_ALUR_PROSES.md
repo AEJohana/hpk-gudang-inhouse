@@ -486,3 +486,12 @@ Untuk memfasilitasi kebutuhan tanda tangan fisik, instruksi kerja stasiun mesin,
 3. **Prosedur Penghapusan Akun (Zona Bahaya):**
    - Penghapusan akun bersifat permanen dan mewajibkan verifikasi kata sandi aktif melalui modal dialog konfirmasi.
    - Seluruh log aktivitas historis, tanda tangan elektronik pada dokumen WRI, dan riwayat mutasi stok gudang tetap dipertahankan (*preserved audit log trail*) dan tidak dihapus secara berantai, menjamin kesinambungan data fisik pabrik.
+
+---
+
+## 17. Prosedur Migrasi & Sinkronisasi Data Work Request Historis (Spreadsheet ke MySQL)
+
+1. **Jaminan Nol Perubahan Stok (Zero Stock Disturbance):** Seluruh data tiket WR dan riwayat proses dari spreadsheet lama (`System WR lama/Spreadsheet/Form Work Request - Log WR.csv`) diimpor murni sebagai data pencatatan alur pengerjaan dan TIDAK BOLEH memicu penambahan atau pengurangan stok inventori gudang (`components.total_stock` dan tabel `transactions`).
+2. **Kelanjutan Tiket In-Progress (159 Tiket):** Tiket berstatus `Belum Verifikasi`, `Dalam antrian`, `Proses In`, `Siap diambil`, dan `Menuju Pengaju` langsung aktif di stasiun mesin dan modul Material Handling dengan routing mesin (`work_request_steps`) terpasang otomatis.
+3. **Penyimpanan Foto di Server NAS On-Premise:** 491 berkas foto fisik dari Google Drive lama diunduh dan disimpan langsung ke Drive Master NAS `Z:\...` dan `public/uploads/components/` dengan format penamaan standar (`[part_number].jpg` untuk part resmi, dan `NEW-YYYYMMDD-SEQ.jpg` untuk part baru).
+4. **Dokumentasi & Prosedur Teknis Lengkap:** Rincian teknis, pemetaan skema, dan panduan perintah CLI tercatat di [docs/MIGRASI_LOG_WR_SPREADSHEET.md](docs/MIGRASI_LOG_WR_SPREADSHEET.md).
