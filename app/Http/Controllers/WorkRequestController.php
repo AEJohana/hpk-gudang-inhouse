@@ -617,7 +617,26 @@ class WorkRequestController extends Controller
             );
 
             return redirect()->route('work-requests.index', ['open_detail' => $workRequest->id])
-                ->with('success', "Work Request {$workRequest->wri_number} berhasil diterbitkan!");
+                ->with('success', "Work Request {$workRequest->wri_number} berhasil diterbitkan!")
+                ->with('milestone', [
+                    'title' => 'Tiket Work Request Berhasil Diterbitkan!',
+                    'subtitle' => "Tiket {$workRequest->wri_number} siap diteruskan untuk verifikasi dan proses mesin.",
+                    'icon' => 'fa-solid fa-file-circle-check',
+                    'details' => [
+                        ['label' => 'No. Tiket', 'value' => $workRequest->wri_number],
+                        ['label' => 'Komponen', 'value' => $component->name],
+                        ['label' => 'Jumlah Permintaan', 'value' => $validated['quantity_requested'] . ' ' . $component->uom],
+                        ['label' => 'Dept. Penerima', 'value' => $workRequest->dept_penerima],
+                    ],
+                    'primaryAction' => [
+                        'text' => 'Buka Detail Tiket',
+                        'icon' => 'fa-solid fa-arrow-up-right-from-square',
+                        'url' => route('work-requests.show', $workRequest),
+                    ],
+                    'secondaryAction' => [
+                        'text' => 'Tutup',
+                    ]
+                ]);
         });
     }
 
@@ -1620,7 +1639,26 @@ class WorkRequestController extends Controller
             ]);
 
             return redirect()->route('work-requests.show', $workRequest)
-                ->with('success', "Komponen {$workRequest->component->name} sebanyak {$qty} {$workRequest->component->uom} berhasil diterima di Gudang pada slot {$specificCode} dan stok telah terupdate!");
+                ->with('success', "Komponen {$workRequest->component->name} sebanyak {$qty} {$workRequest->component->uom} berhasil diterima di Gudang pada slot {$specificCode} dan stok telah terupdate!")
+                ->with('milestone', [
+                    'title' => 'Komponen Berhasil Masuk Gudang!',
+                    'subtitle' => "Tiket {$workRequest->wri_number} telah selesai dan saldo stok fisik rak telah ditambahkan.",
+                    'icon' => 'fa-solid fa-boxes-stacked',
+                    'details' => [
+                        ['label' => 'No. Tiket WRI', 'value' => $workRequest->wri_number],
+                        ['label' => 'Nama Komponen', 'value' => $workRequest->component->name . ' (' . $workRequest->component->part_number . ')'],
+                        ['label' => 'Jumlah Diterima', 'value' => $qty . ' ' . $workRequest->component->uom],
+                        ['label' => 'Slot Rak Gudang', 'value' => $specificCode],
+                    ],
+                    'primaryAction' => [
+                        'text' => 'Lihat di Peta Rak',
+                        'icon' => 'fa-solid fa-map-location-dot',
+                        'url' => route('locations.index', ['highlight' => $specificCode]),
+                    ],
+                    'secondaryAction' => [
+                        'text' => 'Selesai & Tutup',
+                    ]
+                ]);
         });
     }
 }

@@ -163,9 +163,18 @@
                         <i class="fa-solid fa-circle-info text-slate-400 me-1"></i>
                         Dokumentasi lengkap alur & histori migrasi tercatat di <span class="font-mono font-semibold text-slate-700">docs/MIGRASI_LOG_WR_SPREADSHEET.md</span>
                     </div>
-                    <form action="{{ route('admin.settings.sync-legacy-wr') }}" method="POST" onsubmit="return confirm('Mulai sinkronisasi data Work Request dari spreadsheet lama? Proses ini aman dan tidak akan merubah stok atau menduplikasi data.');">
+                    <form id="sync-legacy-wr-form" action="{{ route('admin.settings.sync-legacy-wr') }}" method="POST">
                         @csrf
-                        <button type="submit" 
+                        <button type="button" 
+                                @click="$dispatch('open-confirm-modal', {
+                                    title: 'Sinkronisasi Work Request',
+                                    message: 'Mulai sinkronisasi data Work Request dari spreadsheet lama? Proses ini aman dan tidak akan mengubah stok atau menduplikasi data.',
+                                    confirmText: 'Ya, Mulai Sinkronisasi',
+                                    cancelText: 'Batal',
+                                    type: 'info',
+                                    icon: 'fa-solid fa-arrows-rotate',
+                                    formId: 'sync-legacy-wr-form'
+                                })"
                                 class="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
                             <i class="fa-solid fa-arrows-rotate"></i>
                             Sinkronkan Data WR Sekarang

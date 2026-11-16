@@ -147,17 +147,22 @@
                     </div>
                 </div>
 
-                <!-- Minimalist Logout Link (Matching Mockup) -->
-                <form method="POST" action="{{ route('logout') }}" class="text-center">
-                    @csrf
-                    <button type="submit" 
-                            class="w-full py-2 flex items-center justify-center space-x-2 text-xs font-bold text-slate-600 hover:text-rose-600 transition cursor-pointer group">
-                        <i class="fa-solid fa-arrow-right-from-bracket text-xs text-slate-400 group-hover:text-rose-500 transition"></i>
-                        <span>Keluar</span>
-                    </button>
-                </form>
-
-                <!-- Company Branding Footer -->
+                <!-- Minimalist Logout Link (Matching Mockup with Elegant Confirmation) -->
+                <button type="button" 
+                        @click="$dispatch('open-confirm-modal', {
+                            title: 'Konfirmasi Keluar',
+                            message: 'Apakah Anda yakin ingin keluar dari sistem? Sesi aktif Anda di perangkat ini akan diakhiri.',
+                            confirmText: 'Ya, Keluar',
+                            cancelText: 'Batal',
+                            type: 'danger',
+                            icon: 'fa-solid fa-arrow-right-from-bracket',
+                            actionUrl: '{{ route('logout') }}',
+                            method: 'POST'
+                        })"
+                        class="w-full py-2 flex items-center justify-center space-x-2 text-xs font-bold text-slate-600 hover:text-rose-600 transition cursor-pointer group">
+                    <i class="fa-solid fa-arrow-right-from-bracket text-xs text-slate-400 group-hover:text-rose-500 transition"></i>
+                    <span>Keluar</span>
+                </button>
                 <div class="text-[9px] text-slate-400/80 text-center font-medium tracking-wider uppercase pt-1">
                     PT. Hydraxle Perkasa
                 </div>
@@ -168,56 +173,10 @@
         <!-- Navigation Bar -->
         @include('layouts.admin-navigation')
 
-        <!-- Flash Messages with Auto-Dismiss & Smooth Fade -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full">
-            @if (session('success'))
-                <div x-data="{ show: true }"
-                     x-init="setTimeout(() => show = false, 3500)"
-                     x-show="show"
-                     x-transition:leave="transition ease-in duration-300 transform"
-                     x-transition:leave-start="opacity-100 scale-100"
-                     x-transition:leave-end="opacity-0 scale-95"
-                     class="p-4 mb-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-between shadow-sm transition-all"
-                     role="alert">
-                    <div class="flex items-center space-x-3 min-w-0 pr-2">
-                        <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span class="text-sm font-medium break-words">{{ session('success') }}</span>
-                    </div>
-                    <button type="button" 
-                            @click="show = false" 
-                            class="shrink-0 w-7 h-7 rounded-lg bg-emerald-100/70 hover:bg-emerald-200 text-emerald-700 flex items-center justify-center transition cursor-pointer"
-                            title="Tutup notifikasi">
-                        <i class="fa-solid fa-xmark text-xs"></i>
-                    </button>
-                </div>
-            @endif
-
-            @if (session('error'))
-                <div x-data="{ show: true }"
-                     x-init="setTimeout(() => show = false, 5000)"
-                     x-show="show"
-                     x-transition:leave="transition ease-in duration-300 transform"
-                     x-transition:leave-start="opacity-100 scale-100"
-                     x-transition:leave-end="opacity-0 scale-95"
-                     class="p-4 mb-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center justify-between shadow-sm transition-all"
-                     role="alert">
-                    <div class="flex items-center space-x-3 min-w-0 pr-2">
-                        <svg class="w-5 h-5 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span class="text-sm font-medium break-words">{{ session('error') }}</span>
-                    </div>
-                    <button type="button" 
-                            @click="show = false" 
-                            class="shrink-0 w-7 h-7 rounded-lg bg-rose-100/70 hover:bg-rose-200 text-rose-700 flex items-center justify-center transition cursor-pointer"
-                            title="Tutup notifikasi">
-                        <i class="fa-solid fa-xmark text-xs"></i>
-                    </button>
-                </div>
-            @endif
-        </div>
+        <!-- Global Notification & Modal Feedback System -->
+        <x-toast-notification />
+        <x-confirm-modal />
+        <x-milestone-modal />
 
         <!-- Page Heading (Optional) -->
         @if (isset($header))

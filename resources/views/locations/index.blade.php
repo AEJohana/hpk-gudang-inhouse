@@ -1645,44 +1645,57 @@
                     }
                 },
 
-                async resetLayout() {
-                    if (!confirm('Apakah Anda yakin ingin mengembalikan posisi tata letak denah rak & pallet ke standar rancangan?')) {
-                        return;
-                    }
+                resetLayout() {
+                    window.showConfirmDialog({
+                        title: 'Kembalikan Denah Standar',
+                        message: 'Apakah Anda yakin ingin mengembalikan seluruh posisi tata letak denah rak & pallet ke konfigurasi standar bawaan?',
+                        confirmText: 'Ya, Kembalikan Standar',
+                        cancelText: 'Batal',
+                        type: 'warning',
+                        icon: 'fa-solid fa-rotate-left',
+                        onConfirm: async () => {
+                            this.isSaving = true;
 
-                    this.isSaving = true;
-
-                    try {
-                        const res = await fetch(this.resetUrl, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': this.csrfToken,
-                                'Accept': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                warehouse_id: this.activeWarehouse.id
-                            })
-                        });
-
-                        const data = await res.json();
-                        if (res.ok && data.status === 'success') {
-                            if (data.locations) {
-                                data.locations.forEach(loc => {
-                                    const r = this.racks.find(x => x.id === loc.id);
-                                    if (r) {
-                                        r.grid_x = loc.grid_x;
-                                        r.grid_y = loc.grid_y;
-                                        r.grid_w = loc.grid_w;
-                                        r.grid_h = loc.grid_h;
-                                    }
+                            try {
+                                const res = await fetch(this.resetUrl, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': this.csrfToken,
+                                        'Accept': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        warehouse_id: this.activeWarehouse.id
+                                    })
                                 });
+
+                                const data = await res.json();
+                                if (res.ok && data.status === 'success') {
+                                    if (data.locations) {
+                                        data.locations.forEach(loc => {
+                                            const r = this.racks.find(x => x.id === loc.id);
+                                            if (r) {
+                                                r.grid_x = loc.grid_x;
+                                                r.grid_y = loc.grid_y;
+                                                r.grid_w = loc.grid_w;
+                                                r.grid_h = loc.grid_h;
+                                            }
+                                        });
+                                    }
+                                    this.hasUnsavedChanges = false;
+                                    this.notify('success', 'Reset Berhasil', data.message);
+                                } else {
+                                    this.notify('error', 'Gagal Reset', data.message || 'Terjadi kendala.');
+                                }
+                            } catch (err) {
+                                console.error('Reset layout error:', err);
+                                this.notify('error', 'Koneksi Gagal', 'Tidak dapat menghubungi server.');
+                            } finally {
+                                this.isSaving = false;
                             }
-                            this.hasUnsavedChanges = false;
-                            this.notify('success', 'Reset Berhasil', data.message);
-                        } else {
-                            this.notify('error', 'Gagal Reset', data.message || 'Terjadi kendala.');
                         }
+                    });
+                },
                     } catch (err) {
                         console.error('Reset error:', err);
                         this.notify('error', 'Koneksi Gagal', 'Tidak dapat menghubungi server.');

@@ -200,9 +200,19 @@
                                 <span>Setujui</span>
                             </button>
                         </form>
-                        <form method="POST" action="{{ route('work-requests.reject', $workRequest) }}" onsubmit="return confirm('Yakin ingin menolak tiket WRI ini?');">
+                        <form id="reject-wri-form" method="POST" action="{{ route('work-requests.reject', $workRequest) }}">
                             @csrf
-                            <button type="submit" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center space-x-1">
+                            <button type="button" 
+                                    @click="$dispatch('open-confirm-modal', {
+                                        title: 'Tolak Tiket Work Request',
+                                        message: 'Apakah Anda yakin ingin menolak tiket {{ $workRequest->wri_number }}? Tiket yang ditolak akan dibatalkan secara permanen.',
+                                        confirmText: 'Ya, Tolak Tiket',
+                                        cancelText: 'Batal',
+                                        type: 'danger',
+                                        icon: 'fa-solid fa-ban',
+                                        formId: 'reject-wri-form'
+                                    })"
+                                    class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center space-x-1 cursor-pointer">
                                 <i class="fa-solid fa-xmark"></i>
                                 <span>Tolak</span>
                             </button>

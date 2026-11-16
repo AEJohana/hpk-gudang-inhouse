@@ -104,18 +104,21 @@
                                             <i class="fa-solid fa-pen-to-square text-xs"></i>
                                         </a>
 
-                                        <form action="{{ route('admin.uoms.destroy', $uom) }}" 
-                                              method="POST" 
-                                              class="inline-block" 
-                                              onsubmit="return confirm('Apakah Anda yakin ingin menghapus satuan ini?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" 
-                                                    class="p-2 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 transition shadow-2xs" 
-                                                    title="Hapus Satuan">
-                                                <i class="fa-solid fa-trash-can text-xs"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" 
+                                                @click="$dispatch('open-confirm-modal', {
+                                                    title: 'Hapus Satuan UoM',
+                                                    message: 'Apakah Anda yakin ingin menghapus satuan {{ $uom->name }} ({{ $uom->code }})? Tindakan ini tidak dapat dibatalkan.',
+                                                    confirmText: 'Ya, Hapus Satuan',
+                                                    cancelText: 'Batal',
+                                                    type: 'danger',
+                                                    icon: 'fa-solid fa-trash-can',
+                                                    actionUrl: '{{ route('admin.uoms.destroy', $uom) }}',
+                                                    method: 'DELETE'
+                                                })"
+                                                class="p-2 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 transition shadow-2xs cursor-pointer" 
+                                                title="Hapus Satuan">
+                                            <i class="fa-solid fa-trash-can text-xs"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>

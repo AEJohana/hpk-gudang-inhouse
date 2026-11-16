@@ -363,7 +363,15 @@
             <!-- FORM SUBMIT MASSAL KERANJANG -->
             <div x-show="cartItems.length > 0" class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <button type="button" 
-                        @click="if(confirm('Kosongkan semua daftar di keranjang?')) { cartItems = []; }" 
+                        @click="$dispatch('open-confirm-modal', {
+                            title: 'Kosongkan Keranjang QR',
+                            message: 'Apakah Anda yakin ingin menghapus seluruh daftar komponen di keranjang permintaan label?',
+                            confirmText: 'Ya, Kosongkan',
+                            cancelText: 'Batal',
+                            type: 'warning',
+                            icon: 'fa-solid fa-rotate-left',
+                            onConfirm: () => { cartItems = []; }
+                        })" 
                         class="text-xs font-bold text-slate-500 hover:text-rose-600 transition flex items-center space-x-1 cursor-pointer">
                     <i class="fa-solid fa-rotate-left text-xs"></i>
                     <span>Kosongkan Keranjang</span>

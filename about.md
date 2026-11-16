@@ -259,6 +259,29 @@ Users have specific roles and departmental scopes that dictate their permissions
 - **Zona Bahaya (Hapus Akun) Proporsional:** Kartu bahaya beraksen soft rose elegan dengan tombol trigger outline minimalis dan modal konfirmasi penghapusan akun berbingkai rounded-2xl modern yang aman.
 - **Pengujian Unit Otomatis:** Diverifikasi penuh oleh `tests/Unit/ProfileSettingsPageTest.php` (4 passed, 57 assertions) dan `tests/Unit/BladeAlpineScopeTest.php`.
 
+### 29. Dukungan Pengubahan Username pada Pengaturan Profil (`/profile`)
+- **Username Akun Unik:** Menambahkan kolom input username akun pada formulir profil dengan aturan validasi backend ketat di `ProfileUpdateRequest` (`required`, `string`, `min:3`, `max:30`, `alpha_dash`, `Rule::unique`).
+- **Antarmuka 3-Kolom Sejajar:** Formulir profil menyajikan Nama Lengkap, Username Akun, dan Alamat Email dalam 3 kolom sebaris yang ergonomis dengan leading icon `@` (`fa-solid fa-at`).
+
+### 30. Redesign Sidebar Drawer Modern Gaya "5. Elegant Glass"
+- **Frosted Glass Styling:** Sidebar drawer mengadopsi latar belakang kaca semi-transparan (`.hpk-sidebar` dengan `backdrop-filter: blur(16px)` dan palet biru pastel lembut `#f0f5ff`).
+- **Brand Header Resmi:** Menyematkan logo resmi HPK (`images/logo_hpk.webp`), judul perusahaan **PT. HYDRAXLE PERKASA**, dan subjudul **"WMS In-House Karoseri"**.
+- **Active Navigation Pill:** Menu aktif ditandai kapsul membulat (*pill shape*) warna Royal Blue kontras (`#1a56db`) dengan teks dan ikon putih bersih.
+- **Bottom Executive Profile Card:** Bagian bawah sidebar menampilkan kartu pengguna dengan squircle inisial nama, online indicator dot, tombol pengaturan gear, dan tombol keluar berkonfirmasi.
+
+### 31. Sistem Pop-Up Konfirmasi & Notifikasi Feedback Global (3 Pola Interaksi Ergonomis)
+- **Eliminasi Dialog Native Browser (`confirm()`):** Menghilangkan 100% dialog `confirm()` kaku bawaan browser di seluruh antarmuka (Logout, Kosongkan Keranjang QR/WRI, Tolak Tiket WRI, Setujui Rekonsiliasi Stok Opname, Eksekusi Pemusnahan Disposal, Hapus User/Kategori/UoM, Reset Denah Rak) dan menggantikannya dengan komponen terpadu.
+- **Pola 1 — Global Confirmation Modal (`<x-confirm-modal />`):**
+  - Modal konfirmasi modern bertenaga Alpine.js dengan frosted glass backdrop (`bg-slate-950/60 backdrop-blur-xs`), squircle animated pulsing icon, ambient colored glow (Rose/Danger, Amber/Warning, Blue/Info), serta formulir dinamis dengan token CSRF otomatis untuk aksi POST/DELETE maupun JS callback.
+  - Dipicu universal via `$dispatch('open-confirm-modal', { ... })` atau `window.showConfirmDialog({ ... })`.
+- **Pola 2 — Global Floating Glass Toast Notification (`<x-toast-notification />`):**
+  - Notifikasi melayang (*Floating Glass HUD*) di kanan atas layar (desktop) atau pill melayang (mobile) yang mendengarkan otomatis session flash server (`session('success')`, `session('error')`, `session('warning')`, `session('status')`) dan event JavaScript `$dispatch('toast', { ... })`.
+  - Dilengkapi ikon status berdenyut, judul tebal, pesan detail proses, countdown progress timer (3.5 - 5.5 detik), fitur *pause on hover*, tombol tutup instan `[X]`, dan transisi geser halus tanpa memblokir pekerjaan operator (*anti modal fatigue*).
+- **Pola 3 — Milestone Success Modal (`<x-milestone-modal />`):**
+  - Pop-up dialog tengah layar khusus untuk pencapaian operasional besar: **Penerimaan Akhir di Rak Gudang (WRI Final Receive)**, **Penerbitan Tiket WRI Baru**, dan **Persetujuan Rekonsiliasi Stok Opname**.
+  - Menyajikan kartu ringkasan bukti hasil (*Part, Qty, Slot Rak Gudang, Saldo Terupdate*) serta tombol aksi cepat lanjutan (*Lihat di Peta Rak / Cetak Bukti / Selesai*).
+- **Pengujian Unit Otomatis:** Diverifikasi penuh oleh `tests/Unit/GlobalConfirmAndFeedbackModalTest.php` (5 passed, 18 assertions) dan `tests/Unit/FlashNotificationDismissTest.php`.
+
 ## Technical Documentation References
 - [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
 - [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - Standar Operasional Prosedur, Diagram Alur Proses & Aturan Bisnis (BR-01 s/d BR-14)

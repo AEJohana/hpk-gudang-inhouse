@@ -147,18 +147,21 @@
                                             <i class="fa-solid fa-pen-to-square text-xs"></i>
                                         </a>
 
-                                        <form action="{{ route('admin.component-categories.destroy', $category) }}" 
-                                              method="POST" 
-                                              class="inline-block" 
-                                              onsubmit="return confirm('Apakah Anda yakin ingin menghapus kategori ini?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" 
-                                                    class="p-2 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 transition shadow-2xs" 
-                                                    title="Hapus Kategori">
-                                                <i class="fa-solid fa-trash-can text-xs"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" 
+                                                @click="$dispatch('open-confirm-modal', {
+                                                    title: 'Hapus Kategori Komponen',
+                                                    message: 'Apakah Anda yakin ingin menghapus kategori {{ $category->name }}? Tindakan ini tidak dapat dibatalkan.',
+                                                    confirmText: 'Ya, Hapus Kategori',
+                                                    cancelText: 'Batal',
+                                                    type: 'danger',
+                                                    icon: 'fa-solid fa-trash-can',
+                                                    actionUrl: '{{ route('admin.component-categories.destroy', $category) }}',
+                                                    method: 'DELETE'
+                                                })"
+                                                class="p-2 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 transition shadow-2xs cursor-pointer" 
+                                                title="Hapus Kategori">
+                                            <i class="fa-solid fa-trash-can text-xs"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>

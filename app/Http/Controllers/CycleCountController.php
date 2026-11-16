@@ -153,7 +153,26 @@ class CycleCountController extends Controller
             ]);
 
             return redirect()->route('cycle-counts.show', $cycleCount)
-                ->with('success', "Rekonsiliasi Stok Opname {$cycleCount->count_number} berhasil disetujui! Saldo stok telah diperbarui.");
+                ->with('success', "Rekonsiliasi Stok Opname {$cycleCount->count_number} berhasil disetujui! Saldo stok telah diperbarui.")
+                ->with('milestone', [
+                    'title' => 'Rekonsiliasi Stok Opname Selesai!',
+                    'subtitle' => "Saldo stok fisik untuk lembar {$cycleCount->count_number} telah disesuaikan di database.",
+                    'icon' => 'fa-solid fa-clipboard-check',
+                    'details' => [
+                        ['label' => 'No. Opname', 'value' => $cycleCount->count_number],
+                        ['label' => 'Zona Opname', 'value' => 'Zona ' . $cycleCount->zone_target],
+                        ['label' => 'Total Item Dihitung', 'value' => $cycleCount->items->count() . ' Item'],
+                        ['label' => 'Status', 'value' => 'Reconciled (Tersinkron)'],
+                    ],
+                    'primaryAction' => [
+                        'text' => 'Lihat Lembar Opname',
+                        'icon' => 'fa-solid fa-file-invoice',
+                        'url' => route('cycle-counts.show', $cycleCount),
+                    ],
+                    'secondaryAction' => [
+                        'text' => 'Selesai & Tutup',
+                    ]
+                ]);
         });
     }
 }

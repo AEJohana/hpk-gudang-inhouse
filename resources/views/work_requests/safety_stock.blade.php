@@ -557,10 +557,18 @@
                 },
 
                 clearCart() {
-                    if (confirm('Kosongkan semua komponen dari keranjang pesanan?')) {
-                        this.cartItems = [];
-                        this.showCartModal = false;
-                    }
+                    window.showConfirmDialog({
+                        title: 'Kosongkan Keranjang Pesanan',
+                        message: 'Apakah Anda yakin ingin mengosongkan semua komponen dari keranjang pesanan Safety Stock?',
+                        confirmText: 'Ya, Kosongkan',
+                        cancelText: 'Batal',
+                        type: 'warning',
+                        icon: 'fa-solid fa-rotate-left',
+                        onConfirm: () => {
+                            this.cartItems = [];
+                            this.showCartModal = false;
+                        }
+                    });
                 },
 
                 selectAllOnPage() {

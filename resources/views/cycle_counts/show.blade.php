@@ -23,11 +23,21 @@
                 </div>
             </div>
 
-            <!-- Reconciliation Action for Supervisor -->
+            <!-- Reconciliation Action for Supervisor with Elegant Confirmation -->
             @if ($cycleCount->status === 'pending_review')
-                <form method="POST" action="{{ route('cycle-counts.reconcile', $cycleCount) }}" onsubmit="return confirm('Apakah Anda menyetujui hasil stok opname ini? Seluruh saldo stok fisik di sistem akan disesuaikan secara otomatis!')" class="w-full sm:w-auto">
+                <form id="reconcile-cycle-count-form" method="POST" action="{{ route('cycle-counts.reconcile', $cycleCount) }}" class="w-full sm:w-auto">
                     @csrf
-                    <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center">
+                    <button type="button" 
+                            @click="$dispatch('open-confirm-modal', {
+                                title: 'Setujui Rekonsiliasi Stok',
+                                message: 'Perhatian: Menyetujui hasil stok opname ini akan menyesuaikan seluruh saldo stok fisik di sistem secara otomatis dan permanen!',
+                                confirmText: 'Ya, Setujui & Update Stok',
+                                cancelText: 'Batal',
+                                type: 'warning',
+                                icon: 'fa-solid fa-calculator',
+                                formId: 'reconcile-cycle-count-form'
+                            })"
+                            class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center cursor-pointer">
                         <svg class="w-4 h-4 me-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         Setujui Rekonsiliasi & Update Saldo Stok
                     </button>

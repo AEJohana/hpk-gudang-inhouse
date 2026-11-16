@@ -109,15 +109,21 @@
                             <i class="fa-solid fa-boxes-stacked me-2 text-teal-600"></i> {{ __('Aplikasi Gudang WMS') }}
                         </x-dropdown-link>
 
-                        <!-- Authentication Sign Out -->
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <x-dropdown-link :href="route('logout')"
-                                    onclick="event.preventDefault(); this.closest('form').submit();"
-                                    class="text-rose-600 font-semibold text-xs border-t border-slate-100">
-                                <i class="fa-solid fa-arrow-right-from-bracket me-2 text-rose-500"></i> {{ __('Keluar (Log Out)') }}
-                            </x-dropdown-link>
-                        </form>
+                        <!-- Authentication Sign Out with Elegant Confirmation -->
+                        <x-dropdown-link href="#"
+                                @click.prevent="$dispatch('open-confirm-modal', {
+                                    title: 'Konfirmasi Keluar',
+                                    message: 'Apakah Anda yakin ingin keluar dari sistem? Sesi aktif Anda di perangkat ini akan diakhiri.',
+                                    confirmText: 'Ya, Keluar',
+                                    cancelText: 'Batal',
+                                    type: 'danger',
+                                    icon: 'fa-solid fa-arrow-right-from-bracket',
+                                    actionUrl: '{{ route('logout') }}',
+                                    method: 'POST'
+                                })"
+                                class="text-rose-600 font-semibold text-xs border-t border-slate-100 cursor-pointer">
+                            <i class="fa-solid fa-arrow-right-from-bracket me-2 text-rose-500"></i> {{ __('Keluar (Log Out)') }}
+                        </x-dropdown-link>
                     </x-slot>
                 </x-dropdown>
             </div>
