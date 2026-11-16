@@ -21,7 +21,7 @@ class SidebarProfileDockTest extends TestCase
 
         // 2. Assert new profile dock exists with avatar pulse indicator
         $this->assertStringContainsString('Pengguna Aktif (Online)', $content);
-        $this->assertStringContainsString('bg-emerald-500 border-2 border-[#0a2342] rounded-full', $content);
+        $this->assertStringContainsString('bg-emerald-500 border-2 border-white rounded-full', $content);
 
         // 3. Assert user info bindings exist
         $this->assertStringContainsString('Auth::user()->name', $content);

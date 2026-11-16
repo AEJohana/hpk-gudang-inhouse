@@ -38,57 +38,57 @@
              :class="{ 'pointer-events-none': !sidebarOpen }"
              class="fixed inset-0 bg-slate-950/70 z-50 backdrop-blur-xs"></div>
 
-        <!-- SLIDING HPK NAVY SIDEBAR DRAWER (FROM REFERENS) -->
+        <!-- SLIDING ELEGANT GLASS SIDEBAR DRAWER (STYLE 5: ELEGANT GLASS) -->
         <aside class="hpk-sidebar" :class="{ 'active': sidebarOpen }">
             <!-- Sidebar Header with Brand & Close Button -->
-            <div class="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-full bg-white p-1.5 flex items-center justify-center shadow-md">
+            <div class="flex items-center justify-between mb-5 pb-3.5 border-b border-slate-200/60">
+                <div class="flex items-center space-x-3 min-w-0">
+                    <div class="w-11 h-11 rounded-2xl bg-white p-2 flex items-center justify-center shadow-xs border border-slate-200/80 shrink-0">
                         <img src="{{ asset('images/logo_hpk.webp') }}" alt="Logo HPK" class="w-full h-full object-contain">
                     </div>
-                    <div class="flex flex-col">
-                        <span class="font-extrabold text-xs tracking-wider text-white">PT. HYDRAXLE PERKASA</span>
-                        <span class="text-[9px] font-semibold text-amber-400 tracking-widest uppercase">WMS In-House Karoseri</span>
+                    <div class="flex flex-col min-w-0">
+                        <span class="font-black text-sm tracking-tight text-slate-900 leading-tight truncate">PT. HYDRAXLE PERKASA</span>
+                        <span class="text-[10px] font-bold text-blue-700 tracking-wider uppercase truncate mt-0.5">WMS In-House Karoseri</span>
                     </div>
                 </div>
-                <button type="button" @click="sidebarOpen = false" class="text-white/70 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition">
-                    <i class="fa-solid fa-xmark text-lg"></i>
+                <button type="button" @click="sidebarOpen = false" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-white/80 transition cursor-pointer shrink-0" title="Tutup Menu">
+                    <i class="fa-solid fa-xmark text-base"></i>
                 </button>
             </div>
 
             <!-- Sidebar Navigation Links -->
             <nav class="space-y-1">
                 <a href="{{ route('dashboard') }}" class="hpk-sidebar-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                    <i class="fa-solid fa-gauge-high"></i>
+                    <i class="fa-solid fa-house"></i>
                     <span>Dashboard</span>
                 </a>
                 @can('master-komponen.view')
                 <a href="{{ route('components.index') }}" class="hpk-sidebar-item {{ request()->routeIs('components.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-boxes-stacked"></i>
-                    <span>Master Komponen</span>
+                    <span>Data Gudang</span>
                 </a>
                 @endcan
                 @can('transaksi-komponen.view')
                 <a href="{{ route('transactions.index') }}" class="hpk-sidebar-item {{ request()->routeIs('transactions.*') && !request()->routeIs('work-station-supplies.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-right-left"></i>
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i>
                     <span>Transaksi Barang</span>
                 </a>
                 @endcan
                 @can('work-request.view')
                 <a href="{{ route('work-requests.index') }}" class="hpk-sidebar-item {{ request()->routeIs('work-requests.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-industry text-amber-400"></i>
-                    <span>Work Request (WRI)</span>
+                    <i class="fa-solid fa-folder"></i>
+                    <span>Work Request (WR)</span>
                 </a>
                 @endcan
                 @can('material-handling.view')
                 <a href="{{ route('work-station-supplies.index') }}" class="hpk-sidebar-item {{ request()->routeIs('work-station-supplies.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-truck-ramp-box text-blue-400"></i>
+                    <i class="fa-solid fa-cart-shopping"></i>
                     <span>Material Handling (Task Gudang)</span>
                 </a>
                 @endcan
                 @can('ecr.view')
                 <a href="{{ route('ecrs.index') }}" class="hpk-sidebar-item {{ request()->routeIs('ecrs.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-file-pen"></i>
+                    <i class="fa-solid fa-file-lines"></i>
                     <span>ECR Revisi Part</span>
                 </a>
                 @endcan
@@ -100,7 +100,7 @@
                 @endcan
                 @can('label-qr.view')
                 <a href="{{ route('qr-requests.index') }}" class="hpk-sidebar-item {{ request()->routeIs('qr-requests.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-qrcode"></i>
+                    <i class="fa-solid fa-table-cells-large"></i>
                     <span>Permintaan Label QR</span>
                 </a>
                 @endcan
@@ -113,75 +113,75 @@
 
                 @if(Auth::user()->hasAnyRole(['admin_gudang', 'supervisor', 'qc', 'engineering']) || Auth::user()->can('audit-log.view'))
                 <a href="{{ route('activities.index') }}" class="hpk-sidebar-item {{ request()->routeIs('activities.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                    <i class="fa-solid fa-clock-rotate-left"></i>
                     <span>Log Aktivitas Sistem</span>
                 </a>
                 @endif
                 
                 @if(Auth::user()->hasRole('admin_gudang'))
-                <div class="my-2 border-t border-white/10"></div>
-                <a href="{{ route('admin.dashboard') }}" class="hpk-sidebar-item text-amber-300 hover:text-amber-100 hover:bg-amber-500/20">
-                    <i class="fa-solid fa-gear"></i>
+                <div class="my-2 border-t border-slate-200/60"></div>
+                <a href="{{ route('admin.dashboard') }}" class="hpk-sidebar-item text-blue-700 hover:text-blue-900 hover:bg-blue-50/80">
+                    <i class="fa-solid fa-gear text-blue-600"></i>
                     <span>Admin Panel</span>
                 </a>
                 @endif
             </nav>
 
-            <!-- Quick Scanner Action -->
-            <div class="mt-5 pt-4 border-t border-white/10">
-                <button type="button" @click="sidebarOpen = false; openScanner();" class="w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center space-x-2 transition shadow-md">
-                    <i class="fa-solid fa-camera"></i>
+            <!-- Quick Scanner Action (Glass Floating Button) -->
+            <div class="mt-4 pt-3 border-t border-slate-200/60">
+                <button type="button" 
+                        @click="sidebarOpen = false; openScanner();" 
+                        class="w-full py-3 px-4 rounded-2xl bg-white/90 hover:bg-white border border-blue-200/70 text-slate-800 hover:text-blue-600 font-bold text-xs flex items-center justify-center space-x-2.5 transition shadow-xs hover:shadow-sm cursor-pointer active:scale-98">
+                    <i class="fa-solid fa-camera text-blue-600 text-sm"></i>
                     <span>Buka Scanner Kamera</span>
                 </button>
             </div>
 
-            <!-- Executive User Profile Dock (Modern SaaS Style) -->
+            <!-- Executive User Profile Dock (Elegant Glass Style) -->
             @auth
-            <div class="mt-6 pt-4 border-t border-white/10 space-y-2.5">
-                <div class="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all duration-200 shadow-sm">
+            <div class="mt-4 pt-3 border-t border-slate-200/60 space-y-2">
+                <div class="p-3 bg-white/80 hover:bg-white/95 rounded-2xl border border-white shadow-xs transition-all duration-200">
                     <!-- Top Row: Avatar + Info + Profile Gear -->
                     <div class="flex items-center space-x-2.5">
                         <!-- Avatar with Live Active Pulse Dot -->
                         <div class="relative shrink-0">
-                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black text-sm flex items-center justify-center shadow-md">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-black text-xs flex items-center justify-center shadow-2xs">
                                 {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
                             </div>
-                            <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-[#0a2342] rounded-full" title="Pengguna Aktif (Online)"></span>
+                            <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full shadow-2xs" title="Pengguna Aktif (Online)"></span>
                         </div>
 
                         <!-- User Info -->
                         <div class="flex-1 min-w-0">
-                            <span class="font-extrabold text-white text-xs truncate block tracking-wide uppercase leading-tight">
+                            <span class="font-black text-slate-900 text-xs truncate block tracking-wide uppercase leading-tight" title="{{ Auth::user()->name }}">
                                 {{ Auth::user()->name }}
                             </span>
-                            <div class="flex items-center space-x-1 mt-0.5 text-[10px] text-teal-300 font-semibold truncate">
-                                <span class="text-amber-400 truncate">{{ Auth::user()->role_badge }}</span>
-                                <span class="text-slate-400">&bull;</span>
-                                <span class="text-slate-300 truncate">{{ Auth::user()->department ?? 'Gudang' }}</span>
+                            <div class="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                                {{ Auth::user()->role_badge }}
                             </div>
                         </div>
 
                         <!-- Quick Profile Settings Button -->
                         <a href="{{ route('profile.edit') }}" 
-                           class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition shadow-2xs shrink-0"
+                           class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-blue-50 text-slate-500 hover:text-blue-600 flex items-center justify-center transition shadow-2xs shrink-0 cursor-pointer"
                            title="Pengaturan Profil Akun">
                             <i class="fa-solid fa-gear text-xs"></i>
                         </a>
                     </div>
-
-                    <!-- Full-Width Prominent Logout Button -->
-                    <form method="POST" action="{{ route('logout') }}" class="mt-2.5">
-                        @csrf
-                        <button type="submit" 
-                                class="w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-rose-600 border border-white/15 hover:border-rose-500 text-white font-bold text-xs flex items-center justify-center space-x-2 transition shadow-xs cursor-pointer group">
-                            <i class="fa-solid fa-arrow-right-from-bracket text-xs text-rose-400 group-hover:text-white transition"></i>
-                            <span>Keluar</span>
-                        </button>
-                    </form>
                 </div>
 
+                <!-- Minimalist Logout Link (Matching Mockup) -->
+                <form method="POST" action="{{ route('logout') }}" class="text-center">
+                    @csrf
+                    <button type="submit" 
+                            class="w-full py-2 flex items-center justify-center space-x-2 text-xs font-bold text-slate-600 hover:text-rose-600 transition cursor-pointer group">
+                        <i class="fa-solid fa-arrow-right-from-bracket text-xs text-slate-400 group-hover:text-rose-500 transition"></i>
+                        <span>Keluar</span>
+                    </button>
+                </form>
+
                 <!-- Company Branding Footer -->
-                <div class="text-[10px] text-slate-400/70 text-center font-medium tracking-wider">
+                <div class="text-[9px] text-slate-400/80 text-center font-medium tracking-wider uppercase pt-1">
                     PT. Hydraxle Perkasa
                 </div>
             </div>
