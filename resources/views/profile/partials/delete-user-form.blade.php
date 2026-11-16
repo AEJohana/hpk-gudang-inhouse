@@ -1,14 +1,14 @@
-<section class="bg-rose-50/25 border border-rose-200/70 rounded-2xl p-6 sm:p-7">
-    <!-- Header with Danger Icon Badge -->
-    <div class="flex items-center space-x-3 pb-5 border-b border-rose-100">
-        <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-sm shrink-0 shadow-2xs">
+<section class="bg-rose-50/20 border border-rose-200/60 rounded-3xl p-6 sm:p-7 shadow-2xs">
+    <!-- Header with Danger Squircle Icon Badge -->
+    <div class="flex items-center space-x-3.5 pb-5 border-b border-rose-100">
+        <div class="w-11 h-11 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center text-base shrink-0 shadow-2xs">
             <i class="fa-solid fa-triangle-exclamation"></i>
         </div>
         <div>
-            <h2 class="text-base font-extrabold text-slate-900 leading-tight">
+            <h2 class="text-base sm:text-lg font-black text-slate-900 leading-tight">
                 Zona Bahaya: Hapus Akun
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">
+            <p class="text-xs text-slate-500 mt-0.5 font-medium">
                 Penghapusan akun bersifat permanen. Seluruh kredensial autentikasi sistem Anda akan dinonaktifkan.
             </p>
         </div>

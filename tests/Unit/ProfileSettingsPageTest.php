@@ -59,14 +59,17 @@ class ProfileSettingsPageTest extends TestCase
         $this->assertStringContainsString("@method('patch')", $content);
         $this->assertStringContainsString("route('profile.update')", $content);
 
-        // 2. Assert Name & Email inputs with modern icons
+        // 2. Assert Name, Username & Email inputs with modern icons
         $this->assertStringContainsString('name="name"', $content);
+        $this->assertStringContainsString('name="username"', $content);
         $this->assertStringContainsString('name="email"', $content);
         $this->assertStringContainsString('fa-regular fa-id-badge', $content);
+        $this->assertStringContainsString('fa-solid fa-at', $content);
         $this->assertStringContainsString('fa-regular fa-envelope', $content);
 
         // 3. Assert validation error bags
         $this->assertStringContainsString("\$errors->get('name')", $content);
+        $this->assertStringContainsString("\$errors->get('username')", $content);
         $this->assertStringContainsString("\$errors->get('email')", $content);
 
         // 4. Assert system access pills
@@ -143,5 +146,24 @@ class ProfileSettingsPageTest extends TestCase
         // 4. Assert action buttons
         $this->assertStringContainsString('Batal', $content);
         $this->assertStringContainsString('Ya, Hapus Akun', $content);
+    }
+
+    /**
+     * Test ProfileUpdateRequest validation rules include username with unique and alpha_dash constraints.
+     */
+    public function test_profile_update_request_validates_username_rules(): void
+    {
+        $request = new \App\Http\Requests\ProfileUpdateRequest();
+        $user = new \App\Models\User(['id' => 999]);
+        $request->setUserResolver(fn() => $user);
+
+        $rules = $request->rules();
+
+        $this->assertArrayHasKey('username', $rules);
+        $this->assertContains('required', $rules['username']);
+        $this->assertContains('string', $rules['username']);
+        $this->assertContains('min:3', $rules['username']);
+        $this->assertContains('max:30', $rules['username']);
+        $this->assertContains('alpha_dash', $rules['username']);
     }
 }
