@@ -480,12 +480,12 @@ Untuk memfasilitasi kebutuhan tanda tangan fisik, instruksi kerja stasiun mesin,
 ## 16. Standar Pengaturan Akun & Keamanan Profil Pengguna (`/profile`)
 
 1. **Tata Kelola Identitas Pengguna:**
-   - Setiap pengguna berhak memperbarui nama lengkap operasional dan alamat email akun masing-masing melalui halaman `/profile`.
+   - Setiap pengguna berhak memperbarui nama lengkap operasional, username akun (`alpha_dash`, 3–30 karakter, unik), dan alamat email akun masing-masing melalui halaman `/profile`.
    - Peran sistem (*Role*) dan penempatan stasiun kerja (*Department / Work Area*) dikunci (*readonly*) dan hanya dapat dikonfigurasi melalui Administrator pada Pusat Kendali Manajemen Pengguna demi kepatuhan integritas audit.
 
 2. **Protokol Keamanan Kata Sandi:**
    - Pengguna disarankan menggunakan kata sandi minimal 8 karakter dengan kombinasi huruf, angka, dan simbol.
-   - Antarmuka menyediakan toggle visibilitas kata sandi interaktif (*Eye Toggle*) via Alpine.js untuk mempermudah pengecekan pengetikan tanpa menyimpan karakter pada papan klip (*clipboard*) perangkat bersama.
+   - Antarmuka menyediakan toggle visibilitas kata sandi interaktif (*Eye Toggle*) via Alpine.js untuk mempermudah pengecekan pengetikan tanpa menyimpan karakter pada papan klip (*clipboard*) perangkat bersama. Tombol aksi dirancang dengan warna Royal Blue kontras tinggi yang dilengkapi fallback gaya inline agar tidak terpengaruh siklus dev server.
    - Pembaruan kata sandi mewajibkan verifikasi kata sandi saat ini (*current password confirmation*).
 
 3. **Prosedur Penghapusan Akun (Zona Bahaya):**
@@ -500,3 +500,39 @@ Untuk memfasilitasi kebutuhan tanda tangan fisik, instruksi kerja stasiun mesin,
 2. **Kelanjutan Tiket In-Progress (159 Tiket):** Tiket berstatus `Belum Verifikasi`, `Dalam antrian`, `Proses In`, `Siap diambil`, dan `Menuju Pengaju` langsung aktif di stasiun mesin dan modul Material Handling dengan routing mesin (`work_request_steps`) terpasang otomatis.
 3. **Penyimpanan Foto di Server NAS On-Premise:** 491 berkas foto fisik dari Google Drive lama diunduh dan disimpan langsung ke Drive Master NAS `Z:\...` dan `public/uploads/components/` dengan format penamaan standar (`[part_number].jpg` untuk part resmi, dan `NEW-YYYYMMDD-SEQ.jpg` untuk part baru).
 4. **Dokumentasi & Prosedur Teknis Lengkap:** Rincian teknis, pemetaan skema, dan panduan perintah CLI tercatat di [docs/MIGRASI_LOG_WR_SPREADSHEET.md](docs/MIGRASI_LOG_WR_SPREADSHEET.md).
+
+---
+
+## 18. Standar Interaksi Pengguna & Protokol Notifikasi Pabrik (3 Pola Interaksi)
+
+Guna menjamin kelancaran kerja operator di lantai pabrik dan menghindari kelelahan mental akibat pop-up berlebih (*modal fatigue*), sistem membagi interaksi pengguna ke dalam 3 pola ergonomis:
+
+1. **Pola 1 — Pop-Up Konfirmasi Sebelum Aksi (*Confirmation Modal*):**
+   - **Karakter:** Mengunci layar (*blocking overlay*) dengan tombol `[Batal]` vs `[Ya, Lanjutkan]`.
+   - **Titik Penggunaan:** Khusus untuk aksi berisiko, destruktif, atau tidak dapat dibatalkan (*irreversible*):
+     - Keluar Sistem (*Logout*).
+     - Pengosongan keranjang permintaan label QR & keranjang pesanan Safety Stock WRI.
+     - Penolakan tiket WRI (*Reject Approval*).
+     - Persetujuan rekonsiliasi hasil stok opname fisik (*Cycle Count Reconcile*).
+     - Eksekusi pemusnahan barang rusak (*Complete Disposal*).
+     - Penghapusan akun pengguna atau data master (kategori/satuan).
+     - Pengembalian tata letak denah rak & pallet ke standar (*Reset Warehouse Layout*).
+   - **Tujuan:** Mencegah salah klik (*accidental click*) operator di perangkat sentuh/ponsel.
+
+2. **Pola 2 — Floating Glass Toast Notification (*Reactive Process Feedback*):**
+   - **Karakter:** Notifikasi melayang di kanan atas layar desktop / pill melayang di ponsel dengan latar kaca semi-transparan (*5. Elegant Glass*).
+   - **Fitur:** Otomatis menghilang dalam 3.5–5.5 detik (*countdown timer*), dapat dijeda saat kursor diarahkan (*pause on hover*), memiliki tombol tutup cepat `[X]`, dan **tidak memblokir layar**.
+   - **Titik Penggunaan:** Untuk 90% proses rutin operasional:
+     - Update progress tahapan mesin (`In` / `Out` / Qty / Defect).
+     - Penugasan operator mesin dan approval bertahap.
+     - Penjemputan material oleh kurir Material Handling (*MH Pickup*).
+     - Pembaruan informasi profil akun & kata sandi.
+     - Transaksi keluar/masuk inventori standar.
+   - **Tujuan:** Memberikan kepastian data tersimpan tanpa menghambat ritme kerja operator.
+
+3. **Pola 3 — Milestone Success Pop-Up (*Ringkasan Bukti & Tombol Lanjutan*):**
+   - **Karakter:** Pop-up dialog tengah layar yang memuat kartu ringkasan bukti hasil dan tombol aksi cepat lanjutan.
+   - **Titik Penggunaan (3 Pencapaian Besar):**
+     - **Penerimaan Akhir di Rak Gudang (WRI Final Receive):** Menampilkan nama part, jumlah diterima, slot rak tujuan, serta tombol pintas `[ 🗺️ Lihat di Peta Rak ]`.
+     - **Penerbitan Tiket WRI Baru:** Menampilkan nomor tiket, part, kuota, serta tombol pintas `[ Buka Detail Tiket ]` atau cetak.
+     - **Persetujuan Rekonsiliasi Stok Opname:** Menampilkan nomor lembar opname, zona, total item disesuaikan, dan status sinkronisasi stok.

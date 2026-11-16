@@ -677,6 +677,47 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - Validasi Blade tag balance [tests/Unit/BladeAlpineScopeTest.php](tests/Unit/BladeAlpineScopeTest.php): 2 passed (5 assertions).
   - Build aset Vite: `npm run build` selesai tanpa kendala.
 
+### DDD. Fitur Pengaturan Profil & Pengubahan Username Akun (Baru Selesai & Teruji 100%)
+- **Tata Letak Kartu Tunggal Bertingkat (Single-Column Stacked Cards):**
+  - Mengubah antarmuka `/profile` dari 2 kolom menjadi tata letak bertumpuk yang teratur: Hero Profile Card di atas, diikuti kartu formulir informasi profil, kartu perbarui kata sandi, dan kartu hapus akun di bagian bawah.
+  - Avatar squircle dengan gradasi HPK Blue (`#6ba1f7` ke `#3a7bf0`), inisial nama tebal, serta titik hijau berkedip status online.
+- **Dukungan Pengubahan Username:**
+  - Menambahkan input field *Username Akun* dengan leading icon `@` (`fa-solid fa-at`) dalam grid 3-kolom bersama Nama Lengkap dan Alamat Email.
+  - Aturan validasi ketat di `ProfileUpdateRequest`: `required`, `string`, `min:3`, `max:30`, `alpha_dash`, dan `Rule::unique` untuk mencegah duplikasi username.
+- **Tombol Aksi Pil Royal Blue:**
+  - Tombol `[ 🔄 Perbarui Kata Sandi > ]` dan `[ Simpan Perubahan ]` menggunakan gaya Royal Blue kontras tinggi dengan fallback gaya inline anti-hilang saat dev server mati.
+- **Pengujian Unit Terisolasi:**
+  - Lulus 100% pada [tests/Unit/ProfileSettingsPageTest.php](tests/Unit/ProfileSettingsPageTest.php) (5 passed, 71 assertions).
+
+### EEE. Redesign Sidebar Drawer Menjadi Gaya "5. Elegant Glass" (Baru Selesai & Teruji 100%)
+- **Translucent Frosted Glass Effect:**
+  - Sidebar drawer mengadopsi latar belakang kaca semi-transparan (`.hpk-sidebar` dengan `backdrop-filter: blur(28px)` dan gradien lembut `linear-gradient(175deg, rgba(224, 242, 254, 0.94) 0%, ...)`).
+- **Header Identitas Resmi PT. Hydraxle Perkasa:**
+  - Menampilkan logo resmi HPK (`images/logo_hpk.webp`), judul perusahaan **PT. HYDRAXLE PERKASA**, dan subjudul identitas **"WMS In-House Karoseri"** pada `layouts/app.blade.php` dan `layouts/admin.blade.php`.
+- **Navigasi 2-Tone & Kapsul Royal Blue:**
+  - Menu aktif disorot dengan kapsul pill Royal Blue (`#1a56db`) dengan teks dan ikon putih bersih, sementara menu inaktif berlatar transparan dengan transisi hover kaca.
+- **Dock Pengguna Bawah Terpadu:**
+  - Kartu profil bawah menampilkan avatar bulat, inisial nama, online indicator dot, tombol gear ke pengaturan profil, serta tombol keluar berkonfirmasi.
+- **Pengujian Unit:**
+  - Lulus 100% pada [tests/Unit/SidebarProfileDockTest.php](tests/Unit/SidebarProfileDockTest.php) (2 passed, 18 assertions).
+
+### FFF. Sistem Pop-Up Konfirmasi & Notifikasi Feedback Global (3 Pola Interaksi - Baru Selesai & Teruji 100%)
+- **Eliminasi 100% Dialog Native Browser (`confirm()`):**
+  - Seluruh pemanggilan `confirm(...)` dihilangkan dan dialihkan ke komponen modal dialog terpadu.
+- **Pola 1 — Global Confirmation Modal (`<x-confirm-modal />`):**
+  - Backdrop kaca frosted glass, pulsing squircle icon, colored ambient glow (Rose/Amber/Blue), eksekusi formulir dinamis otomatis ber-CSRF (`POST`/`DELETE`/`GET`) maupun JavaScript callback.
+  - Dipasang pada Logout (Sidebar & Nav), Kosongkan Keranjang QR & Safety Stock, Tolak Tiket WRI, Setujui Rekonsiliasi Opname, Eksekusi Pemusnahan Disposal, Hapus User/Kategori/UoM, Reset Denah Rak, dan Sinkronisasi WR.
+- **Pola 2 — Global Floating Glass Toast Notification (`<x-toast-notification />`):**
+  - Notifikasi melayang (*Floating Glass HUD*) di kanan atas layar (desktop) dan pill melayang di ponsel.
+  - Otomatis menangkap flash session Laravel (`session('success')`, `session('error')`, `session('warning')`, `session('status')`) dan event JavaScript window `$dispatch('toast', ...)`.
+  - Dilengkapi garis hitung mundur (*countdown progress timer* 3.5–5.5 detik), fitur jeda saat cursor diarahkan (*pause on hover*), tombol tutup instan `[X]`, dan tidak memblokir ritme kerja operator di lapangan (*anti modal fatigue*).
+- **Pola 3 — Milestone Success Modal (`<x-milestone-modal />`):**
+  - Pop-up dialog tengah layar khusus untuk 3 pencapaian besar: **Penerimaan Akhir di Gudang (WRI Final Receive + Auto Stok Tambah)**, **Penerbitan Tiket WRI Baru**, dan **Persetujuan Rekonsiliasi Stok Opname**.
+  - Menyajikan kartu bukti data (*Part, Qty, Slot Rak Gudang, Status Stok*) serta tombol aksi cepat lanjutan (*Lihat di Peta Rak / Detail Tiket / Selesai*).
+- **Pengujian & Validasi Kualitas:**
+  - Lulus 100% pada [tests/Unit/GlobalConfirmAndFeedbackModalTest.php](tests/Unit/GlobalConfirmAndFeedbackModalTest.php) (5 passed, 18 assertions) dan [tests/Unit/FlashNotificationDismissTest.php](tests/Unit/FlashNotificationDismissTest.php).
+  - Kepatuhan Zero Regression: Saldo Stok tetap **90.092,00** dan Transaksi Mutasi tetap **21**.
+
 
 ---
 
