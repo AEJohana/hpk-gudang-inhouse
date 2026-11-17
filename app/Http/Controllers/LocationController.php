@@ -30,7 +30,7 @@ class LocationController extends Controller
             $warehouses = Warehouse::where('is_active', true)->orderBy('id')->get();
         }
 
-        $query = Location::with(['stockBalances.component.componentCategory', 'zone']);
+        $query = Location::with(['stockBalances.location', 'stockBalances.component.componentCategory', 'zone']);
         if ($activeWarehouse) {
             $query->where('warehouse_id', $activeWarehouse->id);
         }
@@ -104,7 +104,8 @@ class LocationController extends Controller
                 'detail_url' => route('locations.show', $loc),
                 'slot_matrix' => $loc->slot_matrix,
                 'components_count' => $loc->stockBalances->count(),
-                'components' => $loc->stockBalances->map(function ($sb) {
+                'components' => $loc->stockBalances->map(function ($sb) use ($loc) {
+                    $sb->setRelation('location', $loc);
                     return [
                         'id' => $sb->component_id,
                         'name' => $sb->component->name ?? '-',

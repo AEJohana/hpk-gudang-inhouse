@@ -23,10 +23,14 @@ class WorkStationSupplyController extends Controller
      */
     public function index(Request $request)
     {
-        // Ambil semua tiket WRI aktif yang sudah disetujui (siap diproses logistik)
+        // Ambil tiket WRI aktif yang sudah disetujui (siap diproses logistik) dan riwayat recent
         $workRequests = WorkRequest::with(['component.defaultLocation', 'targetLocation', 'steps.machine', 'requestedBy', 'logs'])
             ->where('approval_pengaju', 'Diterima')
             ->where('approval_penerima', 'Diterima')
+            ->where(function ($q) {
+                $q->where('is_final', false)
+                  ->orWhere('updated_at', '>=', now()->subDays(7));
+            })
             ->latest('updated_at')
             ->get();
 
@@ -224,6 +228,10 @@ class WorkStationSupplyController extends Controller
         $filterOrigins = collect($transferWaiting)->pluck('origin')->merge(collect($transferTransit)->pluck('origin'))->unique()->values()->all();
         $filterDestinations = collect($transferWaiting)->pluck('destination')->merge(collect($transferTransit)->pluck('destination'))->unique()->values()->all();
         $filterFinalLocations = collect($finalWaiting)->pluck('location')->merge(collect($finalTransit)->pluck('location'))->unique()->values()->all();
+
+        // Batasi riwayat selesai pada 30 item terbaru untuk mencegah lonjakan DOM HTML dan freeze memori
+        $transferHistory = array_slice($transferHistory, 0, 30);
+        $finalHistory = array_slice($finalHistory, 0, 30);
 
         return view('work_station_supplies.index', compact(
             'transferWaiting',

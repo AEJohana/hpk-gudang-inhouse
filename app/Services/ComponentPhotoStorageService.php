@@ -160,7 +160,12 @@ class ComponentPhotoStorageService
     }
 
     /**
-     * Find local physical file path for a component across external storage and mirror.
+     * In-memory cache for resolved photo paths within the same request lifecycle.
+     */
+    protected static array $resolvedCache = [];
+
+    /**
+     * Find local physical file path for a component across external storage and mirror with high-speed caching.
      */
     public function findLocalPhoto(string $partNumber, ?string $imagePath = null): ?string
     {
@@ -168,12 +173,55 @@ class ComponentPhotoStorageService
             return null;
         }
 
+        $cacheKey = md5(trim($partNumber) . '|' . ($imagePath ?? ''));
+        if (array_key_exists($cacheKey, self::$resolvedCache)) {
+            return self::$resolvedCache[$cacheKey];
+        }
+
+        // Cache resolution for 30 minutes to eliminate repetitive filesystem/network SMB stats
+        if (function_exists('app') && app()->has('cache')) {
+            $resolved = \Illuminate\Support\Facades\Cache::remember(
+                "comp_photo_resolved_{$cacheKey}",
+                1800,
+                fn() => $this->doFindLocalPhoto($partNumber, $imagePath)
+            );
+            return self::$resolvedCache[$cacheKey] = $resolved;
+        }
+
+        return self::$resolvedCache[$cacheKey] = $this->doFindLocalPhoto($partNumber, $imagePath);
+    }
+
+    /**
+     * Internal filesystem search for component photo.
+     */
+    protected function doFindLocalPhoto(string $partNumber, ?string $imagePath = null): ?string
+    {
         $cleanPn = $this->sanitizePartNumber($partNumber);
         $rawPn = trim($partNumber);
         $condensedPn = preg_replace('/[^a-zA-Z0-9]/', '', $partNumber);
         $candidateExts = $this->getCandidateExtensions();
 
-        // Variasi nama file yang mungkin tersimpan di folder NAS (sanitasi, raw, condensed, upper, lower)
+        // 1. Cek folder cermin lokal public/uploads/components/ TERLEBIH DAHULU (Kecepatan SSD Instan 0.01ms)
+        $candidateMirrorNames = array_values(array_unique(array_filter([$cleanPn, $rawPn, $condensedPn])));
+        foreach ($candidateMirrorNames as $name) {
+            foreach ($candidateExts as $ext) {
+                $localRel = "uploads/components/{$name}.{$ext}";
+                $localFull = $this->resolvePublicPath($localRel);
+                if (file_exists($localFull) && filesize($localFull) > 50) {
+                    return realpath($localFull) ?: $localFull;
+                }
+            }
+        }
+
+        // 2. Cek image_path di database jika berupa file lokal valid di webroot
+        if ($imagePath && !str_starts_with($imagePath, 'http')) {
+            $fullDbPath = $this->resolvePublicPath($imagePath);
+            if (file_exists($fullDbPath) && filesize($fullDbPath) > 50) {
+                return realpath($fullDbPath) ?: $fullDbPath;
+            }
+        }
+
+        // 3. Fallback Cadangan Fisik Lokal Cepat (D:\Ali Magang\KOMPONEN)
         $candidateNames = array_values(array_unique(array_filter([
             $cleanPn,
             $rawPn,
@@ -186,46 +234,8 @@ class ComponentPhotoStorageService
             strtolower($condensedPn),
         ])));
 
-        // 1. Cek folder eksternal utama (Prioritas Utama, misal Drive Z: atau UNC \\192.168.1.150\...)
-        $extDir = $this->getExternalDirectory();
-        $externalDirsToCheck = [];
-        if (!empty($extDir)) {
-            $externalDirsToCheck[] = $extDir;
-            // Jika path berupa Z:\, tambahkan padanan UNC path \\192.168.1.150\... sebagai fallback otomatis di Windows
-            if (preg_match('/^[zZ]:/i', $extDir)) {
-                $uncDir = preg_replace('/^[zZ]:/i', '\\\\192.168.1.150\\HPK_Eng_Online', $extDir);
-                if (!in_array($uncDir, $externalDirsToCheck, true)) {
-                    $externalDirsToCheck[] = $uncDir;
-                }
-            }
-        }
-
-        foreach ($externalDirsToCheck as $dir) {
-            if (file_exists($dir)) {
-                $dirTrimmed = rtrim($dir, '\\/');
-                foreach ($candidateNames as $name) {
-                    foreach ($candidateExts as $ext) {
-                        $fullPath = $dirTrimmed . DIRECTORY_SEPARATOR . "{$name}.{$ext}";
-                        if (file_exists($fullPath) && filesize($fullPath) > 50) {
-                            return realpath($fullPath) ?: $fullPath;
-                        }
-                    }
-                }
-
-                // Cek jika imagePath di database merupakan nama file langsung yang ada di NAS
-                if ($imagePath && !str_starts_with($imagePath, 'http')) {
-                    $baseImg = basename($imagePath);
-                    $directExtPath = $dirTrimmed . DIRECTORY_SEPARATOR . $baseImg;
-                    if (file_exists($directExtPath) && filesize($directExtPath) > 50) {
-                        return realpath($directExtPath) ?: $directExtPath;
-                    }
-                }
-            }
-        }
-
-        // 1b. Fallback Cadangan Fisik Lokal (D:\Ali Magang\KOMPONEN jika folder Z tidak terjangkau / offline)
         $localBackupDir = 'D:\Ali Magang\KOMPONEN';
-        if (!in_array($localBackupDir, $externalDirsToCheck, true) && file_exists($localBackupDir)) {
+        if (file_exists($localBackupDir)) {
             $localTrimmed = rtrim($localBackupDir, '\\/');
             foreach ($candidateNames as $name) {
                 foreach ($candidateExts as $ext) {
@@ -237,23 +247,38 @@ class ComponentPhotoStorageService
             }
         }
 
-        // 2. Cek folder cermin lokal public/uploads/components/
-        $candidateMirrorNames = array_values(array_unique(array_filter([$cleanPn, $rawPn, $condensedPn])));
-        foreach ($candidateMirrorNames as $name) {
-            foreach ($candidateExts as $ext) {
-                $localRel = "uploads/components/{$name}.{$ext}";
-                $localFull = $this->resolvePublicPath($localRel);
-                if (file_exists($localFull) && filesize($localFull) > 50) {
-                    return realpath($localFull) ?: $localFull;
+        // 4. Cek folder eksternal utama (Drive Z: atau UNC \\192.168.1.150\... via SMB Network)
+        $extDir = $this->getExternalDirectory();
+        $externalDirsToCheck = [];
+        if (!empty($extDir)) {
+            $externalDirsToCheck[] = $extDir;
+            if (preg_match('/^[zZ]:/i', $extDir)) {
+                $uncDir = preg_replace('/^[zZ]:/i', '\\\\192.168.1.150\\HPK_Eng_Online', $extDir);
+                if (!in_array($uncDir, $externalDirsToCheck, true)) {
+                    $externalDirsToCheck[] = $uncDir;
                 }
             }
         }
 
-        // 3. Cek image_path di database jika berupa file lokal valid di webroot
-        if ($imagePath && !str_starts_with($imagePath, 'http')) {
-            $fullDbPath = $this->resolvePublicPath($imagePath);
-            if (file_exists($fullDbPath) && filesize($fullDbPath) > 50) {
-                return realpath($fullDbPath) ?: $fullDbPath;
+        foreach ($externalDirsToCheck as $dir) {
+            if (@file_exists($dir)) {
+                $dirTrimmed = rtrim($dir, '\\/');
+                foreach ($candidateNames as $name) {
+                    foreach ($candidateExts as $ext) {
+                        $fullPath = $dirTrimmed . DIRECTORY_SEPARATOR . "{$name}.{$ext}";
+                        if (@file_exists($fullPath) && @filesize($fullPath) > 50) {
+                            return realpath($fullPath) ?: $fullPath;
+                        }
+                    }
+                }
+
+                if ($imagePath && !str_starts_with($imagePath, 'http')) {
+                    $baseImg = basename($imagePath);
+                    $directExtPath = $dirTrimmed . DIRECTORY_SEPARATOR . $baseImg;
+                    if (@file_exists($directExtPath) && @filesize($directExtPath) > 50) {
+                        return realpath($directExtPath) ?: $directExtPath;
+                    }
+                }
             }
         }
 

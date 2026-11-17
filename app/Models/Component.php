@@ -207,6 +207,10 @@ class Component extends Model
      */
     public function getIsPdfDrawingAttribute(): bool
     {
+        if ($this->image_path && str_ends_with(strtolower($this->image_path), '.pdf')) {
+            return true;
+        }
+
         $path = $this->local_photo_file_path ?: $this->image_path;
         if (!$path) {
             return false;
@@ -217,11 +221,9 @@ class Component extends Model
 
     public function getImageUrlAttribute(): string
     {
-        // 1. Prioritas Utama: Jika file foto lokal / folder D:\ tersedia
-        if ($this->local_photo_file_path) {
-            if ($this->id && \Illuminate\Support\Facades\Route::has('components.photo-stream')) {
-                return route('components.photo-stream', ['component' => $this->id]);
-            }
+        // 1. Asynchronous Photo Streaming Route (High-Performance Zero-Blocking Stream)
+        if ($this->id && \Illuminate\Support\Facades\Route::has('components.photo-stream')) {
+            return route('components.photo-stream', ['component' => $this->id]);
         }
 
         // 2. Fallback: Google Drive URL lama (Hanya aktif jika COMPONENT_ENABLE_GDRIVE_FALLBACK=true)

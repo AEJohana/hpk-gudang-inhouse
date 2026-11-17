@@ -1031,10 +1031,22 @@ class WorkRequest extends Model
     }
 
     /**
-     * Pembangkitan QR Code WRI lokal (SVG) tanpa dependensi eksternal (BR-03)
+     * Pembangkitan QR Code WRI lokal (SVG) tanpa dependensi eksternal (BR-03) dengan caching 24 jam
      */
     public function getQrCodeSvgAttribute(): string
     {
+        if (function_exists('app') && app()->has('cache')) {
+            return \Illuminate\Support\Facades\Cache::remember("wri_qr_svg_{$this->id}", 86400, function () {
+                $options = new \chillerlan\QRCode\QROptions([
+                    'outputType' => \chillerlan\QRCode\QRCode::OUTPUT_MARKUP_SVG,
+                    'outputBase64' => false,
+                    'svgUseFill' => true,
+                    'addQuietzone' => false,
+                ]);
+                return (new \chillerlan\QRCode\QRCode($options))->render($this->wri_number);
+            });
+        }
+
         $options = new \chillerlan\QRCode\QROptions([
             'outputType' => \chillerlan\QRCode\QRCode::OUTPUT_MARKUP_SVG,
             'outputBase64' => false,
