@@ -6,6 +6,35 @@
         fillUser(email) {
             document.getElementById('email').value = email;
             document.getElementById('password').value = 'password';
+            document.getElementById('remember_me').checked = true;
+        },
+        init() {
+            const remembered = localStorage.getItem('hpk_remembered_username');
+            const emailInput = document.getElementById('email');
+            const rememberCheckbox = document.getElementById('remember_me');
+            if (remembered) {
+                if (!emailInput.value) {
+                    emailInput.value = remembered;
+                }
+                if (rememberCheckbox) {
+                    rememberCheckbox.checked = true;
+                }
+                this.$nextTick(() => {
+                    const passInput = document.getElementById('password');
+                    if (passInput && emailInput.value) {
+                        passInput.focus();
+                    }
+                });
+            }
+        },
+        handleSubmit() {
+            const emailInput = document.getElementById('email');
+            const rememberCheckbox = document.getElementById('remember_me');
+            if (rememberCheckbox && rememberCheckbox.checked && emailInput && emailInput.value.trim() !== '') {
+                localStorage.setItem('hpk_remembered_username', emailInput.value.trim());
+            } else {
+                localStorage.removeItem('hpk_remembered_username');
+            }
         }
     }">
         <!-- Floating Logo Badge from referens -->
@@ -20,7 +49,7 @@
         <h4 class="font-extrabold text-xl text-slate-900 mb-1">Welcome Back!</h4>
         <p class="text-xs text-slate-500 mb-6">Silahkan login untuk mengakses sistem gudang</p>
 
-        <form method="POST" action="{{ route('login') }}" class="text-left space-y-4">
+        <form method="POST" action="{{ route('login') }}" @submit="handleSubmit()" class="text-left space-y-4">
             @csrf
 
             <!-- Username / Email with icon -->
@@ -34,7 +63,7 @@
                            class="block w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-xs font-medium transition" 
                            type="text" 
                            name="email" 
-                           value="{{ old('email', 'admin') }}" 
+                           value="{{ old('email') }}" 
                            required 
                            autofocus 
                            autocomplete="username" 
@@ -85,7 +114,7 @@
                            :type="showPassword ? 'text' : 'password'"
                            type="password"
                            name="password"
-                           value="password"
+                           value=""
                            required 
                            autocomplete="current-password" 
                            placeholder="••••••••" />

@@ -718,6 +718,21 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - Lulus 100% pada [tests/Unit/GlobalConfirmAndFeedbackModalTest.php](tests/Unit/GlobalConfirmAndFeedbackModalTest.php) (5 passed, 18 assertions) dan [tests/Unit/FlashNotificationDismissTest.php](tests/Unit/FlashNotificationDismissTest.php).
   - Kepatuhan Zero Regression: Saldo Stok tetap **90.092,00** dan Transaksi Mutasi tetap **21**.
 
+### J. Pemulihan Akun via Admin (Opsi 2) & Fitur Remember Me Otomatis (Update 18 Nov 2026 - Baru Selesai & Teruji 100%)
+- **Fitur "Ingat Saya" (Remember Me & Remember Username):**
+  - Penyimpanan identitas akun (Username/Email) otomatis pada `localStorage` peramban saat checkbox *"Ingat saya"* dicentang saat submit login.
+  - Auto-fill dan auto-focus ke input password saat membuka kembali layar login (bahkan setelah logout atau sesi berakhir).
+  - Pembersihan nilai default hardcoded (`'admin'` dan `'password'`) yang sebelumnya mengunci form.
+- **Halaman Pusat Bantuan Lupa Password Resmi (`/forgot-password`):**
+  - Redesain total bertema HPK WMS (glassmorphism & logo resmi PT Hydraxle Perkasa).
+  - Mengeliminasi ketergantungan server email eksternal/SMTP yang tidak relevan di lingkungan intranet pabrik.
+  - Menampilkan kontak langsung WhatsApp & telepon Administrator Gudang dan Supervisor yang bertugas serta informasi pos bantuan fisik di Ruang Admin Gudang (Lantai 1).
+- **Fitur 1-Klik Reset Password Administrator (`/admin/users`):**
+  - Tombol aksi cepat ikon kunci pada tabel manajemen pengguna (desktop & mobile) untuk mengembalikan kata sandi akun ke default (`hpkgudang`).
+  - Dilengkapi dialog konfirmasi keamanan modal sebelum eksekusi.
+  - Pencatatan otomatis ke `audit_logs` dengan event `password_reset` (nama admin pelaksana, target user, dan timestamp).
+- **Pengujian Otomatis:**
+  - Lulus 100% pada [tests/Feature/Auth/PasswordResetTest.php](tests/Feature/Auth/PasswordResetTest.php) dan [tests/Feature/Auth/AuthenticationTest.php](tests/Feature/Auth/AuthenticationTest.php) (10 passed, 38 assertions).
 
 ---
 

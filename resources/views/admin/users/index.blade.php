@@ -246,6 +246,22 @@
                                 <span class="font-bold text-slate-800">{{ $permCount }}</span> Izin
                             </span>
                             <div class="inline-flex items-center space-x-1.5">
+                                <button type="button" 
+                                        @click="$dispatch('open-confirm-modal', {
+                                            title: 'Reset Kata Sandi Pengguna',
+                                            message: 'Apakah Anda yakin ingin me-reset kata sandi user {{ $user->name }} ({{ $user->username }}) ke kata sandi standar default (hpkgudang)?',
+                                            confirmText: 'Ya, Reset Password',
+                                            cancelText: 'Batal',
+                                            type: 'warning',
+                                            icon: 'fa-solid fa-key',
+                                            actionUrl: '{{ route('admin.users.quick-reset-password', $user) }}',
+                                            method: 'POST'
+                                        })"
+                                        class="px-2 py-1 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 font-bold text-xs transition shadow-2xs inline-flex items-center cursor-pointer" 
+                                        title="1-Klik Reset Password ke hpkgudang">
+                                    <i class="fa-solid fa-key me-1 text-[10px]"></i> Reset
+                                </button>
+
                                 <a href="{{ route('admin.users.edit', $user) }}" 
                                    class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs transition shadow-2xs inline-flex items-center">
                                     <i class="fa-solid fa-pen-to-square me-1 text-[10px]"></i> Edit
@@ -413,6 +429,22 @@
                             <!-- Aksi -->
                             <td class="px-4 py-3.5 text-right">
                                 <div class="inline-flex items-center space-x-1.5">
+                                    <button type="button" 
+                                            @click="$dispatch('open-confirm-modal', {
+                                                title: 'Reset Kata Sandi Pengguna',
+                                                message: 'Apakah Anda yakin ingin me-reset kata sandi user {{ $user->name }} ({{ $user->username }}) ke kata sandi standar default (hpkgudang)?',
+                                                confirmText: 'Ya, Reset Password',
+                                                cancelText: 'Batal',
+                                                type: 'warning',
+                                                icon: 'fa-solid fa-key',
+                                                actionUrl: '{{ route('admin.users.quick-reset-password', $user) }}',
+                                                method: 'POST'
+                                            })"
+                                            class="p-2 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition shadow-2xs cursor-pointer" 
+                                            title="1-Klik Reset Password ke hpkgudang">
+                                        <i class="fa-solid fa-key text-xs"></i>
+                                    </button>
+
                                     <a href="{{ route('admin.users.edit', $user) }}" 
                                        class="p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition shadow-2xs" 
                                        title="Edit Data User & Izin">

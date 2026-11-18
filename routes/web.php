@@ -190,10 +190,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Admin Panel Routes
-    Route::prefix('admin')->name('admin.')->middleware(['role:admin_gudang'])->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware(['role:admin_gudang|supervisor'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('dashboard');
         
         // Manajemen User & Roles
+        Route::post('users/{user}/quick-reset-password', [\App\Http\Controllers\Admin\UserController::class, 'quickResetPassword'])->name('users.quick-reset-password');
         Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
         Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class)->except(['create', 'store', 'destroy', 'show']);
 

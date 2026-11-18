@@ -543,3 +543,21 @@ Guna menjamin kelancaran kerja operator di lantai pabrik dan menghindari kelelah
      - **Penerimaan Akhir di Rak Gudang (WRI Final Receive):** Menampilkan nama part, jumlah diterima, slot rak tujuan, serta tombol pintas `[ 🗺️ Lihat di Peta Rak ]`.
      - **Penerbitan Tiket WRI Baru:** Menampilkan nomor tiket, part, kuota, serta tombol pintas `[ Buka Detail Tiket ]` atau cetak.
      - **Persetujuan Rekonsiliasi Stok Opname:** Menampilkan nomor lembar opname, zona, total item disesuaikan, dan status sinkronisasi stok.
+
+---
+
+## 19. Standar Autentikasi: Fitur "Ingat Saya" & Prosedur Pemulihan Kata Sandi Akun Pabrik
+
+Guna menjaga keamanan akun operasional dan kenyamanan pengguna di perangkat kerja pabrik bersama (*shared workstations*), sistem menerapkan tata kelola autentikasi berikut:
+
+1. **Fitur "Ingat Saya" (Remember Me & Remember Username):**
+   - **Mekanisme Simpan Username:** Ketika checkbox *"Ingat saya"* dicentang saat submit login, sistem menyimpan identitas pengguna (Username/Email) pada media penyimpanan peramban lokal (`localStorage.setItem('hpk_remembered_username', ...)`).
+   - **Auto-Fill & Auto-Focus:** Saat pengguna membuka kembali halaman login (baik setelah sesi kedaluwarsa maupun setelah klik *Logout*), kolom username otomatis terisi dan kursor otomatis difokuskan ke kolom kata sandi.
+   - **Penghapusan Simpanan:** Jika pengguna melakukan login tanpa mencentang *"Ingat saya"*, riwayat username tersimpan di peramban otomatis dibersihkan demi privasi.
+   - **Persistensi Sesi Backend:** Didukung oleh cookie sesi jangka panjang (`remember_token` di tabel `users`) sehingga sesi tetap aktif apabila peramban/tab ditutup tanpa menekan tombol *Logout*.
+
+2. **Prosedur Pemulihan Kata Sandi Akun Pabrik (Lupa Password via Admin / Opsi 2):**
+   - **Alasan Kebijakan Keamanan:** Di area lantai bengkel manufaktur dan pergudangan, komputer sering digunakan bersama oleh banyak operator. Formulir penggantian kata sandi mandiri (*self-service*) tanpa otentikasi dua faktor (2FA) berisiko tinggi disalahgunakan oleh pihak lain untuk mengubah atau mengunci akun rekan kerjanya.
+   - **Layar Bantuan Resmi (`/forgot-password`):** Halaman lupa password dirancang dengan antarmuka bertema HPK WMS yang memuat SOP resmi pabrik, daftar kontak WhatsApp & nomor telepon Administrator Gudang dan Supervisor yang sedang bertugas, serta informasi pos bantuan fisik di Ruang Admin Gudang (Lantai 1).
+   - **Fitur 1-Klik Reset Password Administrator:** Pada menu Manajemen Pengguna (`/admin/users`), Administrator Gudang atau Supervisor memiliki tombol aksi cepat **"Reset Password"** (ikon kunci warna amber) untuk mengembalikan kata sandi akun pemohon ke standar default pabrik (`hpkgudang`).
+   - **Pencatatan Audit Trail Resmi:** Seluruh eksekusi reset kata sandi oleh Administrator otomatis dicatat secara permanen di log aktivitas sistem (`audit_logs`) dengan label event `password_reset`, mencatat identitas Administrator pelaksana, akun sasaran, dan cap waktu presisi untuk transparansi kepatuhan audit.

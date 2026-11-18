@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -312,6 +314,35 @@ class UserController extends Controller
         $user->delete();
 
         return redirect()->route('admin.users.index')->with('success', 'User berhasil dihapus.');
+    }
+
+    /**
+     * 1-Klik Reset kata sandi pengguna ke default (hpkgudang) oleh Admin/Supervisor.
+     */
+    public function quickResetPassword(Request $request, User $user)
+    {
+        $defaultPassword = 'hpkgudang';
+
+        $user->update([
+            'password' => Hash::make($defaultPassword),
+        ]);
+
+        // Catat ke Audit Log
+        ActivityLogger::system(
+            'password_reset',
+            "Administrator " . auth()->user()->name . " mereset kata sandi pengguna {$user->name} (@{$user->username}) ke default ({$defaultPassword}).",
+            $user,
+            [
+                'target_user_id' => $user->id,
+                'target_username' => $user->username,
+                'reset_by' => auth()->id(),
+                'default_password' => $defaultPassword,
+            ],
+            auth()->user()
+        );
+
+        return redirect()->route('admin.users.index')
+            ->with('success', "Kata sandi untuk pengguna {$user->name} (@{$user->username}) berhasil di-reset ke default: {$defaultPassword}");
     }
 
     /**
