@@ -111,7 +111,22 @@
         }
     </style>
 
-    <div class="glass-card text-center p-5 sm:p-7">
+    <div class="glass-card text-center p-5 sm:p-7"
+         x-data="{
+             username: '',
+             init() {
+                 const saved = localStorage.getItem('hpk_remembered_username');
+                 if (saved) {
+                     this.username = saved;
+                 }
+             },
+             getWaUrl(waPhone, adminName, isSpv) {
+                 const roleTitle = isSpv ? 'Supervisor' : 'Admin Gudang';
+                 const userStr = this.username.trim() ? this.username.trim() : '[Sebutkan Username Akun Anda]';
+                 const text = `Halo *Pak/Bu ${adminName}* (${roleTitle}),\n\nSaya ingin mengajukan permohonan *Reset Kata Sandi* akun sistem *WMS HPK Gudang In-House*:\n\n• *Username Akun* : *${userStr}*\n• *Keperluan* : Lupa kata sandi operasional pabrik\n\nMohon bantuannya untuk melakukan *Reset Password ke Standar Pabrik (hpkgudang)* melalui menu Manajemen Pengguna. Terima kasih atas bantuannya.`;
+                 return 'https://wa.me/' + waPhone + '?text=' + encodeURIComponent(text);
+             }
+         }">
         <!-- Floating Logo Badge -->
         <div class="mb-4">
             <div class="floating-logo-badge">
@@ -127,7 +142,7 @@
 
         <h4 class="font-extrabold text-xl text-slate-900 mb-1.5">Lupa Kata Sandi?</h4>
         <p class="text-xs text-slate-600 leading-relaxed mb-4">
-            Demi menjaga keamanan akun dan integritas data operasional pabrik, pemulihan kata sandi dilakukan secara <strong>langsung & terverifikasi</strong> melalui Administrator Gudang atau Supervisor yang bertugas.
+            Demi menjaga <strong>keamanan data logistik</strong> dan <strong>integritas akun operasional</strong> PT Hydraxle Perkasa, pemulihan kata sandi dilakukan secara <strong>langsung & terverifikasi</strong> melalui Administrator Gudang atau Supervisor yang bertugas.
         </p>
 
         @if (session('info'))
@@ -136,6 +151,32 @@
                 <span>{{ session('info') }}</span>
             </div>
         @endif
+
+        <!-- Input Identitas Akun Pemohon (Dihubungkan Otomatis ke Template WhatsApp) -->
+        <div class="mb-5 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left shadow-2xs">
+            <label for="req_username" class="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between">
+                <span class="flex items-center">
+                    <i class="fa-solid fa-id-card-clip text-teal-600 me-1.5 text-xs"></i>
+                    Identitas Akun Pemohon
+                </span>
+                <span class="text-[10px] font-bold text-teal-600 normal-case" x-show="username.trim() !== ''">
+                    <i class="fa-solid fa-circle-check text-[9px] me-0.5"></i> Terhubung ke Pesan WA
+                </span>
+            </label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <i class="fa-solid fa-user text-xs"></i>
+                </div>
+                <input id="req_username"
+                       type="text"
+                       x-model="username"
+                       placeholder="Masukkan Username akun Anda (misal: Denis, Panji, Joni)"
+                       class="w-full pl-8 pr-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 bg-white text-slate-800 placeholder-slate-400 transition" />
+            </div>
+            <p class="text-[10px] text-slate-500 mt-1.5 leading-normal">
+                Ketik <strong>Username</strong> akun Anda agar otomatis tercantum dalam <strong>template pesan WhatsApp</strong> di bawah ini.
+            </p>
+        </div>
 
         <!-- Daftar Kontak Admin & Supervisor Bertugas -->
         <div class="space-y-3 text-left mb-5">
@@ -151,7 +192,6 @@
                     } else {
                         $waPhone = $cleanPhone;
                     }
-                    $waMsg = urlencode("Halo {$admin->name}, saya memerlukan bantuan reset kata sandi akun sistem saya di HPK Gudang In-House.");
                     $isSpv = in_array($admin->role, ['supervisor']) || (method_exists($admin, 'hasRole') && $admin->hasRole('supervisor'));
                 @endphp
                 <div class="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-xs transition">
@@ -172,7 +212,7 @@
                         </div>
 
                         @if(!empty($waPhone))
-                        <a href="https://wa.me/{{ $waPhone }}?text={{ $waMsg }}" 
+                        <a :href="getWaUrl('{{ $waPhone }}', '{{ addslashes($admin->name) }}', {{ $isSpv ? 'true' : 'false' }})" 
                            target="_blank" 
                            class="hpk-wa-btn"
                            title="Kirim pesan bantuan via WhatsApp">
@@ -244,12 +284,12 @@
         </div>
 
         <!-- Pos Fisik Bantuan -->
-        <div class="p-3 rounded-xl bg-teal-50/80 border border-teal-200 text-left text-xs text-teal-900 mb-5 flex items-start space-x-2.5">
+        <div class="p-3.5 rounded-2xl bg-teal-50/80 border border-teal-200 text-left text-xs text-teal-900 mb-5 flex items-start space-x-2.5 shadow-2xs">
             <i class="fa-solid fa-building-user text-teal-600 text-sm mt-0.5 shrink-0"></i>
             <div>
                 <span class="font-bold block text-[11px] uppercase tracking-wider text-teal-800">Bantuan Langsung / Tatap Muka:</span>
-                <p class="text-[11px] text-teal-700 mt-0.5">
-                    Kunjungi <strong>Pos Ruang Admin Gudang (Lantai 1)</strong> pabrik untuk verifikasi identitas dan permohonan reset kata sandi instan.
+                <p class="text-[11px] text-teal-700 mt-0.5 leading-relaxed">
+                    Kunjungi <strong>Pos Ruang Admin Gudang (Lantai 1)</strong> pabrik untuk <strong>verifikasi identitas fisik</strong> dan permohonan reset kata sandi instan.
                 </p>
             </div>
         </div>
