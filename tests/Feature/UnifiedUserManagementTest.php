@@ -4,15 +4,14 @@ namespace Tests\Feature;
 
 use App\Models\Department;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class UnifiedUserManagementTest extends TestCase
 {
-    use DatabaseTransactions;
-
     protected User $admin;
     protected Department $laserDept;
     protected Department $gudangDept;
@@ -20,6 +19,78 @@ class UnifiedUserManagementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        Schema::create('departments', function (Blueprint $table) {
+            $table->id();
+            $table->string('code')->unique();
+            $table->string('name');
+            $table->string('alias')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+
+        Schema::create('roles', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->string('name');
+            $table->string('guard_name')->default('web');
+            $table->timestamps();
+        });
+
+        Schema::create('permissions', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->string('name');
+            $table->string('guard_name')->default('web');
+            $table->timestamps();
+        });
+
+        Schema::create('model_has_roles', function (Blueprint $table) {
+            $table->unsignedBigInteger('role_id');
+            $table->string('model_type');
+            $table->unsignedBigInteger('model_id');
+            $table->index(['model_id', 'model_type']);
+        });
+
+        Schema::create('model_has_permissions', function (Blueprint $table) {
+            $table->unsignedBigInteger('permission_id');
+            $table->string('model_type');
+            $table->unsignedBigInteger('model_id');
+            $table->index(['model_id', 'model_type']);
+        });
+
+        Schema::create('role_has_permissions', function (Blueprint $table) {
+            $table->unsignedBigInteger('permission_id');
+            $table->unsignedBigInteger('role_id');
+        });
+
+        Schema::create('activity_log', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->string('log_name')->nullable();
+            $table->text('description');
+            $table->nullableMorphs('subject', 'subject');
+            $table->string('event')->nullable();
+            $table->nullableMorphs('causer', 'causer');
+            $table->json('properties')->nullable();
+            $table->uuid('batch_uuid')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('username')->unique();
+            $table->string('phone')->nullable();
+            $table->string('role')->default('operator');
+            $table->string('work_area')->nullable();
+            $table->string('department')->nullable();
+            $table->unsignedBigInteger('department_id')->nullable();
+            $table->boolean('can_access_all_departments')->default(false);
+            $table->string('signature_path')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->string('password');
+            $table->string('remember_token')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
 
         // Seed departments, roles & permissions
         $this->artisan('db:seed', ['--class' => 'DepartmentSeeder']);
@@ -32,7 +103,6 @@ class UnifiedUserManagementTest extends TestCase
             ['username' => 'admin_test'],
             [
                 'name' => 'Admin Test',
-                'email' => 'admin.test@hydraxle.com',
                 'password' => bcrypt('password'),
                 'work_area' => 'semua',
                 'department_id' => $this->gudangDept->id,
@@ -100,7 +170,6 @@ class UnifiedUserManagementTest extends TestCase
         $createdUser = User::where('username', $uniqueUser)->first();
         $this->assertNotNull($createdUser);
         $this->assertEquals('Operator Mesin Test', $createdUser->name);
-        $this->assertNull($createdUser->email);
         $this->assertEquals('mesin_center', $createdUser->work_area);
         $this->assertEquals('Mesin Center', $createdUser->work_area_label);
         $this->assertEquals($this->laserDept->id, $createdUser->department_id);
@@ -171,15 +240,13 @@ class UnifiedUserManagementTest extends TestCase
         $this->assertTrue($createdUser->hasRole('operator'));
     }
 
-    public function test_user_can_login_using_username_or_email(): void
+    public function test_user_can_login_using_username(): void
     {
-        $uname = 'dual_user_' . uniqid();
-        $uemail = 'dual_' . uniqid() . '@example.com';
+        $uname = 'user_login_' . uniqid();
 
         $testUser = User::create([
-            'name' => 'Dual Login User',
+            'name' => 'Username Login User',
             'username' => $uname,
-            'email' => $uemail,
             'password' => bcrypt('secretpassword'),
             'work_area' => 'material_handling',
             'department_id' => $this->gudangDept->id,
@@ -187,37 +254,22 @@ class UnifiedUserManagementTest extends TestCase
         ]);
         $testUser->syncRoles(['staff']);
 
-        // 1. Test login with username
+        // Test login with username
         $loginWithUsername = $this->post('/login', [
-            'email' => $uname,
+            'username' => $uname,
             'password' => 'secretpassword',
         ]);
         $loginWithUsername->assertRedirect(route('dashboard', absolute: false));
-        $this->assertAuthenticatedAs($testUser);
-
-        // Logout
-        $this->post('/logout');
-        $this->assertGuest();
-
-        // 2. Test login with email
-        $loginWithEmail = $this->post('/login', [
-            'email' => $uemail,
-            'password' => 'secretpassword',
-        ]);
-        $loginWithEmail->assertRedirect(route('dashboard', absolute: false));
         $this->assertAuthenticatedAs($testUser);
     }
 
     public function test_admin_can_update_user_role_work_area_and_permissions(): void
     {
         $uname = 'staff_' . uniqid();
-        $uemail = 'init_' . uniqid() . '@example.com';
-        $promotedEmail = 'promoted_' . uniqid() . '@example.com';
 
         $targetUser = User::create([
             'name' => 'Initial Staff',
             'username' => $uname,
-            'email' => $uemail,
             'password' => bcrypt('password123'),
             'work_area' => 'gudang',
             'department_id' => $this->gudangDept->id,
@@ -228,7 +280,6 @@ class UnifiedUserManagementTest extends TestCase
         $updateData = [
             'name' => 'Promoted Supervisor',
             'username' => $uname,
-            'email' => $promotedEmail,
             'role' => 'supervisor',
             'work_area' => 'mesin_center',
             'department_id' => $this->laserDept->id,
@@ -248,7 +299,6 @@ class UnifiedUserManagementTest extends TestCase
         $targetUser->refresh();
 
         $this->assertEquals('Promoted Supervisor', $targetUser->name);
-        $this->assertEquals($promotedEmail, $targetUser->email);
         $this->assertEquals('semua', $targetUser->work_area);
         $this->assertEquals('Seluruh Area', $targetUser->work_area_label);
         $this->assertTrue($targetUser->can_access_all_departments);

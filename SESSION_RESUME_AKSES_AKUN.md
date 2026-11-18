@@ -734,6 +734,23 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Pengujian Otomatis:**
   - Lulus 100% pada [tests/Feature/Auth/PasswordResetTest.php](tests/Feature/Auth/PasswordResetTest.php) dan [tests/Feature/Auth/AuthenticationTest.php](tests/Feature/Auth/AuthenticationTest.php) (10 passed, 38 assertions).
 
+### GGG. Otentikasi Murni Username & Penyatuan "Satu Pintu" Manajemen Pengguna & Otorisasi (Update 18 Nov 2026 - Baru Selesai & Teruji 100%)
+- **Eliminasi Total Email Pengguna Pabrik (Pure Username Authentication):**
+  - Kolom `email` dan `email_verified_at` dilepas secara permanen dari tabel `users` database operasional melalui migrasi aman (`2026_11_18_140000_remove_email_columns_from_users_table.php`).
+  - Seluruh 10 akun pengguna operasional pabrik tetap utuh (*Zero Data Loss*).
+  - Login dan register kini 100% menggunakan `username` dan `password`.
+  - Pembersihan menyeluruh pada `app/Models/User.php`, `LoginRequest.php`, `UserController.php`, dan `ProfileController.php`.
+- **Pembersihan Antarmuka Pengguna & Profil:**
+  - Form Tambah Pengguna (`admin/users/create.blade.php`) dan Edit Pengguna (`admin/users/edit.blade.php`) dibersihkan dari input email.
+  - Tabel Manajemen Pengguna (`admin/users/index.blade.php`) memperbarui tajuk kolom menjadi `ID Masuk (Username)` dan placeholder pencarian `Cari nama atau username...`.
+  - Formulir Profil (`profile/edit.blade.php`) beralih ke grid 2 kolom (Nama Lengkap & Username) dan banner verifikasi email dihapus.
+- **Penyederhanaan Dashboard Admin ("Satu Pintu"):**
+  - Menghapus redundansi kartu "Otorisasi & Izin" dari [resources/views/admin/dashboard.blade.php](resources/views/admin/dashboard.blade.php) yang sebelumnya memiliki tautan sama ke `admin.users.index`.
+  - Menggabungkannya ke dalam kartu terpadu **"Manajemen Pengguna & Otorisasi"** dengan ikon `fa-users-gear`.
+  - Menghapus rute usang `RoleController` dan direktori `resources/views/admin/roles/` yang tidak terpakai, serta menghapus rute verifikasi email Breeze usang dari `routes/auth.php`.
+- **Pengujian & Validasi Kualitas:**
+  - Lulus 100% pada seluruh rangkaian pengujian fitur: [tests/Feature/Auth/AuthenticationTest.php](tests/Feature/Auth/AuthenticationTest.php), [tests/Feature/Auth/PasswordResetTest.php](tests/Feature/Auth/PasswordResetTest.php), [tests/Feature/Auth/PasswordUpdateTest.php](tests/Feature/Auth/PasswordUpdateTest.php), [tests/Feature/Auth/RegistrationTest.php](tests/Feature/Auth/RegistrationTest.php), [tests/Feature/ProfileTest.php](tests/Feature/ProfileTest.php), dan [tests/Feature/UnifiedUserManagementTest.php](tests/Feature/UnifiedUserManagementTest.php) (26 passed, 126 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

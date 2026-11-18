@@ -9,21 +9,17 @@
                 Informasi Profil Akun
             </h2>
             <p class="text-xs text-slate-500 mt-0.5 font-medium">
-                Perbarui nama lengkap dan alamat email operasional Anda.
+                Perbarui nama lengkap dan username operasional Anda.
             </p>
         </div>
     </div>
-
-    <form id="send-verification" method="post" action="{{ route('verification.send') }}">
-        @csrf
-    </form>
 
     <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-5">
         @csrf
         @method('patch')
 
-        <!-- 3-Column Responsive Form Grid (Nama Lengkap, Username Akun, Alamat Email) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <!-- 2-Column Responsive Form Grid (Nama Lengkap, Username Akun) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <!-- Full Name Field with Icon -->
             <div>
                 <label for="name" class="block text-xs font-bold text-slate-700 mb-1.5">
@@ -63,44 +59,7 @@
                 <p class="text-[10px] text-slate-400 mt-1 font-medium">ID untuk login ke sistem.</p>
                 <x-input-error class="mt-1.5 text-xs" :messages="$errors->get('username')" />
             </div>
-
-            <!-- Email Field with Icon -->
-            <div>
-                <label for="email" class="block text-xs font-bold text-slate-700 mb-1.5">
-                    Alamat Email <span class="text-rose-500">*</span>
-                </label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                        <i class="fa-regular fa-envelope text-sm"></i>
-                    </div>
-                    <input id="email" 
-                           name="email" 
-                           type="email" 
-                           class="w-full pl-10 pr-3.5 py-2.5 text-sm bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-slate-800 placeholder-slate-400 shadow-2xs transition" 
-                           value="{{ old('email', $user->email) }}" 
-                           required autocomplete="email" />
-                </div>
-                <x-input-error class="mt-1.5 text-xs" :messages="$errors->get('email')" />
-            </div>
         </div>
-
-        @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-            <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs">
-                <p class="font-medium">
-                    Alamat email Anda belum diverifikasi.
-                    <button form="send-verification" class="underline text-amber-700 hover:text-amber-900 font-bold ml-1 focus:outline-none">
-                        Klik di sini untuk mengirim ulang tautan verifikasi.
-                    </button>
-                </p>
-
-                @if (session('status') === 'verification-link-sent')
-                    <p class="mt-2 font-bold text-emerald-700 flex items-center space-x-1">
-                        <i class="fa-solid fa-circle-check text-xs"></i>
-                        <span>Tautan verifikasi baru telah dikirimkan ke alamat email Anda.</span>
-                    </p>
-                @endif
-            </div>
-        @endif
 
         <!-- System Access Info Row (Matching Konsep) -->
         <div class="p-4 rounded-2xl bg-blue-50/40 border border-blue-100 flex flex-wrap items-center gap-2.5">

@@ -20,7 +20,7 @@ class LogSuccessfulLogout
                 "Pengguna {$user->name} ({$user->role_badge}) keluar dari sistem.",
                 $user,
                 [
-                    'email' => $user->email,
+                    'username' => $user->username,
                     'department' => $user->department,
                 ]
             );

@@ -49,39 +49,23 @@
             </div>
 
             <div class="dashboard-grid">
-                <!-- 1. Pengguna Aktif -->
+                <!-- 1. Pengguna & Otorisasi -->
                 <a href="{{ route('admin.users.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
-                    <i class="fa-solid fa-users card-icon-bg"></i>
+                    <i class="fa-solid fa-users-gear card-icon-bg"></i>
                     <div class="icon-box text-amber-600 bg-amber-50">
-                        <i class="fa-solid fa-users"></i>
+                        <i class="fa-solid fa-users-gear"></i>
                     </div>
                     <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-amber-600 transition">Manajemen User</h4>
+                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-amber-600 transition">Manajemen Pengguna & Otorisasi</h4>
                             <span class="text-2xl font-black text-slate-900">{{ $usersCount ?? \App\Models\User::count() }}</span>
                         </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">Akun operasional gudang, divisi fabrikasi & approval</p>
+                        <p class="text-xs text-slate-500 leading-relaxed">Akun operasional gudang, stasiun mesin, approval & hak akses 64 izin modul</p>
                     </div>
                 </a>
 
-                <!-- 2. Otorisasi & Hak Akses -->
-                <a href="{{ route('admin.users.index') }}" class="dash-card group">
-                    <i class="fa-solid fa-arrow-right arrow-action"></i>
-                    <i class="fa-solid fa-shield-halved card-icon-bg"></i>
-                    <div class="icon-box text-blue-600 bg-blue-50">
-                        <i class="fa-solid fa-shield-halved"></i>
-                    </div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="font-extrabold text-slate-900 text-base group-hover:text-blue-600 transition">Otorisasi & Izin</h4>
-                            <span class="text-2xl font-black text-slate-900">{{ \Spatie\Permission\Models\Permission::count() }}</span>
-                        </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">64 izin modul, 4 role & 3 bagian kerja terpusat</p>
-                    </div>
-                </a>
-
-                <!-- 3. Kategori Komponen -->
+                <!-- 2. Kategori Komponen -->
                 <a href="{{ route('admin.component-categories.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-tags card-icon-bg"></i>

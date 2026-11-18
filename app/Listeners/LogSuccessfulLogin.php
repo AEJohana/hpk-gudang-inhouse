@@ -20,7 +20,7 @@ class LogSuccessfulLogin
                 "Pengguna {$user->name} ({$user->role_badge}) berhasil masuk ke sistem.",
                 $user,
                 [
-                    'email' => $user->email,
+                    'username' => $user->username,
                     'department' => $user->department,
                     'work_area' => $user->work_area,
                 ]

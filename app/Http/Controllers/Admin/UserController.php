@@ -41,7 +41,6 @@ class UserController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('username', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%");
             });
@@ -104,7 +103,6 @@ class UserController extends Controller
         $rules = [
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username',
-            'email' => 'nullable|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|string|in:supervisor,admin_gudang,admin,staff,operator',
             'can_access_all_departments' => 'nullable|boolean',
@@ -159,7 +157,6 @@ class UserController extends Controller
         $user = User::create([
             'name' => $validated['name'],
             'username' => $validated['username'],
-            'email' => $validated['email'] ?? null,
             'password' => bcrypt($validated['password']),
             'work_area' => $finalWorkArea,
             'department_id' => $finalDeptId,
@@ -212,7 +209,6 @@ class UserController extends Controller
         $rules = [
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username,'.$user->id,
-            'email' => 'nullable|string|email|max:255|unique:users,email,'.$user->id,
             'password' => 'nullable|string|min:8|confirmed',
             'role' => 'required|string|in:supervisor,admin_gudang,admin,staff,operator',
             'can_access_all_departments' => 'nullable|boolean',
@@ -266,7 +262,6 @@ class UserController extends Controller
         $updateData = [
             'name' => $validated['name'],
             'username' => $validated['username'],
-            'email' => $validated['email'] ?? null,
             'work_area' => $finalWorkArea,
             'department_id' => $finalDeptId,
             'department' => $deptName,

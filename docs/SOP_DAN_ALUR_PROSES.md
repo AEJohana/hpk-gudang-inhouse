@@ -480,7 +480,7 @@ Untuk memfasilitasi kebutuhan tanda tangan fisik, instruksi kerja stasiun mesin,
 ## 16. Standar Pengaturan Akun & Keamanan Profil Pengguna (`/profile`)
 
 1. **Tata Kelola Identitas Pengguna:**
-   - Setiap pengguna berhak memperbarui nama lengkap operasional, username akun (`alpha_dash`, 3–30 karakter, unik), dan alamat email akun masing-masing melalui halaman `/profile`.
+   - Setiap pengguna berhak memperbarui nama lengkap operasional dan username akun (`alpha_dash`, 3–30 karakter, unik) masing-masing melalui halaman `/profile` (sistem 100% otentikasi murni username tanpa ketergantungan email).
    - Peran sistem (*Role*) dan penempatan stasiun kerja (*Department / Work Area*) dikunci (*readonly*) dan hanya dapat dikonfigurasi melalui Administrator pada Pusat Kendali Manajemen Pengguna demi kepatuhan integritas audit.
 
 2. **Protokol Keamanan Kata Sandi:**
@@ -551,7 +551,7 @@ Guna menjamin kelancaran kerja operator di lantai pabrik dan menghindari kelelah
 Guna menjaga keamanan akun operasional dan kenyamanan pengguna di perangkat kerja pabrik bersama (*shared workstations*), sistem menerapkan tata kelola autentikasi berikut:
 
 1. **Fitur "Ingat Saya" (Remember Me & Remember Username):**
-   - **Mekanisme Simpan Username:** Ketika checkbox *"Ingat saya"* dicentang saat submit login, sistem menyimpan identitas pengguna (Username/Email) pada media penyimpanan peramban lokal (`localStorage.setItem('hpk_remembered_username', ...)`).
+   - **Mekanisme Simpan Username:** Ketika checkbox *"Ingat saya"* dicentang saat submit login, sistem menyimpan identitas pengguna (Username) pada media penyimpanan peramban lokal (`localStorage.setItem('hpk_remembered_username', ...)`).
    - **Auto-Fill & Auto-Focus:** Saat pengguna membuka kembali halaman login (baik setelah sesi kedaluwarsa maupun setelah klik *Logout*), kolom username otomatis terisi dan kursor otomatis difokuskan ke kolom kata sandi.
    - **Penghapusan Simpanan:** Jika pengguna melakukan login tanpa mencentang *"Ingat saya"*, riwayat username tersimpan di peramban otomatis dibersihkan demi privasi.
    - **Persistensi Sesi Backend:** Didukung oleh cookie sesi jangka panjang (`remember_token` di tabel `users`) sehingga sesi tetap aktif apabila peramban/tab ditutup tanpa menekan tombol *Logout*.
@@ -561,3 +561,17 @@ Guna menjaga keamanan akun operasional dan kenyamanan pengguna di perangkat kerj
    - **Layar Bantuan Resmi (`/forgot-password`):** Halaman lupa password dirancang dengan antarmuka bertema HPK WMS yang memuat SOP resmi pabrik, daftar kontak WhatsApp & nomor telepon Administrator Gudang dan Supervisor yang sedang bertugas, serta informasi pos bantuan fisik di Ruang Admin Gudang (Lantai 1).
    - **Fitur 1-Klik Reset Password Administrator:** Pada menu Manajemen Pengguna (`/admin/users`), Administrator Gudang atau Supervisor memiliki tombol aksi cepat **"Reset Password"** (ikon kunci warna amber) untuk mengembalikan kata sandi akun pemohon ke standar default pabrik (`hpkgudang`).
    - **Pencatatan Audit Trail Resmi:** Seluruh eksekusi reset kata sandi oleh Administrator otomatis dicatat secara permanen di log aktivitas sistem (`audit_logs`) dengan label event `password_reset`, mencatat identitas Administrator pelaksana, akun sasaran, dan cap waktu presisi untuk transparansi kepatuhan audit.
+
+---
+
+## 19. Standar Otentikasi Murni Username & Manajemen Otorisasi Satu Pintu
+
+1. **Otentikasi Murni Username (Eliminasi Total Email Pengguna):**
+   - Mengingat seluruh operator dan staf lantai pabrik beroperasi di jaringan lokal intranet tanpa kewajiban memiliki akun email perusahaan, sistem beroperasi 100% menggunakan identitas akun tunggal: **Username** dan **Password**.
+   - Kolom `email` dan `email_verified_at` telah dilepas sepenuhnya dari tabel `users` database operasional melalui migrasi aman tanpa regresi data.
+   - Seluruh alur login, pembuatan akun baru, pengeditan pengguna, dan pengaturan profil berfokus murni pada username dan kata sandi.
+
+2. **Manajemen Pengguna & Otorisasi Satu Pintu (Eliminasi Kartu Ganda):**
+   - Menghapus redundansi kartu "Otorisasi & Izin" dari Dashboard Administrator yang sebelumnya mengarah ke destinasi yang sama dengan "Manajemen User".
+   - Mengintegrasikan seluruh pengaturan hak akses 64 izin modul (Spatie Permission) ke dalam menu terpusat **"Manajemen Pengguna & Otorisasi"** (`/admin/users`).
+   - Setiap pengguna dapat diberikan hak akses presisi melalui matriks checklist hierarki modul yang didukung oleh preset instan per peran (*Supervisor, Admin Gudang, Staff, Operator*) dan bagian kerja operasional (*Gudang, Mesin Center, Material Handling*).

@@ -3,35 +3,36 @@
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
     <div class="glass-card text-center p-5 sm:p-8" x-data="{
-        fillUser(email) {
-            document.getElementById('email').value = email;
+        fillUser(username) {
+            const userInput = document.getElementById('username') || document.getElementById('email');
+            if (userInput) userInput.value = username;
             document.getElementById('password').value = 'password';
             document.getElementById('remember_me').checked = true;
         },
         init() {
             const remembered = localStorage.getItem('hpk_remembered_username');
-            const emailInput = document.getElementById('email');
+            const userInput = document.getElementById('username') || document.getElementById('email');
             const rememberCheckbox = document.getElementById('remember_me');
-            if (remembered) {
-                if (!emailInput.value) {
-                    emailInput.value = remembered;
+            if (remembered && userInput) {
+                if (!userInput.value) {
+                    userInput.value = remembered;
                 }
                 if (rememberCheckbox) {
                     rememberCheckbox.checked = true;
                 }
                 this.$nextTick(() => {
                     const passInput = document.getElementById('password');
-                    if (passInput && emailInput.value) {
+                    if (passInput && userInput.value) {
                         passInput.focus();
                     }
                 });
             }
         },
         handleSubmit() {
-            const emailInput = document.getElementById('email');
+            const userInput = document.getElementById('username') || document.getElementById('email');
             const rememberCheckbox = document.getElementById('remember_me');
-            if (rememberCheckbox && rememberCheckbox.checked && emailInput && emailInput.value.trim() !== '') {
-                localStorage.setItem('hpk_remembered_username', emailInput.value.trim());
+            if (rememberCheckbox && rememberCheckbox.checked && userInput && userInput.value.trim() !== '') {
+                localStorage.setItem('hpk_remembered_username', userInput.value.trim());
             } else {
                 localStorage.removeItem('hpk_remembered_username');
             }
@@ -52,24 +53,24 @@
         <form method="POST" action="{{ route('login') }}" @submit="handleSubmit()" class="text-left space-y-4">
             @csrf
 
-            <!-- Username / Email with icon -->
+            <!-- Username with icon -->
             <div>
-                <label for="email" class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Email / Username</label>
+                <label for="username" class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Username</label>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                         <i class="fas fa-user text-sm"></i>
                     </div>
-                    <input id="email" 
+                    <input id="username" 
                            class="block w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-xs font-medium transition" 
                            type="text" 
-                           name="email" 
-                           value="{{ old('email') }}" 
+                           name="username" 
+                           value="{{ old('username', old('email')) }}" 
                            required 
                            autofocus 
                            autocomplete="username" 
-                           placeholder="Username atau email" />
+                           placeholder="Masukkan username Anda" />
                 </div>
-                <x-input-error :messages="$errors->get('email')" class="mt-1" />
+                <x-input-error :messages="$errors->get('username') ?: $errors->get('email')" class="mt-1" />
             </div>
 
             <!-- Password with Precision Countdown Pill (Persis Lampiran 3 & 4 recent.design) -->
@@ -175,21 +176,21 @@
         <div class="mt-6 pt-4 border-t border-slate-200/80 text-left">
             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Akses Cepat Uji Coba (1-Click Fill):</p>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                <button type="button" @click="fillUser('admin@hydraxle.com')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left">
+                <button type="button" @click="fillUser('admin')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left cursor-pointer">
                     <span class="font-bold text-blue-900 block text-[11px]"><i class="fas fa-user-shield text-[10px] me-1 text-teal-600"></i> Admin Gudang</span>
-                    <span class="text-[10px] text-slate-400 font-mono">admin@hydraxle.com</span>
+                    <span class="text-[10px] text-slate-500 font-mono">@admin</span>
                 </button>
-                <button type="button" @click="fillUser('operator@hydraxle.com')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left">
+                <button type="button" @click="fillUser('operator')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left cursor-pointer">
                     <span class="font-bold text-blue-900 block text-[11px]"><i class="fas fa-dolly text-[10px] me-1 text-teal-600"></i> Operator Picker</span>
-                    <span class="text-[10px] text-slate-400 font-mono">operator@hydraxle.com</span>
+                    <span class="text-[10px] text-slate-500 font-mono">@operator</span>
                 </button>
-                <button type="button" @click="fillUser('spv.gudang@hydraxle.com')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left">
+                <button type="button" @click="fillUser('spv_gudang')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left cursor-pointer">
                     <span class="font-bold text-blue-900 block text-[11px]"><i class="fas fa-user-tie text-[10px] me-1 text-teal-600"></i> Kepala Gudang</span>
-                    <span class="text-[10px] text-slate-400 font-mono">spv.gudang@hydraxle.com</span>
+                    <span class="text-[10px] text-slate-500 font-mono">@spv_gudang</span>
                 </button>
-                <button type="button" @click="fillUser('engineer@hydraxle.com')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left">
+                <button type="button" @click="fillUser('engineer')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left cursor-pointer">
                     <span class="font-bold text-blue-900 block text-[11px]"><i class="fas fa-drafting-compass text-[10px] me-1 text-teal-600"></i> Engineering (ECR)</span>
-                    <span class="text-[10px] text-slate-400 font-mono">engineer@hydraxle.com</span>
+                    <span class="text-[10px] text-slate-500 font-mono">@engineer</span>
                 </button>
             </div>
         </div>

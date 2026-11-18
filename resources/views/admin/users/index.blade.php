@@ -83,7 +83,7 @@
                                    id="search" 
                                    name="search" 
                                    value="{{ request('search') }}" 
-                                   placeholder="Nama, username, email..." 
+                                   placeholder="Cari nama atau username..." 
                                    class="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white shadow-xs transition">
                         </div>
                     </div>
@@ -303,7 +303,7 @@
                     <thead class="bg-slate-50 uppercase tracking-wider text-slate-600 font-extrabold border-b border-slate-200">
                         <tr>
                             <th class="px-4 py-3.5">Nama & Profil</th>
-                            <th class="px-4 py-3.5">ID Masuk (Username & Email)</th>
+                            <th class="px-4 py-3.5">ID Masuk (Username)</th>
                             <th class="px-4 py-3.5">Role & Bagian</th>
                             <th class="px-4 py-3.5">Departemen Pabrik</th>
                             <th class="px-4 py-3.5 text-center">Izin Sistem</th>
@@ -360,13 +360,13 @@
                                 </div>
                             </td>
 
-                            <!-- Username & Email -->
+                            <!-- Username -->
                             <td class="px-4 py-3.5">
                                 <div class="font-bold text-slate-900 font-mono text-[11px] flex items-center">
                                     <span class="text-amber-600 font-bold me-0.5">@</span>{{ $user->username }}
                                 </div>
-                                <div class="text-[11px] text-slate-500 mt-0.5">
-                                    {{ $user->email ?? '—' }}
+                                <div class="text-[10px] text-slate-400 mt-0.5 font-sans">
+                                    ID Login Utama
                                 </div>
                             </td>
 

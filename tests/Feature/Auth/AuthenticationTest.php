@@ -33,7 +33,6 @@ class AuthenticationTest extends TestCase
             $table->id();
             $table->string('name');
             $table->string('username')->unique();
-            $table->string('email')->nullable();
             $table->string('phone')->nullable();
             $table->string('role')->default('operator');
             $table->string('work_area')->nullable();
@@ -62,13 +61,12 @@ class AuthenticationTest extends TestCase
         $user = User::create([
             'name' => 'Test User',
             'username' => 'testuser',
-            'email' => 'test@example.com',
             'password' => Hash::make('password'),
             'is_active' => true,
         ]);
 
         $response = $this->post('/login', [
-            'email' => $user->email,
+            'username' => $user->username,
             'password' => 'password',
         ]);
 
@@ -81,13 +79,12 @@ class AuthenticationTest extends TestCase
         $user = User::create([
             'name' => 'Operator Joni',
             'username' => 'joni_operator',
-            'email' => null,
             'password' => Hash::make('password'),
             'is_active' => true,
         ]);
 
         $response = $this->post('/login', [
-            'email' => 'joni_operator',
+            'username' => 'joni_operator',
             'password' => 'password',
         ]);
 
@@ -100,13 +97,12 @@ class AuthenticationTest extends TestCase
         $user = User::create([
             'name' => 'Test User',
             'username' => 'testuser',
-            'email' => 'test@example.com',
             'password' => Hash::make('password'),
             'is_active' => true,
         ]);
 
         $this->post('/login', [
-            'email' => $user->email,
+            'username' => $user->username,
             'password' => 'wrong-password',
         ]);
 
@@ -118,7 +114,6 @@ class AuthenticationTest extends TestCase
         $user = User::create([
             'name' => 'Test User',
             'username' => 'testuser',
-            'email' => 'test@example.com',
             'password' => Hash::make('password'),
             'is_active' => true,
         ]);
@@ -134,13 +129,12 @@ class AuthenticationTest extends TestCase
         $user = User::create([
             'name' => 'Test User',
             'username' => 'testuser_rem',
-            'email' => 'testrem@example.com',
             'password' => Hash::make('password'),
             'is_active' => true,
         ]);
 
         $response = $this->post('/login', [
-            'email' => $user->email,
+            'username' => $user->username,
             'password' => 'password',
             'remember' => 'on',
         ]);

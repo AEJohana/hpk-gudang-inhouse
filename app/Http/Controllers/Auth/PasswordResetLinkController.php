@@ -22,7 +22,7 @@ class PasswordResetLinkController extends Controller
         })
         ->where('is_active', true)
         ->orderBy('id')
-        ->get(['id', 'name', 'username', 'email', 'phone', 'role', 'work_area', 'department']);
+        ->get(['id', 'name', 'username', 'phone', 'role', 'work_area', 'department']);
 
         return view('auth.forgot-password', compact('admins'));
     }

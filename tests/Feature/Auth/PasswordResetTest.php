@@ -52,7 +52,6 @@ class PasswordResetTest extends TestCase
             $table->id();
             $table->string('name');
             $table->string('username')->unique();
-            $table->string('email')->nullable();
             $table->string('phone')->nullable();
             $table->string('role')->default('operator');
             $table->string('work_area')->nullable();
@@ -86,7 +85,6 @@ class PasswordResetTest extends TestCase
         $admin = User::create([
             'name' => 'Budi Santoso',
             'username' => 'admin_gudang',
-            'email' => 'admin@hydraxle.com',
             'phone' => '0812-3456-7890',
             'role' => 'admin_gudang',
             'password' => Hash::make('password'),
@@ -106,7 +104,7 @@ class PasswordResetTest extends TestCase
 
     public function test_forgot_password_post_redirects_with_security_notice(): void
     {
-        $response = $this->post('/forgot-password', ['email' => 'operator@hydraxle.com']);
+        $response = $this->post('/forgot-password', ['username' => 'operator_joni']);
 
         $response->assertRedirect(route('password.request'));
         $response->assertSessionHas('info');
@@ -120,7 +118,6 @@ class PasswordResetTest extends TestCase
         $admin = User::create([
             'name' => 'Budi Santoso',
             'username' => 'admin_test_reset',
-            'email' => 'admin@hydraxle.com',
             'role' => 'admin_gudang',
             'password' => Hash::make('password'),
             'is_active' => true,
@@ -130,7 +127,6 @@ class PasswordResetTest extends TestCase
         $operator = User::create([
             'name' => 'Joni Kuswanto',
             'username' => 'operator_lupa_pwd',
-            'email' => null,
             'role' => 'operator',
             'password' => Hash::make('old_secret_pwd'),
             'is_active' => true,
@@ -151,7 +147,7 @@ class PasswordResetTest extends TestCase
 
         // Verifikasi bahwa operator sekarang bisa login menggunakan 'hpkgudang'
         $loginResponse = $this->post('/login', [
-            'email' => $operator->username,
+            'username' => $operator->username,
             'password' => 'hpkgudang',
         ]);
         $this->assertAuthenticatedAs($operator);
@@ -164,7 +160,6 @@ class PasswordResetTest extends TestCase
         $operator1 = User::create([
             'name' => 'Joni',
             'username' => 'operator_1',
-            'email' => null,
             'role' => 'operator',
             'password' => Hash::make('pwd1'),
             'is_active' => true,
@@ -174,7 +169,6 @@ class PasswordResetTest extends TestCase
         $operator2 = User::create([
             'name' => 'Denis',
             'username' => 'operator_2',
-            'email' => null,
             'role' => 'operator',
             'password' => Hash::make('pwd2'),
             'is_active' => true,
