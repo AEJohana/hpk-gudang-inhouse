@@ -18,6 +18,8 @@ class WorkRequestLog extends Model
         'quantity_accumulated',
         'operator_name',
         'notes',
+        'created_at',
+        'updated_at',
     ];
 
     protected $casts = [

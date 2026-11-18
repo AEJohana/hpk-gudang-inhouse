@@ -500,6 +500,13 @@ Untuk memfasilitasi kebutuhan tanda tangan fisik, instruksi kerja stasiun mesin,
 2. **Kelanjutan Tiket In-Progress (159 Tiket):** Tiket berstatus `Belum Verifikasi`, `Dalam antrian`, `Proses In`, `Siap diambil`, dan `Menuju Pengaju` langsung aktif di stasiun mesin dan modul Material Handling dengan routing mesin (`work_request_steps`) terpasang otomatis.
 3. **Penyimpanan Foto di Server NAS On-Premise:** 491 berkas foto fisik dari Google Drive lama diunduh dan disimpan langsung ke Drive Master NAS `Z:\...` dan `public/uploads/components/` dengan format penamaan standar (`[part_number].jpg` untuk part resmi, dan `NEW-YYYYMMDD-SEQ.jpg` untuk part baru).
 4. **Dokumentasi & Prosedur Teknis Lengkap:** Rincian teknis, pemetaan skema, dan panduan perintah CLI tercatat di [docs/MIGRASI_LOG_WR_SPREADSHEET.md](docs/MIGRASI_LOG_WR_SPREADSHEET.md).
+5. **Penyelarasan Aksi Scan Diterima & Implied Approval (Update 18 Nov 2026):**
+   - Tiket yang telah menyelesaikan siklus fabrikasi mesin hingga tahap akhir dan berada pada status `Siap diambil`, otomatis menampilkan tombol aksi hijau **`Scan Diterima (X pcs)`** bagi petugas Gudang (Pengaju).
+   - Tiket dengan aktivitas pengerjaan fisik aktif (`quantity_produced > 0`) atau telah selesai dikerjakan tidak terkunci oleh badge "Menunggu Penerima" (penerapan *implied operational approval* dari alur lama).
+   - Otorisasi dan pembagian peran tetap terisolasi: stasiun mesin tidak dapat mengambil aksi terima barang, dan penjemputan Material Handling antar-stasiun mesin tetap terintegrasi secara runtut.
+6. **SOP Pemutakhiran Data CSV Berkala & Production Cutover (Runbook Bab 12):**
+   - Apabila di masa mendatang berkas CSV dimutakhirkan dengan data transaksi pabrik yang lebih baru, proses sinkronisasi wajib mengikuti panduan langkah-demi-langkah pada [Bab 12 MIGRASI_LOG_WR_SPREADSHEET.md](docs/MIGRASI_LOG_WR_SPREADSHEET.md#12-panduan-operasional-resmi-pemutakhiran-csv--migrasi-ulang-di-masa-depan-production-cutover--sync-runbook).
+   - Urutan eksekusi: Cek format berkas $\rightarrow$ Simulasi Dry-Run (`php artisan wr:migrate-legacy-spreadsheet --sync --dry-run`) $\rightarrow$ Eksekusi Aktual (`php artisan wr:migrate-legacy-spreadsheet --sync`) $\rightarrow$ Unduh Foto Baru (`php artisan wr:download-legacy-photos`) $\rightarrow$ Uji Otomatis (`php artisan test --filter=LegacyWrMigrationTest`) $\rightarrow$ Verifikasi Visual Antarmuka.
 
 ---
 

@@ -48,6 +48,17 @@
                 $isSudah = stripos($nextStatus, 'Sudah Diambil') !== false;
 
                 $btnBg = 'bg-[#0a2342] hover:bg-slate-800 text-white font-medium';
+                if ($primaryAction && !empty($primaryAction['color'])) {
+                    if ($primaryAction['color'] === 'emerald') {
+                        $btnBg = 'bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs';
+                    } elseif ($primaryAction['color'] === 'indigo') {
+                        $btnBg = 'bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-xs';
+                    } elseif ($primaryAction['color'] === 'amber') {
+                        $btnBg = 'bg-amber-600 hover:bg-amber-700 text-white font-medium shadow-xs';
+                    }
+                } elseif ($isSudah) {
+                    $btnBg = 'bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs';
+                }
 
                 $btnIcon = $primaryAction ? $primaryAction['icon'] : ($isSudah ? 'fa-warehouse' : ($isMenuju ? 'fa-truck-fast' : ($isPickup ? 'fa-truck-ramp-box' : ($isLaserOut ? 'fa-check' : 'fa-play'))));
                 $shortLabel = $primaryAction ? $primaryAction['label'] : ($isSudah ? 'Terima di Gudang' : ($isMenuju ? 'Kirim ke Pengaju' : ($isPickup ? 'MH Pickup' : ($isLaserOut ? 'Selesai: ' . $nextStatus : 'Mulai: ' . $nextStatus))));
@@ -238,7 +249,7 @@
                                         <i class="fa-solid fa-clock text-amber-500 me-1 text-[9px]"></i> Menunggu Pengaju
                                     </span>
                                 @endif
-                            @elseif($wri->approval_penerima === 'Menunggu')
+                            @elseif($wri->approval_penerima === 'Menunggu' && in_array(strtolower(trim($wri->status ?? '')), ['belum verifikasi', 'submitted', 'draft']) && (float)$wri->quantity_produced == 0)
                                 @if($canApprovePenerima)
                                     <button type="button" 
                                             @click='openAssignModal(@json($assignPayload))'

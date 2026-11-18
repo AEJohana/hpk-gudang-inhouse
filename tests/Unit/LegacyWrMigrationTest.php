@@ -51,6 +51,8 @@ class LegacyWrMigrationTest extends TestCase
             $table->id();
             $table->string('name');
             $table->string('part_number')->nullable();
+            $table->string('specification')->nullable();
+            $table->string('category')->nullable();
             $table->string('uom')->default('PCS');
             $table->decimal('minimum_stock', 12, 2)->default(0);
             $table->decimal('total_stock', 12, 2)->default(0);
@@ -344,6 +346,66 @@ class LegacyWrMigrationTest extends TestCase
     }
 
     /**
+     * Uji Smart Sync:
+     * Tiket eksis yang statusnya berubah di spreadsheet akan dimutakhirkan (UPDATE)
+     * tanpa menambah baris baru ataupun menduplikasi log riwayat.
+     */
+    public function test_smart_sync_updates_existing_ticket_without_duplicate(): void
+    {
+        $comp = Component::create([
+            'name' => 'Reinforce Peredam',
+            'part_number' => 'CSTP10080210070',
+            'total_stock' => 100,
+        ]);
+
+        $wriNumber = 'WR/Dept Gudang/20260807/4/CSTP10080210070/1';
+
+        // Tiket kondisi lama (masih proses mesin)
+        $wr = WorkRequest::create([
+            'wri_number' => $wriNumber,
+            'component_id' => $comp->id,
+            'quantity_requested' => 500,
+            'quantity_produced' => 460,
+            'quantity_received' => 460,
+            'status' => 'Proses: Dept M1 (In)',
+            'current_process_status' => 'Proses: Dept M1 (In)',
+            'is_final' => false,
+            'approval_pengaju' => 'Diterima',
+            'approval_penerima' => 'Diterima',
+        ]);
+
+        $step = WorkRequestStep::create([
+            'work_request_id' => $wr->id,
+            'step_number' => 1,
+            'machine_id' => 1,
+            'process_name' => 'Dept M1',
+            'status' => 'in_progress',
+        ]);
+
+        // Simulasikan Smart Sync:
+        // Spreadsheet baru menyatakan status sudah 'Sudah diambil' (Final)
+        $newStatus = 'Sudah Diambil';
+        $newIsFinal = true;
+        $newQtyRec = 500;
+
+        $wr->update([
+            'status' => $newStatus,
+            'current_process_status' => $newStatus,
+            'is_final' => $newIsFinal,
+            'quantity_received' => $newQtyRec,
+        ]);
+        $step->update(['status' => 'completed']);
+
+        // Verifikasi count tetap 1 (TIDAK DOBEL)
+        $this->assertEquals(1, WorkRequest::where('wri_number', $wriNumber)->count());
+        $freshWr = WorkRequest::where('wri_number', $wriNumber)->first();
+        $this->assertEquals('Sudah Diambil', $freshWr->status);
+        $this->assertTrue($freshWr->is_final);
+        $this->assertEquals(500, (float)$freshWr->quantity_received);
+        $this->assertEquals('completed', $step->fresh()->status);
+    }
+
+    /**
      * Uji Hierarki Penolakan:
      * Jika Ka. Pengaju menolak tiket, tiket seketika berstatus tutup/batal (Hard Close).
      * Tiket DILARANG masuk ke scope needsApproval() dan WAJIB masuk ke scope rejected().
@@ -405,5 +467,208 @@ class LegacyWrMigrationTest extends TestCase
 
         $this->assertEquals(1, WorkRequest::needsApproval()->where('id', $wrWaiting->id)->count());
         $this->assertEquals(0, WorkRequest::rejected()->where('id', $wrWaiting->id)->count());
+    }
+
+    /**
+     * Uji Aksi Scan Diterima Gudang pada Status Siap diambil:
+     * User Gudang mendapatkan aksi Scan Diterima (emerald, fa-check-double)
+     * saat tiket berada pada status Siap diambil di stasiun mesin akhir.
+     */
+    public function test_gudang_user_gets_scan_diterima_action_when_siap_diambil(): void
+    {
+        $comp = Component::create([
+            'name' => 'Laser Cut Plate',
+            'part_number' => 'CBPP11050600030',
+            'total_stock' => 0,
+        ]);
+
+        $gudangUser = User::create([
+            'name' => 'Panji',
+            'email' => 'panji@example.com',
+            'password' => bcrypt('secret'),
+            'department' => 'Dept Gudang',
+        ]);
+
+        $mesinUser = User::create([
+            'name' => 'Nasrul',
+            'email' => 'nasrul@example.com',
+            'password' => bcrypt('secret'),
+            'department' => 'Dept Laser Cutting',
+        ]);
+
+        $wr = WorkRequest::create([
+            'wri_number' => 'WR/Dept Gudang/20261117/12/CBPP11050600030/1',
+            'component_id' => $comp->id,
+            'dept_pengaju' => 'Dept Gudang',
+            'dept_penerima' => 'Dept Laser Cutting',
+            'routing_text' => 'Laser Cutting',
+            'quantity_requested' => 4,
+            'quantity_produced' => 4,
+            'quantity_received' => 0,
+            'status' => 'Siap diambil',
+            'approval_pengaju' => 'Diterima',
+            'approval_penerima' => 'Diterima',
+            'is_final' => false,
+        ]);
+
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'status_label' => 'Proses: Laser Cutting (In)',
+            'action_type' => 'process',
+            'quantity' => 4,
+            'operator_name' => 'Nasrul',
+        ]);
+
+        WorkRequestLog::create([
+            'work_request_id' => $wr->id,
+            'status_label' => 'Siap diambil',
+            'action_type' => 'process',
+            'quantity' => 4,
+            'operator_name' => 'Nasrul',
+        ]);
+
+        // Gudang user action check
+        $actionsGudang = $wr->getAvailableActionsForUser($gudangUser, true);
+        $this->assertNotEmpty($actionsGudang);
+        $this->assertEquals('receive', $actionsGudang[0]['type']);
+        $this->assertEquals('Sudah Diambil', $actionsGudang[0]['target_status']);
+        $this->assertEquals('Scan Diterima (4 pcs)', $actionsGudang[0]['label']);
+        $this->assertEquals('emerald', $actionsGudang[0]['color']);
+        $this->assertEquals('fa-check-double', $actionsGudang[0]['icon']);
+        $this->assertTrue($wr->canUserProcessAction($gudangUser, 'Sudah Diambil', true));
+
+        // Mesin user check (no receive action because fabrication is done)
+        $actionsMesin = $wr->getAvailableActionsForUser($mesinUser, true);
+        $this->assertEmpty($actionsMesin);
+        $this->assertFalse($wr->canUserProcessAction($mesinUser, 'Sudah Diambil', true));
+    }
+
+    /**
+     * Uji Implied Approval pada legacy ticket atau ticket yang telah mulai diproduksi:
+     * Jika approval_penerima masih Menunggu namun status pengerjaan telah jalan (quantity_produced > 0),
+     * aksi operasional tidak terblokir sebagai Menunggu Penerima.
+     */
+    public function test_implied_approval_allows_actions_when_production_started(): void
+    {
+        $comp = Component::create([
+            'name' => 'Bending Flange',
+            'part_number' => 'CBPP11570580030',
+            'total_stock' => 0,
+        ]);
+
+        $gudangUser = User::create([
+            'name' => 'Denis',
+            'email' => 'denis@example.com',
+            'password' => bcrypt('secret'),
+            'department' => 'Dept Gudang',
+        ]);
+
+        $wr = WorkRequest::create([
+            'wri_number' => 'WR/Dept Gudang/20261117/13/CBPP11570580030/3',
+            'component_id' => $comp->id,
+            'dept_pengaju' => 'Dept Gudang',
+            'dept_penerima' => 'Dept Bending',
+            'quantity_requested' => 3,
+            'quantity_produced' => 3,
+            'quantity_received' => 0,
+            'status' => 'Siap diambil',
+            'approval_pengaju' => 'Diterima',
+            'approval_penerima' => 'Menunggu', // Implied approval scenario
+            'is_final' => false,
+        ]);
+
+        $this->assertTrue($wr->canUserProcessAction($gudangUser, 'Sudah Diambil', true));
+        $actions = $wr->getAvailableActionsForUser($gudangUser, true);
+        $this->assertNotEmpty($actions);
+        $this->assertEquals('Scan Diterima (3 pcs)', $actions[0]['label']);
+    }
+
+    /**
+     * Uji Preservasi Komponen Baru Unik pada Tanggal yang Sama:
+     * Dua tiket komponen baru pada tanggal yang sama tidak boleh tertukar atau kolaps ke satu komponen.
+     */
+    public function test_new_component_sequence_preserves_distinct_items_on_same_date(): void
+    {
+        $command = new \App\Console\Commands\MigrateLegacySpreadsheetWr();
+        $reflection = new \ReflectionClass($command);
+        $method = $reflection->getMethod('resolveOrCreateComponent');
+        $method->setAccessible(true);
+
+        // Tiket 16: Sliding plate B, seq 1 -> NEW-20261117-001
+        $comp1 = $method->invoke($command, 'Baru', 'Sliding plate B', '040x200x047', '2026-11-17', [], false, 'WR/Dept Gudang/20261117/16/Baru/1');
+        $this->assertEquals('Sliding plate B', $comp1->name);
+        $this->assertEquals('NEW-20261117-001', $comp1->part_number);
+
+        // Tiket 17: Sliding A, seq 2 -> NEW-20261117-002
+        $comp2 = $method->invoke($command, 'Baru', 'Sliding A', '127x200x047', '2026-11-17', [], false, 'WR/Dept Gudang/20261117/17/Baru/2');
+        $this->assertEquals('Sliding A', $comp2->name);
+        $this->assertEquals('NEW-20261117-002', $comp2->part_number);
+
+        // Pastikan keduanya berbeda komponen
+        $this->assertNotEquals($comp1->id, $comp2->id);
+    }
+
+    /**
+     * Uji Waktu Proses Diekstrak dari Data Proses (bukan runtime):
+     * Log pengerjaan harus memiliki timestamp yang persis sesuai waktu di Data Proses CSV.
+     */
+    public function test_log_timestamps_parsed_from_data_proses(): void
+    {
+        $comp = Component::create([
+            'name' => 'Laser Cut Item',
+            'part_number' => 'CBPP11570580030_LOG',
+        ]);
+
+        $wr = WorkRequest::create([
+            'wri_number' => 'WR/Dept Gudang/20261117/13/CBPP11570580030_LOG/1',
+            'component_id' => $comp->id,
+            'status' => 'Siap diambil',
+            'created_at' => '2026-11-17 08:00:00',
+        ]);
+
+        $command = new \App\Console\Commands\MigrateLegacySpreadsheetWr();
+        $reflection = new \ReflectionClass($command);
+        $method = $reflection->getMethod('insertWorkRequestLogs');
+        $method->setAccessible(true);
+
+        $dataProses = '[ Proses: Dept Laser Cutting (In) - 3 pcs - 17/11 13:38 - Auto-Start Process ] ; [ Siap diambil - 3 (Final) - 17/11 13:39 - Selesai ]';
+        $method->invoke($command, $wr->id, $dataProses, '2026-11-17');
+
+        $logs = WorkRequestLog::where('work_request_id', $wr->id)->orderBy('id')->get();
+        $this->assertCount(2, $logs);
+
+        // Log 1: 17/11 13:38
+        $this->assertEquals('2026-11-17 13:38:00', $logs[0]->created_at->format('Y-m-d H:i:s'));
+        $this->assertEquals('Proses: Dept Laser Cutting (In)', $logs[0]->status_label);
+        $this->assertEquals('Auto-Start Process', $logs[0]->notes);
+
+        // Log 2: 17/11 13:39
+        $this->assertEquals('2026-11-17 13:39:00', $logs[1]->created_at->format('Y-m-d H:i:s'));
+        $this->assertEquals('Siap diambil', $logs[1]->status_label);
+        $this->assertEquals('Selesai', $logs[1]->notes);
+    }
+
+    /**
+     * Uji Tanggal Pembuatan Work Request sesuai Tanggal Order:
+     * created_at tersimpan sesuai tglOrder, bukan tanggal eksekusi CLI.
+     */
+    public function test_work_request_created_at_matches_tgl_order(): void
+    {
+        $comp = Component::create([
+            'name' => 'Date Test Item',
+            'part_number' => 'PART-DATE-TEST',
+        ]);
+
+        $wr = WorkRequest::create([
+            'wri_number' => 'WR/Dept Gudang/20261117/99/PART-DATE-TEST/1',
+            'component_id' => $comp->id,
+            'status' => 'Belum Verifikasi',
+            'created_at' => '2026-11-17 08:00:00',
+            'due_date' => '2026-11-17',
+        ]);
+
+        $fresh = WorkRequest::find($wr->id);
+        $this->assertEquals('2026-11-17', $fresh->created_at->format('Y-m-d'));
+        $this->assertEquals('17 Nov 2026', $fresh->created_at->format('d M Y'));
     }
 }

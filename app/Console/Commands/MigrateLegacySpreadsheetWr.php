@@ -21,7 +21,8 @@ class MigrateLegacySpreadsheetWr extends Command
      */
     protected $signature = 'wr:migrate-legacy-spreadsheet
                             {--dry-run : Jalankan simulasi validasi tanpa menyimpan perubahan ke database}
-                            {--only-in-progress : Hanya migrasikan 159 tiket yang belum selesai (in-progress)}
+                            {--sync : Sinkronkan dan perbarui status tiket eksis jika di spreadsheet statusnya telah maju/selesai}
+                            {--only-in-progress : Hanya migrasikan tiket yang belum selesai (in-progress)}
                             {--limit= : Batasi jumlah baris yang diproses}';
 
     /**
@@ -49,11 +50,15 @@ class MigrateLegacySpreadsheetWr extends Command
         }
 
         $dryRun = (bool) $this->option('dry-run');
+        $sync = (bool) $this->option('sync');
         $onlyInProgress = (bool) $this->option('only-in-progress');
         $limit = $this->option('limit') ? (int) $this->option('limit') : null;
 
         if ($dryRun) {
             $this->warn(">>> MODE SIMULASI (DRY-RUN) AKTIF: Database tidak akan dimodifikasi <<<");
+        }
+        if ($sync) {
+            $this->info(">>> MODE SINKRONISASI AKTIF: Status tiket eksis akan dimutakhirkan secara aman <<<");
         }
         if ($onlyInProgress) {
             $this->warn(">>> FILTER AKTIF: Hanya memproses tiket yang belum selesai (In-Progress) <<<");
@@ -79,6 +84,7 @@ class MigrateLegacySpreadsheetWr extends Command
 
         $totalRead = 0;
         $totalMigrated = 0;
+        $totalUpdatedExisting = 0;
         $totalSkippedExisting = 0;
         $totalSkippedCompleted = 0;
         $totalErrors = 0;
@@ -139,14 +145,6 @@ class MigrateLegacySpreadsheetWr extends Command
                 continue;
             }
 
-            // Cek apakah tiket sudah pernah ada di database (Idempotensi)
-            $existingWr = WorkRequest::where('wri_number', $noWr)->first();
-            if ($existingWr) {
-                $totalSkippedExisting++;
-                $bar->advance();
-                continue;
-            }
-
             // Normalisasi Status Approval
             $approvalPengaju = match($stPengaju) {
                 'Diterima' => 'Diterima',
@@ -167,22 +165,88 @@ class MigrateLegacySpreadsheetWr extends Command
                 $stBarang = 'cancelled';
             }
 
-            // Normalisasi Prioritas
-            $priority = (stripos($deskripsi, 'urgent') !== false) ? 'urgent_line_stop' : 'normal';
-
-            // Resolusi User ID Pembuat
-            $requesterUser = $this->resolveUser($opPengaju, $kepalaPengaju, $userMap, $adminUser);
-
-            // Resolusi Komponen & Foreign Key
-            $component = $this->resolveOrCreateComponent($kodePart, $namaPart, $dimensi, $tglOrder, $baruCodeMap, $dryRun);
+            $isFinal = ($stBarang === 'Sudah diambil' || strtolower($stBarang) === 'sudah diambil' || $stBarang === 'cancelled' || $approvalPengaju === 'Ditolak' || $approvalPenerima === 'Ditolak');
+            $dbStatus = (strtolower($stBarang) === 'sudah diambil') ? 'Sudah Diambil' : $stBarang;
 
             // Parsing Qty Selesai & Diterima dari Data Proses
             $parsedQty = $this->parseDataProsesQuantities($dataProses, $qty, $stBarang);
             $qtyProduced = $parsedQty['produced'];
             $qtyReceived = $parsedQty['received'];
 
+            // Normalisasi Prioritas
+            $priority = (stripos($deskripsi, 'urgent') !== false) ? 'urgent_line_stop' : 'normal';
+
+            // Resolusi User ID Pembuat
+            $requesterUser = $this->resolveUser($opPengaju, $kepalaPengaju, $userMap, $adminUser);
+
+            // Resolusi Komponen & Foreign Key (Membawa $noWr untuk item sequence yang akurat)
+            $component = $this->resolveOrCreateComponent($kodePart, $namaPart, $dimensi, $tglOrder, $baruCodeMap, $dryRun, $noWr);
+
             // Cocokkan Mesin Tujuan
             $matchedMachine = $this->resolveMachine($deptPenerima, $machines, $defaultMachine);
+
+            // Tentukan Timestamp Pembuatan Tiket sesuai Tanggal Order & Data Proses
+            $targetCreatedAt = $this->determineWorkRequestCreatedAt($tglOrder, $dataProses);
+
+            // Cek apakah tiket sudah pernah ada di database (Idempotensi & Smart Sync)
+            $existingWr = WorkRequest::where('wri_number', $noWr)->first();
+            if ($existingWr) {
+                $needsComponentUpdate = ($existingWr->component_id !== $component->id);
+                $needsDateUpdate = ($existingWr->created_at?->format('Y-m-d') !== $tglOrder);
+
+                $needsUpdate = (
+                    $existingWr->status !== $dbStatus
+                    || (bool)$existingWr->is_final !== (bool)$isFinal
+                    || (float)$existingWr->quantity_received < (float)$qtyReceived
+                    || (float)$existingWr->quantity_produced < (float)$qtyProduced
+                    || $existingWr->approval_pengaju !== $approvalPengaju
+                    || $existingWr->approval_penerima !== $approvalPenerima
+                    || $needsComponentUpdate
+                    || $needsDateUpdate
+                );
+
+                if ($sync && ($needsUpdate || !empty($dataProses))) {
+                    if (!$dryRun) {
+                        DB::transaction(function () use (
+                            $existingWr, $dbStatus, $isFinal, $approvalPengaju, $approvalPenerima,
+                            $qtyProduced, $qtyReceived, $dataProses, $tglOrder, $component,
+                            $needsComponentUpdate, $needsDateUpdate, $targetCreatedAt
+                        ) {
+                            $updateData = [
+                                'status' => $dbStatus,
+                                'current_process_status' => $dbStatus,
+                                'is_final' => $isFinal,
+                                'approval_pengaju' => $approvalPengaju,
+                                'approval_penerima' => $approvalPenerima,
+                                'quantity_produced' => max((float)$existingWr->quantity_produced, (float)$qtyProduced),
+                                'quantity_received' => max((float)$existingWr->quantity_received, (float)$qtyReceived),
+                            ];
+                            if ($needsComponentUpdate) {
+                                $updateData['component_id'] = $component->id;
+                            }
+                            if ($needsDateUpdate) {
+                                $updateData['created_at'] = $targetCreatedAt;
+                                $updateData['due_date'] = $tglOrder;
+                            }
+                            $existingWr->update($updateData);
+
+                            if ($isFinal) {
+                                $existingWr->steps()->update([
+                                    'status' => 'completed',
+                                    'completed_at' => $tglOrder . ' 16:30:00',
+                                ]);
+                            }
+
+                            $this->syncWorkRequestLogs($existingWr->id, $dataProses, $tglOrder);
+                        });
+                    }
+                    $totalUpdatedExisting++;
+                } else {
+                    $totalSkippedExisting++;
+                }
+                $bar->advance();
+                continue;
+            }
 
             // Track status statistik
             if (str_contains($stBarang, 'Laser') || str_contains($stBarang, 'M1') || str_contains($stBarang, 'Proses')) {
@@ -197,11 +261,9 @@ class MigrateLegacySpreadsheetWr extends Command
                 DB::transaction(function () use (
                     $noWr, $component, $requesterUser, $deptPengaju, $deptPenerima,
                     $routing, $approvalPengaju, $approvalPenerima, $opPenerima, $kepalaPenerima,
-                    $qty, $qtyProduced, $qtyReceived, $stBarang, $priority, $deskripsi,
-                    $tglOrder, $matchedMachine, $dataProses
+                    $qty, $qtyProduced, $qtyReceived, $stBarang, $dbStatus, $isFinal, $priority, $deskripsi,
+                    $tglOrder, $matchedMachine, $dataProses, $targetCreatedAt
                 ) {
-                    $isFinal = ($stBarang === 'Sudah diambil' || $stBarang === 'cancelled' || $approvalPengaju === 'Ditolak' || $approvalPenerima === 'Ditolak');
-
                     $wr = WorkRequest::create([
                         'wri_number' => $noWr,
                         'component_id' => $component->id,
@@ -218,12 +280,12 @@ class MigrateLegacySpreadsheetWr extends Command
                         'quantity_defect' => 0,
                         'is_final' => $isFinal,
                         'priority' => $priority,
-                        'status' => $stBarang,
-                        'current_process_status' => $stBarang,
+                        'status' => $dbStatus,
+                        'current_process_status' => $dbStatus,
                         'notes' => $deskripsi ?: null,
                         'due_date' => $tglOrder,
-                        'created_at' => $tglOrder . ' 08:00:00',
-                        'updated_at' => $tglOrder . ' 17:00:00',
+                        'created_at' => $targetCreatedAt,
+                        'updated_at' => $isFinal ? ($tglOrder . ' 17:00:00') : $targetCreatedAt,
                     ]);
 
                     // Buat Step Pengerjaan Mesin
@@ -253,7 +315,10 @@ class MigrateLegacySpreadsheetWr extends Command
         $this->info("==================================================================");
         $this->info(" RINGKASAN HASIL MIGRASI DATA:");
         $this->line(" - Total Baris Diproses    : {$totalRead} baris");
-        $this->line(" - Berhasil Dimigrasikan   : <info>{$totalMigrated}</info> tiket " . ($dryRun ? "(Simulasi)" : "(Riil DB)"));
+        $this->line(" - Tiket Baru Dimigrasikan : <info>{$totalMigrated}</info> tiket " . ($dryRun ? "(Simulasi)" : "(Riil DB)"));
+        if ($sync) {
+            $this->line(" - Tiket Eksis Diperbarui  : <info>{$totalUpdatedExisting}</info> tiket " . ($dryRun ? "(Simulasi)" : "(Riil DB)"));
+        }
         $this->line(" - Dilewati (Sudah Eksis)  : <comment>{$totalSkippedExisting}</comment> tiket (0 Duplikasi)");
         if ($onlyInProgress) {
             $this->line(" - Dilewati (Sudah Selesai): {$totalSkippedCompleted} tiket");
@@ -356,7 +421,7 @@ class MigrateLegacySpreadsheetWr extends Command
      * Temukan atau buat master komponen (Shadow Part) tanpa mengubah stok.
      */
     protected function resolveOrCreateComponent(
-        string $kodePart, string $namaPart, string $dimensi, string $tglOrder, array $baruCodeMap, bool $dryRun
+        string $kodePart, string $namaPart, string $dimensi, string $tglOrder, array $baruCodeMap, bool $dryRun, ?string $noWr = null
     ): Component {
         // Kasus 1: Komponen dengan kode resmi
         if (!empty($kodePart) && $kodePart !== 'Baru') {
@@ -371,12 +436,10 @@ class MigrateLegacySpreadsheetWr extends Command
                     'part_number' => $kodePart,
                     'name' => $namaPart,
                     'specification' => $dimensi,
-                    'unit' => 'PCS',
+                    'uom' => 'PCS',
                     'category' => 'fabricated',
-                    'total_stock' => 0, // MUTLAK 0
                     'minimum_stock' => 0,
-                    'status' => 'active',
-                    'notes' => 'Diimpor dari Log WR.csv',
+                    'is_active' => true,
                 ]);
             }
 
@@ -391,27 +454,55 @@ class MigrateLegacySpreadsheetWr extends Command
         $cleanNameKey = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $namaPart));
         $meta = $baruCodeMap[$cleanNameKey] ?? null;
 
-        $targetCode = $meta['code'] ?? ('NEW-' . str_replace('-', '', $tglOrder) . '-001');
+        // Ambil urutan item dari segmen ke-6 No WR jika ada (format: WR/Dept Gudang/YYYYMMDD/OrderSeq/Baru/ItemSeq)
+        $itemSeq = '001';
+        if ($noWr) {
+            $parts = explode('/', $noWr);
+            $lastPart = end($parts);
+            if (is_numeric($lastPart)) {
+                $itemSeq = sprintf('%03d', (int)$lastPart);
+            }
+        }
 
-        $comp = Component::where('part_number', $targetCode)
-            ->orWhere('name', $namaPart)
+        $targetCode = $meta['code'] ?? ('NEW-' . str_replace('-', '', $tglOrder) . '-' . $itemSeq);
+
+        // 1. Cari komponen dengan nama persis yang sama dan part_number diawali 'NEW-'
+        $comp = Component::where('name', $namaPart)
+            ->where('part_number', 'like', 'NEW-%')
             ->first();
+
+        // 2. Jika belum ketemu, cari berdasarkan targetCode spesifik (hanya jika namanya cocok)
+        if (!$comp) {
+            $comp = Component::where('part_number', $targetCode)->first();
+            if ($comp && strcasecmp(trim($comp->name), trim($namaPart)) !== 0) {
+                $comp = null; // targetCode sudah dipakai oleh part lain akibat bug sebelumnya
+            }
+        }
 
         if ($comp) {
             return $comp;
         }
 
         if (!$dryRun) {
+            // Jika $targetCode ternyata sudah terpakai di DB oleh part lain (akibat bug terdahulu), cari suffix yang tersedia
+            $existingWithTargetCode = Component::where('part_number', $targetCode)->first();
+            if ($existingWithTargetCode) {
+                $basePrefix = 'NEW-' . str_replace('-', '', $tglOrder) . '-';
+                $counter = (int)$itemSeq;
+                while (Component::where('part_number', sprintf('%s%03d', $basePrefix, $counter))->exists()) {
+                    $counter++;
+                }
+                $targetCode = sprintf('%s%03d', $basePrefix, $counter);
+            }
+
             return Component::create([
                 'part_number' => $targetCode,
                 'name' => $namaPart,
                 'specification' => $dimensi,
-                'unit' => 'PCS',
+                'uom' => 'PCS',
                 'category' => 'fabricated',
-                'total_stock' => 0, // MUTLAK 0
                 'minimum_stock' => 0,
-                'status' => 'pending_catalog',
-                'notes' => 'Komponen Baru dari Spreadsheet Log WR',
+                'is_active' => true,
             ]);
         }
 
@@ -420,6 +511,28 @@ class MigrateLegacySpreadsheetWr extends Command
             'part_number' => $targetCode,
             'name' => $namaPart,
         ]);
+    }
+
+    /**
+     * Tentukan timestamp created_at untuk Work Request berdasarkan tanggal order dan log proses pertama.
+     */
+    protected function determineWorkRequestCreatedAt(string $tglOrder, string $dataProses): string
+    {
+        if (!empty($dataProses)) {
+            $snippets = explode(' ; ', $dataProses);
+            foreach ($snippets as $snip) {
+                $clean = trim($snip, " []\t\n\r");
+                $parts = explode(' - ', $clean);
+                if (isset($parts[2]) && preg_match('/^(\d{1,2})\/(\d{1,2})\s*(\d{1,2}:\d{2})$/', trim($parts[2]), $tm)) {
+                    $day = (int) $tm[1];
+                    $month = (int) $tm[2];
+                    $time = $tm[3];
+                    $year = (int) substr($tglOrder, 0, 4) ?: (int) date('Y');
+                    return sprintf('%04d-%02d-%02d %s:00', $year, $month, $day, $time);
+                }
+            }
+        }
+        return $tglOrder . ' 08:00:00';
     }
 
     /**
@@ -506,7 +619,17 @@ class MigrateLegacySpreadsheetWr extends Command
             if (isset($parts[1]) && preg_match('/(\d+)/', $parts[1], $qm)) {
                 $qty = (float) $qm[1];
             }
+
+            $logTimestamp = $fallbackDate . ' 12:00:00';
             $notes = trim($parts[3] ?? ($parts[2] ?? ''));
+            if (isset($parts[2]) && preg_match('/^(\d{1,2})\/(\d{1,2})\s*(\d{1,2}:\d{2})$/', trim($parts[2]), $tm)) {
+                $day = (int) $tm[1];
+                $month = (int) $tm[2];
+                $time = $tm[3];
+                $year = (int) substr($fallbackDate, 0, 4) ?: (int) date('Y');
+                $logTimestamp = sprintf('%04d-%02d-%02d %s:00', $year, $month, $day, $time);
+                $notes = trim($parts[3] ?? '');
+            }
 
             $accumulated += $qty;
 
@@ -518,9 +641,76 @@ class MigrateLegacySpreadsheetWr extends Command
                 'quantity_accumulated' => $accumulated,
                 'operator_name' => null,
                 'notes' => $notes ?: null,
-                'created_at' => $fallbackDate . ' 12:00:00',
-                'updated_at' => $fallbackDate . ' 12:00:00',
+                'created_at' => $logTimestamp,
+                'updated_at' => $logTimestamp,
             ]);
+        }
+    }
+
+    /**
+     * Sinkronisasi log pengerjaan untuk tiket yang sudah ada tanpa menduplikasi log eksis.
+     */
+    protected function syncWorkRequestLogs(int $workRequestId, string $dataProses, string $fallbackDate): void
+    {
+        if (empty($dataProses)) return;
+
+        $snippets = explode(' ; ', $dataProses);
+        $accumulated = 0;
+
+        $existingLogs = WorkRequestLog::where('work_request_id', $workRequestId)->get();
+
+        foreach ($snippets as $snip) {
+            $clean = trim($snip, " []\t\n\r");
+            if (empty($clean)) continue;
+
+            $parts = explode(' - ', $clean);
+            $statusLabel = trim($parts[0] ?? 'Proses');
+            $qty = 0;
+            if (isset($parts[1]) && preg_match('/(\d+)/', $parts[1], $qm)) {
+                $qty = (float) $qm[1];
+            }
+
+            $logTimestamp = $fallbackDate . ' 12:00:00';
+            $notes = trim($parts[3] ?? ($parts[2] ?? ''));
+            if (isset($parts[2]) && preg_match('/^(\d{1,2})\/(\d{1,2})\s*(\d{1,2}:\d{2})$/', trim($parts[2]), $tm)) {
+                $day = (int) $tm[1];
+                $month = (int) $tm[2];
+                $time = $tm[3];
+                $year = (int) substr($fallbackDate, 0, 4) ?: (int) date('Y');
+                $logTimestamp = sprintf('%04d-%02d-%02d %s:00', $year, $month, $day, $time);
+                $notes = trim($parts[3] ?? '');
+            }
+
+            $accumulated += $qty;
+
+            // Cari apakah log dengan status_label dan quantity yang sama sudah pernah ada
+            $matchedLog = $existingLogs->first(function ($l) use ($statusLabel, $qty) {
+                return $l->status_label === $statusLabel && (float)$l->quantity === (float)$qty;
+            });
+
+            if ($matchedLog) {
+                // Perbarui timestamp jika berbeda dengan logTimestamp aktual dari Data Proses
+                if ($matchedLog->created_at?->format('Y-m-d H:i') !== substr($logTimestamp, 0, 16)) {
+                    $matchedLog->created_at = $logTimestamp;
+                    $matchedLog->updated_at = $logTimestamp;
+                    if ($notes && empty($matchedLog->notes)) {
+                        $matchedLog->notes = $notes;
+                    }
+                    $matchedLog->save();
+                }
+            } else {
+                WorkRequestLog::create([
+                    'work_request_id' => $workRequestId,
+                    'action_type' => str_contains($statusLabel, 'Pickup') ? 'pickup' : (str_contains($statusLabel, 'Parsial') ? 'partial' : 'process'),
+                    'status_label' => $statusLabel,
+                    'quantity' => $qty,
+                    'quantity_accumulated' => $accumulated,
+                    'operator_name' => null,
+                    'notes' => $notes ?: null,
+                    'created_at' => $logTimestamp,
+                    'updated_at' => $logTimestamp,
+                ]);
+            }
         }
     }
 }

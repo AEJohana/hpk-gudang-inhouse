@@ -101,7 +101,28 @@ Dalam menjaga integritas kode dan basis data operasional, setiap developer dan A
 
 - [about.md](about.md) - Analisis Arsitektur dan Rincian Seluruh Modul WMS & WRI
 - [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
+- [docs/MIGRASI_LOG_WR_SPREADSHEET.md](docs/MIGRASI_LOG_WR_SPREADSHEET.md) - Buku Panduan Migrasi Data Historis & SOP Pemutakhiran CSV (Runbook Bab 12)
 - [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - SOP Operasional, Diagram Alur Proses, dan Aturan Bisnis (BR-01 s/d BR-14)
 - [SESSION_RESUME_AKSES_AKUN.md](SESSION_RESUME_AKSES_AKUN.md) - Log Checkpoint Proyek, Pemetaan Hak Akses & Riwayat Implementasi
 - [GEMINI.md](GEMINI.md) - Panduan Kerja AI Agent
 - [System WR lama/README.md](System%20WR%20lama/README.md) - Arsip Historis Sistem Google Apps Script & Sheets (Legacy)
+
+---
+
+## ⚡ Perintah Cepat Pemutakhiran Data WR (Spreadsheet Sync Cheat Sheet)
+
+Jika berkas `System WR lama/Spreadsheet/Form Work Request - Log WR.csv` diperbarui dengan data pabrik terbaru:
+```powershell
+# 1. Simulasi uji coba aman (Dry-Run, tanpa ubah database)
+php artisan wr:migrate-legacy-spreadsheet --sync --dry-run
+
+# 2. Eksekusi pemutakhiran riil (Smart UPSERT, Zero Stock, Presisi 100%)
+php artisan wr:migrate-legacy-spreadsheet --sync
+
+# 3. Unduh foto fisik baru jika ada (Opsional)
+php artisan wr:download-legacy-photos
+
+# 4. Validasi integritas data otomatis
+php artisan test --filter=LegacyWrMigrationTest
+```
+Rincian prosedur lengkap dan pencegahan kegagalan tercatat di [docs/MIGRASI_LOG_WR_SPREADSHEET.md](docs/MIGRASI_LOG_WR_SPREADSHEET.md#12-panduan-operasional-resmi-pemutakhiran-csv--migrasi-ulang-di-masa-depan-production-cutover--sync-runbook).

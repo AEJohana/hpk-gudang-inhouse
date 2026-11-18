@@ -40,6 +40,8 @@ class WorkRequest extends Model
         'notes',
         'received_at',
         'received_by_user_id',
+        'created_at',
+        'updated_at',
     ];
 
     protected $casts = [
@@ -208,8 +210,12 @@ class WorkRequest extends Model
             return false;
         }
 
-        // Must be approved by both Pengaju and Penerima
-        if ($this->approval_pengaju !== 'Diterima' || $this->approval_penerima !== 'Diterima') {
+        // Must be approved by both Pengaju and Penerima (or implied by physical production progress)
+        $isPenerimaApproved = ($this->approval_penerima === 'Diterima') 
+            || ((float)$this->quantity_produced > 0)
+            || (!in_array(strtolower(trim($this->status ?? '')), ['belum verifikasi', 'submitted', 'draft', 'cancelled', 'ditolak', 'rejected']) && stripos($this->status ?? '', 'antrian') === false);
+
+        if ($this->approval_pengaju !== 'Diterima' || !$isPenerimaApproved) {
             return false;
         }
 
@@ -582,7 +588,11 @@ class WorkRequest extends Model
         if ($this->is_final) {
             return [];
         }
-        if ($this->approval_pengaju !== 'Diterima' || $this->approval_penerima !== 'Diterima') {
+        $isPenerimaApproved = ($this->approval_penerima === 'Diterima') 
+            || ((float)$this->quantity_produced > 0)
+            || (!in_array(strtolower(trim($this->status ?? '')), ['belum verifikasi', 'submitted', 'draft', 'cancelled', 'ditolak', 'rejected']) && stripos($this->status ?? '', 'antrian') === false);
+
+        if ($this->approval_pengaju !== 'Diterima' || !$isPenerimaApproved) {
             return [];
         }
 
@@ -715,16 +725,36 @@ class WorkRequest extends Model
                     ->sum('quantity');
             }
 
-            // Gerbang Wajib: Gudang HANYA boleh menerima barang jika barang SUDAH DI-PICKUP MH dan sedang dalam perjalanan ('Menuju Pengaju')
-            $saldoTerima = max(0, $totalMenuju - $totalSudah - $gudangDefects);
-            if ($saldoTerima > 0) {
+            // Total barang selesai dari tahapan mesin terakhir (Kompatibilitas Sistem Lama)
+            $totalSiap = $this->getTotalProcessedForStatus('Siap diambil');
+            if ($totalSiap == 0 && !empty($steps)) {
+                $lastStep = $steps[count($steps) - 1];
+                $totalSiap = $this->getTotalProcessedForStatus("Proses: {$lastStep} (Out)");
+            }
+            if ($totalSiap == 0 && (stripos($this->status, 'siap diambil') !== false || $this->status === 'ready_for_warehouse')) {
+                $totalSiap = (float) $this->quantity_requested;
+            }
+
+            // Fleksibilitas Sistem Lama (js_dashboard.html): Jika kurir MH belum jemput (totalMenuju == 0), ambil dari totalSiap - totalSudah
+            if ($totalMenuju == 0 && $gudangDefects == 0) {
+                $saldoTerima = max(0, $totalSiap - $totalSudah);
+            } else {
+                $saldoTerima = max(0, $totalMenuju - $totalSudah - $gudangDefects);
+            }
+
+            // Penyelamat Data: Jika status sudah Siap Diambil tapi saldoTerima masih 0
+            if ($saldoTerima <= 0 && (stripos($this->status, 'siap diambil') !== false || stripos($this->status, 'menuju pengaju') !== false)) {
+                $saldoTerima = max(0, (float) $this->quantity_requested - $totalSudah);
+            }
+
+            if ($saldoTerima > 0 && stripos($this->status, 'sudah diambil') === false) {
                 $actions[] = [
                     'type' => 'receive',
                     'target_status' => "Sudah Diambil",
-                    'label' => "Terima di Gudang",
+                    'label' => "Scan Diterima ({$saldoTerima} pcs)",
                     'quantity' => $saldoTerima,
                     'color' => 'emerald',
-                    'icon' => 'fa-warehouse',
+                    'icon' => 'fa-check-double',
                 ];
             }
         }
