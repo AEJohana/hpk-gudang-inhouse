@@ -100,6 +100,9 @@ class PasswordResetTest extends TestCase
         $response->assertSee('Budi Santoso');
         $response->assertSee('Admin Gudang');
         $response->assertSee('0812-3456-7890');
+        $response->assertSee('tel:081234567890');
+        $response->assertDontSee('wa.me');
+        $response->assertDontSee('Chat WA');
     }
 
     public function test_forgot_password_post_redirects_with_security_notice(): void

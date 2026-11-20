@@ -1,31 +1,5 @@
 <x-guest-layout>
     <style>
-        .hpk-wa-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background-color: #25D366 !important;
-            color: #ffffff !important;
-            font-weight: 700;
-            font-size: 11px;
-            padding: 6px 12px;
-            border-radius: 10px;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(37, 211, 102, 0.25);
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-        .hpk-wa-btn:hover {
-            background-color: #20bd5a !important;
-            color: #ffffff !important;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(37, 211, 102, 0.35);
-        }
-        .hpk-wa-btn:active {
-            transform: scale(0.96);
-        }
-
         .hpk-copy-box {
             position: relative;
             overflow: hidden;
@@ -111,22 +85,7 @@
         }
     </style>
 
-    <div class="glass-card text-center p-5 sm:p-7"
-         x-data="{
-             username: '',
-             init() {
-                 const saved = localStorage.getItem('hpk_remembered_username');
-                 if (saved) {
-                     this.username = saved;
-                 }
-             },
-             getWaUrl(waPhone, adminName, isSpv) {
-                 const roleTitle = isSpv ? 'Supervisor' : 'Admin Gudang';
-                 const userStr = this.username.trim() ? this.username.trim() : '[Sebutkan Username Akun Anda]';
-                 const text = `Halo *Pak/Bu ${adminName}* (${roleTitle}),\n\nSaya ingin mengajukan permohonan *Reset Kata Sandi* akun sistem *WMS HPK Gudang In-House*:\n\n• *Username Akun* : *${userStr}*\n• *Keperluan* : Lupa kata sandi operasional pabrik\n\nMohon bantuannya untuk melakukan *Reset Password ke Standar Pabrik (hpkgudang)* melalui menu Manajemen Pengguna. Terima kasih atas bantuannya.`;
-                 return 'https://wa.me/' + waPhone + '?text=' + encodeURIComponent(text);
-             }
-         }">
+    <div class="glass-card text-center p-5 sm:p-7">
         <!-- Floating Logo Badge -->
         <div class="mb-4">
             <div class="floating-logo-badge">
@@ -142,7 +101,7 @@
 
         <h4 class="font-extrabold text-xl text-slate-900 mb-1.5">Lupa Kata Sandi?</h4>
         <p class="text-xs text-slate-600 leading-relaxed mb-4">
-            Demi menjaga <strong>keamanan data logistik</strong> dan <strong>integritas akun operasional</strong> PT Hydraxle Perkasa, pemulihan kata sandi dilakukan secara <strong>langsung & terverifikasi</strong> melalui Administrator Gudang atau Supervisor yang bertugas.
+            Sistem beroperasi pada jaringan lokal pabrik (intranet). Demi menjaga integritas data logistik, silakan hubungi <strong>Administrator Gudang</strong> atau <strong>Supervisor</strong> yang bertugas dengan menyalin nomor telepon di bawah ini, atau datang langsung ke ruang pos admin.
         </p>
 
         @if (session('info'))
@@ -151,32 +110,6 @@
                 <span>{{ session('info') }}</span>
             </div>
         @endif
-
-        <!-- Input Identitas Akun Pemohon (Dihubungkan Otomatis ke Template WhatsApp) -->
-        <div class="mb-5 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left shadow-2xs">
-            <label for="req_username" class="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between">
-                <span class="flex items-center">
-                    <i class="fa-solid fa-id-card-clip text-teal-600 me-1.5 text-xs"></i>
-                    Identitas Akun Pemohon
-                </span>
-                <span class="text-[10px] font-bold text-teal-600 normal-case" x-show="username.trim() !== ''">
-                    <i class="fa-solid fa-circle-check text-[9px] me-0.5"></i> Terhubung ke Pesan WA
-                </span>
-            </label>
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <i class="fa-solid fa-user text-xs"></i>
-                </div>
-                <input id="req_username"
-                       type="text"
-                       x-model="username"
-                       placeholder="Masukkan Username akun Anda (misal: Denis, Panji, Joni)"
-                       class="w-full pl-8 pr-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 bg-white text-slate-800 placeholder-slate-400 transition" />
-            </div>
-            <p class="text-[10px] text-slate-500 mt-1.5 leading-normal">
-                Ketik <strong>Username</strong> akun Anda agar otomatis tercantum dalam <strong>template pesan WhatsApp</strong> di bawah ini.
-            </p>
-        </div>
 
         <!-- Daftar Kontak Admin & Supervisor Bertugas -->
         <div class="space-y-3 text-left mb-5">
@@ -187,15 +120,10 @@
             @forelse($admins as $admin)
                 @php
                     $cleanPhone = preg_replace('/[^0-9]/', '', $admin->phone ?? '');
-                    if (str_starts_with($cleanPhone, '0')) {
-                        $waPhone = '62' . substr($cleanPhone, 1);
-                    } else {
-                        $waPhone = $cleanPhone;
-                    }
                     $isSpv = in_array($admin->role, ['supervisor']) || (method_exists($admin, 'hasRole') && $admin->hasRole('supervisor'));
                 @endphp
                 <div class="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-xs transition">
-                    <!-- Baris Atas: Profil Admin & Tombol WhatsApp Resmi -->
+                    <!-- Baris Atas: Profil Admin & Tombol Aksi Dialer Telepon -->
                     <div class="flex items-center justify-between gap-2 mb-2.5">
                         <div class="flex items-center space-x-2 min-w-0">
                             <div class="w-8 h-8 rounded-xl {{ $isSpv ? 'bg-purple-600' : 'bg-amber-500' }} text-white flex items-center justify-center text-[11px] font-black shadow-xs shrink-0">
@@ -211,18 +139,17 @@
                             </div>
                         </div>
 
-                        @if(!empty($waPhone))
-                        <a :href="getWaUrl('{{ $waPhone }}', '{{ addslashes($admin->name) }}', {{ $isSpv ? 'true' : 'false' }})" 
-                           target="_blank" 
-                           class="hpk-wa-btn"
-                           title="Kirim pesan bantuan via WhatsApp">
-                            <i class="fa-brands fa-whatsapp text-sm"></i>
-                            <span>Chat WA</span>
+                        @if(!empty($cleanPhone))
+                        <a href="tel:{{ $cleanPhone }}" 
+                           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-[10px] border border-teal-200/80 transition shadow-2xs cursor-pointer"
+                           title="Panggil via Telepon (Perangkat Ponsel/Tablet)">
+                            <i class="fa-solid fa-phone text-[9px] text-teal-600"></i>
+                            <span>Panggil</span>
                         </a>
                         @endif
                     </div>
 
-                    <!-- Baris Bawah: Interaksi Salin Nomor Telepon Smooth Morphing (Lampiran 0 s/d 3) -->
+                    <!-- Baris Bawah: Interaksi Salin Nomor Telepon Smooth Morphing -->
                     @if(!empty($admin->phone))
                     <div class="hpk-copy-box"
                          x-data="{
@@ -248,13 +175,13 @@
                              }
                          }">
                          
-                         <!-- Kiri: Nomor Telepon Tampil (Lampiran 0) -->
+                         <!-- Kiri: Nomor Telepon Tampil -->
                          <div class="hpk-copy-left">
                              <i class="fa-solid fa-phone"></i>
                              <span>{{ $admin->phone }}</span>
                          </div>
 
-                         <!-- Kanan: Tombol Salin Biru-Indigo (Lampiran 0) -->
+                         <!-- Kanan: Tombol Salin Biru-Indigo -->
                          <button type="button" 
                                  @click="copyPhone('{{ $cleanPhone }}')"
                                  class="hpk-copy-btn"
@@ -263,7 +190,7 @@
                              <span>Copy</span>
                          </button>
 
-                         <!-- Efek Meluncur Penuh Hijau Zamrud dari Kanan ke Kiri (Lampiran 1 s/d 3) -->
+                         <!-- Efek Meluncur Penuh Hijau Zamrud dari Kanan ke Kiri -->
                          <div class="hpk-copied-overlay" :class="{ 'active': copied }">
                              <i class="fa-solid fa-check text-xs"></i>
                              <span>Nomor tersalin!</span>

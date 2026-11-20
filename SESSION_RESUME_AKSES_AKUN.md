@@ -723,10 +723,11 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - Penyimpanan identitas akun (Username/Email) otomatis pada `localStorage` peramban saat checkbox *"Ingat saya"* dicentang saat submit login.
   - Auto-fill dan auto-focus ke input password saat membuka kembali layar login (bahkan setelah logout atau sesi berakhir).
   - Pembersihan nilai default hardcoded (`'admin'` dan `'password'`) yang sebelumnya mengunci form.
-- **Halaman Pusat Bantuan Lupa Password Resmi (`/forgot-password`):**
+- **Halaman Pusat Bantuan Lupa Password Resmi Ramah Intranet Offline (`/forgot-password`):**
   - Redesain total bertema HPK WMS (glassmorphism & logo resmi PT Hydraxle Perkasa).
-  - Mengeliminasi ketergantungan server email eksternal/SMTP yang tidak relevan di lingkungan intranet pabrik.
-  - Menampilkan kontak langsung WhatsApp & telepon Administrator Gudang dan Supervisor yang bertugas serta informasi pos bantuan fisik di Ruang Admin Gudang (Lantai 1).
+  - Mengeliminasi ketergantungan server email eksternal/SMTP dan tautan WhatsApp publik (`wa.me`) yang tidak dapat beroperasi pada intranet/localhost pabrik offline.
+  - Memusatkan bantuan pada fitur 1-klik Salin Nomor HP (Pure Client-side Clipboard Copy) dengan animasi hijau zamrud, tombol panggil langsung (`tel:`), serta pos tatap muka di Ruang Admin Gudang (Lantai 1).
+  - Menghapus kolom input username formulir yang kini redundan sehingga layar lebih bersih, ringkas, dan cepat dimuat.
 - **Fitur 1-Klik Reset Password Administrator (`/admin/users`):**
   - Tombol aksi cepat ikon kunci pada tabel manajemen pengguna (desktop & mobile) untuk mengembalikan kata sandi akun ke default (`hpkgudang`).
   - Dilengkapi dialog konfirmasi keamanan modal sebelum eksekusi.
