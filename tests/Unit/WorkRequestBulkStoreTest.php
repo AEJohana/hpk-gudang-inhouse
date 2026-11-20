@@ -39,7 +39,8 @@ class WorkRequestBulkStoreTest extends TestCase
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('email')->unique();
+            $table->string('username')->unique();
+            $table->string('email')->nullable();
             $table->string('password');
             $table->string('work_area')->nullable();
             $table->string('department')->nullable();
@@ -172,6 +173,7 @@ class WorkRequestBulkStoreTest extends TestCase
     {
         $user = User::create([
             'name' => 'Pak Panji',
+            'username' => 'panji',
             'email' => 'panji@hydraxle.test',
             'password' => bcrypt('password'),
             'department' => 'Dept Gudang',
@@ -206,7 +208,7 @@ class WorkRequestBulkStoreTest extends TestCase
             [
                 'component_id' => $comp2->id,
                 'quantity' => 800,
-                'department_name' => 'Dept Laser Cutting',
+                'department_name' => 'Dept Laser Cutting -> Dept M1',
                 'priority' => 'high',
                 'notes' => 'Tekuk presisi',
             ],
@@ -240,13 +242,22 @@ class WorkRequestBulkStoreTest extends TestCase
         $this->assertEquals(800, $wr2->quantity_requested);
         $this->assertEquals('high', $wr2->priority);
         $this->assertEquals('Tekuk presisi', $wr2->notes);
+        $this->assertEquals('Dept Laser Cutting -> Dept M1', $wr2->routing_text);
+        $this->assertEquals('Dept Laser Cutting', $wr2->dept_penerima);
         $this->assertStringContainsString('/2/CRGVM18000000HT', $wr2->wri_number);
+
+        // Assert multi-step routing created multiple WorkRequestStep rows
+        $stepsWr2 = WorkRequestStep::where('work_request_id', $wr2->id)->orderBy('step_number')->get();
+        $this->assertCount(2, $stepsWr2);
+        $this->assertEquals('Dept Laser Cutting', $stepsWr2[0]->process_name);
+        $this->assertEquals('Dept M1', $stepsWr2[1]->process_name);
     }
 
     public function test_bulk_store_redirects_with_error_when_cart_is_empty(): void
     {
         $user = User::create([
             'name' => 'Staff Gudang',
+            'username' => 'staff',
             'email' => 'staff@hydraxle.test',
             'password' => bcrypt('password'),
             'department' => 'Dept Gudang',
@@ -255,6 +266,7 @@ class WorkRequestBulkStoreTest extends TestCase
 
         $request = new Request([
             'cart_data' => '[]',
+            'source' => 'safety_stock',
         ]);
 
         $controller = app(\App\Http\Controllers\WorkRequestController::class);

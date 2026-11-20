@@ -1094,4 +1094,72 @@ class WorkRequest extends Model
         $svg = $this->qr_code_svg;
         return 'data:image/svg+xml;base64,' . base64_encode($svg);
     }
+
+    /**
+     * Cek apakah komponen pada Work Request ini adalah komponen baru (belum terdaftar di katalog master).
+     */
+    public function isNewPart(): bool
+    {
+        if (!$this->component) return false;
+        return $this->component->status === 'pending_catalog'
+            || str_starts_with($this->component->part_number ?? '', 'NEW-')
+            || $this->component->part_number === 'Baru'
+            || str_contains($this->component->specification ?? '', 'form Work Request')
+            || empty($this->component->part_number);
+    }
+
+    /**
+     * Cek apakah pengguna berwenang untuk mengubah alur / routing tiket ini.
+     * Syarat mutlak: Tiket belum final, belum ada pengerjaan fisik mesin sama sekali (quantity_produced == 0 & quantity_received == 0),
+     * dan belum berjalan di stasiun kerja (status masih Dalam antrian / submitted).
+     */
+    public function canUserEditRouting(?User $user = null): bool
+    {
+        $user = $user ?? auth()->user();
+        if (!$user || $this->is_final) return false;
+
+        // Pengerjaan fisik wajib 0 (belum mulai jalan)
+        if ((float)$this->quantity_produced > 0 || (float)$this->quantity_received > 0) {
+            return false;
+        }
+
+        // Status harus belum masuk ke pemrosesan aktif
+        $cleanStatus = strtolower(trim(preg_replace('/^Parsial\s*>\s*/i', '', $this->status ?: '')));
+        if (!in_array($cleanStatus, ['dalam antrian', 'submitted', 'draft'])) {
+            return false;
+        }
+
+        // Tidak boleh ada log pengerjaan produksi aktif
+        if ($this->relationLoaded('logs')) {
+            $hasProductionLogs = $this->logs->contains(fn($l) => in_array($l->action_type, ['process', 'partial', 'pickup', 'drop', 'final_pickup', 'final_receive']));
+        } else {
+            $hasProductionLogs = $this->logs()->whereIn('action_type', ['process', 'partial', 'pickup', 'drop', 'final_pickup', 'final_receive'])->exists();
+        }
+        if ($hasProductionLogs) {
+            return false;
+        }
+
+        // Admin Gudang & Supervisor memiliki wewenang superuser untuk mengoreksi alur semua WR yang belum diproses
+        if ($user->isAdmin() || $user->isSupervisor()) {
+            return true;
+        }
+
+        // Untuk Pengaju, Ka. Pengaju, atau Ka. Penerima, diizinkan untuk komponen baru
+        if ($this->isNewPart()) {
+            $userDept = strtolower(trim($user->effective_department_name));
+            $pengajuDept = strtolower(trim($this->dept_pengaju ?? ''));
+            $penerimaDept = strtolower(trim($this->dept_penerima ?? ''));
+            $cleanUser = preg_replace('/[^a-z0-9]/', '', $userDept);
+            $cleanPengaju = preg_replace('/[^a-z0-9]/', '', $pengajuDept);
+            $cleanPenerima = preg_replace('/[^a-z0-9]/', '', $penerimaDept);
+
+            return $this->requested_by_user_id === $user->id
+                || str_contains($cleanUser, $cleanPengaju)
+                || str_contains($cleanPengaju, $cleanUser)
+                || str_contains($cleanUser, $cleanPenerima)
+                || str_contains($cleanPenerima, $cleanUser);
+        }
+
+        return false;
+    }
 }

@@ -320,9 +320,15 @@ class WorkRequestController extends Controller
             }
         }
 
+        $fabricationDepartments = Department::active()
+            ->where('code', '!=', '11')
+            ->where('name', 'not like', '%Gudang%')
+            ->orderBy('id')
+            ->get();
+
         // Return partial view for seamless AJAX tab switching (Zero Full Page Reload)
         if ($request->ajax() || $request->header('X-Partial') === '1' || $request->query('_partial') === '1') {
-            return view('work_requests.partials._table_content', compact('workRequests', 'scope'));
+            return view('work_requests.partials._table_content', compact('workRequests', 'scope', 'fabricationDepartments'));
         }
 
         // Prepare department operators lookup for operator assignment modal
@@ -374,7 +380,8 @@ class WorkRequestController extends Controller
             'overdueSlaCount',
             'printableCount',
             'openDetailPayload',
-            'departmentOperatorsMap'
+            'departmentOperatorsMap',
+            'fabricationDepartments'
         ));
     }
 
@@ -791,6 +798,141 @@ class WorkRequestController extends Controller
     }
 
     /**
+     * Update routing sequence for a Work Request (e.g. for new components or corrections before execution).
+     */
+    public function updateRouting(Request $request, WorkRequest $workRequest)
+    {
+        $user = auth()->user();
+
+        // 1. Validasi Otorisasi & Guardrail Pengerjaan Belum Mulai
+        if (!$workRequest->canUserEditRouting($user)) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akses Ditolak: Tiket ini tidak dapat diubah alurnya karena telah mulai diproses atau Anda tidak memiliki wewenang.'
+                ], 403);
+            }
+            return back()->with('error', 'Akses Ditolak: Tiket ini tidak dapat diubah alurnya karena telah mulai diproses atau Anda tidak memiliki wewenang.');
+        }
+
+        // 2. Validasi Input Tahapan Routing
+        $validated = $request->validate([
+            'target_departments' => 'required|array|min:1',
+            'target_departments.*.department_name' => 'required|string|max:100',
+            'target_departments.*.notes' => 'nullable|string|max:255',
+            'reason' => 'required|string|max:500',
+        ]);
+
+        return DB::transaction(function () use ($validated, $workRequest, $user, $request) {
+            $machines = Machine::all();
+            $defaultMachine = $machines->first();
+
+            $stepsData = [];
+            foreach ($validated['target_departments'] as $td) {
+                $deptName = trim($td['department_name'] ?? '');
+                if (!$deptName) continue;
+
+                $matchedMachine = $machines->first(function ($m) use ($deptName) {
+                    return stripos($m->name, $deptName) !== false || stripos($m->machine_type, $deptName) !== false;
+                }) ?? $defaultMachine;
+
+                $cleanDeptLabel = str_starts_with($deptName, 'Dept ') ? $deptName : 'Dept ' . $deptName;
+
+                $stepsData[] = [
+                    'machine_id' => $matchedMachine?->id ?? 1,
+                    'process_name' => $cleanDeptLabel,
+                    'notes' => !empty($td['notes']) ? trim($td['notes']) : null,
+                ];
+            }
+
+            if (empty($stepsData)) {
+                $stepsData[] = [
+                    'machine_id' => $defaultMachine?->id ?? 1,
+                    'process_name' => 'Dept Laser Cutting',
+                    'notes' => null,
+                ];
+            }
+
+            $stepNames = array_column($stepsData, 'process_name');
+            $newRoutingText = implode(' -> ', $stepNames);
+            $newDeptPenerima = $stepNames[0];
+
+            $oldRoutingText = $workRequest->routing_text ?: $workRequest->dept_penerima ?: '-';
+            $oldDeptPenerima = $workRequest->dept_penerima ?: '-';
+
+            $cleanOldPenerima = preg_replace('/[^a-z0-9]/', '', strtolower($oldDeptPenerima));
+            $cleanNewPenerima = preg_replace('/[^a-z0-9]/', '', strtolower($newDeptPenerima));
+            $penerimaChanged = ($cleanOldPenerima !== $cleanNewPenerima);
+
+            $updateData = [
+                'routing_text' => $newRoutingText,
+                'dept_penerima' => $newDeptPenerima,
+            ];
+
+            // Reset persetujuan penerima jika stasiun awal berubah agar Ka. Mesin stasiun baru dapat memeriksa kesanggupan
+            if ($penerimaChanged) {
+                $updateData['approval_penerima'] = 'Menunggu';
+                $updateData['assigned_operator_name'] = null;
+            }
+
+            $workRequest->update($updateData);
+
+            // Recreate steps
+            $workRequest->steps()->delete();
+            foreach ($stepsData as $idx => $stepData) {
+                WorkRequestStep::create([
+                    'work_request_id' => $workRequest->id,
+                    'step_number' => $idx + 1,
+                    'machine_id' => $stepData['machine_id'],
+                    'process_name' => $stepData['process_name'],
+                    'status' => 'pending',
+                    'notes' => $stepData['notes'] ?? null,
+                ]);
+            }
+
+            // Catat ke WorkRequestLog
+            $reasonNote = !empty($validated['reason']) ? " Alasan: " . trim($validated['reason']) : '';
+            $resetNote = $penerimaChanged ? " (Otorisasi penerima di-reset ke stasiun baru: {$newDeptPenerima})" : '';
+
+            WorkRequestLog::create([
+                'work_request_id' => $workRequest->id,
+                'action_type' => 'routing_update',
+                'status_label' => 'Alur Diperbarui: ' . $newRoutingText,
+                'quantity' => $workRequest->quantity_requested,
+                'quantity_accumulated' => 0,
+                'operator_name' => $user->name,
+                'notes' => "Alur mesin diubah dari [{$oldRoutingText}] menjadi [{$newRoutingText}] oleh {$user->name} ({$user->effective_department_name}).{$resetNote}{$reasonNote}",
+            ]);
+
+            ActivityLogger::workRequest(
+                'routing_updated',
+                "Mengubah alur routing tiket {$workRequest->wri_number} dari [{$oldRoutingText}] menjadi [{$newRoutingText}].",
+                $workRequest,
+                [
+                    'old_routing' => $oldRoutingText,
+                    'new_routing' => $newRoutingText,
+                    'penerima_changed' => $penerimaChanged,
+                    'reason' => $validated['reason'] ?? null
+                ]
+            );
+
+            $successMsg = "Alur routing tiket {$workRequest->wri_number} berhasil diperbarui menjadi: {$newRoutingText}!";
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $successMsg,
+                    'wri_number' => $workRequest->wri_number,
+                    'routing_text' => $newRoutingText,
+                    'dept_penerima' => $newDeptPenerima,
+                ]);
+            }
+
+            return back()->with('success', $successMsg);
+        });
+    }
+
+    /**
      * Tab: Safety Stock Alert (Komponen Kritis di Bawah Ambang Batas).
      */
     public function safetyStock(Request $request)
@@ -842,14 +984,21 @@ class WorkRequestController extends Controller
         }
 
         if (empty($cartItems)) {
-            return redirect()->route('work-requests.safety-stock')
-                ->with('error', 'Keranjang pemesanan WRI masih kosong. Silakan pilih komponen defisit terlebih dahulu.');
+            if ($request->input('source') === 'safety_stock' || str_contains(url()->previous(), 'safety-stock')) {
+                return redirect()->route('work-requests.safety-stock')
+                    ->with('error', 'Keranjang pemesanan WRI masih kosong. Silakan pilih komponen defisit terlebih dahulu.');
+            }
+            return redirect()->back()
+                ->with('error', 'Keranjang pemesanan WRI masih kosong. Silakan tambahkan minimal 1 item ke dalam daftar.');
         }
 
         $createdWris = [];
 
-        DB::transaction(function () use ($cartItems, $user, &$createdWris) {
-            $deptPengaju = $user->effective_department_name;
+        DB::transaction(function () use ($cartItems, $user, $request, &$createdWris) {
+            $deptPengaju = ($user->canAccessAllDepartments() && $request->filled('dept_pengaju'))
+                ? trim($request->input('dept_pengaju'))
+                : $user->effective_department_name;
+
             $cleanDept = preg_replace('/[^a-zA-Z0-9]/', '', $deptPengaju);
             if (empty($cleanDept)) {
                 $cleanDept = 'GUDANG';
@@ -895,16 +1044,29 @@ class WorkRequestController extends Controller
                     ? $item['priority'] 
                     : 'normal';
 
-                $deptName = trim($item['department_name'] ?? '');
-                if (!$deptName) {
-                    $deptName = 'Dept Laser Cutting';
+                // Parsing multi-step routing jika diberikan sebagai array atau string berurutan
+                $rawRouting = $item['target_departments'] ?? $item['routing'] ?? $item['department_name'] ?? 'Dept Laser Cutting';
+                $deptSteps = [];
+                if (is_array($rawRouting)) {
+                    foreach ($rawRouting as $r) {
+                        $dName = is_array($r) ? ($r['department_name'] ?? '') : (string)$r;
+                        $dName = trim($dName);
+                        if ($dName) $deptSteps[] = str_starts_with($dName, 'Dept ') ? $dName : 'Dept ' . $dName;
+                    }
+                } elseif (is_string($rawRouting)) {
+                    $delimiters = ['->', ',', '>'];
+                    $normalized = str_replace($delimiters, '|', $rawRouting);
+                    foreach (explode('|', $normalized) as $part) {
+                        $dName = trim($part);
+                        if ($dName) $deptSteps[] = str_starts_with($dName, 'Dept ') ? $dName : 'Dept ' . $dName;
+                    }
+                }
+                if (empty($deptSteps)) {
+                    $deptSteps = ['Dept Laser Cutting'];
                 }
 
-                $cleanDeptLabel = str_starts_with($deptName, 'Dept ') ? $deptName : 'Dept ' . $deptName;
-
-                $matchedMachine = $machines->first(function ($m) use ($cleanDeptLabel) {
-                    return stripos($m->name, $cleanDeptLabel) !== false || stripos($m->machine_type, $cleanDeptLabel) !== false;
-                }) ?? $defaultMachine;
+                $firstDept = $deptSteps[0];
+                $routingText = implode(' -> ', $deptSteps);
 
                 if (!isset($itemDailyCounters[$component->id])) {
                     $itemDailyCounters[$component->id] = WorkRequest::whereDate('created_at', today())
@@ -930,15 +1092,15 @@ class WorkRequestController extends Controller
                 $targetSlot = $component->default_slot_number ?? '01';
                 $targetWarehouseId = $component->defaultLocation?->warehouse_id ?? Warehouse::first()?->id;
 
-                $notes = !empty($item['notes']) ? trim($item['notes']) : null;
+                $notes = !empty($item['notes']) ? trim($item['notes']) : (!empty($item['description']) ? trim($item['description']) : null);
 
                 $workRequest = WorkRequest::create([
                     'wri_number' => $wriNumber,
                     'component_id' => $component->id,
                     'requested_by_user_id' => $user->id,
                     'dept_pengaju' => $deptPengaju,
-                    'dept_penerima' => $cleanDeptLabel,
-                    'routing_text' => $cleanDeptLabel,
+                    'dept_penerima' => $firstDept,
+                    'routing_text' => $routingText,
                     'approval_pengaju' => $approvalPengaju,
                     'approval_penerima' => $approvalPenerima,
                     'target_warehouse_id' => $targetWarehouseId,
@@ -956,16 +1118,22 @@ class WorkRequestController extends Controller
                     'notes' => $notes,
                 ]);
 
-                WorkRequestStep::create([
-                    'work_request_id' => $workRequest->id,
-                    'step_number' => 1,
-                    'machine_id' => $matchedMachine?->id ?? 1,
-                    'process_name' => $cleanDeptLabel,
-                    'status' => 'pending',
-                    'notes' => $notes,
-                ]);
+                foreach ($deptSteps as $sIdx => $sDept) {
+                    $matchedMachine = $machines->first(function ($m) use ($sDept) {
+                        return stripos($m->name, $sDept) !== false || stripos($m->machine_type, $sDept) !== false;
+                    }) ?? $defaultMachine;
 
-                $logNotes = 'Tiket WRI Diterbitkan Massal via Safety Stock Cart oleh ' . $user->name . ' (' . $deptPengaju . ')';
+                    WorkRequestStep::create([
+                        'work_request_id' => $workRequest->id,
+                        'step_number' => $sIdx + 1,
+                        'machine_id' => $matchedMachine?->id ?? 1,
+                        'process_name' => $sDept,
+                        'status' => 'pending',
+                        'notes' => $notes,
+                    ]);
+                }
+
+                $logNotes = 'Tiket WRI Diterbitkan Massal via Cart oleh ' . $user->name . ' (' . $deptPengaju . ')';
                 if ($isUrgent) {
                     $logNotes .= ' [Auto-Bypass Darurat: Urgent Line Stop]';
                 } elseif ($approvalPengaju === 'Menunggu') {
@@ -995,7 +1163,7 @@ class WorkRequestController extends Controller
 
         $count = count($createdWris);
         return redirect()->route('work-requests.index')
-            ->with('success', "Berhasil menerbitkan {$count} tiket Work Request secara massal dari Safety Stock!");
+            ->with('success', "Berhasil menerbitkan {$count} tiket Work Request secara massal!");
     }
 
     /**

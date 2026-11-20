@@ -752,6 +752,36 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Pengujian & Validasi Kualitas:**
   - Lulus 100% pada seluruh rangkaian pengujian fitur: [tests/Feature/Auth/AuthenticationTest.php](tests/Feature/Auth/AuthenticationTest.php), [tests/Feature/Auth/PasswordResetTest.php](tests/Feature/Auth/PasswordResetTest.php), [tests/Feature/Auth/PasswordUpdateTest.php](tests/Feature/Auth/PasswordUpdateTest.php), [tests/Feature/Auth/RegistrationTest.php](tests/Feature/Auth/RegistrationTest.php), [tests/Feature/ProfileTest.php](tests/Feature/ProfileTest.php), dan [tests/Feature/UnifiedUserManagementTest.php](tests/Feature/UnifiedUserManagementTest.php) (26 passed, 126 assertions).
 
+### HHH. Fleksibilitas Alur / Edit Routing WR Komponen Baru Sebelum Diproses (Update 20 Nov 2026 - Baru Selesai & Teruji 100%)
+- **Tombol Aksi Ikon Pensil di Kolom Routing:**
+  - Disematkan pada baris `Routing : Dept ...` di tabel antrean WR (`resources/views/work_requests/partials/_table_content.blade.php`).
+  - Membuka modal pop-up interaktif (`resources/views/work_requests/partials/edit_routing_modal.blade.php`) dengan dukungan multi-tahap (tambah/hapus baris stasiun) dan catatan revisi alur.
+- **Guardrail Keamanan Mutlak (*Zero Risk*):**
+  - Hanya dapat diakses dan dieksekusi jika tiket belum final, pengerjaan fisik belum dimulai (`quantity_produced == 0` dan `quantity_received == 0`), serta belum ada log proses aktif.
+- **Smart Approval Reset:**
+  - Jika stasiun penerima awal dialihkan (misal dari `Dept M1` ke `Dept Laser`), sistem me-reset `approval_penerima` ke `'Menunggu'` dan mengosongkan penugasan operator agar Ka. Mesin stasiun baru dapat memeriksa kapasitasnya secara mandiri.
+- **Pencatatan Audit Trail:**
+  - Perubahan dicatat otomatis ke `work_request_logs` (event `routing_update`) dan `activity_log`.
+- **Pengujian Otomatis:**
+  - Lulus 100% pada [tests/Feature/WorkRequestRoutingUpdateTest.php](tests/Feature/WorkRequestRoutingUpdateTest.php) (6 passed, 26 assertions).
+
+### III. Standardisasi Visual Badge Kolom Status Penerima Antrean Work Request (Update 20 Nov 2026 - Baru Selesai & Teruji 100%)
+- **Penyeragaman Bentuk Horizontal Pill:**
+  - Badge `Menunggu Pengaju` di kolom `STS PENERIMA` pada [resources/views/work_requests/partials/_table_content.blade.php](resources/views/work_requests/partials/_table_content.blade.php) diseragamkan styling-nya dengan `Belum Verifikasi` (`px-2 py-1 text-slate-700 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap`).
+  - Menghilangkan pembungkusan baris bertumpuk (*anti-wrap*) sehingga seluruh badge tabel sejajar dan konsisten.
+- **Pengujian Otomatis:**
+  - Lulus 100% pada [tests/Unit/WorkRequestTablePartialStatusTest.php](tests/Unit/WorkRequestTablePartialStatusTest.php) (2 passed, 14 assertions).
+
+### JJJ. Sistem Keranjang (Cart / List) & Pendaftaran Komponen Baru pada Pembuatan Work Request (Update 20 Nov 2026 - Baru Selesai & Teruji 100%)
+- **Perombakan Antarmuka Form Sesuai Gambar Referensi Pengguna:**
+  - [resources/views/work_requests/create.blade.php](resources/views/work_requests/create.blade.php) dirombak mengadopsi sistem dua kartu terintegrasi (*Input Form* & *Tabel Keranjang Daftar Item Siap Kirim*).
+  - Menggabungkan tombol Scan Barcode/QR (`[ :: Scan ]` Navy) berkamera `html5-qrcode` dan tombol `+ Tambah Komponen Baru` yang membuka inline form pendaftaran part non-master (Nama, Tipe Material, Dimensi P/L/T, Foto).
+  - Didukung tombol toska `+ Tambah ke List` dan tombol hijau `✈ Kirim Work Request`.
+- **Dukungan Multi-Routing & Bulk Store Transaksional:**
+  - `WorkRequestController::bulkStore` mendukung multi-routing (seperti `Dept Laser Cutting -> Dept M1`) dan memproses seluruh antrean keranjang dalam 1 transaksi database aman dengan penomoran resmi berurutan.
+- **Pengujian Otomatis:**
+  - Lulus 100% pada [tests/Unit/WorkRequestBulkStoreTest.php](tests/Unit/WorkRequestBulkStoreTest.php) (2 passed, 24 assertions) dan [tests/Feature/WorkRequestCreateCartTest.php](tests/Feature/WorkRequestCreateCartTest.php) (2 passed, 28 assertions).
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

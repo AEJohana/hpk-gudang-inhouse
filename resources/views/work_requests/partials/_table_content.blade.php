@@ -117,6 +117,20 @@
                     $approvalPenerimaAt = $appPenerimaLog?->created_at?->format('d/m/Y H:i') ?? '-';
                 }
 
+                $canEditRouting = $wri->canUserEditRouting(auth()->user());
+                $editRoutingPayload = $canEditRouting ? [
+                    'id' => $wri->id,
+                    'wriNumber' => $wri->wri_number,
+                    'componentName' => $wri->component?->name ?? 'Komponen',
+                    'partNumber' => $wri->component?->part_number ?? '-',
+                    'isNewPart' => (bool) $wri->isNewPart(),
+                    'currentRoutingText' => $wri->routing_text ?: ($wri->dept_penerima ?: '-'),
+                    'steps' => $wri->steps->count() > 0 
+                        ? $wri->steps->sortBy('step_number')->map(fn($s) => ['department_name' => $s->process_name, 'notes' => $s->notes])->values()->all()
+                        : [['department_name' => $wri->dept_penerima ?: 'Dept Laser Cutting', 'notes' => '']],
+                    'actionUrl' => route('work-requests.update-routing', $wri),
+                ] : null;
+
                 $imagePayload = [
                     'imageUrl' => $wri->component?->image_url ?? asset('images/logo_hpk.webp'),
                     'componentName' => $wri->component?->name ?? 'Komponen',
@@ -389,12 +403,12 @@
                 <!-- 5. Sts Penerima -->
                 <td class="py-3 px-2 align-top text-center">
                     @if($wri->approval_pengaju === 'Ditolak')
-                        <span class="inline-flex items-center px-2 py-0.5 text-slate-500 bg-slate-100 border border-slate-200 rounded text-[10px] font-semibold" title="Dibatalkan karena pengajuan tiket ini ditolak oleh Kepala Bagian Pengaju">
-                            <i class="fa-solid fa-minus text-[8px] me-1 text-slate-400"></i> Batal
+                        <span class="inline-flex items-center px-2 py-1 text-slate-500 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Dibatalkan karena pengajuan tiket ini ditolak oleh Kepala Bagian Pengaju">
+                            <i class="fa-solid fa-minus text-slate-400 me-1 text-[9px]"></i> Batal
                         </span>
                     @elseif($wri->approval_pengaju === 'Menunggu')
-                        <span class="inline-flex items-center px-2 py-0.5 text-slate-400 bg-slate-50 border border-slate-200 rounded text-[10px] font-medium" title="Menunggu persetujuan Ka. Bagian Pengaju terlebih dahulu">
-                            <i class="fa-solid fa-clock text-[8px] me-1 text-slate-400"></i> Menunggu Pengaju
+                        <span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Menunggu persetujuan Ka. Bagian Pengaju terlebih dahulu">
+                            <i class="fa-solid fa-clock text-slate-400 me-1 text-[9px]"></i> Menunggu Pengaju
                         </span>
                     @elseif($wri->approval_penerima === 'Menunggu')
                         @if($canApprovePenerima)
@@ -446,7 +460,17 @@
                         <div class="flex items-start space-x-1">
                             <span class="text-slate-400 w-14 shrink-0">Routing</span>
                             <span class="text-slate-400">:</span>
-                            <span class="font-bold text-slate-800 truncate" title="{{ $wri->dept_penerima ?: ($wri->routing_text ?: '-') }}">{{ $wri->dept_penerima ?: ($wri->routing_text ?: '-') }}</span>
+                            <div class="flex items-center space-x-1.5 min-w-0 flex-wrap">
+                                <span class="font-bold text-slate-800 truncate" title="{{ $wri->dept_penerima ?: ($wri->routing_text ?: '-') }}">{{ $wri->dept_penerima ?: ($wri->routing_text ?: '-') }}</span>
+                                @if($canEditRouting)
+                                    <button type="button" 
+                                            @click='openEditRoutingModal(@json($editRoutingPayload))'
+                                            class="inline-flex items-center justify-center w-5 h-5 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 hover:text-amber-900 border border-amber-300/80 transition cursor-pointer shrink-0 shadow-2xs" 
+                                            title="Ubah Alur / Routing Mesin">
+                                        <i class="fa-solid fa-pencil text-[9px]"></i>
+                                    </button>
+                                @endif
+                            </div>
                         </div>
                         <div class="flex items-start space-x-1">
                             <span class="text-slate-400 w-14 shrink-0">Dimensi</span>

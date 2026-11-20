@@ -30,4 +30,35 @@ class WorkRequestTablePartialStatusTest extends TestCase
         $this->assertStringContainsString('Buka Menu MH', $content);
         $this->assertStringContainsString('Menunggu Diambil MH', $content);
     }
+
+    /**
+     * Test STS PENERIMA badge design is standardized across approval states.
+     */
+    public function test_sts_penerima_badge_design_is_standardized(): void
+    {
+        $viewPath = dirname(__DIR__, 2) . '/resources/views/work_requests/partials/_table_content.blade.php';
+        $this->assertFileExists($viewPath);
+
+        $content = file_get_contents($viewPath);
+
+        // Assert Menunggu Pengaju badge uses identical pill geometry and single-line format
+        $this->assertStringContainsString(
+            '<span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Menunggu persetujuan Ka. Bagian Pengaju terlebih dahulu">',
+            $content
+        );
+        $this->assertStringContainsString(
+            '<i class="fa-solid fa-clock text-slate-400 me-1 text-[9px]"></i> Menunggu Pengaju',
+            $content
+        );
+
+        // Assert Belum Verifikasi badge uses the same pill geometry
+        $this->assertStringContainsString(
+            '<span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Menunggu verifikasi oleh Ka. {{ $wri->dept_penerima ?: \'Penerima\' }}">',
+            $content
+        );
+        $this->assertStringContainsString(
+            '<i class="fa-solid fa-clock text-slate-400 me-1 text-[9px]"></i> Belum Verifikasi',
+            $content
+        );
+    }
 }

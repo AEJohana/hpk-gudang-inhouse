@@ -154,6 +154,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('work-requests.approve-penerima');
         Route::post('/work-requests/{workRequest}/reject', [\App\Http\Controllers\WorkRequestController::class, 'reject'])
             ->name('work-requests.reject');
+        Route::put('/work-requests/{workRequest}/routing', [\App\Http\Controllers\WorkRequestController::class, 'updateRouting'])
+            ->name('work-requests.update-routing');
 
         // Eksekusi Pengerjaan Mesin & Defect
         Route::post('/work-requests/{workRequest}/steps/{step}/advance', [\App\Http\Controllers\WorkRequestController::class, 'advanceStep'])

@@ -575,3 +575,59 @@ Guna menjaga keamanan akun operasional dan kenyamanan pengguna di perangkat kerj
    - Menghapus redundansi kartu "Otorisasi & Izin" dari Dashboard Administrator yang sebelumnya mengarah ke destinasi yang sama dengan "Manajemen User".
    - Mengintegrasikan seluruh pengaturan hak akses 64 izin modul (Spatie Permission) ke dalam menu terpusat **"Manajemen Pengguna & Otorisasi"** (`/admin/users`).
    - Setiap pengguna dapat diberikan hak akses presisi melalui matriks checklist hierarki modul yang didukung oleh preset instan per peran (*Supervisor, Admin Gudang, Staff, Operator*) dan bagian kerja operasional (*Gudang, Mesin Center, Material Handling*).
+
+---
+
+## 20. Fitur Fleksibilitas Alur / Edit Routing Tiket Work Request Komponen Baru Sebelum Diproses
+
+Guna mengakomodasi kebutuhan pengerjaan pesanan pabrik (*Work Request Inhouse*) yang menggunakan **komponen baru** (belum terdaftar pada katalog master data resmi), sistem menyediakan fitur pengubahan alur/routing yang fleksibel:
+
+1. **Latar Belakang & Tantangan Komponen Baru:**
+   - Komponen baru / non-master yang dibuat melalui form WR (*Part Belum Ada di Master*) sering kali belum memiliki kepastian urutan stasiun mesin yang baku.
+   - Tanpa fitur ini, kesalahan penentuan stasiun awal memaksa pengguna membatalkan (*reject*) tiket dan menginput ulang nomor tiket dari awal.
+
+2. **Tombol Aksi Cepat Ikon Pensil pada Tabel WR:**
+   - Pada kolom antrean **"Routing / Dimensi / Qty"**, tepat di samping teks stasiun routing (misal: `Routing : Dept M1`), tersedia tombol pensil interaktif warna amber.
+   - Tombol ini membuka pop-up modal **"Ubah Alur / Routing Mesin"** yang menampilkan identitas part, status badge *"Part Baru (Non-Master)"*, dan formulir penyusun alur multi-tahap berantai.
+
+3. **Guardrail Keamanan Mutlak (*Zero Risk Gatekeeper*):**
+   - Tombol pensil dan akses ubah routing **HANYA AKTIF** jika tiket memenuhi syarat kumulatif:
+     - Belum final (`is_final == false`),
+     - Pengerjaan fisik belum dimulai sama sekali (`quantity_produced == 0` dan `quantity_received == 0`),
+     - Belum masuk ke status pengerjaan mesin aktif (*in_progress*, *out*, atau *handover MH*),
+     - Belum ada log produksi aktif.
+   - Begitu operator mesin memulai pengerjaan fisik (`quantity_produced > 0`), alur terkunci permanen demi integritas pelacakan batch dan mutasi stok.
+
+4. **Reset Otomatis Otorisasi Stasiun Penerima Baru (*Smart Approval Reset*):**
+   - Jika stasiun penerima pertama dialihkan (misalnya dari `Dept M1` ke `Dept Laser Cutting`), sistem **secara otomatis me-reset status `approval_penerima` ke 'Menunggu'** serta mengosongkan penugasan operator (`assigned_operator_name = null`).
+   - Langkah ini menjamin Kepala Mesin di stasiun yang baru memiliki wewenang penuh untuk memverifikasi kapasitas stasiunnya dan menugaskan operatornya sendiri.
+
+5. **Pencatatan Audit Trail Resmi:**
+   - Setiap kali terjadi pengubahan alur routing, sistem mencatat riwayat secara permanen pada `work_request_logs` (event `routing_update`) dan `activity_log`, mencatat alur lama, alur baru, nama operator pelaksana, dan alasan penyesuaian untuk kepatuhan audit pabrik.
+
+---
+
+## 21. Standardisasi Desain Visual Kolom Status Antrean Work Request (STS Penerima)
+
+Guna memastikan konsistensi antarmuka pengguna (*design system & visual hierarchy*), format badge status pada kolom antrean Work Request diseragamkan:
+1. **Penyeragaman Bentuk Horizontal Pill:**
+   - Seluruh status persetujuan pada kolom **STS PENERIMA** (`Menunggu Pengaju`, `Belum Verifikasi`, dan `Batal`) menggunakan ukuran, padding (`px-2 py-1`), sudut kelengkungan (`rounded-lg`), ukuran font (`text-[11px] font-bold`), dan sifat baris tunggal (`whitespace-nowrap`) yang seragam 100%.
+2. **Pencegahan Teks Terlipat (*Anti-Wrap*):**
+   - Menghilangkan tampilan kotak bertumpuk 2 baris pada status *"Menunggu Pengaju"* sehingga seluruh badge dalam tabel tampil sejajar, bersih, dan profesional.
+
+---
+
+## 22. Sistem Keranjang (Cart / List) & Pendaftaran Komponen Baru pada Pembuatan Work Request
+
+Guna mempercepat efisiensi operator dan staf gudang saat menerbitkan pesanan fabrikasi multi-item ke stasiun mesin center:
+1. **Mekanisme Keranjang Pemesanan (*Cart / List System*):**
+   - Pengguna dapat menambahkan beberapa komponen sekaligus ke dalam daftar **Daftar Item Siap Kirim (X)** sebelum menekan tombol utama **`Kirim Work Request`**.
+   - Menghilangkan kebutuhan bolak-balik mengisi dan submit tiket satu per satu.
+2. **Kombinasi Pemindai Barcode/QR & Input Komponen Baru (Non-Master):**
+   - **Tombol Scan Suffix Navy (`[ :: Scan ]`):** Terhubung ke kamera perangkat menggunakan pustaka `html5-qrcode` untuk pencarian instan part katalog melalui kode QR/Barcode etiket.
+   - **Inline Card "INPUT KOMPONEN BARU":** Memungkinkan pendaftaran part non-master secara langsung tanpa berpindah layar (*on-the-fly*), mencakup Nama, Tipe Material (Plat Hitam, Stainless, ST52, Hardox, SM490, dll), Dimensi (P cm, L cm, T mm), dan Foto Komponen via AJAX `/api/components/quick-store`.
+3. **Penerbitan Massal Multi-Routing Transaksional:**
+   - Melalui `WorkRequestController::bulkStore`, seluruh item di keranjang diproses dalam satu transaksi basis data aman (`DB::transaction`).
+   - Setiap item otomatis dibuatkan nomor tiket resmi 6-segmen berurutan, baris tahapan mesin (`WorkRequestStep`) untuk alur multi-stasiun, serta log audit penerbitan tiket.
+
+

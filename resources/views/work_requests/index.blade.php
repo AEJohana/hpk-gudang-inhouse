@@ -391,6 +391,7 @@
         @include('work_requests.partials.image_preview_modal')
         @include('work_requests.partials.reject_modal')
         @include('work_requests.partials.qr_zoom_modal')
+        @include('work_requests.partials.edit_routing_modal')
 
     </div>
 
@@ -401,6 +402,7 @@
                 tabLoading: false,
                 tabCache: {},
                 departmentOperators: @json($departmentOperatorsMap ?? []),
+                allFabricationDepts: @json(isset($fabricationDepartments) ? $fabricationDepartments->pluck('name') : []),
                 currentUserName: @json(auth()->user()->name),
                 init() {
                     const container = document.getElementById('wri-table-container');
@@ -484,6 +486,18 @@
                 imageModalOpen: false,
                 rejectModalOpen: false,
                 qrZoomModal: false,
+                editRoutingModalOpen: false,
+                isSubmittingRouting: false,
+                isDeptDropdownOpen: false,
+                selectedDepts: [],
+                deptSearch: '',
+                reasonText: '',
+                editRoutingData: {
+                    id: null,
+                    wriNumber: '',
+                    actionUrl: '',
+                    currentRoutingText: '',
+                },
                 rejectData: {
                     actionUrl: '',
                     wriNumber: '',
@@ -597,6 +611,72 @@
                 },
                 closeAssignModal() {
                     this.assignModalOpen = false;
+                },
+                openEditRoutingModal(data) {
+                    this.editRoutingData = {
+                        id: data.id,
+                        wriNumber: data.wriNumber || '',
+                        actionUrl: data.actionUrl || '',
+                        currentRoutingText: data.currentRoutingText || '',
+                    };
+                    
+                    let initialDepts = [];
+                    if (data.steps && data.steps.length > 0) {
+                        initialDepts = data.steps.map(s => s.department_name).filter(Boolean);
+                    } else if (data.currentRoutingText) {
+                        initialDepts = data.currentRoutingText.split('->').map(s => s.trim()).filter(Boolean);
+                    }
+                    if (initialDepts.length === 0) {
+                        initialDepts = ['Dept Laser Cutting'];
+                    }
+                    
+                    this.selectedDepts = [...initialDepts];
+                    this.deptSearch = '';
+                    this.isDeptDropdownOpen = false;
+                    this.reasonText = '';
+                    this.isSubmittingRouting = false;
+                    this.editRoutingModalOpen = true;
+                },
+                closeEditRoutingModal() {
+                    this.editRoutingModalOpen = false;
+                    this.isDeptDropdownOpen = false;
+                },
+                filteredDepartments() {
+                    const q = (this.deptSearch || '').toLowerCase().trim();
+                    const depts = (this.allFabricationDepts && this.allFabricationDepts.length > 0) 
+                        ? this.allFabricationDepts 
+                        : [
+                            'Dept Laser Cutting',
+                            'Dept M1',
+                            'Dept UNP',
+                            'Dept Sharing',
+                            'Dept Band Saw',
+                            'Dept Aksesoris',
+                            'Dept Press',
+                            'Dept Hydraulic',
+                            'Dept CNC',
+                            'Dept Sharing & Bending',
+                            'Dept SPO',
+                            'Dept Robot',
+                            'Dept Uji 1',
+                            'Dept Uji 2'
+                        ];
+                    if (!q) return depts;
+                    return depts.filter(d => d.toLowerCase().includes(q));
+                },
+                addDept(name) {
+                    this.selectedDepts.push(name);
+                    this.deptSearch = '';
+                    this.isDeptDropdownOpen = false;
+                },
+                removeDept(index) {
+                    if (index >= 0 && index < this.selectedDepts.length) {
+                        this.selectedDepts.splice(index, 1);
+                    }
+                },
+                clearAllDepts() {
+                    this.selectedDepts = [];
+                    this.deptSearch = '';
                 },
                 openProcessModal(data) {
                     const isHandover = data.nextStatus && (data.nextStatus.includes('MH Pickup') || data.nextStatus.includes('Menuju Pengaju') || data.nextStatus.includes('Sudah Diambil'));
