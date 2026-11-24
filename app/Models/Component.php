@@ -243,11 +243,28 @@ class Component extends Model
         return $ext === 'pdf';
     }
 
+    /**
+     * Get dynamic version string for browser cache-busting based on physical file timestamp and size.
+     */
+    public function getPhotoVersionAttribute(): string
+    {
+        $filePath = $this->local_photo_file_path;
+        if ($filePath && @file_exists($filePath)) {
+            $mtime = @filemtime($filePath);
+            $size = @filesize($filePath);
+            return (string) ($mtime ? "{$mtime}_{$size}" : ($this->updated_at?->timestamp ?? 1));
+        }
+        return (string) ($this->updated_at?->timestamp ?? 'none');
+    }
+
     public function getImageUrlAttribute(): string
     {
-        // 1. Asynchronous Photo Streaming Route (High-Performance Zero-Blocking Stream)
+        // 1. Asynchronous Photo Streaming Route (High-Performance Zero-Blocking Stream with Cache-Buster)
         if ($this->id && \Illuminate\Support\Facades\Route::has('components.photo-stream')) {
-            return route('components.photo-stream', ['component' => $this->id]);
+            return route('components.photo-stream', [
+                'component' => $this->id,
+                'v' => $this->photo_version,
+            ]);
         }
 
         // 2. Fallback: Google Drive URL lama (Hanya aktif jika COMPONENT_ENABLE_GDRIVE_FALLBACK=true)

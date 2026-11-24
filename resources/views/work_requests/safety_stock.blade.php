@@ -31,7 +31,7 @@
             'deficit' => (float)$deficit,
             'uom' => $c->uom ?: 'PCS',
             'location' => $c->defaultLocation ? $c->defaultLocation->code : '-',
-            'image_url' => route('components.photo-stream', ['component' => $c->id]),
+            'image_url' => $c->image_url,
         ];
     });
 
@@ -133,7 +133,7 @@
                                 'deficit' => (float)$deficit,
                                 'uom' => $comp->uom ?: 'PCS',
                                 'location' => $comp->defaultLocation ? $comp->defaultLocation->code : '-',
-                                'image_url' => route('components.photo-stream', ['component' => $comp->id]),
+                                'image_url' => $comp->image_url,
                             ];
                         @endphp
                         <tr class="hover:bg-rose-50/30 transition" :class="isInCart({{ $comp->id }}) ? 'bg-amber-50/50' : ''">
@@ -145,7 +145,7 @@
                             </td>
                             <td class="py-3 px-4">
                                 <div class="flex items-center space-x-3">
-                                    <img src="{{ route('components.photo-stream', ['component' => $comp->id]) }}" 
+                                    <img src="{{ $comp->image_url }}" 
                                          alt="{{ $comp->name }}"
                                          loading="lazy"
                                          class="w-10 h-10 rounded-lg object-cover bg-slate-100 border border-slate-200 flex-shrink-0"
@@ -219,7 +219,7 @@
                         'deficit' => (float)$deficit,
                         'uom' => $comp->uom ?: 'PCS',
                         'location' => $comp->defaultLocation ? $comp->defaultLocation->code : '-',
-                        'image_url' => route('components.photo-stream', ['component' => $comp->id]),
+                        'image_url' => $comp->image_url,
                     ];
                 @endphp
                 <div class="p-4 space-y-3 hover:bg-rose-50/20 transition" :class="isInCart({{ $comp->id }}) ? 'bg-amber-50/40' : ''">
@@ -231,7 +231,7 @@
                                    :checked="isInCart({{ $comp->id }})" 
                                    class="rounded border-slate-300 text-amber-500 focus:ring-amber-500 cursor-pointer">
                         </div>
-                        <img src="{{ route('components.photo-stream', ['component' => $comp->id]) }}" 
+                        <img src="{{ $comp->image_url }}" 
                              alt="{{ $comp->name }}"
                              loading="lazy"
                              class="w-12 h-12 rounded-xl object-cover bg-slate-100 border border-slate-200 shrink-0"

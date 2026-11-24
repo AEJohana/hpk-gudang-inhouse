@@ -271,23 +271,41 @@ class ComponentController extends Controller
     /**
      * Stream foto komponen dari folder lokal D:\ atau NAS secara aman ke browser klien (HP/Laptop)
      */
-    public function photoStream(Component $component)
+    public function photoStream(Request $request, Component $component)
     {
         $filePath = $component->local_photo_file_path;
 
         if ($filePath && file_exists($filePath)) {
+            // Deteksi MIME type aktual dari berkas biner (misal file PNG yang dinamai .jpg)
+            $mimeType = @mime_content_type($filePath);
+            if (!$mimeType || (!str_starts_with($mimeType, 'image/') && $mimeType !== 'application/pdf')) {
+                $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+                $mimeType = match($ext) {
+                    'png' => 'image/png',
+                    'webp' => 'image/webp',
+                    'svg' => 'image/svg+xml',
+                    'pdf' => 'application/pdf',
+                    default => 'image/jpeg',
+                };
+            }
+
             $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-            $mimeType = match($ext) {
-                'png' => 'image/png',
-                'webp' => 'image/webp',
-                'svg' => 'image/svg+xml',
-                'pdf' => 'application/pdf',
-                default => 'image/jpeg',
-            };
+            $fileSize = @filesize($filePath);
+            $fileMtime = @filemtime($filePath) ?: 1;
+            $etag = '"' . md5("{$filePath}_{$fileMtime}_{$fileSize}") . '"';
+
+            // Dukungan HTTP 304 Not Modified untuk performa tinggi intranet
+            if ($request->headers->get('If-None-Match') === $etag) {
+                return response('', 304, [
+                    'Cache-Control' => 'public, max-age=86400',
+                    'ETag' => $etag,
+                ]);
+            }
 
             $headers = [
                 'Content-Type' => $mimeType,
                 'Cache-Control' => 'public, max-age=86400',
+                'ETag' => $etag,
             ];
 
             if ($ext === 'pdf') {
@@ -295,7 +313,6 @@ class ComponentController extends Controller
                 $headers['Content-Disposition'] = 'inline; filename="drawing-' . $cleanPn . '.pdf"';
             }
 
-            $fileSize = @filesize($filePath);
             if ($fileSize) {
                 $headers['Content-Length'] = $fileSize;
             }
@@ -315,12 +332,14 @@ class ComponentController extends Controller
             return redirect()->away($component->image_url);
         }
 
-        // Default placeholder jika file tidak ditemukan fisik (Pure Local Mode)
+        // Default placeholder jika file tidak ditemukan fisik (JANGAN DI-CACHE BROWSER KLIEN)
         $placeholder = public_path('images/placeholder_part.svg');
         if (file_exists($placeholder)) {
             return response()->file($placeholder, [
                 'Content-Type' => 'image/svg+xml',
-                'Cache-Control' => 'public, max-age=86400',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate, max-age=0',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
             ]);
         }
 
@@ -444,9 +463,9 @@ class ComponentController extends Controller
         $storageService = app(\App\Services\ComponentPhotoStorageService::class);
 
         if ($request->hasFile('image')) {
-            $imagePath = $storageService->storeUploadedFile($request->file('image'), $partNumber);
+            $imagePath = $storageService->storeUploadedFile($request->file('image'), $partNumber, isNewWr: true);
         } elseif (!empty($request->camera_snapshot)) {
-            $imagePath = $storageService->storeBase64($request->camera_snapshot, $partNumber);
+            $imagePath = $storageService->storeBase64($request->camera_snapshot, $partNumber, isNewWr: true);
         }
 
         $component = Component::create([

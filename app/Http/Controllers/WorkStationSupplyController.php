@@ -318,7 +318,7 @@ class WorkStationSupplyController extends Controller
     {
         $validated = $request->validate([
             'work_request_id' => 'required|exists:work_requests,id',
-            'action_type' => 'required|in:process,defect,quick_advance',
+            'action_type' => 'required|in:process,defect',
             'target_status' => 'nullable|string|max:100',
             'process_qty' => 'nullable|numeric|min:0.01',
             'defect_qty' => 'nullable|numeric|min:0.01',

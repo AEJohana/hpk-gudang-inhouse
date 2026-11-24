@@ -404,7 +404,7 @@
                 selectComponent(comp) {
                     this.selectedComp = {
                         ...comp,
-                        image_url: '/components/' + comp.id + '/photo-stream'
+                        image_url: comp.image_url || ('/components/' + comp.id + '/photo-stream')
                     };
                     this.searchQuery = comp.part_number + ' - ' + comp.name;
                     this.itemQty = 1;

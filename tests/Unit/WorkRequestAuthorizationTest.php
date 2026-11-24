@@ -177,4 +177,41 @@ class WorkRequestAuthorizationTest extends TestCase
         // 3. MH courier CANNOT process warehouse receiving
         $this->assertFalse($wr->canUserProcessAction($userMH, 'Sudah Diambil'));
     }
+
+    public function test_gudang_cannot_receive_goods_directly_from_machine_when_status_is_siap_diambil(): void
+    {
+        $userGudang = new User([
+            'name' => 'Staf Gudang',
+            'work_area' => 'gudang',
+            'department' => 'Dept Gudang',
+        ]);
+        $userAdmin = new User([
+            'name' => 'Admin Gudang',
+            'work_area' => 'semua',
+            'department' => 'Dept Gudang',
+        ]);
+
+        $wr = new WorkRequest([
+            'wri_number' => 'WRI-006',
+            'dept_pengaju' => 'Dept Gudang',
+            'dept_penerima' => 'Dept M1',
+            'status' => 'Siap Diambil',
+            'quantity_requested' => 100,
+            'approval_pengaju' => 'Diterima',
+            'approval_penerima' => 'Diterima',
+            'is_final' => false,
+        ]);
+
+        // When goods are still sitting at the machine ('Siap Diambil') and not yet picked up by MH:
+        // 1. Gudang user CANNOT receive goods directly
+        $this->assertFalse($wr->canUserProcessAction($userGudang, 'Sudah Diambil'));
+
+        // 2. Even Admin CANNOT receive goods directly without MH transit
+        $this->assertFalse($wr->canUserProcessAction($userAdmin, 'Sudah Diambil'));
+
+        // 3. Available actions for Gudang must NOT contain 'Sudah Diambil'
+        $actions = $wr->getAvailableActionsForUser($userGudang);
+        $hasReceiveAction = collect($actions)->contains('target_status', 'Sudah Diambil');
+        $this->assertFalse($hasReceiveAction, 'Gudang dilarang memiliki aksi Scan Diterima sebelum barang dijemput MH');
+    }
 }

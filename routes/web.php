@@ -157,9 +157,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/work-requests/{workRequest}/routing', [\App\Http\Controllers\WorkRequestController::class, 'updateRouting'])
             ->name('work-requests.update-routing');
 
-        // Eksekusi Pengerjaan Mesin & Defect
-        Route::post('/work-requests/{workRequest}/steps/{step}/advance', [\App\Http\Controllers\WorkRequestController::class, 'advanceStep'])
-            ->name('work-requests.advance-step');
+        // Eksekusi Pengerjaan Mesin & Defect (Satu Pintu Resmi)
         Route::post('/work-requests/{workRequest}/process-action', [\App\Http\Controllers\WorkRequestController::class, 'processAction'])
             ->name('work-requests.process-action');
         Route::post('/work-requests/{workRequest}/receive', [\App\Http\Controllers\WorkRequestController::class, 'receive'])
@@ -194,6 +192,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Admin Panel Routes
     Route::prefix('admin')->name('admin.')->middleware(['role:admin_gudang|supervisor'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::post('/sync-photos', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'syncPhotos'])->name('sync-photos');
+        Route::post('/clear-photo-cache', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'clearPhotoCache'])->name('clear-photo-cache');
         
         // Manajemen Pengguna & Otorisasi
         Route::post('users/{user}/quick-reset-password', [\App\Http\Controllers\Admin\UserController::class, 'quickResetPassword'])->name('users.quick-reset-password');

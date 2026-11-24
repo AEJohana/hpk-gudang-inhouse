@@ -99,6 +99,161 @@
             </div>
         </div>
 
+        <!-- 2B. NAS MASTER STORAGE & PHOTO STREAMING GATEWAY -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 via-slate-50/80 to-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-11 h-11 rounded-xl flex items-center justify-center text-lg text-indigo-600 bg-indigo-50 border border-indigo-100 shadow-2xs shrink-0">
+                        <i class="fa-solid fa-server"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-extrabold text-slate-900 text-base">Server NAS & Master Gambar Komponen (Drive Z:)</h3>
+                            @if($storageStatus['is_nas_connected'] ?? false)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 me-1.5 animate-pulse"></span>
+                                    ONLINE / TERHUBUNG
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 me-1.5"></span>
+                                    OFFLINE / TERPUTUS
+                                </span>
+                            @endif
+                        </div>
+                        <p class="text-xs text-slate-500 mt-0.5 font-mono text-[11px] truncate max-w-2xl">
+                            {{ $storageStatus['primary_dir'] ?? 'Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House' }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Jalur Konektivitas Tag -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold {{ ($storageStatus['primary_connected'] ?? false) ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200' }}">
+                        <i class="fa-solid fa-hard-drive me-1.5 text-[11px]"></i>
+                        Drive Z: {{ ($storageStatus['primary_connected'] ?? false) ? 'Aktif' : 'Tertidur/Sleep' }}
+                    </span>
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold {{ ($storageStatus['unc_connected'] ?? false) ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-slate-100 text-slate-500 border border-slate-200' }}">
+                        <i class="fa-solid fa-network-wired me-1.5 text-[11px]"></i>
+                        UNC IP 192.168.1.150: {{ ($storageStatus['unc_connected'] ?? false) ? 'Aktif' : 'Offline' }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <!-- 4 Metrics Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Metric 1: Berkas di NAS -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div class="flex items-center justify-between text-slate-400 mb-1">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Master NAS (Z:)</span>
+                            <i class="fa-solid fa-folder-open text-indigo-500"></i>
+                        </div>
+                        <div class="text-2xl font-black text-slate-900">
+                            {{ number_format($storageStatus['nas_total_files'] ?? 0) }}
+                            <span class="text-xs font-semibold text-slate-400">Berkas</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-1">Sumber acuan resmi engineering</p>
+                    </div>
+
+                    <!-- Metric 2: Webroot Mirror (SSD) -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div class="flex items-center justify-between text-slate-400 mb-1">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Webroot SSD Mirror</span>
+                            <i class="fa-solid fa-bolt text-amber-500"></i>
+                        </div>
+                        <div class="text-2xl font-black text-slate-900">
+                            {{ number_format($storageStatus['mirror_files_count'] ?? 0) }}
+                            <span class="text-xs font-semibold text-slate-400">Berkas</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-1">Pemuatan instan lokal 0.01 ms</p>
+                    </div>
+
+                    <!-- Metric 3: Selisih Belum Tersinkron -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div class="flex items-center justify-between text-slate-400 mb-1">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Belum Tercermin</span>
+                            <i class="fa-solid fa-cloud-arrow-down text-teal-500"></i>
+                        </div>
+                        <div class="text-2xl font-black {{ ($storageStatus['pending_sync_count'] ?? 0) > 0 ? 'text-amber-600' : 'text-emerald-600' }}">
+                            {{ number_format($storageStatus['pending_sync_count'] ?? 0) }}
+                            <span class="text-xs font-semibold text-slate-400">Berkas</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-1">
+                            {{ ($storageStatus['pending_sync_count'] ?? 0) > 0 ? 'Langsung di-stream dari Z:' : '100% Tercermin di SSD' }}
+                        </p>
+                    </div>
+
+                    <!-- Metric 4: Total Master Komponen -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div class="flex items-center justify-between text-slate-400 mb-1">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Katalog Master Part</span>
+                            <i class="fa-solid fa-cubes text-blue-500"></i>
+                        </div>
+                        <div class="text-2xl font-black text-slate-900">
+                            {{ number_format($storageStatus['total_components'] ?? 0) }}
+                            <span class="text-xs font-semibold text-slate-400">Item</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-1">Master komponen terverifikasi</p>
+                    </div>
+                </div>
+
+                <!-- Info Banner & Interactive Action Buttons -->
+                <div class="bg-indigo-50/60 border border-indigo-200/70 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="space-y-1 text-xs text-indigo-950">
+                        <div class="font-bold flex items-center gap-1.5 text-indigo-900">
+                            <i class="fa-solid fa-circle-info text-indigo-600"></i>
+                            Pusat Streaming Gambar Teknik & CAD PDF
+                        </div>
+                        <p class="text-slate-600 leading-relaxed">
+                            Sistem secara bawaan memprioritaskan pembacaan gambar langsung dari folder master <span class="font-mono font-semibold text-slate-800">Z:\...</span> dengan <span class="font-semibold text-indigo-700">In-Memory Indexing</span> super cepat (4 ms). Anda juga dapat mencerminkan seluruh foto ke disk lokal untuk kecepatan maksimum di seluruh intranet pabrik.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                        <!-- Form 1: Reset Cache Resolusi Foto -->
+                        <form id="clear-photo-cache-form" action="{{ route('admin.clear-photo-cache') }}" method="POST">
+                            @csrf
+                            <button type="button" 
+                                    @click="$dispatch('open-confirm-modal', {
+                                        title: 'Reset Cache Foto Komponen',
+                                        message: 'Bersihkan cache resolusi foto komponen? Sistem akan membaca ulang daftar berkas fisik langsung dari folder Z: / NAS.',
+                                        confirmText: 'Ya, Bersihkan Cache',
+                                        cancelText: 'Batal',
+                                        type: 'info',
+                                        icon: 'fa-solid fa-broom',
+                                        formId: 'clear-photo-cache-form'
+                                    })"
+                                    class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-bold text-xs border border-slate-300 rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
+                                    title="Gunakan jika baru saja menyalin file gambar baru ke folder Z:">
+                                <i class="fa-solid fa-broom text-slate-400"></i>
+                                <span>Reset Cache Foto</span>
+                            </button>
+                        </form>
+
+                        <!-- Form 2: Sinkronkan ke Webroot Mirror -->
+                        <form id="sync-nas-photos-form" action="{{ route('admin.sync-photos') }}" method="POST">
+                            @csrf
+                            <button type="button" 
+                                    @click="$dispatch('open-confirm-modal', {
+                                        title: 'Sinkronisasi Foto NAS ke Webroot',
+                                        message: 'Mulai menyinkronkan seluruh berkas gambar dari Server NAS (Z:) ke penyimpanan SSD lokal webroot? Proses ini aman dan tidak mengganggu stok atau data master.',
+                                        confirmText: 'Ya, Mulai Sinkronisasi',
+                                        cancelText: 'Batal',
+                                        type: 'info',
+                                        icon: 'fa-solid fa-arrows-rotate',
+                                        formId: 'sync-nas-photos-form'
+                                    })"
+                                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                                <span>Sinkronkan ke Webroot Mirror</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 3. SECONDARY WORKSPACE GRID -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             

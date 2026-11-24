@@ -40,7 +40,7 @@
             'category' => $c->category ?? 'subframe',
             'uom' => $c->uom ?: 'PCS',
             'specs' => $c->specification ?: '',
-            'image_url' => route('components.photo-stream', ['component' => $c->id]),
+            'image_url' => $c->image_url,
             'length_mm' => (string) ($c->length_mm ?? ''),
             'width_mm' => (string) ($c->width_or_diameter_mm ?? ''),
             'thickness_mm' => (string) ($c->thickness_or_height_mm ?? ''),

@@ -42,7 +42,10 @@ class DashboardController extends Controller
 
             // 2. Work Request Badge Counters
             $inProductionWriCount = WorkRequest::where('status', 'in_production')->count();
-            $readyForWarehouseWriCount = WorkRequest::where('status', 'ready_for_warehouse')->count();
+            $readyForWarehouseWriCount = WorkRequest::where(function ($q) {
+                $q->where('status', 'like', '%Siap Diambil%')
+                  ->orWhere('status', 'ready_for_warehouse');
+            })->where('is_final', false)->count();
             $unallocatedComponentsCount = Component::masterCatalog()->whereNull('default_location_id')->count();
 
             return compact(

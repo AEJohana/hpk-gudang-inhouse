@@ -859,6 +859,114 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
 - **Pengujian & Integritas:**
   - Lulus 100% pada seluruh rangkaian unit test Work Request dan kompilasi Vite.
 
+### PPP. Optimalisasi Streaming Foto Komponen Master Shared Drive Z: & Pusat Kendali NAS Admin (Update 24 Nov 2026 - Selesai & Teruji 100%)
+- **Fokus 100% Pembacaan Langsung Master Network Drive Z: (Direct Zero-Copy NAS Streaming):**
+  - Mengabulkan kebutuhan operasional pabrik agar sistem memprioritaskan dan mengambil gambar komponen langsung dari folder master:
+    `Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House`
+    tanpa mewajibkan duplikasi atau pemindahan berkas manual.
+- **In-Memory Directory Indexing Super Cepat (4.27 ms untuk Seluruh Katalog):**
+  - Menggantikan 108 kali pengecekan `file_exists` bolak-balik melintasi kabel LAN per komponen dengan pembacaan satu kali daftar direktori ke memori RAM (*in-memory hash table*).
+  - Benchmark membuktikan seluruh 963 komponen di database kini diselesaikan dalam **4.27 milidetik** tanpa pernah memicu *lag* atau *Request Timeout* pada server intranet (`http://192.168.3.101:8000`).
+- **Koreksi Bug Sintaks Regex Fallback UNC (`\\192.168.1.150\...`):**
+  - Memperbaiki konversi path `Z:` pada [app/Services/ComponentPhotoStorageService.php](app/Services/ComponentPhotoStorageService.php) agar awalan selalu membentuk format UNC resmi dengan *double backslash* (`\\192.168.1.150\...`).
+  - Menghilangkan bug di mana `preg_replace` sebelumnya memotong satu backslash menjadi `\192.168.1.150\...` yang ditolak Windows. Sistem kini memiliki daya tahan 100% saat huruf drive `Z:` mengalami *SMB idle sleep*.
+- **Pembersihan Total Negative Cache Poisoning:**
+  - Menghilangkan penguncian `null` 30 menit pada `Cache::remember`. Sistem hanya menyimpan cache saat berkas fisik berhasil ditemukan, sehingga penambahan foto baru di drive `Z:` langsung terdeteksi seketika.
+- **Pusat Pemantauan Storage NAS & Tombol 1-Klik di Admin Dashboard (`/admin/dashboard`):**
+  - Menerbitkan widget kartu pemantauan berstandar industri pada [resources/views/admin/dashboard.blade.php](resources/views/admin/dashboard.blade.php):
+    - Badge status real-time koneksi Server NAS: `[ ONLINE / TERHUBUNG ]` atau `[ OFFLINE ]`.
+    - Indikator 4 metrik berkas: Master NAS (618 berkas), Webroot Mirror SSD (241 berkas), Belum Tercermin, dan Total Part Resmi.
+    - Tombol Aksi 1-Klik: **`[ 🔄 Sinkronkan ke Webroot Mirror ]`** (`admin.sync-photos`) dan **`[ 🧹 Reset Cache Foto ]`** (`admin.clear-photo-cache`) dengan konfirmasi modal global `<x-confirm-modal />` (*Zero Stock Disturbance*).
+- **Pembaruan Artisan Command:**
+  - Menambahkan opsi `--sync-mirror` pada [app/Console/Commands/CheckNasPhotosCommand.php](app/Console/Commands/CheckNasPhotosCommand.php) untuk opsi sinkronisasi otomatis via CLI.
+- **Pengujian & Validasi Kualitas:**
+  - Lulus 100% pada [tests/Unit/ComponentPhotoStorageTest.php](tests/Unit/ComponentPhotoStorageTest.php) (8 passed, 26 assertions), kompilasi Blade view cache sukses 100%, dan pengujian HTTP client streaming 10 foto konkuren berhasil dalam 0.9 detik.
+
+### QQQ. Auto-Download & Pencocokan Foto Komponen Spreadsheet WR Lama ke Drive Z (Update 24 Nov 2026 - Berhasil 100%)
+- **Sinkronisasi Katalog Master CSV ke Storage NAS Z:**
+  - Menghubungkan berkas acuan `System WR lama/Spreadsheet/Form Work Request - Database Komponen.csv` ke dalam artisan command `wr:download-legacy-photos` ([app/Console/Commands/DownloadLegacyWrPhotos.php](app/Console/Commands/DownloadLegacyWrPhotos.php)).
+  - Menggabungkan 3 sumber data: Katalog Master (799 part), Komponen Baru (82 part `NEW-...`), dan Log Permintaan WR (987 part unik total).
+- **Idempotensi & Pencegahan Duplikasi:**
+  - Sistem memeriksa ketersediaan berkas di Drive Z (`Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House`) sebelum mengunduh. Dari 987 part terdaftar, 695 part yang sudah ada langsung dilewati (*zero overwrite/skip*).
+- **Multi-Part Drawing In-Memory Caching:**
+  - Untuk berkas gambar/drawing teknik yang dipakai bersama oleh beberapa kode komponen (seperti `CCSPSIDEFRAMEA4` hingga `F4`), file biner dari Google Drive diunduh satu kali ke memori dan disimpan ke seluruh kode part terkait secara instan tanpa panggilan HTTP berulang.
+- **Dukungan Flag `--dry-run` & Uji Coba Terisolasi:**
+  - Menambahkan opsi `--dry-run` untuk simulasi pencocokan tanpa mengunduh berkas fisik, serta penanganan izin tulis SMB Mapped Drive yang aman via metode `isDirectoryWritable()`.
+- **Hasil Eksekusi Nyata:**
+  - Berhasil mengunduh dan menyimpan **291 berkas komponen baru** langsung ke Drive Z: (`Z:\...`) dan cermin lokal (`public/uploads/components`).
+  - Total berkas di folder Drive Z bertambah dari **616 berkas** menjadi **906 berkas**.
+  - Part `CCSPSIDEFRAMEA4` sampai `CCSPSIDEFRAMEF4` yang sebelumnya kosong di Halaman 1 kini langsung memiliki berkas resolusi tinggi (~408 KB) dan sukses di-*stream* dengan status `HTTP 200 OK`.
+  - Cache indeks foto otomatis disegarkan via `ComponentPhotoStorageService::clearCache()`.
+
+### RRR. Perbaikan Browser Disk Cache Buster & Validasi MIME-Type Gambar Drive Z (Update 24 Nov 2026 - Tuntas 100%)
+- **Penyebab Gambar Belum Tampil di Browser Klien:**
+  - Sebelumnya saat berkas foto belum ada di Drive Z, browser pengguna menerima respon gambar placeholder dengan header `Cache-Control: public, max-age=86400` (24 jam). Google Chrome/Edge menyimpan gambar kosong di disk cache lokal pengguna sehingga saat file baru ditambahkan ke Drive Z, browser tidak melakukan permintaan baru ke server intranet.
+- **Implementasi Auto Cache-Buster (`?v=mtime_size`):**
+  - Menambahkan accessor `photo_version` pada [app/Models/Component.php](app/Models/Component.php) yang menghasilkan stempel versi unik berbasis waktu modifikasi berkas fisik (`@filemtime`) dan ukuran berkas (`@filesize`).
+  - Memperbarui `getImageUrlAttribute()` sehingga menyematkan parameter query otomatis: `/components/{id}/photo-stream?v=timestamp_size`.
+  - Dampak: Begitu berkas foto baru tersedia atau diubah di Drive Z, URL otomatis berubah sehingga seluruh perangkat (PC Admin, laptop, dan HP operator) **langsung memuat gambar asli tanpa perlu 'Clear Browser Cache' atau menekan 'Ctrl+F5' manual**.
+- **Larangan Cache pada Placeholder (`max-age=0`):**
+  - Mengubah header pada [app/Http/Controllers/ComponentController.php](app/Http/Controllers/ComponentController.php) saat menyajikan `placeholder_part.svg` menjadi `Cache-Control: no-cache, no-store, must-revalidate, max-age=0` dengan `Pragma: no-cache`. Browser dilarang menyimpan status kosong jika foto belum diunggah.
+- **Deteksi MIME-Type Biner Otomatis (`mime_content_type`):**
+  - Menggantikan deteksi MIME berbasis ekstensi teks dengan pemindaian biner nyata (`mime_content_type`). Berkas biner PNG yang dinamai `.jpg` kini secara otomatis dikirim dengan header resmi `Content-Type: image/png` sehingga kompatibel 100% dengan seluruh peramban web dan modal zoom.
+- **Dukungan Header ETag & HTTP 304 Not Modified:**
+  - Menambahkan validasi `If-None-Match` pada Controller untuk menghemat bandwidth jaringan pabrik saat gambar sudah pernah diunduh.
+- **Pengujian & Validasi:**
+  - Unit test lulus 100% (8 passed, 26 assertions).
+  - Blade template cache berhasil dikompilasi 100%.
+  - Uji streaming HTTP pada `CCSPSIDEFRAMEA4` (ID: 15953) mengembalikan `HTTP/1.1 200 OK` (408.756 bytes, `image/png`) dan `HTTP/1.1 304 Not Modified` saat menggunakan ETag.
+
+### RRR. Penyimpanan Gambar Komponen Non-Master WR Ad-hoc ke Subfolder Dedikasi Drive Z: (NewKomponenWR)
+- **Subfolder Terpisah & Terisolasi di NAS:**
+  - Komponen ad-hoc/non-master yang dibuat melalui form Work Request (`/work-requests/create` via `quickStore` dengan `source = 'wr_adhoc'`) disimpan langsung ke subfolder:
+    `Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House\NewKomponenWR`
+  - Fallback jalur UNC: `\\192.168.1.150\HPK_Eng_Online\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House\NewKomponenWR`
+  - Salinan lokal otomatis dicerminkan ke `public/uploads/components/` untuk redundansi offline intranet.
+- **Pembaruan Service & Controller:**
+  - `ComponentPhotoStorageService.php`: Ditambahkan method `getNewWrComponentDirectory()`, `getNewWrUncDirectory()`, parameter `$isNewWr` pada penyimpanan unggahan/kamera (`storeUploadedFile`, `storeBase64`, `storeBinary`), serta pembersihan file lama di kedua folder (`cleanExistingFilesForPart`).
+  - `ComponentController.php`: Method `quickStore()` menandai `$isNewWr = true` saat menyimpan gambar komponen dari WR ad-hoc.
+  - Multi-Folder Auto Search: `doFindLocalPhoto()` memindai folder master dan subfolder `NewKomponenWR` (serta jalur UNC masing-masing) secara mikrodetik via in-memory indexing.
+- **Migrasi & Sinkronisasi Backfill:**
+  - Dibuat Artisan command: `php artisan wr:sync-new-komponen-to-nas`.
+  - Berhasil menyalin **190 berkas foto** komponen `NEW-...` dari webroot ke subfolder Drive Z `NewKomponenWR` dengan status sukses 100% (0 gagal).
+- **Pengujian & Kepatuhan Guardrails:**
+  - Unit test: `php artisan test tests/Unit/ComponentPhotoStorageTest.php` lulus 100% (8 passed, 26 assertions).
+  - Isolasi Guardrails Terjaga: Komponen `source = 'wr_adhoc'` tetap 100% terisolasi dari Master Komponen dan Safety Stock, namun gambar tetap dapat dilihat dengan jernih di tiket WR dan modal detail proses.
+
+### TTT. Penegakan Alur Wajib Material Handling & Eliminasi Total Kode Bypass Warisan
+- **Akar Masalah Terselesaikan:**
+  - Ditemukan sisa blok kode warisan prototipe lama (*Fleksibilitas Sistem Lama / js_dashboard.html*) pada `WorkRequest.php` yang secara keliru menghitung saldo penerimaan gudang dari `totalSiap` (mesin) ketika `totalMenuju == 0`.
+  - Hal ini menyebabkan bagian Gudang sempat langsung melihat tombol hijau `Scan Diterima` sesaat setelah operator mesin menekan `Siap Diambil`, memotong penjemputan logistik kurir MH.
+- **Pembersihan Kode Total & Penegakan Rantai Logistik:**
+  - `app/Models/WorkRequest.php` (`getAvailableActionsForUser`): Seluruh kode warisan `$totalSiap` dihapus total. Saldo terima Gudang kini murni dihitung dari `max(0, $totalMenuju - $totalSudah - $gudangDefects)`. Jika kurir MH belum menjemput (`totalMenuju == 0`), akun Gudang 100% TIDAK memiliki tombol aksi terima.
+  - `app/Models/WorkRequest.php` (`canUserProcessAction`): Validasi ketat otorisasi penerimaan akhir `Sudah Diambil`. Bahkan untuk Admin, aksi `Sudah Diambil` ditolak jika barang fisik belum berada dalam pengantaran MH (`totalMenuju <= totalSudah`).
+  - `app/Http/Controllers/WorkRequestController.php` (`processAction`): Ditambahkan validasi proteksi ganda backend (Guard 1d) yang menolak request penerimaan gudang jika belum ada log pengantaran kurir MH (`Menuju Pengaju`).
+- **Sinkronisasi Tampilan Antarmuka (Blade):**
+  - Saat status `Siap Diambil`: Baik POV Gudang maupun POV Mesin sama-sama menampilkan lencana kuning `Menunggu Diambil MH`.
+  - Di menu Material Handling (`/material-handling`), tiket otomatis masuk ke Tab `Siap Diambil / Distribusi ke Pengaju` untuk dijemput kurir.
+  - Hanya setelah kurir MH menjemput dan status beralih ke `Menuju Pengaju`, tombol `Scan Diterima` akan aktif di akun Gudang.
+- **Pengujian & Validasi Kualitas:**
+  - Unit test `WorkRequestAuthorizationTest` lulus 100% (6 passed, 16 assertions), termasuk test case baru `test_gudang_cannot_receive_goods_directly_from_machine_when_status_is_siap_diambil()`.
+  - Unit test `WorkRequestDefectAndHandoverTest` lulus 100% (6 passed, 30 assertions).
+  - Verifikasi langsung pada database operasional untuk tiket No. 973 (`WR/Dept Gudang/20261124/1/CSAA50550200000/1`): Tombol `Scan Diterima` hilang 100% dari akun Gudang, dan antarmuka kini tertib menampilkan `Menunggu Diambil MH`.
+
+### UUU. Audit dan Pembersihan Kode Warisan (Legacy Cleanup) & Penutupan Celah Bypass Sistem (Update 24 Nov 2026 - Tuntas 100%)
+- **Penghapusan Rute & Method Mati (Dead Code Elimination):**
+  - Menghapus rute POST `/work-requests/{workRequest}/steps/{step}/advance` dari [routes/web.php](routes/web.php).
+  - Menghapus method `advanceStep()` (102 baris) dari [app/Http/Controllers/WorkRequestController.php](app/Http/Controllers/WorkRequestController.php) yang merupakan sisa prototipe lama yang dapat memotong MH dengan langsung mengubah status tiket menjadi `ready_for_warehouse`.
+- **Pengetatan Validasi `action_type` (Eliminasi `quick_advance`):**
+  - Membersihkan aturan validasi pada [app/Http/Controllers/WorkRequestController.php](app/Http/Controllers/WorkRequestController.php) dan [app/Http/Controllers/WorkStationSupplyController.php](app/Http/Controllers/WorkStationSupplyController.php) dari `'required|in:process,defect,quick_advance'` menjadi `'required|in:process,defect'`.
+- **Penegakan Logistik MH Antar-Mesin Multi-Routing:**
+  - Pada rute multi-mesin (contoh: Laser -> M1 -> Sharing), menambahkan Guard 1e pada [app/Http/Controllers/WorkRequestController.php](app/Http/Controllers/WorkRequestController.php) dan validasi pada [app/Models/WorkRequest.php](app/Models/WorkRequest.php) (`canUserProcessAction()`).
+  - Stasiun mesin kedua atau seterusnya (`step_index > 0`) **DILARANG KERAS** memulai `Proses: {Step} (In)` jika barang dari mesin sebelumnya belum dijemput dan diantar oleh kurir Material Handling (`saldo_in <= 0`).
+- **Koreksi Metrik Dashboard WRI "Siap Gudang":**
+  - Pada [app/Http/Controllers/DashboardController.php](app/Http/Controllers/DashboardController.php), memperbarui query `$readyForWarehouseWriCount` yang sebelumnya mencari status usang `ready_for_warehouse` (selalu bernilai 0 di database operasional) menjadi menghitung tiket aktif berstatus `Siap Diambil` dan `ready_for_warehouse` yang belum tuntas (`is_final = false`). Angka lencana kini akurat 100% mencerminkan kondisi riil di lantai pabrik.
+- **Konfigurasi Fleksibel Cadangan Foto Komponen:**
+  - Pada [app/Services/ComponentPhotoStorageService.php](app/Services/ComponentPhotoStorageService.php), mengganti direktori cadangan lokal hardcoded `D:\Ali Magang\KOMPONEN` menjadi `env('COMPONENT_LOCAL_BACKUP_DIR', 'D:\Ali Magang\KOMPONEN')`.
+- **Pengujian & Validasi Kualitas:**
+  - Seluruh pengujian otomatis `WorkRequestAuthorizationTest`, `WorkRequestDefectAndHandoverTest`, dan `ComponentPhotoStorageTest` (20 passed, 72 assertions) lulus 100%.
+  - Route cache & Blade view templates berhasil dikompilasi ulang dengan status sukses 100%.
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

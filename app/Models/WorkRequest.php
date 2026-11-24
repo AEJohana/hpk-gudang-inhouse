@@ -228,11 +228,7 @@ class WorkRequest extends Model
 
         $userDept = strtolower(trim($user->effective_department_name));
         $cleanUser = preg_replace('/[^a-z0-9]/', '', $userDept);
-
-        // Superuser oversight
-        if ($user->canAccessAllDepartments() || $user->hasRole('admin_gudang')) {
-            return true;
-        }
+        $isSuperuser = $user->canAccessAllDepartments() || $user->hasRole('admin_gudang');
 
         // Case A: MH Pickup or Delivery
         if (stripos($next, 'MH Pickup') !== false || stripos($next, 'Menuju Pengaju') !== false) {
@@ -240,7 +236,7 @@ class WorkRequest extends Model
             if ($user->work_area === 'mesin_center') {
                 return false;
             }
-            return ($user->work_area === 'material_handling' || $user->hasRole('operator_mh') || $user->can('material-handling.process') || $user->can('material-handling.manage'));
+            return ($user->work_area === 'material_handling' || $user->hasRole('operator_mh') || $user->can('material-handling.process') || $user->can('material-handling.manage') || $isSuperuser);
         }
 
         // Case B: Final Receive at Warehouse (Sudah Diambil)
@@ -251,13 +247,44 @@ class WorkRequest extends Model
             }
             $pengajuDept = strtolower(trim($this->dept_pengaju ?? ''));
             $cleanPengaju = preg_replace('/[^a-z0-9]/', '', $pengajuDept);
-            return (str_contains($cleanUser, $cleanPengaju) || str_contains($cleanPengaju, $cleanUser) || $user->work_area === 'gudang');
+            $isPengajuDept = (str_contains($cleanUser, $cleanPengaju) || str_contains($cleanPengaju, $cleanUser) || $user->work_area === 'gudang' || $isSuperuser);
+            if (!$isPengajuDept) {
+                return false;
+            }
+
+            // PENEGAKAN MUTLAK LOGISTIK MH:
+            // Barang WAJIB sudah dijemput oleh Material Handling ('Menuju Pengaju')
+            $isStatusMenujuPengaju = stripos($this->status ?? '', 'Menuju Pengaju') !== false;
+            if ($this->exists) {
+                $totalMenuju = $this->getTotalProcessedForStatus('Menuju Pengaju');
+                $totalSudah = (float) $this->quantity_received ?: $this->getTotalProcessedForStatus('Sudah diambil');
+                return $isStatusMenujuPengaju || ($totalMenuju - $totalSudah) > 0;
+            }
+            return $isStatusMenujuPengaju;
         }
 
         // Case C: Machine Processing (In or Out)
         // Operator / Staff Material Handling DILARANG memproses eksekusi mesin
         if ($user->work_area === 'material_handling') {
             return false;
+        }
+
+        // PENEGAKAN LOGISTIK MH ANTAR-MESIN (Multi-routing):
+        // Tahapan mesin intermediate (step index > 0) DILARANG memproses (In) jika barang belum di-pickup MH dari stasiun sebelumnya
+        if ($this->exists && preg_match('/^Proses:\s*(.+?)\s*\(In\)$/i', trim(preg_replace('/^Parsial\s*>\s*/i', '', $next)), $m)) {
+            $stepName = trim($m[1]);
+            $steps = $this->getRoutingStepsList();
+            $stepIdx = array_search($stepName, $steps);
+            if ($stepIdx !== false && $stepIdx > 0) {
+                $bal = $this->getStepBalance($stepName, $stepIdx);
+                if ($bal['saldo_in'] <= 0) {
+                    return false;
+                }
+            }
+        }
+
+        if ($isSuperuser) {
+            return true;
         }
         $penerimaDept = strtolower(trim($this->dept_penerima ?? ''));
         $cleanPenerima = preg_replace('/[^a-z0-9]/', '', $penerimaDept);
@@ -395,8 +422,10 @@ class WorkRequest extends Model
     {
         if ($this->relationLoaded('steps')) {
             $steps = $this->steps->sortBy('step_number')->pluck('process_name')->toArray();
-        } else {
+        } elseif ($this->exists) {
             $steps = $this->steps()->orderBy('step_number')->pluck('process_name')->toArray();
+        } else {
+            $steps = [];
         }
         if (empty($steps) && !empty($this->routing_text)) {
             $parts = preg_split('/(->|-|,)/', $this->routing_text);
@@ -429,6 +458,10 @@ class WorkRequest extends Model
                     return false;
                 })
                 ->sum('quantity');
+        }
+
+        if (!$this->exists) {
+            return 0.0;
         }
 
         return (float) $this->logs()
@@ -713,7 +746,7 @@ class WorkRequest extends Model
                         return str_contains($status, 'sudah diambil') || str_contains($status, 'gudang') || str_contains($notes, 'sudah diambil') || str_contains($notes, 'penerimaan gudang');
                     })
                     ->sum('quantity');
-            } else {
+            } elseif ($this->exists) {
                 $gudangDefects = (float) $this->logs()
                     ->where('action_type', 'defect')
                     ->where(function ($q) {
@@ -723,29 +756,14 @@ class WorkRequest extends Model
                           ->orWhere('notes', 'like', '%Penerimaan Gudang%');
                     })
                     ->sum('quantity');
-            }
-
-            // Total barang selesai dari tahapan mesin terakhir (Kompatibilitas Sistem Lama)
-            $totalSiap = $this->getTotalProcessedForStatus('Siap diambil');
-            if ($totalSiap == 0 && !empty($steps)) {
-                $lastStep = $steps[count($steps) - 1];
-                $totalSiap = $this->getTotalProcessedForStatus("Proses: {$lastStep} (Out)");
-            }
-            if ($totalSiap == 0 && (stripos($this->status, 'siap diambil') !== false || $this->status === 'ready_for_warehouse')) {
-                $totalSiap = (float) $this->quantity_requested;
-            }
-
-            // Fleksibilitas Sistem Lama (js_dashboard.html): Jika kurir MH belum jemput (totalMenuju == 0), ambil dari totalSiap - totalSudah
-            if ($totalMenuju == 0 && $gudangDefects == 0) {
-                $saldoTerima = max(0, $totalSiap - $totalSudah);
             } else {
-                $saldoTerima = max(0, $totalMenuju - $totalSudah - $gudangDefects);
+                $gudangDefects = 0;
             }
 
-            // Penyelamat Data: Jika status sudah Siap Diambil tapi saldoTerima masih 0
-            if ($saldoTerima <= 0 && (stripos($this->status, 'siap diambil') !== false || stripos($this->status, 'menuju pengaju') !== false)) {
-                $saldoTerima = max(0, (float) $this->quantity_requested - $totalSudah);
-            }
+            // PENEGAKAN MUTLAK ALUR MATERIAL HANDLING:
+            // Gudang HANYA berhak menerima barang yang SUDAH dijemput oleh Material Handling ('Menuju Pengaju').
+            // DILARANG mengambil barang langsung dari stasiun mesin ('Siap Diambil').
+            $saldoTerima = max(0, $totalMenuju - $totalSudah - $gudangDefects);
 
             if ($saldoTerima > 0 && stripos($this->status, 'sudah diambil') === false) {
                 $actions[] = [
@@ -842,7 +860,7 @@ class WorkRequest extends Model
                         return str_contains($status, 'sudah diambil') || str_contains($status, 'gudang') || str_contains($notes, 'sudah diambil') || str_contains($notes, 'penerimaan gudang');
                     })
                     ->sum('quantity');
-            } else {
+            } elseif ($this->exists) {
                 $gudangDefects = (float) $this->logs()
                     ->where('action_type', 'defect')
                     ->where(function ($q) {
@@ -852,6 +870,8 @@ class WorkRequest extends Model
                           ->orWhere('notes', 'like', '%Penerimaan Gudang%');
                     })
                     ->sum('quantity');
+            } else {
+                $gudangDefects = 0;
             }
 
             if (($totalMenuju - $totalSudah - $gudangDefects) > 0) {

@@ -68,6 +68,55 @@ class ComponentPhotoStorageService
     }
 
     /**
+     * Get fallback UNC path for external master directory (\\192.168.1.150\...).
+     */
+    public function getUncDirectory(): string
+    {
+        $extDir = $this->getExternalDirectory();
+        if (preg_match('/^[zZ]:/i', $extDir)) {
+            $subPath = ltrim(preg_replace('/^[zZ]:[\\\\\/]*/i', '', $extDir), '\\/');
+            return '\\\\192.168.1.150\\HPK_Eng_Online\\' . $subPath;
+        }
+        return '\\\\192.168.1.150\\HPK_Eng_Online\\08.Project\\04. HPK Digitalisasi Program\\04. Gudang-Komponen\\Komonpen Gudang In House';
+    }
+
+    /**
+     * Get dedicated directory for ad-hoc / new components created via Work Request.
+     * Path: Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House\NewKomponenWR
+     */
+    public function getNewWrComponentDirectory(): string
+    {
+        return rtrim($this->getExternalDirectory(), '\\/') . DIRECTORY_SEPARATOR . 'NewKomponenWR';
+    }
+
+    /**
+     * Get fallback UNC path for NewKomponenWR.
+     */
+    public function getNewWrUncDirectory(): string
+    {
+        return rtrim($this->getUncDirectory(), '\\/') . DIRECTORY_SEPARATOR . 'NewKomponenWR';
+    }
+
+    /**
+     * Check if a directory is physically writable (safe for Windows SMB Mapped Drives).
+     */
+    public function isDirectoryWritable(?string $dir): bool
+    {
+        if (!$dir || !file_exists($dir) || !is_dir($dir)) {
+            return false;
+        }
+
+        $testFile = rtrim($dir, '\\/') . DIRECTORY_SEPARATOR . '.test_perm_' . uniqid();
+        $ok = @file_put_contents($testFile, '1');
+        if ($ok !== false) {
+            @unlink($testFile);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Get the local webroot mirror directory (public/uploads/components).
      */
     public function getMirrorDirectory(): string
@@ -85,36 +134,42 @@ class ComponentPhotoStorageService
     }
 
     /**
-     * Store an uploaded file (JPG, PNG, PDF, etc.) directly to D:\Ali Magang\KOMPONEN
+     * Store an uploaded file (JPG, PNG, PDF, etc.) directly to Drive Z: (Master or NewKomponenWR)
      * with standard naming [part_number].[ext] and sync to mirror.
      */
-    public function storeUploadedFile(UploadedFile $file, string $partNumber): string
+    public function storeUploadedFile(UploadedFile $file, string $partNumber, bool $isNewWr = false): string
     {
         $cleanPn = $this->sanitizePartNumber($partNumber);
         $ext = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'jpg');
         $fileName = "{$cleanPn}.{$ext}";
 
         $this->ensureDirectoriesExist();
-        $this->cleanExistingFilesForPart($cleanPn, $ext);
+        $this->cleanExistingFilesForPart($cleanPn, $ext, $isNewWr);
 
-        // 1. Simpan ke folder master eksternal D:\Ali Magang\KOMPONEN
-        $extDir = $this->getExternalDirectory();
-        if (file_exists($extDir) && is_writable($extDir)) {
-            $destFile = rtrim($extDir, '\\/') . DIRECTORY_SEPARATOR . $fileName;
-            copy($file->getRealPath(), $destFile);
-        }
-
-        // 2. Simpan salinan cermin di public/uploads/components/
+        // 1. Simpan salinan ke cermin webroot public/uploads/components/
         $mirrorDir = $this->getMirrorDirectory();
         $file->move($mirrorDir, $fileName);
+        $savedMirrorPath = $mirrorDir . DIRECTORY_SEPARATOR . $fileName;
+
+        // 2. Simpan fisik ke Drive Z: (Folder Utama Master atau Subfolder NewKomponenWR)
+        $targetNasDir = $isNewWr ? $this->getNewWrComponentDirectory() : $this->getExternalDirectory();
+        $targetUncDir = $isNewWr ? $this->getNewWrUncDirectory() : $this->getUncDirectory();
+
+        $destDir = $this->isDirectoryWritable($targetNasDir) ? $targetNasDir : ($this->isDirectoryWritable($targetUncDir) ? $targetUncDir : null);
+        if ($destDir) {
+            @copy($savedMirrorPath, rtrim($destDir, '\\/') . DIRECTORY_SEPARATOR . $fileName);
+        }
+
+        // 3. Reset cache memori dan Laravel
+        $this->clearCache();
 
         return "uploads/components/{$fileName}";
     }
 
     /**
-     * Store camera snapshot (base64 string) to D:\Ali Magang\KOMPONEN and mirror.
+     * Store camera snapshot (base64 string) to Drive Z: (Master or NewKomponenWR) and mirror.
      */
-    public function storeBase64(string $base64Data, string $partNumber): ?string
+    public function storeBase64(string $base64Data, string $partNumber, bool $isNewWr = false): ?string
     {
         $imageParts = explode(';base64,', $base64Data);
         if (count($imageParts) !== 2) {
@@ -126,14 +181,13 @@ class ComponentPhotoStorageService
             return null;
         }
 
-        return $this->storeBinary($binary, $partNumber, 'jpg');
+        return $this->storeBinary($binary, $partNumber, 'jpg', $isNewWr);
     }
 
     /**
-     * Store raw binary data (e.g. from Google Drive auto-download or stream)
-     * directly to D:\Ali Magang\KOMPONEN and mirror.
+     * Store raw binary data directly to Drive Z: (Master or NewKomponenWR) and mirror.
      */
-    public function storeBinary(string $binaryData, string $partNumber, string $ext = 'jpg'): string
+    public function storeBinary(string $binaryData, string $partNumber, string $ext = 'jpg', bool $isNewWr = false): string
     {
         $cleanPn = $this->sanitizePartNumber($partNumber);
         $cleanExt = strtolower(trim($ext, '. '));
@@ -143,18 +197,23 @@ class ComponentPhotoStorageService
         $fileName = "{$cleanPn}.{$cleanExt}";
 
         $this->ensureDirectoriesExist();
-        $this->cleanExistingFilesForPart($cleanPn, $cleanExt);
+        $this->cleanExistingFilesForPart($cleanPn, $cleanExt, $isNewWr);
 
-        // 1. Simpan ke D:\Ali Magang\KOMPONEN
-        $extDir = $this->getExternalDirectory();
-        if (file_exists($extDir) && is_writable($extDir)) {
-            $destPath = rtrim($extDir, '\\/') . DIRECTORY_SEPARATOR . $fileName;
-            file_put_contents($destPath, $binaryData);
+        // 1. Simpan salinan cermin di public/uploads/components/
+        $mirrorPath = $this->getMirrorDirectory() . DIRECTORY_SEPARATOR . $fileName;
+        @file_put_contents($mirrorPath, $binaryData);
+
+        // 2. Simpan fisik ke Drive Z: (Folder Utama Master atau Subfolder NewKomponenWR)
+        $targetNasDir = $isNewWr ? $this->getNewWrComponentDirectory() : $this->getExternalDirectory();
+        $targetUncDir = $isNewWr ? $this->getNewWrUncDirectory() : $this->getUncDirectory();
+
+        $destDir = $this->isDirectoryWritable($targetNasDir) ? $targetNasDir : ($this->isDirectoryWritable($targetUncDir) ? $targetUncDir : null);
+        if ($destDir) {
+            @file_put_contents(rtrim($destDir, '\\/') . DIRECTORY_SEPARATOR . $fileName, $binaryData);
         }
 
-        // 2. Simpan cermin ke public/uploads/components/
-        $mirrorPath = $this->getMirrorDirectory() . DIRECTORY_SEPARATOR . $fileName;
-        file_put_contents($mirrorPath, $binaryData);
+        // 3. Reset cache memori dan Laravel
+        $this->clearCache();
 
         return "uploads/components/{$fileName}";
     }
@@ -163,6 +222,82 @@ class ComponentPhotoStorageService
      * In-memory cache for resolved photo paths within the same request lifecycle.
      */
     protected static array $resolvedCache = [];
+
+    /**
+     * In-memory directory indexes to avoid repetitive filesystem/SMB scans.
+     */
+    protected static array $dirIndexMemoryCache = [];
+
+    /**
+     * Clear memory caches.
+     */
+    public static function clearDirectoryIndexCache(): void
+    {
+        self::$resolvedCache = [];
+        self::$dirIndexMemoryCache = [];
+    }
+
+    /**
+     * Clear memory and persistent caches for photo indexing and storage status.
+     */
+    public function clearCache(): void
+    {
+        self::clearDirectoryIndexCache();
+        if (function_exists('app') && app()->has('cache')) {
+            try {
+                \Illuminate\Support\Facades\Cache::forget('component_photo_index');
+                \Illuminate\Support\Facades\Cache::forget('nas_status_info');
+            } catch (\Throwable $e) {}
+        }
+    }
+
+    /**
+     * Get indexed filename map for a directory (keys in lowercase, values are real file basenames).
+     */
+    public function getDirectoryIndex(string $dir): array
+    {
+        $realDir = @realpath($dir) ?: $dir;
+        $cacheKey = md5($realDir);
+
+        if (isset(self::$dirIndexMemoryCache[$cacheKey])) {
+            return self::$dirIndexMemoryCache[$cacheKey];
+        }
+
+        if (!@is_dir($realDir)) {
+            return self::$dirIndexMemoryCache[$cacheKey] = [];
+        }
+
+        $resolver = function() use ($realDir) {
+            $files = @scandir($realDir);
+            if (!is_array($files)) {
+                return [];
+            }
+
+            $index = [];
+            foreach ($files as $f) {
+                if ($f === '.' || $f === '..') {
+                    continue;
+                }
+                $base = pathinfo($f, PATHINFO_FILENAME);
+                $raw = strtolower($base);
+                $clean = strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '-', $base));
+                $condensed = preg_replace('/[^a-z0-9]/', '', $raw);
+
+                $index[$raw] = $f;
+                $index[$clean] = $f;
+                $index[$condensed] = $f;
+                $index[strtolower($f)] = $f; // Also indexed with extension
+            }
+            return $index;
+        };
+
+        if (function_exists('app') && app()->has('cache') && !app()->environment('testing')) {
+            $index = \Illuminate\Support\Facades\Cache::remember("dir_index_{$cacheKey}", 60, $resolver);
+            return self::$dirIndexMemoryCache[$cacheKey] = $index;
+        }
+
+        return self::$dirIndexMemoryCache[$cacheKey] = $resolver();
+    }
 
     /**
      * Find local physical file path for a component across external storage and mirror with high-speed caching.
@@ -178,13 +313,18 @@ class ComponentPhotoStorageService
             return self::$resolvedCache[$cacheKey];
         }
 
-        // Cache resolution for 30 minutes to eliminate repetitive filesystem/network SMB stats
-        if (function_exists('app') && app()->has('cache')) {
-            $resolved = \Illuminate\Support\Facades\Cache::remember(
-                "comp_photo_resolved_{$cacheKey}",
-                1800,
-                fn() => $this->doFindLocalPhoto($partNumber, $imagePath)
-            );
+        // Cache resolution ONLY when successfully found (prevent negative cache poisoning)
+        if (function_exists('app') && app()->has('cache') && !app()->environment('testing')) {
+            $cacheName = "comp_photo_resolved_{$cacheKey}";
+            $cached = \Illuminate\Support\Facades\Cache::get($cacheName);
+            if ($cached !== null) {
+                return self::$resolvedCache[$cacheKey] = $cached;
+            }
+
+            $resolved = $this->doFindLocalPhoto($partNumber, $imagePath);
+            if ($resolved) {
+                \Illuminate\Support\Facades\Cache::put($cacheName, $resolved, 600); // 10 minutes for positive hits
+            }
             return self::$resolvedCache[$cacheKey] = $resolved;
         }
 
@@ -192,91 +332,110 @@ class ComponentPhotoStorageService
     }
 
     /**
-     * Internal filesystem search for component photo.
+     * Internal filesystem search for component photo prioritizing Master Shared Drive Z: & UNC.
      */
     protected function doFindLocalPhoto(string $partNumber, ?string $imagePath = null): ?string
     {
         $cleanPn = $this->sanitizePartNumber($partNumber);
         $rawPn = trim($partNumber);
         $condensedPn = preg_replace('/[^a-zA-Z0-9]/', '', $partNumber);
-        $candidateExts = $this->getCandidateExtensions();
 
-        // 1. Cek folder cermin lokal public/uploads/components/ TERLEBIH DAHULU (Kecepatan SSD Instan 0.01ms)
-        $candidateMirrorNames = array_values(array_unique(array_filter([$cleanPn, $rawPn, $condensedPn])));
-        foreach ($candidateMirrorNames as $name) {
-            foreach ($candidateExts as $ext) {
-                $localRel = "uploads/components/{$name}.{$ext}";
-                $localFull = $this->resolvePublicPath($localRel);
-                if (file_exists($localFull) && filesize($localFull) > 50) {
-                    return realpath($localFull) ?: $localFull;
-                }
-            }
-        }
-
-        // 2. Cek image_path di database jika berupa file lokal valid di webroot
-        if ($imagePath && !str_starts_with($imagePath, 'http')) {
-            $fullDbPath = $this->resolvePublicPath($imagePath);
-            if (file_exists($fullDbPath) && filesize($fullDbPath) > 50) {
-                return realpath($fullDbPath) ?: $fullDbPath;
-            }
-        }
-
-        // 3. Fallback Cadangan Fisik Lokal Cepat (D:\Ali Magang\KOMPONEN)
-        $candidateNames = array_values(array_unique(array_filter([
-            $cleanPn,
-            $rawPn,
-            $condensedPn,
-            strtoupper($cleanPn),
-            strtolower($cleanPn),
-            strtoupper($rawPn),
+        $keysToTry = array_values(array_unique(array_filter([
             strtolower($rawPn),
-            strtoupper($condensedPn),
-            strtolower($condensedPn),
+            strtolower($cleanPn),
+            strtolower($condensedPn)
         ])));
 
-        $localBackupDir = 'D:\Ali Magang\KOMPONEN';
-        if (file_exists($localBackupDir)) {
-            $localTrimmed = rtrim($localBackupDir, '\\/');
-            foreach ($candidateNames as $name) {
-                foreach ($candidateExts as $ext) {
-                    $backupPath = $localTrimmed . DIRECTORY_SEPARATOR . "{$name}.{$ext}";
-                    if (file_exists($backupPath) && filesize($backupPath) > 50) {
-                        return realpath($backupPath) ?: $backupPath;
-                    }
-                }
-            }
-        }
-
-        // 4. Cek folder eksternal utama (Drive Z: atau UNC \\192.168.1.150\... via SMB Network)
+        // =========================================================================
+        // PRIORITAS 1: MASTER NETWORK DRIVE Z: / UNC & SUBFOLDER NewKomponenWR
+        // Kecepatan mikrodetik (In-Memory Directory Indexing, 4ms untuk seluruh katalog)
+        // =========================================================================
         $extDir = $this->getExternalDirectory();
         $externalDirsToCheck = [];
         if (!empty($extDir)) {
             $externalDirsToCheck[] = $extDir;
-            if (preg_match('/^[zZ]:/i', $extDir)) {
-                $uncDir = preg_replace('/^[zZ]:/i', '\\\\192.168.1.150\\HPK_Eng_Online', $extDir);
-                if (!in_array($uncDir, $externalDirsToCheck, true)) {
-                    $externalDirsToCheck[] = $uncDir;
-                }
+            $newWrDir = $this->getNewWrComponentDirectory();
+            if (!in_array($newWrDir, $externalDirsToCheck, true)) {
+                $externalDirsToCheck[] = $newWrDir;
+            }
+
+            $uncDir = $this->getUncDirectory();
+            if (!in_array($uncDir, $externalDirsToCheck, true)) {
+                $externalDirsToCheck[] = $uncDir;
+            }
+            $newWrUnc = $this->getNewWrUncDirectory();
+            if (!in_array($newWrUnc, $externalDirsToCheck, true)) {
+                $externalDirsToCheck[] = $newWrUnc;
             }
         }
 
         foreach ($externalDirsToCheck as $dir) {
             if (@file_exists($dir)) {
+                $index = $this->getDirectoryIndex($dir);
                 $dirTrimmed = rtrim($dir, '\\/');
-                foreach ($candidateNames as $name) {
-                    foreach ($candidateExts as $ext) {
-                        $fullPath = $dirTrimmed . DIRECTORY_SEPARATOR . "{$name}.{$ext}";
-                        if (@file_exists($fullPath) && @filesize($fullPath) > 50) {
-                            return realpath($fullPath) ?: $fullPath;
+
+                foreach ($keysToTry as $lk) {
+                    if (isset($index[$lk])) {
+                        $full = $dirTrimmed . DIRECTORY_SEPARATOR . $index[$lk];
+                        if (@file_exists($full) && @filesize($full) > 50) {
+                            return realpath($full) ?: $full;
                         }
                     }
                 }
 
                 if ($imagePath && !str_starts_with($imagePath, 'http')) {
-                    $baseImg = basename($imagePath);
-                    $directExtPath = $dirTrimmed . DIRECTORY_SEPARATOR . $baseImg;
-                    if (@file_exists($directExtPath) && @filesize($directExtPath) > 50) {
-                        return realpath($directExtPath) ?: $directExtPath;
+                    $baseImg = strtolower(basename($imagePath));
+                    if (isset($index[$baseImg])) {
+                        $full = $dirTrimmed . DIRECTORY_SEPARATOR . $index[$baseImg];
+                        if (@file_exists($full) && @filesize($full) > 50) {
+                            return realpath($full) ?: $full;
+                        }
+                    }
+                }
+            }
+        }
+
+        // =========================================================================
+        // PRIORITAS 2: Folder Cermin Lokal (public/uploads/components/)
+        // =========================================================================
+        $mirrorDir = $this->getMirrorDirectory();
+        if (@file_exists($mirrorDir)) {
+            $mirrorIndex = $this->getDirectoryIndex($mirrorDir);
+            $mirrorTrimmed = rtrim($mirrorDir, '\\/');
+
+            foreach ($keysToTry as $lk) {
+                if (isset($mirrorIndex[$lk])) {
+                    $full = $mirrorTrimmed . DIRECTORY_SEPARATOR . $mirrorIndex[$lk];
+                    if (@file_exists($full) && @filesize($full) > 50) {
+                        return realpath($full) ?: $full;
+                    }
+                }
+            }
+        }
+
+        // =========================================================================
+        // PRIORITAS 3: image_path di database jika berupa file lokal valid di webroot
+        // =========================================================================
+        if ($imagePath && !str_starts_with($imagePath, 'http')) {
+            $fullDbPath = $this->resolvePublicPath($imagePath);
+            if (@file_exists($fullDbPath) && @filesize($fullDbPath) > 50) {
+                return realpath($fullDbPath) ?: $fullDbPath;
+            }
+        }
+
+        // =========================================================================
+        // PRIORITAS 4: Cadangan Fisik Lokal D:\Ali Magang\KOMPONEN (Jika Tersedia)
+        // =========================================================================
+        $localBackupDir = env('COMPONENT_LOCAL_BACKUP_DIR', 'D:\Ali Magang\KOMPONEN');
+        if (@file_exists($localBackupDir) && !in_array($localBackupDir, $externalDirsToCheck, true)) {
+            $backupIndex = $this->getDirectoryIndex($localBackupDir);
+            $localTrimmed = rtrim($localBackupDir, '\\/');
+
+            foreach ($keysToTry as $lk) {
+                if (isset($backupIndex[$lk])) {
+                    $full = $localTrimmed . DIRECTORY_SEPARATOR . $backupIndex[$lk];
+                    if (@file_exists($full) && @filesize($full) > 50) {
+                        return realpath($full) ?: $full;
                     }
                 }
             }
@@ -288,9 +447,12 @@ class ComponentPhotoStorageService
     /**
      * Delete existing physical photos for a part when replaced.
      */
-    public function cleanExistingFilesForPart(string $cleanPn, string $exceptExt = ''): void
+    public function cleanExistingFilesForPart(string $cleanPn, string $exceptExt = '', bool $isNewWr = false): void
     {
-        $extDir = $this->getExternalDirectory();
+        $extDirs = array_filter([
+            $this->getExternalDirectory(),
+            $this->getNewWrComponentDirectory(),
+        ]);
         $mirrorDir = $this->getMirrorDirectory();
         $candidateExts = $this->getCandidateExtensions();
         $exceptExtLower = strtolower(trim($exceptExt, '. '));
@@ -300,11 +462,13 @@ class ComponentPhotoStorageService
                 continue;
             }
 
-            // External dir cleanup
-            if (file_exists($extDir)) {
-                $p1 = rtrim($extDir, '\\/') . DIRECTORY_SEPARATOR . "{$cleanPn}.{$ext}";
-                if (file_exists($p1)) {
-                    @unlink($p1);
+            // External dirs cleanup
+            foreach ($extDirs as $extDir) {
+                if (file_exists($extDir)) {
+                    $p1 = rtrim($extDir, '\\/') . DIRECTORY_SEPARATOR . "{$cleanPn}.{$ext}";
+                    if (file_exists($p1)) {
+                        @unlink($p1);
+                    }
                 }
             }
 
@@ -326,9 +490,96 @@ class ComponentPhotoStorageService
             @mkdir($mirrorDir, 0777, true);
         }
 
-        $extDir = $this->getExternalDirectory();
-        if (!file_exists($extDir)) {
-            @mkdir($extDir, 0777, true);
+        $newWrDir = $this->getNewWrComponentDirectory();
+        if (!file_exists($newWrDir) && $this->isDirectoryWritable($this->getExternalDirectory())) {
+            @mkdir($newWrDir, 0777, true);
         }
+    }
+
+    /**
+     * Get live health and metrics of NAS master storage and local mirror.
+     */
+    public function getStorageStatus(): array
+    {
+        $primaryDir = $this->getExternalDirectory();
+        $uncDir = '\\\\192.168.1.150\\HPK_Eng_Online\\08.Project\\04. HPK Digitalisasi Program\\04. Gudang-Komponen\\Komonpen Gudang In House';
+        $mirrorDir = $this->getMirrorDirectory();
+
+        $primaryExists = !empty($primaryDir) && @file_exists($primaryDir);
+        $uncExists = @file_exists($uncDir);
+        $mirrorExists = @file_exists($mirrorDir);
+
+        $primaryFiles = $primaryExists ? count(@glob(rtrim($primaryDir, '\\/') . '/*.*') ?: []) : 0;
+        $uncFiles = $uncExists ? count(@glob(rtrim($uncDir, '\\/') . '/*.*') ?: []) : 0;
+        $mirrorFiles = $mirrorExists ? count(@glob(rtrim($mirrorDir, '\\/') . '/*.*') ?: []) : 0;
+
+        $totalComponents = Component::where('source', 'master')->orWhereNull('source')->count();
+        $nasFilesCount = max($primaryFiles, $uncFiles);
+        $pendingSyncCount = max(0, $nasFilesCount - $mirrorFiles);
+
+        return [
+            'primary_dir' => $primaryDir,
+            'primary_connected' => $primaryExists,
+            'primary_files_count' => $primaryFiles,
+            'unc_dir' => $uncDir,
+            'unc_connected' => $uncExists,
+            'unc_files_count' => $uncFiles,
+            'is_nas_connected' => ($primaryExists || $uncExists),
+            'mirror_dir' => $mirrorDir,
+            'mirror_files_count' => $mirrorFiles,
+            'nas_total_files' => $nasFilesCount,
+            'pending_sync_count' => $pendingSyncCount,
+            'total_components' => $totalComponents,
+        ];
+    }
+
+    /**
+     * Synchronize photos from NAS to local webroot mirror.
+     */
+    public function syncNasToMirror(): array
+    {
+        $primaryDir = $this->getExternalDirectory();
+        $uncDir = '\\\\192.168.1.150\\HPK_Eng_Online\\08.Project\\04. HPK Digitalisasi Program\\04. Gudang-Komponen\\Komonpen Gudang In House';
+        $sourceDir = (@file_exists($primaryDir)) ? $primaryDir : ((@file_exists($uncDir)) ? $uncDir : null);
+
+        if (!$sourceDir) {
+            return [
+                'success' => false,
+                'message' => 'Tidak dapat menjangkau Server NAS (baik via Drive Z: maupun UNC IP \\\\192.168.1.150). Pastikan jaringan pabrik terhubung.',
+                'synced_count' => 0,
+            ];
+        }
+
+        $mirrorDir = $this->getMirrorDirectory();
+        if (!file_exists($mirrorDir)) {
+            @mkdir($mirrorDir, 0777, true);
+        }
+
+        $files = File::files($sourceDir);
+        $synced = 0;
+
+        foreach ($files as $file) {
+            $dest = rtrim($mirrorDir, '\\/') . DIRECTORY_SEPARATOR . $file->getFilename();
+            if (!file_exists($dest) || filesize($dest) !== $file->getSize()) {
+                if (@copy($file->getRealPath(), $dest)) {
+                    $synced++;
+                }
+            }
+        }
+
+        // Reset memory & Laravel cache
+        self::clearDirectoryIndexCache();
+        if (function_exists('app') && app()->has('cache')) {
+            try {
+                \Illuminate\Support\Facades\Cache::flush();
+            } catch (\Throwable $e) {}
+        }
+
+        return [
+            'success' => true,
+            'message' => "Berhasil menyinkronkan {$synced} berkas foto dari NAS ({$sourceDir}) ke Webroot Mirror ({$mirrorDir}).",
+            'synced_count' => $synced,
+            'total_source_files' => count($files),
+        ];
     }
 }

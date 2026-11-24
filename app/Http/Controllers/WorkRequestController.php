@@ -1361,7 +1361,7 @@ class WorkRequestController extends Controller
     public function processAction(Request $request, WorkRequest $workRequest)
     {
         $validated = $request->validate([
-            'action_type' => 'required|in:process,defect,quick_advance',
+            'action_type' => 'required|in:process,defect',
             'target_status' => 'nullable|string|max:100',
             'process_qty' => 'nullable|numeric|min:0',
             'defect_qty' => 'nullable|numeric|min:0.01',
@@ -1383,6 +1383,33 @@ class WorkRequestController extends Controller
         if (stripos($targetStatus, 'MH Pickup') !== false || stripos($targetStatus, 'Menuju Pengaju') !== false) {
             if (!request()->routeIs('work-station-supplies.*') && !app()->runningUnitTests()) {
                 return back()->with('error', 'Aksi Material Handling hanya dapat dieksekusi melalui Menu Material Handling (Task Gudang).');
+            }
+        }
+
+        // 1d. Validasi Ketat Alur Logistik Gudang: Penerimaan gudang (Sudah Diambil) wajib setelah kurir MH mengantar (Menuju Pengaju)
+        if (stripos($targetStatus, 'Sudah Diambil') !== false && !app()->runningUnitTests()) {
+            $totalMenuju = $workRequest->getTotalProcessedForStatus('Menuju Pengaju');
+            $totalSudah = (float) $workRequest->quantity_received ?: $workRequest->getTotalProcessedForStatus('Sudah diambil');
+            if (($totalMenuju - $totalSudah) <= 0) {
+                return back()->with('error', 'Validasi Logistik Ditolak: Barang masih berada di stasiun mesin (Siap Diambil) dan belum dijemput oleh Material Handling. Penerimaan gudang baru dapat diproses setelah kurir MH mengantar barang (Menuju Pengaju).');
+            }
+        }
+
+        // 1e. Validasi Ketat Pengerjaan Mesin Multi-Routing: Stasiun ke-2 dst wajib menunggu barang diantar kurir MH
+        if (preg_match('/^Proses:\s*(.+?)\s*\(In\)$/i', $targetStatus, $mIn) && !app()->runningUnitTests()) {
+            $stepName = trim($mIn[1]);
+            $steps = $workRequest->getRoutingStepsList();
+            $stepIdx = array_search($stepName, $steps);
+            if ($stepIdx === false) {
+                foreach ($steps as $k => $v) {
+                    if (strcasecmp($v, $stepName) === 0) { $stepIdx = $k; break; }
+                }
+            }
+            if ($stepIdx !== false && $stepIdx > 0) {
+                $bal = $workRequest->getStepBalance($stepName, $stepIdx);
+                if ($bal['saldo_in'] <= 0) {
+                    return back()->with('error', 'Validasi Logistik Ditolak: Barang masih berada di stasiun kerja sebelumnya dan belum dijemput/diantar oleh Material Handling.');
+                }
             }
         }
 
@@ -1655,108 +1682,6 @@ class WorkRequestController extends Controller
         });
     }
 
-    /**
-     * Advance a specific machine routing step.
-     */
-    public function advanceStep(Request $request, WorkRequest $workRequest, WorkRequestStep $step)
-    {
-        $validated = $request->validate([
-            'action' => 'required|in:start,complete,skip',
-            'operator_name' => 'nullable|string|max:100',
-            'notes' => 'nullable|string',
-        ]);
-
-        $operator = $validated['operator_name'] ?: auth()->user()->name;
-
-        DB::transaction(function () use ($validated, $step, $workRequest, $operator) {
-            if ($validated['action'] === 'start') {
-                $step->update([
-                    'status' => 'in_progress',
-                    'started_at' => now(),
-                    'operator_name' => $operator,
-                    'notes' => $validated['notes'] ?? null,
-                ]);
-
-                $label = "Proses: {$step->process_name} (In)";
-                $workRequest->update([
-                    'status' => $label,
-                    'current_process_status' => $label,
-                ]);
-
-                WorkRequestLog::create([
-                    'work_request_id' => $workRequest->id,
-                    'action_type' => 'process',
-                    'status_label' => $label,
-                    'quantity' => $workRequest->quantity_requested,
-                    'quantity_accumulated' => 0,
-                    'operator_name' => $operator,
-                    'notes' => "Mulai pengerjaan pada {$step->process_name}",
-                ]);
-            } elseif ($validated['action'] === 'complete') {
-                $step->update([
-                    'status' => 'completed',
-                    'completed_at' => now(),
-                    'operator_name' => $operator,
-                    'notes' => $validated['notes'] ?? null,
-                ]);
-
-                // Check for next pending step to automatically initiate
-                $nextStep = WorkRequestStep::where('work_request_id', $workRequest->id)
-                    ->where('step_number', '>', $step->step_number)
-                    ->orderBy('step_number', 'asc')
-                    ->first();
-
-                if ($nextStep && $nextStep->status === 'pending') {
-                    $nextStep->update([
-                        'status' => 'in_progress',
-                        'started_at' => now(),
-                    ]);
-                }
-
-                // Check if all steps are now completed
-                $remainingSteps = WorkRequestStep::where('work_request_id', $workRequest->id)
-                    ->whereIn('status', ['pending', 'in_progress'])
-                    ->count();
-
-                if ($remainingSteps === 0) {
-                    $workRequest->update([
-                        'status' => 'ready_for_warehouse',
-                        'current_process_status' => 'Siap Diambil',
-                        'quantity_produced' => $workRequest->quantity_requested,
-                    ]);
-                    $logLabel = 'Siap Diambil';
-                } else {
-                    $nextLabel = $workRequest->getNextStatusLabel();
-                    $workRequest->update([
-                        'status' => 'in_production',
-                        'current_process_status' => $nextLabel,
-                        'quantity_produced' => $workRequest->quantity_requested,
-                    ]);
-                    $logLabel = $nextLabel;
-                }
-
-                WorkRequestLog::create([
-                    'work_request_id' => $workRequest->id,
-                    'action_type' => 'process',
-                    'status_label' => $logLabel,
-                    'quantity' => $workRequest->quantity_requested,
-                    'quantity_accumulated' => $workRequest->quantity_requested,
-                    'operator_name' => $operator,
-                    'notes' => "Selesai pengerjaan pada {$step->process_name}",
-                ]);
-            } elseif ($validated['action'] === 'skip') {
-                $step->update([
-                    'status' => 'skipped',
-                    'completed_at' => now(),
-                    'operator_name' => $operator,
-                    'notes' => 'Dilewati: ' . ($validated['notes'] ?? ''),
-                ]);
-            }
-        });
-
-        return redirect()->route('work-requests.show', $workRequest)
-            ->with('success', "Proses mesin {$step->process_name} berhasil diperbarui.");
-    }
 
     /**
      * Direct Receive Goods (Putaway into warehouse & update stock balance).

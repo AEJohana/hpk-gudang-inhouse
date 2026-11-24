@@ -16,6 +16,7 @@ class CheckNasPhotosCommand extends Command
      */
     protected $signature = 'components:check-nas 
                             {--pull-to-local : Sinkronisasi/salin seluruh gambar dari NAS ke folder lokal cadangan D:\Ali Magang\KOMPONEN}
+                            {--sync-mirror : Sinkronisasi/salin seluruh gambar dari NAS langsung ke webroot mirror public/uploads/components}
                             {--limit-missing=10 : Jumlah maksimal komponen tanpa gambar yang ditampilkan}';
 
     /**
@@ -122,6 +123,17 @@ class CheckNasPhotosCommand extends Command
             $bar->finish();
             $this->newLine(2);
             $this->info("Sinkronisasi Selesai! Berhasil memperbarui <info>{$copied}</info> berkas ke {$localDir}.");
+        }
+
+        // 4. Opsi Sync ke Webroot Mirror (public/uploads/components)
+        if ($this->option('sync-mirror')) {
+            $this->line("4. Menyinkronkan Berkas dari NAS ke Webroot Mirror ({$mirrorDir})...");
+            $syncResult = $storageService->syncNasToMirror();
+            if ($syncResult['success']) {
+                $this->info($syncResult['message']);
+            } else {
+                $this->error($syncResult['message']);
+            }
         }
 
         return 0;
