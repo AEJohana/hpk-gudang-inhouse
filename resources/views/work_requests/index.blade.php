@@ -379,7 +379,7 @@
                 <span class="text-xs font-bold text-slate-700 tracking-wide animate-pulse">Memuat data tiket...</span>
             </div>
 
-            <div id="wri-table-container">
+            <div id="wri-table-container" data-lenis-prevent="true">
                 @include('work_requests.partials._table_content')
             </div>
         </div>
@@ -387,6 +387,7 @@
         <!-- Include Pop-up Modals -->
         @include('work_requests.partials.assign_operator_modal')
         @include('work_requests.partials.process_modal')
+        @include('work_requests.partials.process_camera_modal')
         @include('work_requests.partials.detail_modal')
         @include('work_requests.partials.image_preview_modal')
         @include('work_requests.partials.reject_modal')
@@ -398,6 +399,13 @@
     <script>
         function wriQueueManager() {
             return {
+                isWrScanRequired: {{ ($isWrScanRequired ?? false) ? 'true' : 'false' }},
+                processCameraModalOpen: false,
+                html5ProcessQrCode: null,
+                gunScanBuffer: '',
+                gunScanStartTime: 0,
+                gunLastCharTime: 0,
+                gunScanHandler: null,
                 activeTab: '{{ request()->boolean('overdue_sla') ? 'overdue' : (request('status') ?: 'all') }}',
                 tabLoading: false,
                 tabCache: {},
@@ -549,6 +557,11 @@
                     defectReason: '',
                     notes: '',
                     actionUrl: '',
+                    isPhysicalStep: false,
+                    isScanVerified: true,
+                    scannedCode: '',
+                    tempScanInput: '',
+                    scanErrorMessage: '',
                 },
                 detailData: {
                     id: null,
@@ -681,6 +694,17 @@
                 openProcessModal(data) {
                     const isHandover = data.nextStatus && (data.nextStatus.includes('MH Pickup') || data.nextStatus.includes('Menuju Pengaju') || data.nextStatus.includes('Sudah Diambil'));
                     const initialQty = (isHandover && data.currentBatchQty > 0) ? Number(data.currentBatchQty) : Number(data.remainingQty || 1);
+                    
+                    const nextStatus = data.nextStatus || '';
+                    const isPhysicalStep = (
+                        nextStatus.includes('(In)') || 
+                        nextStatus.includes('(Out)') || 
+                        nextStatus.includes('Pickup') || 
+                        nextStatus.includes('Menuju Pengaju') || 
+                        nextStatus.includes('Sudah Diambil')
+                    );
+                    const isScanVerified = !(this.isWrScanRequired && isPhysicalStep);
+
                     this.processData = {
                         ...data,
                         availableQty: initialQty,
@@ -689,8 +713,158 @@
                         defectQty: null,
                         defectReason: '',
                         notes: '',
+                        isPhysicalStep: isPhysicalStep,
+                        isScanVerified: isScanVerified,
+                        scannedCode: '',
+                        tempScanInput: '',
+                        scanErrorMessage: '',
                     };
                     this.processModalOpen = true;
+
+                    if (this.isWrScanRequired && isPhysicalStep) {
+                        this.attachGunScannerListener();
+                    }
+                },
+                attachGunScannerListener() {
+                    if (this.gunScanHandler) return;
+                    this.gunScanBuffer = '';
+                    this.gunScanStartTime = 0;
+                    this.gunLastCharTime = 0;
+
+                    this.gunScanHandler = (e) => {
+                        if (!this.processModalOpen || this.processData.isScanVerified) return;
+
+                        // Jangan halangi user jika sedang fokus mengisi catatan atau defect
+                        if (e.target && ['notes', 'defect_reason', 'defect_qty'].includes(e.target.name)) {
+                            return;
+                        }
+
+                        const now = Date.now();
+
+                        if (e.key === 'Enter') {
+                            if (this.gunScanBuffer.length > 0) {
+                                e.preventDefault();
+                                const totalTime = now - this.gunScanStartTime;
+                                const charCount = this.gunScanBuffer.length;
+                                const avgCharSpeed = totalTime / charCount;
+
+                                // Alat scanner gun fisik menembakkan buffer sangat cepat (rata-rata < 60ms per karakter).
+                                // Pengetikan manual oleh manusia rata-rata membutuhkan 120ms - 300ms per karakter.
+                                if (charCount >= 3 && avgCharSpeed <= 60) {
+                                    this.verifyScannedCode(this.gunScanBuffer);
+                                } else {
+                                    this.processData.scanErrorMessage = 'Pengetikan manual dilarang! Wajib menggunakan pemindai kamera atau alat scanner gun fisik.';
+                                }
+                                this.gunScanBuffer = '';
+                                this.gunScanStartTime = 0;
+                            }
+                            return;
+                        }
+
+                        // Tangkap karakter printable standar
+                        if (e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                            if (!this.gunScanStartTime || (now - this.gunLastCharTime > 150)) {
+                                this.gunScanBuffer = '';
+                                this.gunScanStartTime = now;
+                            }
+                            this.gunLastCharTime = now;
+                            this.gunScanBuffer += e.key;
+                        }
+                    };
+
+                    window.addEventListener('keydown', this.gunScanHandler);
+                },
+                detachGunScannerListener() {
+                    if (this.gunScanHandler) {
+                        window.removeEventListener('keydown', this.gunScanHandler);
+                        this.gunScanHandler = null;
+                    }
+                    this.gunScanBuffer = '';
+                    this.gunScanStartTime = 0;
+                    this.gunLastCharTime = 0;
+                },
+                verifyScannedCode(rawCode) {
+                    if (!rawCode || !rawCode.trim()) return;
+                    const input = rawCode.trim();
+                    const wriNum = (this.processData.wriNumber || '').trim();
+                    const partNum = (this.processData.partNumber || '').trim();
+
+                    const cleanScanned = input.replace(/HPK-PART\|/gi, '').replace(/[\s\-\/]/g, '').toLowerCase();
+                    const cleanWri = wriNum.replace(/[\s\-\/]/g, '').toLowerCase();
+                    const cleanPart = partNum.replace(/[\s\-\/]/g, '').toLowerCase();
+
+                    let isValid = false;
+                    if (cleanScanned && cleanWri && (cleanScanned === cleanWri || cleanScanned.includes(cleanWri) || cleanWri.includes(cleanScanned))) {
+                        isValid = true;
+                    } else if (cleanScanned && cleanPart && (cleanScanned === cleanPart || cleanScanned.includes(cleanPart))) {
+                        isValid = true;
+                    }
+
+                    if (isValid) {
+                        this.processData.scannedCode = input;
+                        this.processData.isScanVerified = true;
+                        this.processData.scanErrorMessage = '';
+                        this.detachGunScannerListener();
+                        if (this.processCameraModalOpen) {
+                            this.closeProcessCameraModal();
+                        }
+                    } else {
+                        this.processData.scanErrorMessage = `Kode "${input}" tidak cocok dengan tiket ${wriNum}!`;
+                    }
+                },
+                resetScanVerification() {
+                    this.processData.isScanVerified = false;
+                    this.processData.scannedCode = '';
+                    this.processData.scanErrorMessage = '';
+                    this.attachGunScannerListener();
+                },
+                async openProcessCameraModal() {
+                    this.processCameraModalOpen = true;
+                    this.$nextTick(() => {
+                        this.startProcessCameraScanner();
+                    });
+                },
+                async closeProcessCameraModal() {
+                    await this.stopProcessCameraScanner();
+                    this.processCameraModalOpen = false;
+                },
+                async startProcessCameraScanner() {
+                    const el = document.getElementById('process-camera-reader');
+                    if (!el || typeof Html5Qrcode === 'undefined') {
+                        console.warn('Html5Qrcode not available or container missing');
+                        return;
+                    }
+                    if (this.html5ProcessQrCode) {
+                        await this.stopProcessCameraScanner();
+                    }
+                    try {
+                        this.html5ProcessQrCode = new Html5Qrcode('process-camera-reader');
+                        const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+                        await this.html5ProcessQrCode.start(
+                            { facingMode: 'environment' },
+                            config,
+                            (decodedText) => {
+                                this.verifyScannedCode(decodedText);
+                            },
+                            () => {}
+                        );
+                    } catch (err) {
+                        console.error('Failed to start camera scanner:', err);
+                    }
+                },
+                async stopProcessCameraScanner() {
+                    if (this.html5ProcessQrCode) {
+                        const scanner = this.html5ProcessQrCode;
+                        this.html5ProcessQrCode = null;
+                        try {
+                            const state = typeof scanner.getState === 'function' ? scanner.getState() : null;
+                            if (state === 2 || state === 3) {
+                                await scanner.stop();
+                            }
+                        } catch (e) {
+                            console.warn('Silent catch stopping process camera:', e);
+                        }
+                    }
                 },
                 getMaxProcessQty() {
                     const avail = Number(this.processData.availableQty || (this.processData.currentBatchQty > 0 ? this.processData.currentBatchQty : this.processData.remainingQty) || 0);
@@ -731,7 +905,11 @@
                     }
                     this.syncProcessQtyWithDefect();
                 },
-                closeProcessModal() {
+                async closeProcessModal() {
+                    this.detachGunScannerListener();
+                    if (this.processCameraModalOpen) {
+                        await this.closeProcessCameraModal();
+                    }
                     this.processModalOpen = false;
                 },
                 openDetailModal(data) {

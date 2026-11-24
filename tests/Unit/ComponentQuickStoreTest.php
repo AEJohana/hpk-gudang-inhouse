@@ -41,4 +41,28 @@ class ComponentQuickStoreTest extends TestCase
 
         $this->assertEquals('accessories', $comp->category);
     }
+
+    /**
+     * Test component source attributes and master isolation.
+     */
+    public function test_component_source_and_isolation_accessors(): void
+    {
+        $masterComp = new Component([
+            'part_number' => 'CSFP10300250082',
+            'name' => 'Bracket Mounting Hino',
+            'source' => 'master',
+        ]);
+
+        $this->assertTrue($masterComp->is_master);
+        $this->assertFalse($masterComp->is_wr_adhoc);
+
+        $wrComp = new Component([
+            'part_number' => 'NEW-20261123-ABCD',
+            'name' => 'Flange Custom WR 50mm',
+            'source' => 'wr_adhoc',
+        ]);
+
+        $this->assertFalse($wrComp->is_master);
+        $this->assertTrue($wrComp->is_wr_adhoc);
+    }
 }

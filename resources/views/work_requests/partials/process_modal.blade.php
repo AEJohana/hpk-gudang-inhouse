@@ -2,6 +2,7 @@
 <div x-show="processModalOpen" 
      x-cloak 
      style="display: none;"
+     data-lenis-prevent="true"
      :class="{ 'pointer-events-none': !processModalOpen }"
      class="fixed inset-0 z-50 overflow-y-auto" 
      aria-labelledby="modal-title" 
@@ -28,6 +29,7 @@
              x-transition:leave="ease-in duration-200" 
              x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" 
              x-transition:leave-end="opacity-0 translate-y-3 sm:translate-y-0 sm:scale-95" 
+             :class="{ 'opacity-50 scale-[0.98] pointer-events-none': processCameraModalOpen }"
              class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 w-full sm:max-w-md border border-slate-200/80">
             
             <!-- Modal Header Bersih & Kompak -->
@@ -112,6 +114,88 @@
                 <input type="hidden" name="action_type" value="process">
                 <input type="hidden" name="target_status" :value="processData.nextStatus">
                 <input type="hidden" name="operator_name" :value="processData.assignedOperator || '{{ auth()->user()->name }}'">
+                <input type="hidden" name="scanned_wri_code" :value="processData.scannedCode">
+
+                <!-- DOK VERIFIKASI SCAN QR TIKET FISIK (OPERASIONAL MESIN & MH) -->
+                <template x-if="isWrScanRequired && processData.isPhysicalStep">
+                    <div class="rounded-2xl transition-all border p-3"
+                         :class="processData.isScanVerified ? 'bg-emerald-50/80 border-emerald-300' : 'bg-amber-50/90 border-amber-300 shadow-xs'">
+                        
+                        <!-- Kondisi 1: Berhasil Terverifikasi -->
+                        <div x-show="processData.isScanVerified" class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2.5 min-w-0">
+                                <div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs flex-shrink-0 shadow-xs">
+                                    <i class="fa-solid fa-check"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-[11px] font-black text-emerald-950 flex items-center space-x-1.5">
+                                        <span>Tiket Fisik Terverifikasi</span>
+                                        <span class="px-1.5 py-0.5 rounded bg-emerald-200 text-emerald-900 text-[9px] font-mono" x-text="processData.scannedCode"></span>
+                                    </div>
+                                    <p class="text-[10px] text-emerald-700 font-medium">QR lembar tiket WRI valid & cocok dengan sistem.</p>
+                                </div>
+                            </div>
+                            <button type="button" 
+                                    @click="resetScanVerification()" 
+                                    class="text-[10px] text-emerald-700 hover:text-emerald-900 font-bold underline px-2 py-1 rounded hover:bg-emerald-100 transition cursor-pointer flex-shrink-0">
+                                Pindai Ulang
+                            </button>
+                        </div>
+
+                        <!-- Kondisi 2: Belum Terverifikasi (Wajib Scan Fisik) -->
+                        <div x-show="!processData.isScanVerified" class="space-y-2.5">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center text-xs flex-shrink-0 font-bold shadow-2xs">
+                                        <i class="fa-solid fa-qrcode"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-xs font-black text-amber-950 uppercase tracking-wide">Wajib Pindai QR Tiket Fisik</h4>
+                                        <p class="text-[10px] text-amber-800 font-medium leading-tight">Pindai QR lembar kerja cetak sebelum mengeksekusi tahapan ini.</p>
+                                    </div>
+                                </div>
+                                <span class="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[9px] font-black uppercase tracking-wider flex-shrink-0">
+                                    Terkunci
+                                </span>
+                            </div>
+
+                            <!-- Tombol Utama Pemindai Kamera QR -->
+                            <button type="button" 
+                                    @click="openProcessCameraModal()" 
+                                    class="w-full py-3 bg-[#0a2342] hover:bg-slate-800 active:scale-[0.99] text-white rounded-2xl text-xs font-black transition flex items-center justify-center space-x-2.5 shadow-md hover:shadow-lg cursor-pointer">
+                                <i class="fa-solid fa-camera text-amber-300 text-sm"></i>
+                                <span class="tracking-wide">Buka Kamera Pemindai QR</span>
+                                <span class="px-2 py-0.5 rounded-full bg-white/10 text-slate-200 text-[10px] font-normal font-sans">Kamera HP / Laptop</span>
+                            </button>
+
+                            <!-- Indikator Siaga Barcode Scanner Gun Hardware (Anti-Ketik Manual) -->
+                            <div class="p-2.5 bg-white/90 rounded-xl border border-amber-200/90 flex items-center justify-between text-xs shadow-2xs">
+                                <div class="flex items-center space-x-2 min-w-0">
+                                    <span class="relative flex h-2.5 w-2.5 shrink-0">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                                    </span>
+                                    <div class="min-w-0">
+                                        <div class="text-[10.5px] font-extrabold text-slate-800 leading-tight">Pemindai Gun Fisik Siaga</div>
+                                        <div class="text-[9.5px] text-slate-500 truncate">Arahkan barcode scanner gun & tembak QR lembar kerja</div>
+                                    </div>
+                                </div>
+                                <span class="text-[9px] font-black text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0 border border-amber-300/60">
+                                    <i class="fa-solid fa-barcode me-0.5"></i> Auto
+                                </span>
+                            </div>
+
+                            <!-- Error Message Feedback -->
+                            <template x-if="processData.scanErrorMessage">
+                                <div class="p-2 bg-rose-100 border border-rose-300 text-rose-900 rounded-xl text-[10px] font-bold flex items-center space-x-1.5 animate-pulse">
+                                    <i class="fa-solid fa-circle-exclamation text-rose-600"></i>
+                                    <span x-text="processData.scanErrorMessage"></span>
+                                </div>
+                            </template>
+                        </div>
+
+                    </div>
+                </template>
 
                 <!-- KASUS A: PROSES MASUK / (In) - KUANTITAS TERKUNCI & BERSIH -->
                 <template x-if="processData.nextStatus.includes('(In)')">
@@ -314,16 +398,28 @@
                         <span>Kembali / Batal</span>
                     </button>
                     <button type="submit" 
+                            :disabled="isWrScanRequired && processData.isPhysicalStep && !processData.isScanVerified"
                             class="flex-1 py-2.5 rounded-xl text-white font-extrabold text-xs shadow-md transition flex items-center justify-center space-x-1.5"
-                            :class="processData.nextStatus.includes('Sudah Diambil') ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20' : 
+                            :class="(isWrScanRequired && processData.isPhysicalStep && !processData.isScanVerified) ? 'bg-slate-400 cursor-not-allowed opacity-60 shadow-none' : 
+                                   (processData.nextStatus.includes('Sudah Diambil') ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20' : 
                                    (processData.nextStatus.includes('MH Pickup') || processData.nextStatus.includes('Menuju Pengaju') ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-black shadow-amber-500/20' : 
-                                   (processData.nextStatus.includes('(In)') ? 'bg-teal-600 hover:bg-teal-700 shadow-teal-500/20' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20'))">
-                        <i :class="processData.nextStatus.includes('Sudah Diambil') ? 'fa-solid fa-warehouse' : 
-                                  (processData.nextStatus.includes('MH Pickup') || processData.nextStatus.includes('Menuju Pengaju') ? 'fa-solid fa-truck-ramp-box' : 
-                                  (processData.nextStatus.includes('(In)') ? 'fa-solid fa-play' : 'fa-solid fa-check'))"></i>
-                        <span x-text="processData.nextStatus.includes('Sudah Diambil') ? 'Terima di Gudang' : 
-                                     (processData.nextStatus.includes('MH Pickup') || processData.nextStatus.includes('Menuju Pengaju') ? 'Konfirmasi Ambil MH' : 
-                                     (processData.nextStatus.includes('(In)') ? 'Mulai Mesin' : 'Simpan & Lanjutkan'))"></span>
+                                   (processData.nextStatus.includes('(In)') ? 'bg-teal-600 hover:bg-teal-700 shadow-teal-500/20' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20')))">
+                        <template x-if="isWrScanRequired && processData.isPhysicalStep && !processData.isScanVerified">
+                            <span class="flex items-center space-x-1.5">
+                                <i class="fa-solid fa-lock text-xs"></i>
+                                <span>Pindai QR Lembar WRI Dahulu</span>
+                            </span>
+                        </template>
+                        <template x-if="!(isWrScanRequired && processData.isPhysicalStep && !processData.isScanVerified)">
+                            <span class="flex items-center space-x-1.5">
+                                <i :class="processData.nextStatus.includes('Sudah Diambil') ? 'fa-solid fa-warehouse' : 
+                                          (processData.nextStatus.includes('MH Pickup') || processData.nextStatus.includes('Menuju Pengaju') ? 'fa-solid fa-truck-ramp-box' : 
+                                          (processData.nextStatus.includes('(In)') ? 'fa-solid fa-play' : 'fa-solid fa-check'))"></i>
+                                <span x-text="processData.nextStatus.includes('Sudah Diambil') ? 'Terima di Gudang' : 
+                                             (processData.nextStatus.includes('MH Pickup') || processData.nextStatus.includes('Menuju Pengaju') ? 'Konfirmasi Ambil MH' : 
+                                             (processData.nextStatus.includes('(In)') ? 'Mulai Mesin' : 'Simpan & Lanjutkan'))"></span>
+                            </span>
+                        </template>
                     </button>
                 </div>
             </form>

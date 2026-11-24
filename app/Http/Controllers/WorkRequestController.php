@@ -365,6 +365,8 @@ class WorkRequestController extends Controller
             }
         }
 
+        $isWrScanRequired = \App\Models\Setting::isWrScanRequired();
+
         return view('work_requests.index', compact(
             'workRequests',
             'scope',
@@ -381,7 +383,8 @@ class WorkRequestController extends Controller
             'printableCount',
             'openDetailPayload',
             'departmentOperatorsMap',
-            'fabricationDepartments'
+            'fabricationDepartments',
+            'isWrScanRequired'
         ));
     }
 
@@ -395,7 +398,8 @@ class WorkRequestController extends Controller
         Location::ensureDefaultLocationExists();
 
         $user = auth()->user();
-        $components = Component::where('is_active', true)
+        $components = Component::masterCatalog()
+            ->where('is_active', true)
             ->with(['defaultLocation', 'stockBalances'])
             ->orderBy('name')
             ->get();
@@ -669,8 +673,9 @@ class WorkRequestController extends Controller
         $canApprovePenerima = $workRequest->canUserApprovePenerima($user);
         $canProcess = $workRequest->canUserProcessAction($user, $nextStatus);
         $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
+        $isWrScanRequired = \App\Models\Setting::isWrScanRequired();
 
-        return view('work_requests.show', compact('workRequest', 'locations', 'nextStatus', 'canApprovePengaju', 'canApprovePenerima', 'canProcess'));
+        return view('work_requests.show', compact('workRequest', 'locations', 'nextStatus', 'canApprovePengaju', 'canApprovePenerima', 'canProcess', 'isWrScanRequired'));
     }
 
     /**
@@ -938,7 +943,7 @@ class WorkRequestController extends Controller
     public function safetyStock(Request $request)
     {
         $user = auth()->user();
-        $query = Component::with(['defaultLocation', 'stockBalances'])
+        $query = Component::masterCatalog()->with(['defaultLocation', 'stockBalances'])
             ->withSum('stockBalances as total_stock_sum', 'quantity')
             ->where('is_active', true)
             ->where(function ($q) {
@@ -954,7 +959,7 @@ class WorkRequestController extends Controller
         }
 
         $criticalComponents = $query->orderBy('minimum_stock', 'desc')->paginate(15)->withQueryString();
-        $totalCritical = Component::where('is_active', true)
+        $totalCritical = Component::masterCatalog()->where('is_active', true)
             ->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) <= components.minimum_stock')
             ->count();
         $departments = Department::active()->orderBy('id')->get();
@@ -1363,6 +1368,7 @@ class WorkRequestController extends Controller
             'defect_reason' => 'nullable|string|max:255',
             'operator_name' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
+            'scanned_wri_code' => 'nullable|string',
         ]);
 
         $user = auth()->user();
@@ -1377,6 +1383,38 @@ class WorkRequestController extends Controller
         if (stripos($targetStatus, 'MH Pickup') !== false || stripos($targetStatus, 'Menuju Pengaju') !== false) {
             if (!request()->routeIs('work-station-supplies.*') && !app()->runningUnitTests()) {
                 return back()->with('error', 'Aksi Material Handling hanya dapat dieksekusi melalui Menu Material Handling (Task Gudang).');
+            }
+        }
+
+        // 1c. Validasi Kewajiban Pemindaian QR Fisik (Pengaturan Operasional Lapangan)
+        $isPhysicalStep = (
+            stripos($targetStatus, '(In)') !== false ||
+            stripos($targetStatus, '(Out)') !== false ||
+            stripos($targetStatus, 'MH Pickup') !== false ||
+            stripos($targetStatus, 'Menuju Pengaju') !== false ||
+            stripos($targetStatus, 'Sudah Diambil') !== false
+        );
+
+        if (\App\Models\Setting::isWrScanRequired() && $isPhysicalStep && $validated['action_type'] === 'process' && !app()->runningUnitTests()) {
+            $scannedCode = trim($request->input('scanned_wri_code', ''));
+            $wriNumber = trim($workRequest->wri_number);
+            $partNumber = trim($workRequest->component?->part_number ?? '');
+
+            $cleanScanned = strtolower(str_replace(['HPK-PART|', ' ', '-', '/'], '', $scannedCode));
+            $cleanWri = strtolower(str_replace([' ', '-', '/'], '', $wriNumber));
+            $cleanPart = strtolower(str_replace([' ', '-', '/'], '', $partNumber));
+
+            $isValidScan = false;
+            if (!empty($cleanScanned)) {
+                if ($cleanScanned === $cleanWri || str_contains($cleanScanned, $cleanWri) || str_contains($cleanWri, $cleanScanned)) {
+                    $isValidScan = true;
+                } elseif (!empty($cleanPart) && ($cleanScanned === $cleanPart || str_contains($cleanScanned, $cleanPart))) {
+                    $isValidScan = true;
+                }
+            }
+
+            if (!$isValidScan) {
+                return back()->with('error', 'Validasi Scan Diperlukan: Harap pindai kode QR fisik lembar kerja tiket WRI untuk memproses tahapan ini.');
             }
         }
 

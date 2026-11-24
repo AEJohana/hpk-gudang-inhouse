@@ -33,7 +33,7 @@ class EcrController extends Controller
 
     public function create(Request $request)
     {
-        $components = Component::where('is_active', true)->orderBy('name')->get();
+        $components = Component::masterCatalog()->where('is_active', true)->orderBy('name')->get();
         $selectedComponentId = $request->get('component_id');
 
         return view('ecrs.create', compact('components', 'selectedComponentId'));

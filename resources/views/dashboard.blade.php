@@ -17,7 +17,7 @@
 
                 <!-- Brand & Page Titles -->
                 <div class="font-extrabold text-[10px] sm:text-xs uppercase tracking-widest text-teal-300">PT. HYDRAXLE PERKASA</div>
-                <h1 class="font-black text-xl sm:text-3xl text-white tracking-wide mt-1">WAREHOUSE MANAGEMENT SYSTEM</h1>
+                <h1 class="gsap-reveal-title font-black text-xl sm:text-3xl text-white tracking-wide mt-1">WAREHOUSE MANAGEMENT SYSTEM</h1>
                 <p class="text-xs text-slate-300 mt-1 sm:mt-1.5 max-w-xl mx-auto px-2">
                     Sistem Pergudangan Karoseri In-House, Fabrikasi & Komponen Hidrolik (1 Gedung Terpadu)
                 </p>
@@ -37,13 +37,13 @@
 
         <!-- 2. TOP KPI METRICS STATS (KHUSUS ADMIN, SUPERVISOR & BAGIAN GUDANG) -->
         @if(Auth::user()->canViewWarehouseMetrics())
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 gsap-stagger-cards">
             <!-- Total SKU Aktif -->
-            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between hover:shadow-md transition">
+            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between hover:shadow-md transition hover-spring">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Komponen (SKU)</p>
-                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight">{{ $totalComponents }} <span class="text-[10px] sm:text-xs font-normal text-slate-500">Item</span></h3>
+                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight"><span class="counter-value">{{ $totalComponents }}</span> <span class="text-[10px] sm:text-xs font-normal text-slate-500">Item</span></h3>
                     </div>
                     <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
                         <i class="fa-solid fa-boxes-stacked"></i>
@@ -57,14 +57,14 @@
 
             <!-- Alert Stok Kritis / Minimum -->
             @can('master-komponen.view')
-            <a href="{{ route('components.index', ['low_stock' => 1]) }}" class="bg-white rounded-2xl p-3.5 sm:p-5 border {{ $lowStockCount > 0 ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200/80' }} shadow-2xs flex flex-col justify-between group hover:border-rose-400 hover:shadow-md transition">
+            <a href="{{ route('components.index', ['low_stock' => 1]) }}" class="bg-white rounded-2xl p-3.5 sm:p-5 border {{ $lowStockCount > 0 ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200/80' }} shadow-2xs flex flex-col justify-between group hover:border-rose-400 hover:shadow-md transition hover-spring">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-rose-600 flex items-center truncate">
                             <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-rose-500 me-1 sm:me-1.5 animate-pulse shrink-0"></span>
                             <span class="truncate">Stok Menipis (Kritis)</span>
                         </p>
-                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight">{{ $lowStockCount }} <span class="text-[10px] sm:text-xs font-normal text-slate-500">Item</span></h3>
+                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight"><span class="counter-value">{{ $lowStockCount }}</span> <span class="text-[10px] sm:text-xs font-normal text-slate-500">Item</span></h3>
                     </div>
                     <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
                         <i class="fa-solid fa-triangle-exclamation"></i>
@@ -75,14 +75,14 @@
                 </p>
             </a>
             @else
-            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border {{ $lowStockCount > 0 ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200/80' }} shadow-2xs flex flex-col justify-between">
+            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border {{ $lowStockCount > 0 ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200/80' }} shadow-2xs flex flex-col justify-between hover-spring">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-rose-600 flex items-center truncate">
                             <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-rose-500 me-1 sm:me-1.5 animate-pulse shrink-0"></span>
                             <span class="truncate">Stok Menipis (Kritis)</span>
                         </p>
-                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight">{{ $lowStockCount }} <span class="text-[10px] sm:text-xs font-normal text-slate-500">Item</span></h3>
+                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight"><span class="counter-value">{{ $lowStockCount }}</span> <span class="text-[10px] sm:text-xs font-normal text-slate-500">Item</span></h3>
                     </div>
                     <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
                         <i class="fa-solid fa-triangle-exclamation"></i>
@@ -95,11 +95,11 @@
             @endcan
 
             <!-- Transaksi Hari Ini -->
-            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between hover:shadow-md transition">
+            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between hover:shadow-md transition hover-spring">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">Transaksi Hari Ini</p>
-                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight">{{ $todayTransactionsCount }} <span class="text-[10px] sm:text-xs font-normal text-slate-500">Mutasi</span></h3>
+                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight"><span class="counter-value">{{ $todayTransactionsCount }}</span> <span class="text-[10px] sm:text-xs font-normal text-slate-500">Mutasi</span></h3>
                     </div>
                     <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
                         <i class="fa-solid fa-right-left"></i>
@@ -111,11 +111,11 @@
             </div>
 
             <!-- Antrian Approval (ECR & Disposal) -->
-            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between hover:shadow-md transition">
+            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between hover:shadow-md transition hover-spring">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">Menunggu Approval</p>
-                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight">{{ $pendingApprovalsCount }} <span class="text-[10px] sm:text-xs font-normal text-slate-500">Pengajuan</span></h3>
+                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight"><span class="counter-value">{{ $pendingApprovalsCount }}</span> <span class="text-[10px] sm:text-xs font-normal text-slate-500">Pengajuan</span></h3>
                     </div>
                     <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
                         <i class="fa-solid fa-stamp"></i>
@@ -131,13 +131,13 @@
         <!-- 3. QUICK ACTION DASHBOARD CARDS GRID (DASH-CARD FROM REFERENS) -->
         <div>
             <div class="mb-3.5">
-                <h3 class="font-bold text-slate-900 text-lg">Modul Aplikasi Pergudangan HPK</h3>
+                <h3 class="gsap-reveal-title font-bold text-slate-900 text-lg">Modul Aplikasi Pergudangan HPK</h3>
             </div>
 
-            <div class="dashboard-grid">
+            <div class="dashboard-grid gsap-stagger-cards">
                 <!-- 1. Work Request Inhouse (Machine Center) -->
                 @can('work-request.view')
-                <a href="{{ route('work-requests.index') }}" class="dash-card group border-amber-300 bg-amber-50/20">
+                <a href="{{ route('work-requests.index') }}" class="dash-card group border-amber-300 bg-amber-50/20 hover-spring">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-industry card-icon-bg"></i>
                     <div class="icon-box text-amber-800 bg-amber-100">

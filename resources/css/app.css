@@ -19,12 +19,15 @@
   --text-dark: #0a2342;     /* Navy Text */
 }
 
-html, body {
-  max-width: 100%;
-  overflow-x: clip;
+html {
+  scroll-behavior: smooth !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
+  max-width: 100%;
+  overflow-x: hidden;
   font-family: 'Poppins', sans-serif !important;
   background-color: #f1f5f9;
   background-image: linear-gradient(rgba(226, 232, 240, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(226, 232, 240, 0.6) 1px, transparent 1px);
@@ -612,4 +615,59 @@ body {
   background: #f8fafc;
   transform: scale(0.99);
 }
+
+/* =======================================================
+   ENTERPRISE MOTION & GPU HARDWARE UTILITIES (LINEAR/VERCEL GRADE)
+   ======================================================= */
+@keyframes enterFadeUp {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-fade-up {
+  animation: enterFadeUp 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Staggered cards entrance: Murni GPU Hardware, 100% mustahil hilang / stuck */
+.gsap-stagger-cards > * {
+  animation: enterFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  will-change: transform, opacity;
+}
+.gsap-stagger-cards > *:nth-child(1) { animation-delay: 0.02s; }
+.gsap-stagger-cards > *:nth-child(2) { animation-delay: 0.05s; }
+.gsap-stagger-cards > *:nth-child(3) { animation-delay: 0.08s; }
+.gsap-stagger-cards > *:nth-child(4) { animation-delay: 0.11s; }
+.gsap-stagger-cards > *:nth-child(5) { animation-delay: 0.14s; }
+.gsap-stagger-cards > *:nth-child(6) { animation-delay: 0.17s; }
+.gsap-stagger-cards > *:nth-child(7) { animation-delay: 0.20s; }
+.gsap-stagger-cards > *:nth-child(8) { animation-delay: 0.23s; }
+.gsap-stagger-cards > *:nth-child(9) { animation-delay: 0.26s; }
+
+.gsap-reveal-title {
+  animation: enterFadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  will-change: transform, opacity;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.hover-spring {
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
+  will-change: transform;
+}
+
+.hover-spring:hover {
+  transform: translateY(-3px) scale(1.012);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+}
+
+.hover-spring:active {
+  transform: translateY(0) scale(0.99);
+}
+
 

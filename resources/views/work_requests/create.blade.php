@@ -55,436 +55,494 @@
     $deptList = $fabricationDepartments->pluck('name')->values()->all();
 @endphp
 
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6" x-data="createWrCartApp(@js($componentsJsonData), @js($deptList), '{{ $userDept }}')">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="createWrCartApp(@js($componentsJsonData), @js($deptList), '{{ $userDept }}')">
 
-        <!-- CARD 1: FORMULIR INPUT WORK REQUEST (SESUAI GAMBAR REFERENSI PENGGUNA) -->
-        <div class="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-5">
+        <!-- 2-COLUMN STUDIO LAYOUT RESPONSIF: FORM BUILDER (60%) & LIVE CART (40%) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
-            <!-- BARIS 1: PEMOHON & TANGGAL ORDER -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <!-- Pemohon -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
-                        Pemohon
-                    </label>
-                    @if($canAccessAll)
-                        <select x-model="selectedDeptPengaju" 
-                                class="w-full px-3.5 py-2.5 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                            @foreach($departments as $dept)
-                                <option value="{{ $dept->name }}" {{ $dept->name === $userDept ? 'selected' : '' }}>
-                                    {{ $dept->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    @else
-                        <div class="relative">
-                            <input type="text" 
-                                   :value="selectedDeptPengaju" 
-                                   readonly 
-                                   class="w-full px-3.5 py-2.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl text-slate-700 cursor-not-allowed select-none">
-                            <i class="fa-solid fa-lock text-[10px] text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2"></i>
+            <!-- ========================================== -->
+            <!-- KOLOM KIRI (7/12): FORM BUILDER ORDER      -->
+            <!-- ========================================== -->
+            <div class="lg:col-span-7 space-y-5">
+                
+                <div class="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 sm:p-7 space-y-6">
+                    
+                    <!-- BARIS 1: PEMOHON & TANGGAL ORDER (METADATA STRIP) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b border-slate-100">
+                        <!-- Pemohon -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-building-user text-slate-400 text-xs"></i>
+                                <span>Pemohon</span>
+                            </label>
+                            @if($canAccessAll)
+                                <select x-model="selectedDeptPengaju" 
+                                        class="w-full px-3.5 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0a2342]/20 focus:border-[#0a2342] focus:outline-none transition">
+                                    @foreach($departments as $dept)
+                                        <option value="{{ $dept->name }}" {{ $dept->name === $userDept ? 'selected' : '' }}>
+                                            {{ $dept->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            @else
+                                <div class="relative">
+                                    <input type="text" 
+                                           :value="selectedDeptPengaju" 
+                                           readonly 
+                                           class="w-full px-3.5 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl text-slate-700 cursor-not-allowed select-none">
+                                    <i class="fa-solid fa-lock text-[10px] text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2"></i>
+                                </div>
+                            @endif
                         </div>
-                    @endif
-                </div>
 
-                <!-- Tanggal Order -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
-                        Tanggal Order
-                    </label>
-                    <input type="text" 
-                           value="{{ now()->format('d/m/Y') }}" 
-                           readonly 
-                           class="w-full px-3.5 py-2.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl text-slate-700 cursor-not-allowed select-none">
-                </div>
-            </div>
-
-            <!-- BARIS 2: CARI KOMPONEN & TOMBOL SCAN -->
-            <div class="space-y-2">
-                <label class="block text-xs font-bold text-slate-700">
-                    Cari Komponen
-                </label>
-
-                <!-- Input Pencarian + Tombol Scan Suffix Navy -->
-                <div class="relative" @click.outside="isSearchOpen = false">
-                    <div class="flex items-stretch rounded-xl border border-slate-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 overflow-hidden bg-white shadow-2xs transition">
-                        <input type="text" 
-                               x-model="searchQuery" 
-                               @focus="if(!showNewCompForm) isSearchOpen = true" 
-                               @input="if(!showNewCompForm) isSearchOpen = true; if(!searchQuery) clearSelectedComponent()" 
-                               placeholder="Ketik Kode atau Nama..." 
-                               class="w-full px-4 py-2.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 border-0 focus:ring-0 focus:outline-none bg-transparent">
-
-                        <!-- Tombol Clear jika ada teks atau part terpilih -->
-                        <button type="button" 
-                                x-show="searchQuery || selectedComponent" 
-                                @click="clearSelectedComponent()" 
-                                class="px-2.5 text-slate-400 hover:text-slate-600 transition" 
-                                title="Bersihkan pilihan">
-                            <i class="fa-solid fa-xmark text-xs"></i>
-                        </button>
-
-                        <!-- Tombol Scan Suffix (Navy Sesuai Gambar Referensi) -->
-                        <button type="button" 
-                                @click="openQrScannerModal()" 
-                                style="background-color: #0a2342 !important; color: #ffffff !important;"
-                                class="px-5 py-2.5 bg-[#0a2342] hover:bg-slate-800 active:scale-98 text-white font-bold text-xs flex items-center space-x-2 transition select-none cursor-pointer shrink-0" 
-                                title="Buka Kamera Scan QR / Barcode Part">
-                            <i class="fa-solid fa-qrcode text-sm"></i>
-                            <span class="tracking-wide">Scan</span>
-                        </button>
+                        <!-- Tanggal Order -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                                <i class="fa-regular fa-calendar text-slate-400 text-xs"></i>
+                                <span>Tanggal Order</span>
+                            </label>
+                            <input type="text" 
+                                   value="{{ now()->format('d/m/Y') }}" 
+                                   readonly 
+                                   class="w-full px-3.5 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl text-slate-700 cursor-not-allowed select-none">
+                        </div>
                     </div>
 
-                    <!-- Dropdown Hasil Pencarian Interaktif (Sesuai Gambar 2) -->
-                    <div x-show="isSearchOpen && !showNewCompForm && searchQuery.trim().length > 0" 
-                         x-cloak 
-                         style="display: none;" 
-                         class="absolute left-0 right-0 z-40 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-72 overflow-y-auto divide-y divide-slate-100">
-                        <template x-for="comp in filteredComponents()" :key="comp.id">
-                            <div @click="selectComponent(comp)" 
-                                 class="p-3 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between group">
-                                <div class="min-w-0 pr-2">
-                                    <div class="font-extrabold text-xs text-[#0a2342] group-hover:text-blue-600 transition font-mono tracking-tight" x-text="comp.part_number"></div>
-                                    <div class="text-[11px] font-semibold text-slate-700 truncate mt-0.5" x-text="comp.name"></div>
-                                    <div class="text-[10px] text-slate-400 flex items-center space-x-2 mt-0.5">
-                                        <span x-text="'Dim: ' + (comp.dimensions || '-')"></span>
-                                        <span>&bull;</span>
-                                        <span x-text="'Rak: ' + (comp.rack || '-')"></span>
-                                    </div>
+                    <!-- SEKSI 1: CARI KOMPONEN & UNIFIED SEARCH DOCK -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-extrabold text-sm text-slate-900 leading-tight flex items-center gap-2">
+                                <span class="w-5 h-5 rounded-md bg-[#0a2342] text-white text-[11px] font-bold flex items-center justify-center">1</span>
+                                <span>Cari Komponen Fabrikasi</span>
+                            </h3>
+                            <span class="text-[11px] text-slate-400 font-medium" x-text="componentsList.length + ' Part Katalog'"></span>
+                        </div>
+
+                        <!-- UNIFIED DOCK: INPUT SEARCH + TOMBOL SCAN QR + TOMBOL PART BARU TERINTEGRASI -->
+                        <div class="relative" @click.outside="isSearchOpen = false">
+                            <div class="flex items-stretch rounded-xl border border-slate-300 focus-within:ring-2 focus-within:ring-[#0a2342]/20 focus-within:border-[#0a2342] overflow-hidden bg-white shadow-2xs transition">
+                                <div class="relative flex-1 min-w-0 flex items-center pl-3">
+                                    <i class="fa-solid fa-magnifying-glass text-slate-400 text-xs pointer-events-none"></i>
+                                    <input type="text" 
+                                           x-model="searchQuery" 
+                                           @focus="if(!showNewCompForm) isSearchOpen = true" 
+                                           @input="if(!showNewCompForm) isSearchOpen = true; if(!searchQuery) clearSelectedComponent()" 
+                                           placeholder="Ketik kode part atau nama komponen..." 
+                                           class="w-full pl-2.5 pr-8 py-2.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 border-0 focus:ring-0 focus:outline-none bg-transparent">
+                                    
+                                    <!-- Tombol Clear Search -->
+                                    <button type="button" 
+                                            x-show="searchQuery || selectedComponent" 
+                                            @click="clearSelectedComponent()" 
+                                            class="absolute right-2 text-slate-400 hover:text-slate-600 transition p-1" 
+                                            title="Bersihkan pilihan">
+                                        <i class="fa-solid fa-xmark text-xs"></i>
+                                    </button>
                                 </div>
-                                <div class="text-right shrink-0">
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                                          :class="comp.stock > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'"
-                                          x-text="'Stok: ' + comp.stock + ' ' + comp.uom"></span>
+
+                                <!-- Tombol Aksi Dock Sisi Kanan: Scan QR & Part Baru -->
+                                <div class="flex items-stretch shrink-0 divide-x divide-slate-200 border-l border-slate-200">
+                                    <!-- Scan QR Suffix -->
+                                    <button type="button" 
+                                            @click="openQrScannerModal()" 
+                                            style="background-color: #0a2342 !important; color: #ffffff !important;"
+                                            class="px-3.5 py-2 hover:bg-slate-800 active:scale-98 font-bold text-xs flex items-center space-x-1.5 transition select-none cursor-pointer" 
+                                            title="Scan QR / Barcode Part via Kamera">
+                                        <i class="fa-solid fa-qrcode text-xs"></i>
+                                        <span>Scan</span>
+                                    </button>
+
+                                    <!-- Tambah Komponen Baru Suffix -->
+                                    <button type="button" 
+                                            @click="openNewComponentForm()" 
+                                            style="background-color: #f59e0b !important; color: #0f172a !important;"
+                                            class="px-3.5 py-2 hover:bg-amber-400 active:scale-98 font-extrabold text-xs flex items-center space-x-1.5 transition select-none cursor-pointer" 
+                                            title="Daftarkan Part Baru (Non-Master)">
+                                        <i class="fa-solid fa-plus text-xs"></i>
+                                        <span class="hidden sm:inline">Tambah Komponen Baru</span>
+                                        <span class="sm:hidden">Part Baru</span>
+                                    </button>
                                 </div>
                             </div>
-                        </template>
 
-                        <!-- Jika Tidak Ditemukan -->
-                        <div x-show="filteredComponents().length === 0" class="p-4 text-center space-y-2">
-                            <div class="text-xs font-bold text-slate-700">Komponen tidak ditemukan di katalog.</div>
-                            <p class="text-[11px] text-slate-500">Anda dapat langsung mendaftarkannya sebagai komponen baru.</p>
+                            <!-- LIVE SEARCH DROPDOWN -->
+                            <div x-show="isSearchOpen && !showNewCompForm && searchQuery.trim().length > 0" 
+                                 x-cloak 
+                                 style="display: none;" 
+                                 class="absolute left-0 right-0 z-40 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-72 overflow-y-auto divide-y divide-slate-100">
+                                <template x-for="comp in filteredComponents()" :key="comp.id">
+                                    <div @click="selectComponent(comp)" 
+                                         class="p-3 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between group">
+                                        <div class="min-w-0 pr-2">
+                                            <div class="font-extrabold text-xs text-[#0a2342] group-hover:text-blue-600 transition font-mono tracking-tight" x-text="comp.part_number"></div>
+                                            <div class="text-[11px] font-semibold text-slate-700 truncate mt-0.5" x-text="comp.name"></div>
+                                            <div class="text-[10px] text-slate-400 flex items-center space-x-2 mt-0.5">
+                                                <span x-text="'Dim: ' + (comp.dimensions || '-')"></span>
+                                                <span>&bull;</span>
+                                                <span x-text="'Rak: ' + (comp.rack || '-')"></span>
+                                            </div>
+                                        </div>
+                                        <div class="text-right shrink-0">
+                                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                                  :class="comp.stock > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'"
+                                                  x-text="'Stok: ' + comp.stock + ' ' + comp.uom"></span>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- State Tidak Ditemukan -->
+                                <div x-show="filteredComponents().length === 0" class="p-4 text-center space-y-2">
+                                    <div class="text-xs font-bold text-slate-700">Part tidak ditemukan di master katalog.</div>
+                                    <p class="text-[11px] text-slate-500">Anda dapat langsung mendaftarkannya sebagai komponen baru (non-master).</p>
+                                    <button type="button" 
+                                            @click="openNewComponentForm(searchQuery)" 
+                                            class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold transition">
+                                        <i class="fa-solid fa-plus text-[10px]"></i>
+                                        <span>Daftarkan Sebagai Part Baru</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- INLINE DRAWER: INPUT KOMPONEN BARU (NON-MASTER) -->
+                    <div x-show="showNewCompForm" 
+                         x-cloak 
+                         x-transition 
+                         style="display: none;" 
+                         class="border border-amber-300 rounded-2xl p-4 sm:p-5 bg-amber-50/20 space-y-4 shadow-2xs">
+                        
+                        <div class="flex items-center justify-between border-b border-amber-200/60 pb-2.5">
+                            <div class="flex items-center space-x-2 text-amber-900 font-extrabold text-xs sm:text-sm tracking-wide">
+                                <i class="fa-solid fa-cube text-amber-600"></i>
+                                <span>INPUT KOMPONEN BARU (NON-MASTER)</span>
+                            </div>
+                            <button type="button" @click="cancelNewComponentForm()" class="text-slate-400 hover:text-slate-600">
+                                <i class="fa-solid fa-xmark text-sm"></i>
+                            </button>
+                        </div>
+
+                        <!-- Field 1: Nama Komponen -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center space-x-1.5">
+                                <i class="fa-solid fa-tag text-amber-600 text-[11px]"></i>
+                                <span>Nama Komponen <span class="text-rose-500">*</span></span>
+                            </label>
+                            <input type="text" 
+                                   x-model="newComp.name" 
+                                   placeholder="Contoh: Air pipa assy karoseri..." 
+                                   class="w-full px-3.5 py-2 text-xs font-medium bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
+                        </div>
+
+                        <!-- Field 2: Tipe Material -->
+                        <div class="relative" @click.outside="isMaterialDropdownOpen = false">
+                            <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center space-x-1.5">
+                                <i class="fa-solid fa-flask text-amber-600 text-[11px]"></i>
+                                <span>Tipe Material</span>
+                            </label>
+                            <div class="relative">
+                                <input type="text" 
+                                       x-model="newComp.material" 
+                                       @focus="isMaterialDropdownOpen = true" 
+                                       placeholder="Pilih atau Ketik Material..." 
+                                       class="w-full px-3.5 py-2 pr-8 text-xs font-medium bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
+                                <button type="button" 
+                                        @click="isMaterialDropdownOpen = !isMaterialDropdownOpen" 
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                    <i class="fa-solid fa-chevron-down text-xs"></i>
+                                </button>
+                            </div>
+
+                            <!-- Dropdown List Material -->
+                            <div x-show="isMaterialDropdownOpen" 
+                                 x-cloak 
+                                 style="display: none;" 
+                                 class="absolute left-0 right-0 z-30 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100">
+                                <template x-for="mat in materialPresets" :key="mat">
+                                    <div @click="newComp.material = mat; isMaterialDropdownOpen = false" 
+                                         class="px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-900 cursor-pointer transition" 
+                                         x-text="mat"></div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Field 3: Dimensi P, L, T -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center space-x-1.5">
+                                <i class="fa-solid fa-ruler-combined text-amber-600 text-[11px]"></i>
+                                <span>Dimensi Ukuran</span>
+                            </label>
+                            <div class="grid grid-cols-3 gap-2.5">
+                                <input type="text" 
+                                       x-model="newComp.length_cm" 
+                                       placeholder="P (cm)" 
+                                       class="w-full px-3 py-2 text-xs text-center font-medium bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
+                                <input type="text" 
+                                       x-model="newComp.width_cm" 
+                                       placeholder="L (cm)" 
+                                       class="w-full px-3 py-2 text-xs text-center font-medium bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
+                                <input type="text" 
+                                       x-model="newComp.thickness_mm" 
+                                       placeholder="T (mm)" 
+                                       class="w-full px-3 py-2 text-xs text-center font-medium bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
+                            </div>
+                        </div>
+
+                        <!-- Field 4: Foto Komponen -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center space-x-1.5">
+                                <i class="fa-solid fa-camera text-amber-600 text-[11px]"></i>
+                                <span>Foto Komponen (Opsional)</span>
+                            </label>
+                            <div class="p-2 bg-white border border-slate-200 rounded-xl">
+                                <input type="file" 
+                                       @change="handleFileUpload($event)" 
+                                       accept="image/*" 
+                                       class="text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-800 hover:file:bg-amber-100 cursor-pointer">
+                            </div>
+                        </div>
+
+                        <!-- Tombol Aksi Form Komponen Baru -->
+                        <div class="grid grid-cols-2 gap-2.5 pt-2">
                             <button type="button" 
-                                    @click="openNewComponentForm(searchQuery)" 
-                                    class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 rounded-xl text-xs font-bold transition">
-                                <i class="fa-solid fa-plus text-[10px]"></i>
-                                <span>Input Komponen Baru</span>
+                                    @click="cancelNewComponentForm()" 
+                                    class="w-full py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer">
+                                Batal
+                            </button>
+                            <button type="button" 
+                                    @click="saveAndPreviewNewComponent()" 
+                                    :disabled="isSubmittingNewComp" 
+                                    style="background-color: #0a2342 !important; color: #ffffff !important;"
+                                    class="w-full py-2.5 hover:bg-slate-800 active:scale-98 font-extrabold text-xs rounded-xl shadow-xs transition flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                                    title="Simpan komponen baru dan tampilkan kartu preview">
+                                <i class="fa-solid fa-spinner fa-spin" x-show="isSubmittingNewComp"></i>
+                                <i class="fa-solid fa-check" x-show="!isSubmittingNewComp"></i>
+                                <span x-text="isSubmittingNewComp ? 'Menyimpan...' : 'Tampilkan Preview'">Tampilkan Preview</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KARTU PREVIEW KOMPONEN TERPILIH (MANUFACTURING SPEC BOX) -->
+                    <div x-show="selectedComponent && !showNewCompForm" 
+                         x-cloak 
+                         x-transition 
+                         style="display: none;" 
+                         class="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/90 shadow-2xs">
+                        
+                        <div class="flex flex-col sm:flex-row gap-4 items-start">
+                            <!-- Thumbnail Foto Part -->
+                            <div class="w-full sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs relative">
+                                <img :src="selectedComponent?.image_url" 
+                                     :alt="selectedComponent?.name" 
+                                     class="w-full h-full object-cover" 
+                                     x-on:error="$el.src = '{{ asset('images/placeholder_part.svg') }}'">
+                            </div>
+
+                            <!-- Rincian Identitas Part -->
+                            <div class="flex-1 min-w-0 space-y-2">
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-mono text-xs font-bold text-slate-900 bg-white px-2 py-0.5 rounded-lg border border-slate-200 shadow-2xs" x-text="selectedComponent?.part_number"></span>
+                                    <template x-if="selectedComponent?.is_new_part">
+                                        <span class="text-[9px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300">Part Baru</span>
+                                    </template>
+                                </div>
+                                <h4 class="font-extrabold text-sm text-slate-900 leading-tight" x-text="selectedComponent?.name"></h4>
+                                
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 border-t border-slate-200/60 text-xs">
+                                    <div>
+                                        <span class="text-[10px] text-slate-400 font-medium block">Dimensi</span>
+                                        <span class="font-bold text-slate-800" x-text="selectedComponent?.dimensions || '-'"></span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] text-slate-400 font-medium block">Stok Gudang</span>
+                                        <span class="font-extrabold text-slate-900" x-text="(selectedComponent?.stock || 0) + ' ' + (selectedComponent?.uom || 'PCS')"></span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] text-slate-400 font-medium block">Rak Tujuan</span>
+                                        <span class="font-mono font-bold text-blue-700" x-text="selectedComponent?.rack || 'Belum di Rak'"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SEKSI 2: PARAMETER PRODUKSI (KUANTITAS & ALUR STASIUN) -->
+                    <div class="space-y-4 pt-2 border-t border-slate-100">
+                        <h3 class="font-extrabold text-sm text-slate-900 leading-tight flex items-center gap-2">
+                            <span class="w-5 h-5 rounded-md bg-[#0a2342] text-white text-[11px] font-bold flex items-center justify-center">2</span>
+                            <span>Parameter Kuantitas & Alur Mesin</span>
+                        </h3>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Qty dengan Attached UOM Badge -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">
+                                    Jumlah Permintaan (Qty) <span class="text-rose-500">*</span>
+                                </label>
+                                <div class="flex items-stretch rounded-xl border border-slate-300 focus-within:ring-2 focus-within:ring-[#0a2342]/20 focus-within:border-[#0a2342] overflow-hidden bg-white shadow-2xs transition">
+                                    <input type="number" 
+                                           x-model.number="itemQty" 
+                                           min="0.1" 
+                                           step="any" 
+                                           placeholder="0" 
+                                           class="w-full px-3.5 py-2 text-xs font-extrabold text-slate-900 border-0 focus:ring-0 focus:outline-none bg-transparent">
+                                    <span class="px-3 py-2 bg-slate-100 text-slate-600 font-bold text-xs border-l border-slate-200 select-none flex items-center" 
+                                          x-text="selectedComponent?.uom || 'PCS'"></span>
+                                </div>
+                            </div>
+
+                            <!-- Stasiun Departemen Penerima -->
+                            <div class="relative" @click.outside="isDeptDropdownOpen = false">
+                                <label class="block text-xs font-bold text-slate-700 mb-1">
+                                    Stasiun Mesin Tujuan <span class="text-rose-500">*</span>
+                                </label>
+                                <div class="flex items-stretch rounded-xl border border-slate-300 focus-within:ring-2 focus-within:ring-[#0a2342]/20 focus-within:border-[#0a2342] bg-white shadow-2xs overflow-hidden transition">
+                                    <input type="text" 
+                                           x-model="itemDepartment" 
+                                           @focus="isDeptDropdownOpen = true" 
+                                           placeholder="Pilih Dept (Urut)" 
+                                           class="w-full px-3.5 py-2 text-xs font-bold text-slate-800 placeholder:text-slate-400 border-0 focus:ring-0 focus:outline-none bg-transparent">
+                                    
+                                    <!-- Tombol Reset Rute -->
+                                    <button type="button" 
+                                            @click="itemDepartment = ''" 
+                                            class="px-2.5 text-slate-400 hover:text-rose-600 transition" 
+                                            title="Reset Penerima">
+                                        <i class="fa-solid fa-xmark text-xs"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Dropdown List Departemen -->
+                                <div x-show="isDeptDropdownOpen" 
+                                     x-cloak 
+                                     style="display: none;" 
+                                     class="absolute left-0 right-0 z-30 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100">
+                                    <template x-for="dept in availableDepartments" :key="dept">
+                                        <div @click="selectDepartment(dept)" 
+                                             class="px-3.5 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-700 cursor-pointer transition flex items-center justify-between">
+                                            <span x-text="dept"></span>
+                                            <i class="fa-solid fa-plus text-[10px] text-slate-400"></i>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Catatan Pengerjaan Tambahan -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">
+                                Catatan / Instruksi Pengerjaan <span class="text-slate-400 text-[11px] font-normal">(opsional)</span>
+                            </label>
+                            <input type="text" 
+                                   x-model="itemNotes" 
+                                   placeholder="Contoh: Potong pelat profil segera / tekuk toleransi 1mm..." 
+                                   class="w-full px-3.5 py-2 text-xs font-medium bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#0a2342]/20 focus:border-[#0a2342] focus:outline-none transition">
+                        </div>
+
+                        <!-- TOMBOL TAMBAH KE ANTREAN (BRAND PRIMARY NAVY) -->
+                        <div class="pt-2">
+                            <button type="button" 
+                                    @click="addItemToCart()" 
+                                    style="background-color: #0a2342 !important; color: #ffffff !important;"
+                                    class="w-full py-3 hover:bg-slate-800 active:scale-[0.99] font-extrabold text-xs sm:text-sm rounded-xl shadow-xs transition flex items-center justify-center space-x-2 cursor-pointer select-none">
+                                <i class="fa-solid fa-plus text-xs"></i>
+                                <span>Tambah ke List</span>
                             </button>
                         </div>
                     </div>
                 </div>
-
-                <!-- Tombol Tambah Komponen Baru (Sesuai Gambar 1) -->
-                <div x-show="!showNewCompForm && !selectedComponent" class="pt-0.5">
-                    <button type="button" 
-                            @click="openNewComponentForm()" 
-                            class="w-full py-2.5 px-4 bg-white hover:bg-blue-50/50 active:scale-[0.99] border border-blue-300 text-blue-600 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 cursor-pointer shadow-2xs">
-                        <i class="fa-solid fa-plus text-xs"></i>
-                        <span>Tambah Komponen Baru</span>
-                    </button>
-                </div>
             </div>
 
-            <!-- INLINE FORM: INPUT KOMPONEN BARU (SESUAI GAMBAR 6, 7 & 8) -->
-            <div x-show="showNewCompForm" 
-                 x-cloak 
-                 x-transition 
-                 style="display: none;" 
-                 class="border-2 border-blue-300 rounded-2xl p-4 sm:p-5 bg-white space-y-4 shadow-sm">
+            <!-- ========================================== -->
+            <!-- KOLOM KANAN (5/12): LIVE CART SIDEBAR      -->
+            <!-- ========================================== -->
+            <div class="lg:col-span-5 sticky top-6 space-y-4">
                 
-                <div class="flex items-center justify-between border-b border-blue-100 pb-2.5">
-                    <div class="flex items-center space-x-2 text-blue-600 font-extrabold text-xs sm:text-sm tracking-wide">
-                        <i class="fa-solid fa-circle-plus"></i>
-                        <span>INPUT KOMPONEN BARU</span>
-                    </div>
-                    <span class="text-[11px] font-semibold text-slate-400">Non-Master On-The-Fly</span>
-                </div>
+                <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 space-y-4">
+                    
+                    <!-- Header Keranjang Siap Kirim -->
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 border border-blue-200/80 flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-clipboard-list"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-extrabold text-sm text-slate-900 leading-tight">Daftar Item Siap Kirim</h3>
+                                <p class="text-[11px] text-slate-500 font-normal">Periksa kembali item sebelum diterbitkan</p>
+                            </div>
+                        </div>
 
-                <!-- Field 1: Nama Komponen -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center space-x-1.5">
-                        <i class="fa-solid fa-tag text-blue-500 text-[11px]"></i>
-                        <span>Nama Komponen <span class="text-rose-500">*</span></span>
-                    </label>
-                    <input type="text" 
-                           x-model="newComp.name" 
-                           placeholder="Masukkan Nama Komponen..." 
-                           class="w-full px-3.5 py-2 text-xs font-medium border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                </div>
-
-                <!-- Field 2: Tipe Material (Combobox Sesuai Gambar 7 & 8) -->
-                <div class="relative" @click.outside="isMaterialDropdownOpen = false">
-                    <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center space-x-1.5">
-                        <i class="fa-solid fa-flask text-blue-500 text-[11px]"></i>
-                        <span>Tipe Material</span>
-                    </label>
-                    <div class="relative">
-                        <input type="text" 
-                               x-model="newComp.material" 
-                               @focus="isMaterialDropdownOpen = true" 
-                               placeholder="Pilih atau Ketik Material..." 
-                               class="w-full px-3.5 py-2 pr-8 text-xs font-medium border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                        <button type="button" 
-                                @click="isMaterialDropdownOpen = !isMaterialDropdownOpen" 
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                            <i class="fa-solid fa-chevron-down text-xs"></i>
-                        </button>
+                        <span class="px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs font-black" 
+                              x-text="cartItems.length + ' Item'"></span>
                     </div>
 
-                    <!-- Dropdown List Material (Gambar 7 & 8) -->
-                    <div x-show="isMaterialDropdownOpen" 
-                         x-cloak 
-                         style="display: none;" 
-                         class="absolute left-0 right-0 z-30 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100">
-                        <template x-for="mat in materialPresets" :key="mat">
-                            <div @click="newComp.material = mat; isMaterialDropdownOpen = false" 
-                                 class="px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition" 
-                                 x-text="mat"></div>
-                        </template>
-                    </div>
-                </div>
-
-                <!-- Field 3: Dimensi P, L, T (Sesuai Gambar 6) -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center space-x-1.5">
-                        <i class="fa-solid fa-ruler-combined text-blue-500 text-[11px]"></i>
-                        <span>Dimensi</span>
-                    </label>
-                    <div class="grid grid-cols-3 gap-2.5">
-                        <input type="text" 
-                               x-model="newComp.length_cm" 
-                               placeholder="P (cm)" 
-                               class="w-full px-3 py-2 text-xs text-center font-medium border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                        <input type="text" 
-                               x-model="newComp.width_cm" 
-                               placeholder="L (cm)" 
-                               class="w-full px-3 py-2 text-xs text-center font-medium border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                        <input type="text" 
-                               x-model="newComp.thickness_mm" 
-                               placeholder="T (mm)" 
-                               class="w-full px-3 py-2 text-xs text-center font-medium border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                    </div>
-                </div>
-
-                <!-- Field 4: Foto Komponen (Sesuai Gambar 6) -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center space-x-1.5">
-                        <i class="fa-solid fa-camera text-blue-500 text-[11px]"></i>
-                        <span>Foto Komponen</span>
-                    </label>
-                    <div class="flex items-center space-x-3 p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                        <input type="file" 
-                               @change="handleFileUpload($event)" 
-                               accept="image/*" 
-                               class="text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
-                    </div>
-                </div>
-
-                <!-- Tombol Aksi Form Komponen Baru (Sesuai Gambar 6) -->
-                <div class="space-y-2 pt-2">
-                    <!-- Tombol Tampilkan Preview (Cyan Cerah) -->
-                    <button type="button" 
-                            @click="saveAndPreviewNewComponent()" 
-                            :disabled="isSubmittingNewComp" 
-                            style="background-color: #00b4d8 !important; color: #ffffff !important;"
-                            class="w-full py-2.5 bg-[#00b4d8] hover:bg-[#0096c7] active:scale-[0.99] text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50">
-                        <i class="fa-solid fa-spinner fa-spin" x-show="isSubmittingNewComp"></i>
-                        <i class="fa-solid fa-eye" x-show="!isSubmittingNewComp"></i>
-                        <span x-text="isSubmittingNewComp ? 'Menyimpan & Memproses...' : 'Tampilkan Preview'"></span>
-                    </button>
-
-                    <!-- Tombol Batal / Kembali Cari (Border Merah) -->
-                    <button type="button" 
-                            @click="cancelNewComponentForm()" 
-                            class="w-full py-2.5 bg-white hover:bg-rose-50 active:scale-[0.99] border border-rose-300 text-rose-600 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-2 cursor-pointer">
-                        <i class="fa-solid fa-xmark"></i>
-                        <span>Batal / Kembali Cari</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- KARTU PREVIEW KOMPONEN TERPILIH (SESUAI GAMBAR 3 & 4) -->
-            <div x-show="selectedComponent && !showNewCompForm" 
-                 x-cloak 
-                 x-transition 
-                 style="display: none;" 
-                 class="border border-cyan-400/80 rounded-2xl p-4 bg-cyan-50/20 shadow-2xs space-y-3">
-                
-                <!-- Foto Komponen -->
-                <div class="w-full max-w-xs mx-auto h-36 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center relative shadow-2xs">
-                    <img :src="selectedComponent?.image_url" 
-                         :alt="selectedComponent?.name" 
-                         class="w-full h-full object-cover" 
-                         x-on:error="$el.src = '{{ asset('images/placeholder_part.svg') }}'">
-                </div>
-
-                <!-- Nama Komponen Terpilih -->
-                <div class="text-center">
-                    <h3 class="font-extrabold text-sm sm:text-base text-slate-900 uppercase tracking-wide" x-text="selectedComponent?.name"></h3>
-                </div>
-
-                <!-- Baris Informasi Spesifikasi (Sesuai Gambar 3) -->
-                <div class="space-y-1.5 text-xs pt-1 border-t border-cyan-200/50">
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-500 font-medium">Kode Komponen</span>
-                        <span class="font-bold text-blue-600 font-mono text-xs" x-text="selectedComponent?.part_number"></span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-500 font-medium">Dimensi</span>
-                        <span class="font-bold text-slate-800 text-xs" x-text="selectedComponent?.dimensions || '-'"></span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-500 font-medium">Routing</span>
-                        <span class="font-bold text-slate-800 text-xs" x-text="selectedComponent?.routing || '-'"></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- BARIS 3: QTY & PENERIMA (SESUAI GAMBAR 0, 1, 3 & 4) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <!-- Qty -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
-                        Qty <span class="text-rose-500">*</span>
-                    </label>
-                    <input type="number" 
-                           x-model.number="itemQty" 
-                           min="0.1" 
-                           step="any" 
-                           placeholder="0" 
-                           class="w-full px-3.5 py-2.5 text-xs font-bold text-slate-900 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                </div>
-
-                <!-- Penerima (Dropdown Pilih Dept Urut Sesuai Gambar 4) -->
-                <div class="relative" @click.outside="isDeptDropdownOpen = false">
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
-                        Penerima <span class="text-rose-500">*</span>
-                    </label>
-
-                    <div class="flex items-stretch rounded-xl border border-slate-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white shadow-2xs overflow-hidden transition">
-                        <input type="text" 
-                               x-model="itemDepartment" 
-                               @focus="isDeptDropdownOpen = true" 
-                               placeholder="Pilih Dept (Urut)" 
-                               class="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-800 placeholder:text-slate-400 border-0 focus:ring-0 focus:outline-none bg-transparent">
-                        
-                        <!-- Tombol Silang Merah Reset (Sesuai Gambar 0, 1, 3 & 4) -->
-                        <button type="button" 
-                                @click="itemDepartment = ''; selectedDeptsList = []" 
-                                class="px-3 text-rose-500 hover:text-rose-700 font-bold text-sm transition" 
-                                title="Reset Penerima">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
+                    <!-- STATE KOSONG (EMPTY STATE ILUSTRATIF) -->
+                    <div x-show="cartItems.length === 0" class="py-12 text-center space-y-2.5">
+                        <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center text-lg shadow-2xs">
+                            <i class="fa-solid fa-inbox"></i>
+                        </div>
+                        <div class="text-xs font-extrabold text-slate-700">Antrean Masih Kosong</div>
+                        <p class="text-[11px] text-slate-400 max-w-[220px] mx-auto leading-relaxed">
+                            Pilih part dan kuantitas di formulir sebelah kiri, lalu tekan tombol <strong>"Tambahkan ke Antrean Tiket"</strong>.
+                        </p>
                     </div>
 
-                    <!-- Dropdown List Departemen Penerima (Sesuai Gambar 4) -->
-                    <div x-show="isDeptDropdownOpen" 
-                         x-cloak 
-                         style="display: none;" 
-                         class="absolute left-0 right-0 z-30 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100">
-                        <template x-for="dept in availableDepartments" :key="dept">
-                            <div @click="selectDepartment(dept)" 
-                                 class="px-3.5 py-2.5 text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition flex items-center justify-between">
-                                <span x-text="dept"></span>
-                                <i class="fa-solid fa-plus text-[10px] text-slate-400"></i>
+                    <!-- DAFTAR ITEM KARTU DALAM KERANJANG -->
+                    <div x-show="cartItems.length > 0" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1 divide-y divide-slate-100">
+                        <template x-for="(item, index) in cartItems" :key="index">
+                            <div class="pt-2.5 first:pt-0 flex items-start justify-between space-x-3 group">
+                                <div class="min-w-0 flex-1 space-y-1">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="font-mono text-[10px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200" x-text="item.part_number"></span>
+                                        <template x-if="item.is_new">
+                                            <span class="text-[9px] bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded">Part Baru</span>
+                                        </template>
+                                    </div>
+                                    <div class="font-bold text-xs text-slate-900 truncate" x-text="item.name"></div>
+                                    <div class="flex items-center space-x-2 text-[11px]">
+                                        <span class="font-semibold text-blue-700 bg-blue-50/70 border border-blue-100 px-2 py-0.5 rounded" x-text="item.department_name"></span>
+                                        <span class="font-extrabold text-slate-900" x-text="item.quantity + ' ' + (item.uom || 'PCS')"></span>
+                                    </div>
+                                    <template x-if="item.notes">
+                                        <div class="text-[10px] text-slate-400 italic truncate" x-text="'Catatan: ' + item.notes"></div>
+                                    </template>
+                                </div>
+
+                                <button type="button" 
+                                        @click="removeCartItem(index)" 
+                                        class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition shrink-0" 
+                                        title="Hapus item ini">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
                             </div>
                         </template>
                     </div>
+
+                    <!-- SUMMARY STATS FOOTER & SUBMIT BUTTON -->
+                    <div x-show="cartItems.length > 0" class="pt-3 border-t border-slate-100 space-y-3">
+                        <div class="flex items-center justify-between text-xs text-slate-600 font-medium">
+                            <span>Total Pesanan:</span>
+                            <span class="font-extrabold text-slate-900" x-text="cartItems.length + ' Tiket Work Request'"></span>
+                        </div>
+
+                        <!-- TOMBOL KIRIM WORK REQUEST (HIJAU EMERALD SOLID) -->
+                        <button type="button" 
+                                @click="submitBulkWorkRequests()" 
+                                :disabled="isSubmittingBulk" 
+                                style="background-color: #16a34a !important; color: #ffffff !important;"
+                                class="w-full py-3.5 hover:bg-[#15803d] active:scale-[0.99] font-extrabold text-xs sm:text-sm rounded-xl shadow-md transition flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50">
+                            <i class="fa-solid fa-spinner fa-spin text-sm" x-show="isSubmittingBulk"></i>
+                            <i class="fa-solid fa-paper-plane text-sm" x-show="!isSubmittingBulk"></i>
+                            <span x-show="isSubmittingBulk">Menerbitkan Tiket...</span>
+                            <span x-show="!isSubmittingBulk" class="inline-flex items-center gap-1.5">
+                                <span>Kirim Work Request</span>
+                                <span x-show="cartItems.length > 0" x-text="'(' + cartItems.length + ')'"></span>
+                            </span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- BARIS 4: DESKRIPSI -->
-            <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1.5">
-                    Deskripsi
-                </label>
-                <input type="text" 
-                       x-model="itemNotes" 
-                       placeholder="Keterangan tambahan..." 
-                       class="w-full px-3.5 py-2.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-            </div>
-
-            <!-- BARIS 5: TOMBOL TAMBAH KE LIST (SESUAI GAMBAR 0, 1, 3 & 4) -->
-            <div class="pt-2">
-                <button type="button" 
-                        @click="addItemToCart()" 
-                        style="background-color: #10707F !important; color: #ffffff !important;"
-                        class="w-full py-3 bg-[#10707F] hover:bg-[#0c5965] active:scale-[0.99] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-xs transition flex items-center justify-center space-x-2 cursor-pointer select-none">
-                    <i class="fa-solid fa-circle-plus"></i>
-                    <span>Tambah ke List</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- CARD 2: DAFTAR ITEM SIAP KIRIM (KERANJANG / CART) - SESUAI GAMBAR 5 -->
-        <div x-show="cartItems.length > 0" 
-             x-cloak 
-             x-transition 
-             style="display: none;" 
-             class="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-5">
-            
-            <!-- Judul Keranjang (Sesuai Gambar 5) -->
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 class="font-extrabold text-sm sm:text-base text-slate-900 leading-tight">
-                    Daftar Item Siap Kirim (<span x-text="cartItems.length"></span>)
-                </h3>
-                <span class="text-xs text-slate-500 font-medium">Periksa kembali item sebelum diterbitkan</span>
-            </div>
-
-            <!-- Tabel Daftar Item (Sesuai Gambar 5) -->
-            <div class="overflow-x-auto rounded-xl border border-slate-200">
-                <table class="w-full text-left text-xs border-collapse">
-                    <thead class="bg-slate-50 border-b border-slate-200 font-extrabold text-slate-700">
-                        <tr>
-                            <th class="py-3 px-3.5">Komponen</th>
-                            <th class="py-3 px-3.5 text-center">Dept Penerima</th>
-                            <th class="py-3 px-3.5 text-center">Qty</th>
-                            <th class="py-3 px-3.5 text-center w-16">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 bg-white">
-                        <template x-for="(item, index) in cartItems" :key="index">
-                            <tr class="hover:bg-slate-50/60 transition">
-                                <td class="py-3 px-3.5 align-middle">
-                                    <div class="font-extrabold text-slate-900" x-text="item.name"></div>
-                                    <div class="text-[11px] font-mono font-medium text-slate-500 mt-0.5 flex items-center space-x-1.5">
-                                        <span x-text="item.part_number"></span>
-                                        <template x-if="item.is_new">
-                                            <span class="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded">Part Baru</span>
-                                        </template>
-                                    </div>
-                                    <template x-if="item.notes">
-                                        <div class="text-[10px] text-slate-400 italic mt-0.5" x-text="'Ket: ' + item.notes"></div>
-                                    </template>
-                                </td>
-                                <td class="py-3 px-3.5 align-middle text-center font-medium text-slate-700" x-text="item.department_name"></td>
-                                <td class="py-3 px-3.5 align-middle text-center font-extrabold text-slate-900" x-text="item.quantity + ' ' + (item.uom || 'PCS')"></td>
-                                <td class="py-3 px-3.5 align-middle text-center">
-                                    <button type="button" 
-                                            @click="removeCartItem(index)" 
-                                            class="w-7 h-7 rounded-lg bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center transition shadow-2xs mx-auto cursor-pointer" 
-                                            title="Hapus dari daftar">
-                                        <i class="fa-solid fa-trash-can text-xs"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Tombol Kirim Work Request (Hijau Sesuai Gambar 5) -->
-            <div class="pt-2">
-                <button type="button" 
-                        @click="submitBulkWorkRequests()" 
-                        :disabled="isSubmittingBulk" 
-                        style="background-color: #16a34a !important; color: #ffffff !important;"
-                        class="w-full py-3.5 bg-[#16a34a] hover:bg-[#15803d] active:scale-[0.99] text-white font-extrabold text-sm sm:text-base rounded-xl shadow-md transition flex items-center justify-center space-x-2.5 cursor-pointer disabled:opacity-50">
-                    <i class="fa-solid fa-spinner fa-spin text-sm" x-show="isSubmittingBulk"></i>
-                    <i class="fa-solid fa-paper-plane text-sm" x-show="!isSubmittingBulk"></i>
-                    <span x-text="isSubmittingBulk ? 'Menerbitkan Tiket Work Request...' : 'Kirim Work Request'"></span>
-                </button>
-            </div>
         </div>
 
         <!-- FORM HIDDEN UNTUK PENGIRIMAN BULK VIA POST -->
@@ -634,7 +692,6 @@
                 // Input Qty & Penerima
                 itemQty: '',
                 itemDepartment: '',
-                selectedDeptsList: [],
                 isDeptDropdownOpen: false,
                 itemNotes: '',
 
@@ -713,7 +770,7 @@
                 ],
                 newComp: {
                     name: '',
-                    material: '',
+                    material: 'Plat Hitam',
                     length_cm: '',
                     width_cm: '',
                     thickness_mm: '',
@@ -725,7 +782,6 @@
                 html5QrScanner: null,
 
                 init() {
-                    // Cek jika ada request query component_id
                     const preselectedId = '{{ request("component_id") }}';
                     if (preselectedId) {
                         const comp = this.componentsList.find(c => c.id == preselectedId);
@@ -753,7 +809,6 @@
                     this.isSearchOpen = false;
                     this.showNewCompForm = false;
 
-                    // Berikan saran routing jika departemen belum dipilih
                     if (!this.itemDepartment) {
                         this.smartSuggestRouting(comp.name);
                     }
@@ -823,7 +878,6 @@
                         formData.append('category', 'subframe');
                         formData.append('uom', 'PCS');
                         
-                        // Konversi cm ke mm untuk length & width jika diisi
                         if (this.newComp.length_cm) {
                             formData.append('length_mm', (parseFloat(this.newComp.length_cm) * 10).toString());
                         }
@@ -853,7 +907,6 @@
                         if (res.success && res.component) {
                             const comp = res.component;
                             
-                            // Format dimensi tampilan
                             let dimStr = '-';
                             if (this.newComp.length_cm || this.newComp.width_cm || this.newComp.thickness_mm) {
                                 dimStr = `P: ${this.newComp.length_cm || 0}cm x L: ${this.newComp.width_cm || 0}cm x T: ${this.newComp.thickness_mm || 0}mm`;
@@ -875,13 +928,11 @@
                                 is_new_part: true
                             };
 
-                            // Masukkan ke komponen lokal
                             this.componentsList.unshift(formattedComp);
                             this.selectedComponent = formattedComp;
                             this.searchQuery = formattedComp.name;
                             this.showNewCompForm = false;
 
-                            // Beri saran routing jika belum ada
                             if (!this.itemDepartment) {
                                 this.smartSuggestRouting(formattedComp.name);
                             }
@@ -913,7 +964,6 @@
                         return;
                     }
 
-                    // Tambahkan ke keranjang
                     this.cartItems.push({
                         component_id: this.selectedComponent.id,
                         name: this.selectedComponent.name,
@@ -925,20 +975,18 @@
                         is_new: this.selectedComponent.is_new_part || strStartsWith(this.selectedComponent.part_number, 'NEW-') || this.selectedComponent.part_number === 'Baru'
                     });
 
-                    // Reset form input untuk item berikutnya
                     this.selectedComponent = null;
                     this.searchQuery = '';
                     this.itemQty = '';
                     this.itemNotes = '';
-                    // Biarkan itemDepartment tetap ada sebagai default atau reset jika diinginkan
                 },
 
                 removeCartItem(index) {
                     const item = this.cartItems[index];
                     const itemName = item ? item.name : 'item ini';
                     this.showConfirm({
-                        title: 'Hapus Item dari Daftar?',
-                        message: `Apakah Anda yakin ingin menghapus "${itemName}" dari daftar item siap kirim?`,
+                        title: 'Hapus Item dari Antrean?',
+                        message: `Apakah Anda yakin ingin menghapus "${itemName}" dari antrean siap kirim?`,
                         confirmText: 'Ya, Hapus',
                         cancelText: 'Batal',
                         type: 'danger',
@@ -950,7 +998,7 @@
 
                 submitBulkWorkRequests() {
                     if (this.cartItems.length === 0) {
-                        this.showAlert('Daftar Item Kosong', 'Daftar item siap kirim masih kosong. Silakan tambahkan minimal 1 komponen terlebih dahulu sebelum mengirim.', 'warning');
+                        this.showAlert('Antrean Masih Kosong', 'Daftar item siap kirim masih kosong. Silakan tambahkan minimal 1 komponen terlebih dahulu sebelum mengirim.', 'warning');
                         return;
                     }
 
@@ -1029,7 +1077,6 @@
                     const cleanCode = code.trim();
                     this.closeQrScannerModal();
 
-                    // Cari di komponen lokal
                     const comp = this.componentsList.find(c => {
                         return c.part_number.toLowerCase() === cleanCode.toLowerCase() || 
                                cleanCode.includes(c.part_number) ||

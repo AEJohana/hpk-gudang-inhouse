@@ -23,9 +23,9 @@ class DashboardController extends Controller
 
         $metrics = Cache::remember('dashboard_kpi_metrics', 30, function () {
             // 1. KPI & Summary Metrics
-            $totalComponents = Component::count();
+            $totalComponents = Component::masterCatalog()->count();
             
-            $lowStockCount = Component::where('minimum_stock', '>', 0)
+            $lowStockCount = Component::masterCatalog()->where('minimum_stock', '>', 0)
                 ->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) <= components.minimum_stock')
                 ->count();
 
@@ -43,7 +43,7 @@ class DashboardController extends Controller
             // 2. Work Request Badge Counters
             $inProductionWriCount = WorkRequest::where('status', 'in_production')->count();
             $readyForWarehouseWriCount = WorkRequest::where('status', 'ready_for_warehouse')->count();
-            $unallocatedComponentsCount = Component::whereNull('default_location_id')->count();
+            $unallocatedComponentsCount = Component::masterCatalog()->whereNull('default_location_id')->count();
 
             return compact(
                 'totalComponents',

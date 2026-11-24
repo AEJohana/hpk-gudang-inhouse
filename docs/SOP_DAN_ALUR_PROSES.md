@@ -79,6 +79,8 @@ Seluruh logika bisnis dari sistem lama telah diimplementasikan secara terstruktu
 | **BR-14** | **Penyimpanan Gambar Teknik & CAD PDF Lokal, Server NAS Windows & Produksi Linux (Pure Local Mode)** | `COMPONENT_EXTERNAL_PHOTO_DIR` & `COMPONENT_ENABLE_GDRIVE_FALLBACK` (.env / .env.production), `ComponentPhotoStorageService`, `Component::getLocalPhotoFilePathAttribute()`, `Component::getImageUrlAttribute()`, `ComponentController::photoStream()`, `CheckNasPhotosCommand`, `CleanDummyComponentsCommand`, dan `image_preview_modal.blade.php`. | Seluruh foto komponen dan gambar teknik CAD tersimpan terpusat di server jaringan bersama on-premise: pada server pengembangan Windows (`Z:\08.Project\04. HPK Digitalisasi Program\04. Gudang-Komponen\Komonpen Gudang In House\[part_number].[ext]` dengan auto-bridge UNC `\\192.168.1.150\...` dan redundansi cadangan lokal di `D:\Ali Magang\KOMPONEN`) atau pada server produksi Linux melalui mount NAS (`/mnt/nas-gudang/Gudang Komponen In House/[part_number].[ext]`) dengan Pure Local Mode (`COMPONENT_ENABLE_GDRIVE_FALLBACK=false`) yang mematikan ketergantungan koneksi Google Drive. Seluruh penambahan/pembaruan via Form Input, Edit, Quick Store WR, dan Impor Excel otomatis disimpan ke master folder NAS dengan nama bersih `[part_number].[ext]`. **Fitur Auto-Detection Cerdas:** Untuk komponen yang belum ada gambarnya, pengguna cukup menyalin file ke folder master NAS dan menamainya sesuai kode item (`[part_number].[ext]`), sistem langsung mengenalinya tanpa perlu update database. Dilengkapi normalisasi leading slash otomatis (`mnt/...` -> `/mnt/...`), resiliensi *case-sensitivity* Linux untuk ekstensi huruf kapital (`.JPG`, `.PNG`, `.PDF`), serta pencarian nama part fleksibel (raw spasi, tersanitasi, maupun tanpa simbol). Mendukung dokumen CAD format `.pdf` serta gambar hingga 15MB, dilengkapi **Interactive Drawing Zoom Modal** dan **Native PDF Modal Viewer Fullscreen** (zoom 500%, multi-halaman, cetak langsung) di stasiun mesin (*work center*). Dilengkapi streaming berkecepatan tinggi `StreamedResponse`, perintah audit konektivitas `php artisan components:check-nas`, perintah pembersihan dummy aman `php artisan components:clean-dummies`, dan arsip data sumber resmi di `Data Acuan Resmi\Form Work Request - Data komponen.csv`. |
 | **BR-15** | **Manajemen Antrean Cetak Label QR (Default Menunggu Dicetak, Indikator KPI, Centered Control Dock Windows 11, Keranjang Pengajuan, Redesign Presisi Rak & Kartu, serta Bulk Print)** | `QrRequestController`, `resources/views/qr_requests/`, dan `QrRequestQueueTest.php`. | Akses awal menu `/qr-requests` tanpa parameter langsung menyaring antrean berstatus `pending` (*Menunggu Dicetak*) agar operator fokus pada label yang perlu diproses. Dilengkapi 3 kartu indikator KPI interaktif (*Menunggu Dicetak*, *Selesai Dicetak*, *Total Permintaan*), **Papan Kendali Terpusat (Centered Control Dock bergaya Taskbar Windows 11)** yang menyatukan 3 tab antrean dengan kolom pencarian cepat dalam 1 kapsul floating terpadu di tengah layar, lencana kuantitas riil (*count badges*) pada setiap tab, serta divider pemisah halus. Pada formulir `/qr-requests/create`, disematkan **Panel Geser Pratinjau Foto & Identitas Komponen Interaktif**, 2 opsi format label mandiri (*Label QR Rak* @10 label/set & *Label QR Kartu* fleksibel per part) yang dapat dipilih keduanya sekaligus, serta **Sistem Keranjang Pengajuan Massal (Cart Workflow)**. Di halaman antrean disematkan **Multi-Select Checkbox** dan **Floating Action Bar** untuk mencetak massal bersamaan (`/qr-requests/bulk-print`) dengan dokumen cetak A4 yang menerapkan *smart page-break*: lembar Label QR Rak tercetak dalam grid 2x10 (20 label/HVS) dengan 3 blok horizontal (kotak teks identitas, QR code SVG, kotak kosong stempel/paraf), sedangkan lembar Label QR Kartu tercetak dalam grid 2 kolom dengan 2 blok horizontal tanpa kotak kosong. |
 | **BR-16** | **Pusat Log Aktivitas Pengguna & Audit Trail Terpadu** | `ActivityLogger`, `AuditLogController`, `LogSuccessfulLogin`, `LogSuccessfulLogout`, dan `tests/Unit/ActivityLoggerTest.php`. | Seluruh peristiwa operasional penting (Login/Logout, Pembuatan & Approval WRI, Penugasan Operator, Pengerjaan Mesin, Pelaporan Defect/Reject, Material Handling, Mutasi Stok Gudang, Master Komponen/CAD, dan Cetak Label QR) wajib direkam secara otomatis dengan deskripsi naratif berbahasa Indonesia yang jelas, nama pelaku, departemen, dan IP address. Dapat diakses via `/activities` dan `/admin/audit-logs` dengan 4 kartu KPI interaktif, filter multi-kriteria, dan modal detail JSON diff. |
+| **BR-17** | **Studio Pembuatan Work Request Terintegrasi (2-Column Studio Layout, Sistem Keranjang, Multi-Routing, Pendaftaran Part Non-Master & Modal Interaktif)** | `WorkRequestController::create()`, `WorkRequestController::bulkStore()`, `resources/views/work_requests/create.blade.php`, `WorkRequestBulkStoreTest.php`, dan `WorkRequestCreateCartTest.php`. | Modul pembuatan pesanan fabrikasi (`/work-requests/create`) mengadopsi tata letak **2-Column Studio Layout**: Sisi kiri (60%) memuat Form Builder (metadata strip, dock pencarian terpadu ber-scanner QR kamera & tombol part baru, drawer pendaftaran komponen non-master, kuantitas dengan lencana satuan docked, rute mesin fleksibel, dan tombol `Tambah ke List`), sementara sisi kanan (40% sticky) memuat `Daftar Item Siap Kirim` (*Live Cart*) dengan kartu ringkasan part, tombol hapus halus, total pesanan, dan tombol hijau `Kirim Work Request`. Seluruh dialog konfirmasi dan pesan peringatan menggunakan modal interaktif kustom berbasis Alpine.js dengan zero native browser dialog. Mendukung multi-routing berurutan (misal `Dept Laser Cutting -> Dept M1`) dan transaksi atomik database aman. |
+| **BR-18** | **Prinsip Satu Pintu Master Komponen & Isolasi Mutlak Part Ad-Hoc WR** | Kolom `components.source` (`'master'` vs `'wr_adhoc'`), scope `masterCatalog()`, `ComponentController::index()`, `ComponentController::quickStore()`, `DashboardController`. | **Katalog Master Komponen murni satu pintu:** Seluruh penambahan data ke katalog Master Komponen mutlak harus melalui menu Master Komponen resmi oleh Engineering/Admin Gudang. Komponen yang didaftarkan melalui form Work Request (`quickStore`) secara otomatis berstatus `wr_adhoc` ("buat lewat aja untuk kebutuhan pengerjaan saat itu") dan **100% terisolasi/disembunyikan dari modul Master Komponen, Safety Stock Alert, dan KPI Dashboard**, sehingga katalog master resmi HPK selalu steril dan bebas dari part coba-coba atau part non-standar. |
 
 ---
 
@@ -246,7 +248,7 @@ Formulir pengajuan pesanan pembuatan part (`/work-requests/create`) menerapkan a
    - Apabila kata kunci yang diketik tidak ditemukan (*Zero Results*), sistem secara otomatis menampilkan kartu informasi ramah dengan tombol fallback `[+ Part Belum Ada di Master]`.
    - Nama part yang diketik otomatis diisikan (*pre-filled*) ke dalam form modal registrasi tanpa mengharuskan pengguna mengetik ulang.
    - Form modal menerapkan tipografi bersih dan santai (Sentence Case, `font-medium`, tanpa penumpukan bold kapital), input dimensi terpadu dengan micro-suffix satuan (`P (mm)`, `L (mm)`, `T (mm)`), kartu unggah foto part yang rapi, serta pilihan **Kategori Part (Opsional)** dengan default aman (*Subframe / Karoseri*).
-   - Penyimpanan via AJAX seketika menambahkan komponen ke katalog dan langsung memilihnya di formulir WR tanpa me-refresh halaman.
+   - **Isolasi Mutlak Non-Master (`source = 'wr_adhoc'`):** Penyimpanan via AJAX `/api/components/quick-store` mencatat komponen dengan penanda `source = 'wr_adhoc'` dan memilihnya pada formulir WR untuk keperluan pesanan saat itu saja ("buat lewat aja sesuai kebutuhan"). Part ini **100% TIDAK dimasukkan ke dalam katalog Master Komponen** guna menjaga integritas dan kebersihan master katalog resmi pabrik. Penambahan ke katalog master tetap mutlak satu pintu melalui menu Master Komponen.
 3. **Standarisasi Zero-FOUC (Bebas Kedipan Modal):**
    - Seluruh modal dilindungi oleh deklarasi CSS global `[x-cloak] { display: none !important; }` dan inline style `style="display: none;"` untuk menjamin tidak ada modal yang muncul sekilas saat halaman pertama kali dibuka.
 4. **Desain Formulir Kompak & Sejajar (Side-by-Side Kuantitas & Prioritas):**
@@ -625,9 +627,69 @@ Guna mempercepat efisiensi operator dan staf gudang saat menerbitkan pesanan fab
    - Menghilangkan kebutuhan bolak-balik mengisi dan submit tiket satu per satu.
 2. **Kombinasi Pemindai Barcode/QR & Input Komponen Baru (Non-Master):**
    - **Tombol Scan Suffix Navy (`[ :: Scan ]`):** Terhubung ke kamera perangkat menggunakan pustaka `html5-qrcode` untuk pencarian instan part katalog melalui kode QR/Barcode etiket.
-   - **Inline Card "INPUT KOMPONEN BARU":** Memungkinkan pendaftaran part non-master secara langsung tanpa berpindah layar (*on-the-fly*), mencakup Nama, Tipe Material (Plat Hitam, Stainless, ST52, Hardox, SM490, dll), Dimensi (P cm, L cm, T mm), dan Foto Komponen via AJAX `/api/components/quick-store`.
+   - **Inline Card "INPUT KOMPONEN BARU":** Memungkinkan pendaftaran part non-master secara langsung tanpa berpindah layar (*on-the-fly*), mencakup Nama, Tipe Material (Plat Hitam, Stainless, ST52, Hardox, SM490, dll), Dimensi (P cm, L cm, T mm), dan Foto Komponen via AJAX `/api/components/quick-store`. Part yang didaftarkan berstatus `source = 'wr_adhoc'` yang terisolasi total dari katalog Master Komponen. Penambahan komponen katalog master resmi HPK mutlak harus melalui modul Master Komponen.
 3. **Penerbitan Massal Multi-Routing Transaksional:**
    - Melalui `WorkRequestController::bulkStore`, seluruh item di keranjang diproses dalam satu transaksi basis data aman (`DB::transaction`).
    - Setiap item otomatis dibuatkan nomor tiket resmi 6-segmen berurutan, baris tahapan mesin (`WorkRequestStep`) untuk alur multi-stasiun, serta log audit penerbitan tiket.
+
+---
+
+## 23. Validasi Scan QR Operasional Fisik & Modul Pengaturan Operasional Dinamis (BR-19)
+
+Guna memastikan disiplin operasional di lantai pabrik dan mencegah kesalahan eksekusi fisik mesin maupun penjemputan material handling:
+1. **Diferensiasi Alur Approval Administratif vs Operasional Fisik:**
+   - **Tahap Persetujuan (Approval):** Persetujuan Ka. Pengaju dan penugasan operator oleh Ka. Penerima tetap menggunakan mekanisme tombol klik manual tanpa kewajiban pemindaian.
+   - **Tahap Operasional Fisik:** Mulai dari pengerjaan mesin (`Proses ... (In)`), penyelesaian pengerjaan (`Proses ... (Out)`), serah terima material handling (`MH Pickup ...` & `Menuju Pengaju`), hingga penerimaan akhir di gudang (`Sudah Diambil`) terintegrasi dengan validasi scan lembar fisik WRI.
+2. **Modul Pengaturan Operasional Administrator (`/admin/operational-settings`):**
+   - Panel Administrator memiliki sub-menu dedicated **"Pengaturan Operasional"** yang dapat diakses melalui Sidebar Navigasi Admin (`admin.operational-settings.index`).
+   - Menyediakan sakelar toggle fleksibel (berbasis iOS toggle switch) untuk mengatur parameter sistem `wr_scan_required` (default saat pertama rilis: **NONAKTIF / OFF**).
+   - Menggunakan mekanisme cache performa tinggi (`Cache::remember` 60 detik) dengan pembersihan instan (`clearSettingCache`) setiap kali administrator menyimpan perubahan.
+3. **Mekanisme Kerja Antarmuka saat Fitur Aktif (ON) - Pure Physical Scanning Only:**
+   - **Eliminasi Total Pengetikan Manual (Anti-Bypass):** Antarmuka verifikasi tidak menyediakan kolom input teks atau tombol "Cek". Operator mutlak dilarang mengetik nomor WRI secara manual di keyboard guna menjamin integritas kehadiran fisik barang/lembar kerja di stasiun terkait.
+   - **Dua Saluran Pemindaian Resmi:**
+     1. **Kamera Live Perangkat (`html5-qrcode`):** Tombol utama besar *"Buka Kamera Pemindai QR"* untuk membaca QR code lembar kerja secara instan via kamera HP, tablet, atau laptop.
+     2. **Alat Pemindai Barcode Gun Fisik (*Hardware Burst Listener*):** Listener otomatis mendeteksi semburan data berkecepatan tinggi khas alat scanner hardware (< 60ms/karakter). Jika dicoba diketik lambat menggunakan keyboard biasa, sistem secara otomatis menolak dan memblokir input tersebut (*"Pengetikan manual dilarang!"*).
+   - **Proteksi Penguncian Tombol (*Action Button Lock*):** Tombol aksi proses terkunci (`disabled`) berstatus *"Pindai QR Lembar WRI Dahulu"* hingga kode QR lembar kerja tiket terverifikasi valid dan cocok dengan nomor WRI tiket atau part number terkait.
+   - **Verifikasi Ganda Sisi Server (Backend Validation):** `WorkRequestController::processAction` memvalidasi input `scanned_wri_code` sebelum transaksi basis data dieksekusi, menolak mutasi status secara ketat jika kode QR fisik tidak dipindai saat konfigurasi berstatus aktif.
+4. **Mekanisme Kerja saat Fitur Nonaktif (OFF):**
+   - Seluruh proses berjalan seperti sedia kala (mode manual responsif), tombol aksi dapat langsung diklik tanpa jeda pemindaian QR.
+
+---
+
+## 24. Standar Interaksi & Animasi Enterprise Modern (GSAP, ScrollTrigger, Lenis & Motion)
+
+Guna menghadirkan pengalaman visual kelas dunia (*visual delight*) tanpa mengurangi keandalan dan kecepatan operasional pabrik:
+1. **Arsitektur "Enterprise-Safe Hybrid Mode":**
+   - **Lenis Smooth Scroll:** Memberikan efek pergerakan gulir halus (*momentum scroll*) yang nyaman di desktop kantor (`lerp: 0.08`, `wheelMultiplier: 0.95`).
+   - **Isolasi Penuh Modal & Tabel Data (`data-lenis-prevent`):**
+     - Seluruh tabel transaksi antrean tiket (`#wri-table-container`, `.table-responsive`) dan modal dialog pop-up (`process_modal`, `process_camera_modal`, `role="dialog"`) secara otomatis diproteksi menggunakan atribut `data-lenis-prevent="true"`.
+     - Operator gudang dan mesin tetap mendapatkan scrolling instan presisi 100% tanpa efek "licin/tergelincir" (*scroll fatigue*).
+   - **Nonaktif Otomatis pada Layar Sentuh Lapangan (Touchscreen):**
+     - Perangkat mobile (smartphone/tablet HPK) otomatis dibebaskan dari Lenis untuk menghemat baterai dan menggunakan native touch physics OS.
+2. **GSAP + ScrollTrigger (Reveal & Stagger):**
+   - **Title Word Reveal:** Judul utama halaman (`.gsap-reveal-title`) muncul meluncur halus per kata dengan durasi cepat (< 0.45 detik) dan bersifat sekali jalan (`once: true`) agar informasi judul tiket dan halaman langsung terbaca jelas tanpa menghambat pembacaan.
+   - **Staggered Cards Entrance:** Kartu modul dan KPI (`.gsap-stagger-cards`) muncul mengalir rapi secara berurutan (*staggered fade-up*).
+   - **Animated Metric Counters:** Angka metrik ringkasan (`.counter-value`) berputar dinamis dari 0 hingga nilai riil saat masuk viewport.
+3. **Motion (Spring Micro-Interactions) & Akselerasi Hardware GPU:**
+   - Mikro-interaksi hover pada kartu menggunakan kurva pegas organik (`.hover-spring` cubic-bezier GPU-accelerated) dengan performa stabil 60 FPS tanpa membebani thread utama CPU.
+4. **Siklus Hidup Aman Hotwire Turbo:**
+   - Inisialisasi dijalankan pada event `DOMContentLoaded` dan `turbo:load`.
+   - Seluruh listener, RAF ticker, dan ScrollTrigger instance dibersihkan secara instan pada `turbo:before-render` dan `turbo:before-visit` guna menjamin tidak adanya kebocoran memori (*zero memory leak*).
+
+---
+
+## 25. Standardisasi Hierarki Status Otorisasi Work Request (Antara Pengaju & Penerima)
+
+Guna memastikan kejelasan informasi dan menghindari kesalahpahaman operasional di antarmuka tabel antrean:
+1. **Tahap Verifikasi Penerima Sebelum Pengerjaan Mesin:**
+   - Saat tiket telah disetujui oleh Kepala Bagian Pengaju (`approval_pengaju = 'Diterima'`), namun belum diverifikasi oleh Kepala Bagian Penerima (`approval_penerima = 'Menunggu'`), lencana pada kolom **NO WR / STATUS** menampilkan status:
+     **`Menunggu Approval Penerima`** (dengan ikon jam tunggu `fa-regular fa-clock` bertema amber).
+   - Tiket **DILARANG KERAS** menampilkan lencana `Proses Line ...` dengan ikon gear berputar sebelum Kepala Departemen Penerima menyetujui kesanggupan mesin dan menetapkan operator pelaksana.
+2. **Otorisasi Penugasan Operator:**
+   - Kepala Bagian Penerima (Ka. Mesin) memiliki tombol aksi cepat `[ 👤 Tugaskan ]` pada kolom STS Penerima atau dapat mengklik langsung lencana tunggu status untuk membuka pop-up penugasan operator.
+3. **Peralihan Resmi ke Status Mesin:**
+   - Begitu operator pelaksana ditugaskan (`approval_penerima = 'Diterima'`), barulah lencana status secara resmi beralih ke tahapan pengerjaan mesin aktif (`Mulai: Dept ... (In)` atau `Proses: Dept ...`).
+
+
 
 

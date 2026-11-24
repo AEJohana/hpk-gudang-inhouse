@@ -119,4 +119,12 @@ class ActivityLogger
     {
         self::log('system', $event, $description, $subject, $properties, $causer);
     }
+
+    /**
+     * Log User administration events (create, update, delete user, role changes).
+     */
+    public static function user(string $event, string $description, ?Model $subject = null, array $properties = [], ?User $causer = null): void
+    {
+        self::log('user_management', $event, $description, $subject, $properties, $causer);
+    }
 }

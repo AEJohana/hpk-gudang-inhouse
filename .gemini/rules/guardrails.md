@@ -20,3 +20,7 @@
 ## 6. KEPATUHAN PADA SETIAP PROMPT & SESI (MANDATORY PROMPT COMPLIANCE)
 - Seluruh instruksi, rencana kerja (`/plan`), eksekusi kode, maupun pengujian oleh AI Agent pada setiap prompt **WAJIB** mematuhi seluruh butir aturan di dalam `guardrails.md` ini tanpa pengecualian.
 - Selalu prioritaskan keamanan data operasional (*Zero Database Regression*) dan keutuhan fitur eksisting (*No Blind Overwrite*).
+
+## 7. PRINSIP SATU PINTU MASTER KOMPONEN (DILARANG MASUK DARI WR)
+- Penambahan katalog master resmi HPK mutlak melalui menu Master Komponen oleh pihak berwenang.
+- Komponen non-master yang dibuat melalui form Work Request (WR) berstatus `source = 'wr_adhoc'` untuk kebutuhan pesanan saat itu saja ("buat lewat aja") dan **100% TERISOLASI/DILARANG TAMPIL** di modul Master Komponen, Safety Stock, maupun KPI inventaris utama.

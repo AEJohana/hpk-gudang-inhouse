@@ -263,18 +263,19 @@
                                         <i class="fa-solid fa-clock text-amber-500 me-1 text-[9px]"></i> Menunggu Pengaju
                                     </span>
                                 @endif
-                            @elseif($wri->approval_penerima === 'Menunggu' && in_array(strtolower(trim($wri->status ?? '')), ['belum verifikasi', 'submitted', 'draft']) && (float)$wri->quantity_produced == 0)
+                            @elseif($wri->approval_penerima === 'Menunggu' && (float)$wri->quantity_produced == 0)
                                 @if($canApprovePenerima)
                                     <button type="button" 
                                             @click='openAssignModal(@json($assignPayload))'
-                                            class="w-full inline-flex items-center justify-center px-2 py-1.5 bg-[#0a2342] hover:bg-slate-800 text-white font-semibold text-[11px] rounded-xl shadow-xs hover:shadow-md transition space-x-1.5 text-center"
-                                            title="Verifikasi kesanggupan mesin dan tugaskan operator">
-                                        <i class="fa-solid fa-user-check text-[10px]"></i>
-                                        <span class="truncate">Tugaskan Operator</span>
+                                            class="w-full inline-flex items-center justify-center px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[10px] rounded-lg shadow-2xs transition space-x-1 text-center cursor-pointer"
+                                            title="Tiket menunggu verifikasi Anda. Klik untuk tugaskan operator pelaksana.">
+                                        <i class="fa-solid fa-clock text-amber-600 text-[9px]"></i>
+                                        <span class="truncate">Menunggu Approval Penerima</span>
                                     </button>
                                 @else
-                                    <span class="inline-flex items-center px-2 py-1 text-blue-800 bg-blue-50 border border-blue-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
-                                        <i class="fa-solid fa-clock text-blue-500 me-1 text-[9px]"></i> Menunggu Penerima
+                                    <span class="inline-flex items-center px-2 py-1 text-amber-900 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs"
+                                          title="Menunggu persetujuan dan penugasan operator oleh Ka. Bagian Penerima ({{ $wri->dept_penerima ?: 'Penerima' }})">
+                                        <i class="fa-solid fa-clock text-amber-500 me-1 text-[9px]"></i> Menunggu Approval Penerima
                                     </span>
                                 @endif
                             @else

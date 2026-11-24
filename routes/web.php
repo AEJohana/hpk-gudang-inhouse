@@ -208,6 +208,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
         Route::post('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
         Route::post('settings/sync-legacy-wr', [\App\Http\Controllers\Admin\SettingController::class, 'syncLegacyWr'])->name('settings.sync-legacy-wr');
+        
+        // Pengaturan Operasional (Dinamis Lapangan)
+        Route::get('operational-settings', [\App\Http\Controllers\Admin\OperationalSettingController::class, 'index'])->name('operational-settings.index');
+        Route::post('operational-settings', [\App\Http\Controllers\Admin\OperationalSettingController::class, 'update'])->name('operational-settings.update');
+
         Route::get('audit-logs', [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
     });
 });

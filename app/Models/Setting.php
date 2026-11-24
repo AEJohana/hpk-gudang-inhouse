@@ -11,6 +11,23 @@ class Setting extends Model
 
     protected $fillable = ['key', 'value', 'type', 'group', 'description'];
 
+    public static function isWrScanRequired(): bool
+    {
+        return (bool) \Illuminate\Support\Facades\Cache::remember('setting_wr_scan_required', 60, function () {
+            $setting = self::where('key', 'wr_scan_required')->first();
+            return $setting && ($setting->value === '1' || $setting->value === 1 || $setting->value === true);
+        });
+    }
+
+    public static function clearSettingCache(?string $key = null): void
+    {
+        if ($key) {
+            \Illuminate\Support\Facades\Cache::forget('setting_' . $key);
+        } else {
+            \Illuminate\Support\Facades\Cache::forget('setting_wr_scan_required');
+        }
+    }
+
     /**
      * Ensure default application settings exist.
      */

@@ -21,11 +21,11 @@
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div class="flex items-center space-x-3 min-w-0">
                         <a href="{{ route('dashboard') }}" 
-                           class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 flex items-center justify-center transition shadow-2xs shrink-0 cursor-pointer" 
+                           class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 flex items-center justify-center transition shadow-2xs shrink-0 cursor-pointer hover-spring" 
                            title="Kembali ke Beranda WMS Utama">
                             <i class="fa-solid fa-arrow-left text-sm text-amber-300"></i>
                         </a>
-                        <h1 class="font-black text-xl sm:text-2xl lg:text-3xl text-white tracking-wide leading-tight truncate">
+                        <h1 class="gsap-reveal-title font-black text-xl sm:text-2xl lg:text-3xl text-white tracking-wide leading-tight truncate">
                             Pusat Kendali Administrator
                         </h1>
                     </div>
@@ -43,14 +43,14 @@
         <div>
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <h3 class="font-bold text-slate-900 text-lg">Ringkasan Sistem & Master Data</h3>
+                    <h3 class="gsap-reveal-title font-bold text-slate-900 text-lg">Ringkasan Sistem & Master Data</h3>
                     <p class="text-xs text-slate-500">Statistik real-time entitas master dan keamanan aplikasi</p>
                 </div>
             </div>
 
-            <div class="dashboard-grid">
+            <div class="dashboard-grid gsap-stagger-cards">
                 <!-- 1. Pengguna & Otorisasi -->
-                <a href="{{ route('admin.users.index') }}" class="dash-card group">
+                <a href="{{ route('admin.users.index') }}" class="dash-card group hover-spring">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-users-gear card-icon-bg"></i>
                     <div class="icon-box text-amber-600 bg-amber-50">
@@ -59,14 +59,14 @@
                     <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-amber-600 transition">Manajemen Pengguna & Otorisasi</h4>
-                            <span class="text-2xl font-black text-slate-900">{{ $usersCount ?? \App\Models\User::count() }}</span>
+                            <span class="text-2xl font-black text-slate-900"><span class="counter-value">{{ $usersCount ?? \App\Models\User::count() }}</span></span>
                         </div>
                         <p class="text-xs text-slate-500 leading-relaxed">Akun operasional gudang, stasiun mesin, approval & hak akses 64 izin modul</p>
                     </div>
                 </a>
 
                 <!-- 2. Kategori Komponen -->
-                <a href="{{ route('admin.component-categories.index') }}" class="dash-card group">
+                <a href="{{ route('admin.component-categories.index') }}" class="dash-card group hover-spring">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-tags card-icon-bg"></i>
                     <div class="icon-box text-teal-600 bg-teal-50">
@@ -75,14 +75,14 @@
                     <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-teal-600 transition">Kategori Komponen</h4>
-                            <span class="text-2xl font-black text-slate-900">{{ $categoriesCount ?? \App\Models\ComponentCategory::count() }}</span>
+                            <span class="text-2xl font-black text-slate-900"><span class="counter-value">{{ $categoriesCount ?? \App\Models\ComponentCategory::count() }}</span></span>
                         </div>
                         <p class="text-xs text-slate-500 leading-relaxed">Kelompok hidrolik, raw material baja, fastener & cat</p>
                     </div>
                 </a>
 
                 <!-- 4. Audit Log -->
-                <a href="{{ route('admin.audit-logs.index') }}" class="dash-card group">
+                <a href="{{ route('admin.audit-logs.index') }}" class="dash-card group hover-spring">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-clipboard-list card-icon-bg"></i>
                     <div class="icon-box text-rose-600 bg-rose-50">
@@ -91,7 +91,7 @@
                     <div class="relative z-10">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="font-extrabold text-slate-900 text-base group-hover:text-rose-600 transition">Audit Log Aktivitas</h4>
-                            <span class="text-2xl font-black text-slate-900">{{ $logsCount ?? \Spatie\Activitylog\Models\Activity::count() }}</span>
+                            <span class="text-2xl font-black text-slate-900"><span class="counter-value">{{ $logsCount ?? \Spatie\Activitylog\Models\Activity::count() }}</span></span>
                         </div>
                         <p class="text-xs text-slate-500 leading-relaxed">Pencatatan riwayat perubahan data & keamanan sistem</p>
                     </div>
@@ -196,7 +196,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                         <!-- Satuan Ukur (UOM) -->
                         <a href="{{ route('admin.uoms.index') }}" class="p-4 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl transition group">
                             <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs mb-2">
@@ -217,11 +217,20 @@
 
                         <!-- Pengaturan Sistem -->
                         <a href="{{ route('admin.settings.index') }}" class="p-4 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl transition group">
-                            <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs mb-2">
                                 <i class="fa-solid fa-gears"></i>
                             </div>
-                            <h4 class="text-sm font-bold text-slate-900 group-hover:text-amber-700 transition">Pengaturan Sistem</h4>
-                            <p class="text-[11px] text-slate-500 mt-0.5">Nama aplikasi, mata uang & batas keamanan login</p>
+                            <h4 class="text-sm font-bold text-slate-900 group-hover:text-indigo-700 transition">Pengaturan Sistem</h4>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Identitas aplikasi & batas keamanan</p>
+                        </a>
+
+                        <!-- Pengaturan Operasional -->
+                        <a href="{{ route('admin.operational-settings.index') }}" class="p-4 bg-slate-50 hover:bg-amber-50/80 border border-slate-200/80 hover:border-amber-300 rounded-xl transition group">
+                            <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs mb-2">
+                                <i class="fa-solid fa-sliders"></i>
+                            </div>
+                            <h4 class="text-sm font-bold text-slate-900 group-hover:text-amber-700 transition">Pengaturan Operasional</h4>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Kontrol alur scan QR Work Request & MH</p>
                         </a>
                     </div>
                 </div>

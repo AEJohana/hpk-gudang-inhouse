@@ -773,14 +773,91 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - Lulus 100% pada [tests/Unit/WorkRequestTablePartialStatusTest.php](tests/Unit/WorkRequestTablePartialStatusTest.php) (2 passed, 14 assertions).
 
 ### JJJ. Sistem Keranjang (Cart / List) & Pendaftaran Komponen Baru pada Pembuatan Work Request (Update 20 Nov 2026 - Baru Selesai & Teruji 100%)
-- **Perombakan Antarmuka Form Sesuai Gambar Referensi Pengguna:**
-  - [resources/views/work_requests/create.blade.php](resources/views/work_requests/create.blade.php) dirombak mengadopsi sistem dua kartu terintegrasi (*Input Form* & *Tabel Keranjang Daftar Item Siap Kirim*).
-  - Menggabungkan tombol Scan Barcode/QR (`[ :: Scan ]` Navy) berkamera `html5-qrcode` dan tombol `+ Tambah Komponen Baru` yang membuka inline form pendaftaran part non-master (Nama, Tipe Material, Dimensi P/L/T, Foto).
-  - Didukung tombol toska `+ Tambah ke List` dan tombol hijau `✈ Kirim Work Request`.
 - **Dukungan Multi-Routing & Bulk Store Transaksional:**
   - `WorkRequestController::bulkStore` mendukung multi-routing (seperti `Dept Laser Cutting -> Dept M1`) dan memproses seluruh antrean keranjang dalam 1 transaksi database aman dengan penomoran resmi berurutan.
 - **Pengujian Otomatis:**
   - Lulus 100% pada [tests/Unit/WorkRequestBulkStoreTest.php](tests/Unit/WorkRequestBulkStoreTest.php) (2 passed, 24 assertions) dan [tests/Feature/WorkRequestCreateCartTest.php](tests/Feature/WorkRequestCreateCartTest.php) (2 passed, 28 assertions).
+
+### KKK. Redesign Halaman Buat Work Request Menjadi "2-Column Studio Layout" Berstandar Enterprise (Update 20 Nov 2026 - Baru Selesai & Teruji 100%)
+- **Eliminasi "AI-Generated Look" & Harmonisa Desain:**
+  - Menghilangkan *Rainbow Button Syndrome* (tabrakan 5 warna acak) menjadi palet terpadu: **Industrial Deep Navy (`#0a2342`)** untuk aksi utama, **Emerald Solid (`#16a34a`)** untuk tombol kirim pesanan, dan **Amber Soft** untuk penanganan part baru (non-master).
+  - Menggantikan tombol bata *full-width* dengan komponen berbobot proporsional dan mikro-interaksi (*docked UOM PCS badge*, *manufacturing spec preview card*).
+- **Tata Letak 2 Kolom Responsif (Studio Layout):**
+  - **Sisi Kiri (Kolom 7/12):** Form builder pesanan terstruktur (Metadata strip pemohon/tanggal, unified search dock dengan tombol Scan & Part Baru terpasang rapi, inline drawer pendaftaran part non-master, kuantitas, alur stasiun penerima, dan tombol `Tambah ke List`).
+  - **Sisi Kanan (Kolom 5/12 - Sticky):** *Live Cart Sidebar* (`Daftar Item Siap Kirim`) yang selalu terlihat di samping layar desktop tanpa perlu scroll ke bawah, lengkap dengan kartu item informatif, tombol hapus halus (*subtle trash icon*), ringkasan total tiket, dan tombol `Kirim Work Request`.
+  - Pada layar mobile/tablet, otomatis bertransformasi menjadi 1 kolom vertikal yang intuitif dan nyaman disentuh.
+- **Modal Popup Interaktif Kustom (Zero Native Browser Dialog):**
+  - Menggantikan seluruh `window.alert()` dan `window.confirm()` bawaan browser dengan modal popup kustom berbasis Alpine.js (`confirmModal` & `alertModal`) berlatar *backdrop blur*, icon badge dinamis, dan tipografi selaras.
+- **Pengujian Otomatis Terisolasi:**
+  - Lulus 100% pada [tests/Feature/WorkRequestCreateCartTest.php](tests/Feature/WorkRequestCreateCartTest.php) dan [tests/Unit/WorkRequestBulkStoreTest.php](tests/Unit/WorkRequestBulkStoreTest.php) (4 passed, 52 assertions).
+
+### LLL. Pemisahan Mutlak Komponen Ad-Hoc WR dari Master Komponen (Update 23 Nov 2026 - Selesai & Teruji 100%)
+- **Prinsip Satu Pintu Master Komponen & Isolasi Part Ad-Hoc WR:**
+  - Menambahkan kolom `source` (`'master'` vs `'wr_adhoc'`) pada tabel `components` melalui migrasi `2026_11_23_080000_add_source_to_components_table.php` dengan backfill aman atas 185 part lama berkode `NEW-%`.
+  - Halaman **Master Komponen** (`ComponentController@index`), penghitungan Safety Stock (`WorkRequestController@safetyStock`), dan kartu metrik inventaris (`DashboardController`) secara ketat menyaring hanya `Component::masterCatalog()` (`source = 'master'`).
+  - Komponen non-master yang dibuat melalui form WR (`quickStore`) disimpan dengan `source = 'wr_adhoc'` untuk kebutuhan pesanan saat itu saja ("buat lewat aja"), dan **100% terisolasi/disembunyikan** dari katalog Master Komponen tanpa tab sekunder.
+- **Pembersihan Data Trial / Uji Coba:**
+  - Menghapus bersih data trial lama dari database operasional: tiket `WR ID 969` beserta log/steps, serta komponen `Uji coba` (ID 16077), `asdsad` (ID 16078), dan `asd` (ID 16079).
+- **Sinkronisasi Dokumentasi & Guardrails:**
+  - Mencatat aturan bisnis **BR-18** ke dalam [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md), [GEMINI.md](GEMINI.md), dan [.gemini/rules/guardrails.md](.gemini/rules/guardrails.md).
+- **Pengujian Otomatis:**
+  - Lulus 100% pada [tests/Unit/ComponentQuickStoreTest.php](tests/Unit/ComponentQuickStoreTest.php) (3 passed, 9 assertions) dan verifikasi script database mandiri.
+
+### MMM. Modul Pengaturan Operasional & Fitur Validasi Scan QR Lembar Kerja WRI (Update 23 Nov 2026 - Selesai & Teruji 100%)
+- **Tujuan & Ruang Lingkup:**
+  - Memberikan fleksibilitas penuh bagi administrator untuk mengaktifkan atau menonaktifkan kewajiban pemindaian QR code lembar kerja fisik tiket WRI pada seluruh tahapan operasional lapangan (mulai pengerjaan mesin `(In)`, selesai mesin `(Out)`, serah terima MH `Pickup` & `Menuju Pengaju`, hingga penerimaan di gudang `Sudah Diambil`).
+  - Tahap persetujuan administratif (Ka. Pengaju & Ka. Penerima) tetap berjalan via tombol klik manual tanpa kewajiban scan.
+- **Modul Pengaturan Operasional Administrator (`/admin/operational-settings`):**
+  - **Migrasi Database:** Menjalankan `2026_11_23_083000_add_operational_settings_defaults.php` menambahkan record konfigurasi `key = 'wr_scan_required'`, default `'0'` (NONAKTIF / OFF), grup `'operational'`.
+  - **Model & Caching:** Memperbarui [app/Models/Setting.php](app/Models/Setting.php) dengan metode performa tinggi `isWrScanRequired(): bool` (cache 60 detik) dan `clearSettingCache(?string $key)`.
+  - **Controller & Routing:** Menambahkan [app/Http/Controllers/Admin/OperationalSettingController.php](app/Http/Controllers/Admin/OperationalSettingController.php) serta rute admin `admin.operational-settings.index` dan `admin.operational-settings.update`.
+  - **Antarmuka Pengaturan:** Menerbitkan [resources/views/admin/operational_settings/index.blade.php](resources/views/admin/operational_settings/index.blade.php) dengan iOS toggle switch interaktif dan kartu panduan operasional. Ditautkan pada sidebar admin, dropdown navigasi, dan dasbor admin. Menggunakan knob bulat fisik (`<span>`) reaktif berbasis Alpine.js dengan indikator status icon (check/xmark) dan transisi halus tanpa bergantung pada pseudo-class CSS.
+- **Integrasi Antarmuka Operasional (Blade & Alpine.js):**
+  - **Modal Proses & Dok Verifikasi:** Memperbarui [resources/views/work_requests/partials/process_modal.blade.php](resources/views/work_requests/partials/process_modal.blade.php) dan [resources/views/work_requests/show.blade.php](resources/views/work_requests/show.blade.php).
+  - Saat pengaturan `wr_scan_required` aktif dan tiket memasuki langkah fisik:
+    - Tombol aksi proses terkunci (`disabled`) berstatus *"Pindai QR Lembar WRI Dahulu"*.
+    - **Penegakan Pemindaian Murni (Anti-Ketik Manual):** Menghilangkan kolom input teks manual dan tombol "Cek". Verifikasi murni melalui tombol utama *"Buka Kamera Pemindai QR"* (live camera `html5-qrcode`) dan *hardware burst listener* untuk alat barcode scanner gun fisik (< 60ms/karakter; otomatis memblokir pengetikan keyboard biasa).
+    - Setelah nomor WRI atau part number terverifikasi cocok, tombol aksi langsung terbuka (`unlocked`) dan input tersembunyi `scanned_wri_code` dikirim ke backend.
+- **Validasi Sisi Server (Backend):**
+  - [app/Http/Controllers/WorkRequestController.php](app/Http/Controllers/WorkRequestController.php) pada method `processAction` secara ketat memverifikasi bahwa `scanned_wri_code` sesuai dengan nomor tiket WRI atau nomor part sebelum transaksi perubahan status dieksekusi.
+- **Pengujian Otomatis Terisolasi:**
+  - Lulus 100% pada [tests/Unit/OperationalSettingTest.php](tests/Unit/OperationalSettingTest.php) (4 passed, 6 assertions) dan [tests/Unit/ComponentQuickStoreTest.php](tests/Unit/ComponentQuickStoreTest.php) (3 passed, 9 assertions).
+- **Perbaikan Audit Log ActivityLogger:**
+  - Menyelaraskan pemanggilan log audit pengaturan pada `OperationalSettingController` menggunakan `ActivityLogger::system('updated', ...)` serta menambahkan alias metode `ActivityLogger::user` pada [app/Services/ActivityLogger.php](app/Services/ActivityLogger.php) guna mencegah potensi crash `Call to undefined method ActivityLogger::user()`.
+- **Perbaikan Layering Z-Index Modal Kamera:**
+  - Memperbaiki hierarki z-index [process_camera_modal.blade.php](resources/views/work_requests/partials/process_camera_modal.blade.php) menjadi `z-[99999]` (`style="z-index: 99999 !important;"`) dan backdrop `style="z-index: 99998 !important;"`, serta mendaftarkan ekstensi `zIndex` pada `tailwind.config.js`. Menghilangkan bug di mana kamera scanner sebelumnya tertimpa di belakang modal proses (`z-50`).
+
+### NNN. Integrasi Animasi Enterprise Modern (GSAP + ScrollTrigger + Lenis + Motion) (Update 23 Nov 2026 - Selesai & Teruji 100%)
+- **Tujuan & Arsitektur "Enterprise-Safe Hybrid Mode":**
+  - Meningkatkan estetika visual sistem (*visual delight*, Awwwards/Apple-grade UI) ke level kelas atas menggunakan pustaka animasi industri modern: **GSAP (GreenSock)**, **ScrollTrigger**, **Lenis** (smooth scroll berbasis momentum), dan **Motion** (spring micro-interactions).
+  - Menerapkan arsitektur hibrida aman yang mengutamakan kenyamanan kerja staf operasional pabrik:
+    - **Proteksi Tabel & Modal (`data-lenis-prevent`):** Lenis dinonaktifkan secara otomatis pada tabel antrean panjang (`#wri-table-container`, `.table-responsive`) dan seluruh modal dialog (`[role="dialog"]`, `process_modal`, `process_camera_modal`) sehingga scrolling di dalam tabel dan modal tetap 100% instan, presisi, dan tidak mengalami efek licin/melayang (*scroll fatigue*).
+    - **Deteksi Otomatis Perangkat Sentuh (Mobile Touchscreen):** Lenis dinonaktifkan pada perangkat touchscreen (smartphone/tablet lapangan) untuk menghemat baterai dan menjaga responsivitas geser native OS.
+    - **Pencegahan Jitter Hardware Barcode Scanner:** Input burst dari alat pemindai fisik tidak mengalami scroll jump paksa.
+- **Modul JavaScript Animasi Terisolasi:**
+  - [resources/js/animations/smooth-scroll.js](resources/js/animations/smooth-scroll.js): Mengelola instance Lenis (`lerp: 0.08`, `wheelMultiplier: 0.95`), sinkronisasi `gsap.ticker`, dan otomatisasi `protectModalsAndTables()` via `MutationObserver`.
+  - [resources/js/animations/motion-effects.js](resources/js/animations/motion-effects.js):
+    - `initTitleWordReveal()`: Efek reveal judul kata per kata pada elemen `.gsap-reveal-title` dengan durasi cepat (< 0.45s) dan `once: true`.
+    - `initCardStagger()`: Efek kartu masuk mengalir bertahap pada kontainer `.gsap-stagger-cards`.
+    - `initNumberCounters()`: Efek rolling counter angka metrik KPI dari 0 ke nilai riil pada `.counter-value`.
+    - `initMotionSpring()`: Spring physics modern berbasis Web Animations API untuk mikro-interaksi tombol/kartu.
+    - `cleanupMotionEffects()`: Pembersihan instan memori ScrollTrigger saat pergantian halaman Turbo.
+- **Integrasi Lifecycle Hotwire Turbo di [resources/js/app.js](resources/js/app.js):**
+  - Menginisialisasi animasi pada `DOMContentLoaded` dan `turbo:load`.
+  - Memanggil pembersihan memori `destroySmoothScroll()` dan `cleanupMotionEffects()` pada `turbo:before-render` dan `turbo:before-visit` untuk mencegah kebocoran memori (*memory leak*).
+- **CSS Utility Akselerasi GPU di [resources/css/app.css](resources/css/app.css):**
+  - Menambahkan utility `.hover-spring` berbasis cubic-bezier GPU-accelerated (`transform: translate3d`) untuk interaksi hover organik 60 FPS tanpa beban CPU.
+- **Pengujian & Kompilasi:**
+  - Build Vite aset produksi (`npm run build`) berhasil 100% tanpa kendala (`public/build/assets/app-93Y7tpIE.js` & `app-CGP5SnFE.css`).
+  - Seluruh pengujian unit backend lulus 100% (`Tests: 7 passed, 15 assertions`).
+
+### OOO. Standardisasi Label Status Menunggu Approval Penerima (Update 23 Nov 2026 - Selesai & Teruji 100%)
+- **Koreksi Tampilan Status Kolom No WR / Status:**
+  - Memperbaiki bug tampilan pada [resources/views/work_requests/partials/_table_content.blade.php](resources/views/work_requests/partials/_table_content.blade.php) di mana tiket berstatus `approval_pengaju = 'Diterima'` dan `approval_penerima = 'Menunggu'` sebelumnya keliru jatuh ke lencana `Proses Line Dept ...` dengan ikon gear berputar.
+  - Menyelaraskan status tunggu ke **Opsi 1**: Lencana amber bersih bertuliskan **`Menunggu Approval Penerima`** (`<i class="fa-solid fa-clock"></i>`).
+  - Tiket baru resmi beralih ke proses pengerjaan mesin (`Proses: Dept ... (In)`) setelah Kepala Departemen Penerima menyetujui kesanggupan mesin dan menugaskan operator pelaksana via modal penugasan.
+- **Pengujian & Integritas:**
+  - Lulus 100% pada seluruh rangkaian unit test Work Request dan kompilasi Vite.
 
 ---
 

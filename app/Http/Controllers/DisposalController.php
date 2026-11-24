@@ -32,7 +32,7 @@ class DisposalController extends Controller
 
     public function create(Request $request)
     {
-        $components = Component::where('is_active', true)->orderBy('name')->get();
+        $components = Component::masterCatalog()->where('is_active', true)->orderBy('name')->get();
         $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
         $selectedComponentId = $request->get('component_id');
 

@@ -72,6 +72,160 @@
              defectReason: '',
              notes: '',
              processQty: {{ (float) $workRequest->quantity_requested }},
+             isWrScanRequired: {{ ($isWrScanRequired ?? false) ? 'true' : 'false' }},
+             isPhysicalStep: {{ (stripos($nextStatus, '(In)') !== false || stripos($nextStatus, '(Out)') !== false || stripos($nextStatus, 'Pickup') !== false || stripos($nextStatus, 'Menuju Pengaju') !== false || stripos($nextStatus, 'Sudah Diambil') !== false) ? 'true' : 'false' }},
+             isScanVerified: {{ !($isWrScanRequired ?? false) ? 'true' : 'false' }},
+             scannedCode: '',
+             scanErrorMessage: '',
+             targetWriNumber: '{{ $workRequest->wri_number }}',
+             targetPartNumber: '{{ $workRequest->component?->part_number ?? '' }}',
+             processCameraModalOpen: false,
+             html5ProcessQrCode: null,
+             gunScanBuffer: '',
+             gunScanStartTime: 0,
+             gunLastCharTime: 0,
+             gunScanHandler: null,
+             processData: {
+                 wriNumber: '{{ $workRequest->wri_number }}',
+                 componentName: '{{ addslashes($workRequest->component->name) }}'
+             },
+             openActionModal() {
+                 this.actionModal = true;
+                 if (this.isWrScanRequired && this.isPhysicalStep && !this.isScanVerified) {
+                     this.attachGunScannerListener();
+                 }
+             },
+             closeActionModal() {
+                 this.detachGunScannerListener();
+                 if (this.processCameraModalOpen) {
+                     this.closeProcessCameraModal();
+                 }
+                 this.actionModal = false;
+             },
+             attachGunScannerListener() {
+                 if (this.gunScanHandler) return;
+                 this.gunScanBuffer = '';
+                 this.gunScanStartTime = 0;
+                 this.gunLastCharTime = 0;
+
+                 this.gunScanHandler = (e) => {
+                     if (!this.actionModal || this.isScanVerified) return;
+                     if (e.target && ['notes', 'defect_reason', 'defect_qty'].includes(e.target.name)) {
+                         return;
+                     }
+                     const now = Date.now();
+                     if (e.key === 'Enter') {
+                         if (this.gunScanBuffer.length > 0) {
+                             e.preventDefault();
+                             const totalTime = now - this.gunScanStartTime;
+                             const charCount = this.gunScanBuffer.length;
+                             const avgCharSpeed = totalTime / charCount;
+
+                             if (charCount >= 3 && avgCharSpeed <= 60) {
+                                 this.verifyScannedCode(this.gunScanBuffer);
+                             } else {
+                                 this.scanErrorMessage = 'Pengetikan manual dilarang! Wajib menggunakan pemindai kamera atau alat scanner gun fisik.';
+                             }
+                             this.gunScanBuffer = '';
+                             this.gunScanStartTime = 0;
+                         }
+                         return;
+                     }
+                     if (e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                         if (!this.gunScanStartTime || (now - this.gunLastCharTime > 150)) {
+                             this.gunScanBuffer = '';
+                             this.gunScanStartTime = now;
+                         }
+                         this.gunLastCharTime = now;
+                         this.gunScanBuffer += e.key;
+                     }
+                 };
+                 window.addEventListener('keydown', this.gunScanHandler);
+             },
+             detachGunScannerListener() {
+                 if (this.gunScanHandler) {
+                     window.removeEventListener('keydown', this.gunScanHandler);
+                     this.gunScanHandler = null;
+                 }
+                 this.gunScanBuffer = '';
+                 this.gunScanStartTime = 0;
+                 this.gunLastCharTime = 0;
+             },
+             async openProcessCameraModal() {
+                 this.processCameraModalOpen = true;
+                 this.$nextTick(() => {
+                     this.startProcessCameraScanner();
+                 });
+             },
+             async closeProcessCameraModal() {
+                 await this.stopProcessCameraScanner();
+                 this.processCameraModalOpen = false;
+             },
+             async startProcessCameraScanner() {
+                 const el = document.getElementById('process-camera-reader');
+                 if (!el || typeof Html5Qrcode === 'undefined') return;
+                 if (this.html5ProcessQrCode) {
+                     await this.stopProcessCameraScanner();
+                 }
+                 try {
+                     this.html5ProcessQrCode = new Html5Qrcode('process-camera-reader');
+                     const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+                     await this.html5ProcessQrCode.start(
+                         { facingMode: 'environment' },
+                         config,
+                         (decodedText) => {
+                             this.verifyScannedCode(decodedText);
+                             if (this.isScanVerified) {
+                                 this.closeProcessCameraModal();
+                             }
+                         },
+                         () => {}
+                     );
+                 } catch (err) {
+                     console.error('Camera error:', err);
+                 }
+             },
+             async stopProcessCameraScanner() {
+                 if (this.html5ProcessQrCode) {
+                     const scanner = this.html5ProcessQrCode;
+                     this.html5ProcessQrCode = null;
+                     try {
+                         const state = typeof scanner.getState === 'function' ? scanner.getState() : null;
+                         if (state === 2 || state === 3) {
+                             await scanner.stop();
+                         }
+                     } catch (e) {}
+                 }
+             },
+             verifyScannedCode(rawCode) {
+                 if (!rawCode || !rawCode.trim()) return;
+                 const input = rawCode.trim();
+                 const cleanScanned = input.replace(/HPK-PART\|/gi, '').replace(/[\s\-\/]/g, '').toLowerCase();
+                 const cleanWri = this.targetWriNumber.replace(/[\s\-\/]/g, '').toLowerCase();
+                 const cleanPart = this.targetPartNumber.replace(/[\s\-\/]/g, '').toLowerCase();
+
+                 let isValid = false;
+                 if (cleanScanned && cleanWri && (cleanScanned === cleanWri || cleanScanned.includes(cleanWri) || cleanWri.includes(cleanScanned))) {
+                     isValid = true;
+                 } else if (cleanScanned && cleanPart && (cleanScanned === cleanPart || cleanScanned.includes(cleanPart))) {
+                     isValid = true;
+                 }
+
+                 if (isValid) {
+                     this.scannedCode = input;
+                     this.isScanVerified = true;
+                     this.scanErrorMessage = '';
+                     this.detachGunScannerListener();
+                 } else {
+                     this.scanErrorMessage = `Kode '${input}' tidak cocok dengan tiket ${this.targetWriNumber}!`;
+                 }
+             },
+             resetScanVerification() {
+                 this.isScanVerified = false;
+                 this.scannedCode = '';
+                 this.scanErrorMessage = '';
+                 this.attachGunScannerListener();
+             },
              getMax() { return Math.max(0, Number(this.availableQty) - (this.showDefectForm && this.defectQty > 0 ? Number(this.defectQty) : 0)); },
              sync() { if (Number(this.processQty) > this.getMax()) this.processQty = this.getMax(); },
              increment() { if (Number(this.processQty) < this.getMax()) this.processQty++; },
@@ -346,7 +500,7 @@
                         @endcan
                     @else
                         <button type="button" 
-                                @click="actionModal = true"
+                                @click="openActionModal()" 
                                 class="px-5 py-2.5 font-black text-xs rounded-xl shadow-lg transition flex items-center space-x-2 {{ stripos($nextStatus, 'Sudah Diambil') !== false ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950' : (stripos($nextStatus, 'Pickup') !== false ? 'bg-amber-400 hover:bg-amber-300 text-slate-950' : (stripos($nextStatus, '(Out)') !== false ? 'bg-indigo-500 hover:bg-indigo-400 text-white' : 'bg-teal-500 hover:bg-teal-400 text-slate-950')) }}">
                             @if(stripos($nextStatus, 'Sudah Diambil') !== false)
                                 <i class="fa-solid fa-box-open text-base"></i>
@@ -376,17 +530,18 @@
                  x-cloak 
                  style="display: none;"
                  class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
-                <div @click.away="actionModal = false" 
+                <div @click.away="closeActionModal()" 
                      class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200/80 transition-all text-slate-800">
                     
                     <form method="POST" action="{{ route('work-requests.process-action', $workRequest) }}">
                         @csrf
                         <input type="hidden" name="action_type" value="process">
                         <input type="hidden" name="target_status" value="{{ $nextStatus }}">
+                        <input type="hidden" name="scanned_wri_code" :value="scannedCode">
 
                         <!-- Modal Header Bersih & Kompak -->
                         <div class="p-5 pb-3 border-b border-slate-100 relative">
-                            <button type="button" @click="actionModal = false" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition">
+                            <button type="button" @click="closeActionModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition">
                                 <i class="fa-solid fa-xmark text-sm"></i>
                             </button>
 
@@ -457,6 +612,85 @@
 
                         <!-- Form Body Kompak & Fungsional -->
                         <div class="p-5 pt-4 space-y-3.5 text-xs">
+                            <!-- DOK VERIFIKASI SCAN QR TIKET FISIK (OPERASIONAL MESIN & MH) -->
+                            <template x-if="isWrScanRequired && isPhysicalStep">
+                                <div class="rounded-2xl transition-all border p-3"
+                                     :class="isScanVerified ? 'bg-emerald-50/80 border-emerald-300' : 'bg-amber-50/90 border-amber-300 shadow-xs'">
+                                    
+                                    <!-- Terverifikasi -->
+                                    <div x-show="isScanVerified" class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-2.5 min-w-0">
+                                            <div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs flex-shrink-0 shadow-xs">
+                                                <i class="fa-solid fa-check"></i>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="text-[11px] font-black text-emerald-950 flex items-center space-x-1.5">
+                                                    <span>Tiket Fisik Terverifikasi</span>
+                                                    <span class="px-1.5 py-0.5 rounded bg-emerald-200 text-emerald-900 text-[9px] font-mono" x-text="scannedCode"></span>
+                                                </div>
+                                                <p class="text-[10px] text-emerald-700 font-medium">QR lembar tiket WRI valid & cocok.</p>
+                                            </div>
+                                        </div>
+                                        <button type="button" 
+                                                @click="resetScanVerification()" 
+                                                class="text-[10px] text-emerald-700 hover:text-emerald-900 font-bold underline px-2 py-1 rounded hover:bg-emerald-100 transition cursor-pointer flex-shrink-0">
+                                            Pindai Ulang
+                                        </button>
+                                    </div>
+
+                                    <!-- Belum Terverifikasi -->
+                                    <div x-show="!isScanVerified" class="space-y-2.5">
+                                        <div class="flex items-start justify-between">
+                                            <div class="flex items-center space-x-2">
+                                                <div class="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center text-xs flex-shrink-0 font-bold shadow-2xs">
+                                                    <i class="fa-solid fa-qrcode"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="text-xs font-black text-amber-950 uppercase tracking-wide">Wajib Pindai QR Tiket Fisik</h4>
+                                                    <p class="text-[10px] text-amber-800 font-medium leading-tight">Pindai QR lembar tiket WRI sebelum melanjutkan.</p>
+                                                </div>
+                                            </div>
+                                            <span class="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[9px] font-black uppercase tracking-wider flex-shrink-0">
+                                                Terkunci
+                                            </span>
+                                        </div>
+
+                                        <!-- Tombol Utama Pemindai Kamera QR -->
+                                        <button type="button" 
+                                                @click="openProcessCameraModal()" 
+                                                class="w-full py-3 bg-[#0a2342] hover:bg-slate-800 active:scale-[0.99] text-white rounded-2xl text-xs font-black transition flex items-center justify-center space-x-2.5 shadow-md hover:shadow-lg cursor-pointer">
+                                            <i class="fa-solid fa-camera text-amber-300 text-sm"></i>
+                                            <span class="tracking-wide">Buka Kamera Pemindai QR</span>
+                                            <span class="px-2 py-0.5 rounded-full bg-white/10 text-slate-200 text-[10px] font-normal font-sans">Kamera HP / Laptop</span>
+                                        </button>
+
+                                        <!-- Indikator Siaga Barcode Scanner Gun Hardware (Anti-Ketik Manual) -->
+                                        <div class="p-2.5 bg-white/90 rounded-xl border border-amber-200/90 flex items-center justify-between text-xs shadow-2xs">
+                                            <div class="flex items-center space-x-2 min-w-0">
+                                                <span class="relative flex h-2.5 w-2.5 shrink-0">
+                                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                                                </span>
+                                                <div class="min-w-0">
+                                                    <div class="text-[10.5px] font-extrabold text-slate-800 leading-tight">Pemindai Gun Fisik Siaga</div>
+                                                    <div class="text-[9.5px] text-slate-500 truncate">Arahkan barcode scanner gun & tembak QR lembar kerja</div>
+                                                </div>
+                                            </div>
+                                            <span class="text-[9px] font-black text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0 border border-amber-300/60">
+                                                <i class="fa-solid fa-barcode me-0.5"></i> Auto
+                                            </span>
+                                        </div>
+
+                                        <template x-if="scanErrorMessage">
+                                            <div class="p-2 bg-rose-100 border border-rose-300 text-rose-900 rounded-xl text-[10px] font-bold flex items-center space-x-1.5 animate-pulse">
+                                                <i class="fa-solid fa-circle-exclamation text-rose-600"></i>
+                                                <span x-text="scanErrorMessage"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
                             <!-- Hero Numeric Stepper -->
                             <div>
                                 <div class="flex items-center justify-between text-xs mb-1.5">
@@ -598,20 +832,34 @@
                         <!-- Footer Tombol Aksi Simetris -->
                         <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center space-x-2">
                             <button type="button" 
-                                    @click="actionModal = false" 
+                                    @click="closeActionModal()" 
                                     class="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition">
                                 Batal
                             </button>
                             <button type="submit" 
-                                    class="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center space-x-1.5">
-                                <i class="fa-solid fa-check"></i>
-                                <span>Simpan & Lanjutkan</span>
+                                    :disabled="isWrScanRequired && isPhysicalStep && !isScanVerified"
+                                    class="flex-1 py-2.5 rounded-xl font-extrabold text-xs shadow-md transition flex items-center justify-center space-x-1.5"
+                                    :class="(isWrScanRequired && isPhysicalStep && !isScanVerified) ? 'bg-slate-400 text-white cursor-not-allowed opacity-60 shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 text-white'">
+                                <template x-if="isWrScanRequired && isPhysicalStep && !isScanVerified">
+                                    <span class="flex items-center space-x-1.5">
+                                        <i class="fa-solid fa-lock text-xs"></i>
+                                        <span>Pindai QR Lembar WRI Dahulu</span>
+                                    </span>
+                                </template>
+                                <template x-if="!(isWrScanRequired && isPhysicalStep && !isScanVerified)">
+                                    <span class="flex items-center space-x-1.5">
+                                        <i class="fa-solid fa-check"></i>
+                                        <span>Simpan & Lanjutkan</span>
+                                    </span>
+                                </template>
                             </button>
                         </div>
                     </form>
 
                 </div>
             </div>
+
+            @include('work_requests.partials.process_camera_modal')
 
             <!-- Form Eksekusi Lanjutan (Parsial, Defect, Manual Status) -->
             <div x-show="showAdvancedForm" x-transition class="bg-white text-slate-800 rounded-2xl p-5 shadow-lg space-y-4">

@@ -24,3 +24,7 @@ Detail lengkap aturan tata kelola proyek tercantum di [.gemini/rules/guardrails.
 
 6. **KEPATUHAN PADA SETIAP PROMPT & SESI:**
    - Seluruh prompt, rencana kerja (`/plan`), dan respons wajib tunduk pada aturan ini tanpa pengecualian.
+
+7. **PRINSIP SATU PINTU MASTER KOMPONEN (DILARANG MASUK DARI WR):**
+   - Penambahan katalog master resmi HPK mutlak melalui menu Master Komponen oleh pihak berwenang.
+   - Komponen non-master yang dibuat melalui form Work Request (WR) berstatus `source = 'wr_adhoc'` untuk kebutuhan pesanan saat itu saja ("buat lewat aja") dan **100% TERISOLASI/TIDAK BOLEH TAMPIL** di modul Master Komponen, Safety Stock, maupun KPI inventaris utama.

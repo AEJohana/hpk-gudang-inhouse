@@ -59,10 +59,24 @@
                         </x-slot>
                     </x-dropdown>
 
-                    <a href="{{ route('admin.settings.index') }}" 
-                       class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('admin.settings.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
-                        <i class="fa-solid fa-gears me-1.5 text-[11px]"></i>Pengaturan
-                    </a>
+                    <!-- Pengaturan Dropdown -->
+                    <x-dropdown align="left" width="56">
+                        <x-slot name="trigger">
+                            <button class="px-3 py-1.5 text-xs font-semibold rounded-lg transition flex items-center {{ request()->routeIs('admin.settings.*', 'admin.operational-settings.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                                <i class="fa-solid fa-gears me-1.5 text-[11px]"></i>
+                                <span>Pengaturan</span>
+                                <i class="fa-solid fa-chevron-down text-[9px] ms-1.5 opacity-70"></i>
+                            </button>
+                        </x-slot>
+                        <x-slot name="content">
+                            <x-dropdown-link :href="route('admin.settings.index')" class="text-xs">
+                                <i class="fa-solid fa-gears me-2 text-teal-600"></i> Pengaturan Sistem
+                            </x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.operational-settings.index')" class="text-xs">
+                                <i class="fa-solid fa-sliders me-2 text-amber-600"></i> Pengaturan Operasional
+                            </x-dropdown-link>
+                        </x-slot>
+                    </x-dropdown>
                     <a href="{{ route('admin.audit-logs.index') }}" 
                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition {{ request()->routeIs('admin.audit-logs.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
                         <i class="fa-solid fa-clipboard-list me-1.5 text-[11px]"></i>Audit Log

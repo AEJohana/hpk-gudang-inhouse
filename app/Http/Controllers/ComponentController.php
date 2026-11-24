@@ -15,7 +15,7 @@ class ComponentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Component::with(['defaultLocation', 'stockBalances.location']);
+        $query = Component::masterCatalog()->with(['defaultLocation', 'stockBalances.location']);
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -45,8 +45,8 @@ class ComponentController extends Controller
 
         $components = $query->latest()->paginate(15)->withQueryString();
 
-        $unallocatedCount = Cache::remember('components_unallocated_count', 30, fn() => Component::whereNull('default_location_id')->count());
-        $uncategorizedCount = Cache::remember('components_uncategorized_count', 30, fn() => Component::whereNull('category')->count());
+        $unallocatedCount = Cache::remember('components_unallocated_count', 30, fn() => Component::masterCatalog()->whereNull('default_location_id')->count());
+        $uncategorizedCount = Cache::remember('components_uncategorized_count', 30, fn() => Component::masterCatalog()->whereNull('category')->count());
 
         $categories = [
             'subframe' => 'Subframe',
@@ -128,6 +128,7 @@ class ComponentController extends Controller
             'image_path' => $imagePath,
             'qr_code_payload' => 'HPK-PART|' . $validated['part_number'],
             'is_active' => true,
+            'source' => 'master',
         ]);
 
         // Create initial stock balance if provided
@@ -464,6 +465,7 @@ class ComponentController extends Controller
             'image_path' => $imagePath,
             'qr_code_payload' => 'HPK-PART|' . $partNumber,
             'is_active' => true,
+            'source' => 'wr_adhoc',
         ]);
 
         ActivityLogger::component(

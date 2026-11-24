@@ -32,6 +32,7 @@ class Component extends Model
         'image_path',
         'qr_code_payload',
         'is_active',
+        'source',
     ];
 
     protected $casts = [
@@ -73,6 +74,29 @@ class Component extends Model
     public function workRequests(): HasMany
     {
         return $this->hasMany(WorkRequest::class);
+    }
+
+    public function scopeMasterCatalog($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('source', 'master')
+              ->orWhereNull('source');
+        });
+    }
+
+    public function scopeWrAdhoc($query)
+    {
+        return $query->where('source', 'wr_adhoc');
+    }
+
+    public function getIsMasterAttribute(): bool
+    {
+        return ($this->source ?? 'master') === 'master';
+    }
+
+    public function getIsWrAdhocAttribute(): bool
+    {
+        return ($this->source ?? 'master') === 'wr_adhoc';
     }
 
     public function getTotalStockAttribute(): float
