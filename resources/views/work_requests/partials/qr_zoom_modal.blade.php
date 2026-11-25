@@ -1,9 +1,9 @@
 <!-- MODAL ZOOM QR CODE RESOLUSI TINGGI -->
 <div x-show="qrZoomModal" 
      x-cloak 
-     style="display: none;"
+     style="display: none; z-index: 99999 !important;"
      :class="{ 'pointer-events-none': !qrZoomModal }"
-     class="fixed inset-0 z-50 overflow-y-auto" 
+     class="fixed inset-0 z-[99999] overflow-y-auto" 
      aria-labelledby="modal-qr-zoom-title" 
      role="dialog" 
      aria-modal="true">
@@ -16,11 +16,13 @@
          x-transition:leave="ease-in duration-200" 
          x-transition:leave-start="opacity-100" 
          x-transition:leave-end="opacity-0" 
+         style="z-index: 99998 !important;"
          :class="{ 'pointer-events-none': !qrZoomModal }"
          class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" 
          @click="closeQrZoom()"></div>
 
-    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0 relative"
+         style="z-index: 99999 !important;">
         <div x-show="qrZoomModal" 
              x-transition:enter="ease-out duration-300" 
              x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 

@@ -655,6 +655,10 @@ Guna memastikan disiplin operasional di lantai pabrik dan mencegah kesalahan eks
    - **Verifikasi Ganda Sisi Server (Backend Validation):** `WorkRequestController::processAction` memvalidasi input `scanned_wri_code` sebelum transaksi basis data dieksekusi, menolak mutasi status secara ketat jika kode QR fisik tidak dipindai saat konfigurasi berstatus aktif.
 4. **Mekanisme Kerja saat Fitur Nonaktif (OFF):**
    - Seluruh proses berjalan seperti sedia kala (mode manual responsif), tombol aksi dapat langsung diklik tanpa jeda pemindaian QR.
+5. **Integrasi Pemindai QR di Material Handling (`Verifikasi Ambil MH`) & Pratinjau QR di Pop-up Next Proses:**
+   - Pada menu **Material Handling (`/work-station-supplies`)**, modal **"Verifikasi Ambil MH"** kini dilengkapi panel pemindai QR (**Kamera HP/Laptop via `html5-qrcode`**, **Hardware Gun Scanner**, serta fallback **Foto / Pilih Gambar QR** via `scanFile` jika browser ponsel mengakses HTTP LAN) dan mengirimkan `scanned_wri_code` ke backend `quickAction`.
+   - Saat pengaturan `wr_scan_required` aktif (**ON**), tombol *Konfirmasi Ambil Material* terkunci hingga QR lembar kerja terverifikasi; saat **OFF**, pemindai QR tetap tersedia dalam mode **Siaga** untuk pemeriksaan sukarela di lapangan tanpa mengunci tombol aksi.
+   - Pop-up **"Next Proses"** pada daftar WRI (`process_modal.blade.php`) maupun halaman detail (`work_requests/show.blade.php`) kini menyertakan thumbnail **QR Code WRI** yang dapat diklik untuk membuka tampilan perbesar (`qr_zoom_modal.blade.php`).
 
 ---
 

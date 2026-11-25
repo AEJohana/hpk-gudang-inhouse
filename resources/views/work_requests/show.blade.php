@@ -79,6 +79,23 @@
              scanErrorMessage: '',
              targetWriNumber: '{{ $workRequest->wri_number }}',
              targetPartNumber: '{{ $workRequest->component?->part_number ?? '' }}',
+             qrZoomModal: false,
+             qrZoomData: {
+                 qrUrl: '',
+                 wriNumber: '',
+                 componentName: ''
+             },
+             openQrZoom(qrUrl, wriNumber, componentName) {
+                 this.qrZoomData = {
+                     qrUrl: qrUrl || '',
+                     wriNumber: wriNumber || '',
+                     componentName: componentName || ''
+                 };
+                 this.qrZoomModal = true;
+             },
+             closeQrZoom() {
+                 this.qrZoomModal = false;
+             },
              processCameraModalOpen: false,
              html5ProcessQrCode: null,
              gunScanBuffer: '',
@@ -575,13 +592,28 @@
                                 </div>
                             </div>
 
-                            <!-- Tiket & Info Komponen Ringkas -->
-                            <div class="mt-3 p-2.5 bg-slate-50 border border-slate-200/70 rounded-2xl flex items-center justify-between text-xs">
-                                <div class="min-w-0 flex-1 pr-2">
+                            <!-- Tiket & Info Komponen Ringkas + QR Code WR -->
+                            <div class="mt-3 p-2.5 bg-slate-50 border border-slate-200/70 rounded-2xl flex items-center justify-between gap-2.5 text-xs">
+                                @if($workRequest->qr_code_data_uri)
+                                <button type="button"
+                                        @click="openQrZoom('{{ $workRequest->qr_code_data_uri }}', '{{ $workRequest->wri_number }}', '{{ addslashes($workRequest->component->name) }}')"
+                                        title="Klik untuk memperbesar QR Code WR"
+                                        class="w-14 h-14 sm:w-16 sm:h-16 p-1 bg-white rounded-xl border border-slate-200 hover:border-amber-400 hover:shadow-sm transition flex items-center justify-center shrink-0 relative group cursor-pointer">
+                                    <img src="{{ $workRequest->qr_code_data_uri }}" alt="QR Tiket WR" class="w-full h-full object-contain group-hover:scale-105 transition">
+                                    <span class="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 rounded-xl transition flex items-center justify-center">
+                                        <i class="fa-solid fa-magnifying-glass-plus text-slate-800 text-[10px] bg-white/95 p-1 rounded-full shadow-2xs"></i>
+                                    </span>
+                                </button>
+                                @endif
+                                <div class="min-w-0 flex-1 pr-1">
                                     <div class="flex items-center space-x-1.5">
-                                        <span class="text-[10px] font-mono font-black uppercase text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/60">{{ $workRequest->wri_number }}</span>
+                                        <span class="text-[10px] font-mono font-black uppercase text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/60 truncate max-w-full">{{ $workRequest->wri_number }}</span>
                                     </div>
                                     <div class="font-bold text-slate-800 text-xs truncate mt-1">{{ $workRequest->component->name }}</div>
+                                    <div class="text-[9.5px] text-slate-400 mt-0.5 flex items-center space-x-1">
+                                        <i class="fa-solid fa-qrcode text-slate-400"></i>
+                                        <span>Ketuk QR untuk perbesar</span>
+                                    </div>
                                 </div>
                                 <div class="text-right flex-shrink-0">
                                     <span class="text-[10px] text-slate-400 font-mono block">{{ $workRequest->component->part_number ?? '-' }}</span>
@@ -860,6 +892,7 @@
             </div>
 
             @include('work_requests.partials.process_camera_modal')
+            @include('work_requests.partials.qr_zoom_modal')
 
             <!-- Form Eksekusi Lanjutan (Parsial, Defect, Manual Status) -->
             <div x-show="showAdvancedForm" x-transition class="bg-white text-slate-800 rounded-2xl p-5 shadow-lg space-y-4">

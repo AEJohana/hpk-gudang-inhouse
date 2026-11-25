@@ -838,13 +838,17 @@
         <!-- ======================================================== -->
         <div x-show="actionModalOpen" 
              style="display: none;" 
+             data-lenis-prevent="true"
              class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-            <div @click.away="closeActionModal()" class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200/80 transition-all text-slate-800">
+            <div @click.away="if (!actionCameraModalOpen) closeActionModal()"
+                 :class="{ 'opacity-50 scale-[0.98] pointer-events-none': actionCameraModalOpen }"
+                 class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200/80 transition-all text-slate-800 my-auto">
                 <form method="POST" action="{{ route('work-station-supplies.quick-action') }}">
                     @csrf
                     <input type="hidden" name="work_request_id" :value="activeItem?.id">
                     <input type="hidden" name="action_type" value="process">
                     <input type="hidden" name="target_status" :value="activeItem?.target_status">
+                    <input type="hidden" name="scanned_wri_code" :value="actionScannedCode">
 
                     <!-- Modal Header Bersih & Kompak -->
                     <div class="p-5 pb-3 border-b border-slate-100 relative">
@@ -907,6 +911,88 @@
 
                     <!-- Form Body Kompak & Fungsional -->
                     <div class="p-5 pt-4 space-y-3.5 text-xs" x-data="{ hasDefectAction: false, defectQtyVal: null, defectReasonVal: '' }">
+                        <!-- DOK VERIFIKASI SCAN QR TIKET (KAMERA HP / GUN SCANNER / FOTO QR) -->
+                        <div class="rounded-2xl transition-all border p-3"
+                             :class="actionScanVerified ? 'bg-emerald-50/80 border-emerald-300' : (isWrScanRequired ? 'bg-amber-50/90 border-amber-300 shadow-xs' : 'bg-slate-50 border-slate-200')">
+
+                            <!-- Terverifikasi -->
+                            <div x-show="actionScanVerified" class="flex items-center justify-between gap-2">
+                                <div class="flex items-center space-x-2.5 min-w-0">
+                                    <div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs flex-shrink-0 shadow-xs">
+                                        <i class="fa-solid fa-check"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-[11px] font-black text-emerald-950 flex flex-wrap items-center gap-1">
+                                            <span>QR Tiket Terverifikasi</span>
+                                            <span class="px-1.5 py-0.5 rounded bg-emerald-200 text-emerald-900 text-[9px] font-mono break-all" x-text="actionScannedCode"></span>
+                                        </div>
+                                        <p class="text-[10px] text-emerald-700 font-medium">QR lembar tiket WRI valid & cocok.</p>
+                                    </div>
+                                </div>
+                                <button type="button" 
+                                        @click="resetActionScanVerification()" 
+                                        class="text-[10px] text-emerald-700 hover:text-emerald-900 font-bold underline px-2 py-1 rounded hover:bg-emerald-100 transition cursor-pointer flex-shrink-0">
+                                    Pindai Ulang
+                                </button>
+                            </div>
+
+                            <!-- Belum Terverifikasi -->
+                            <div x-show="!actionScanVerified" class="space-y-2.5">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex items-center space-x-2 min-w-0">
+                                        <div class="w-6 h-6 rounded-lg flex items-center justify-center text-xs flex-shrink-0 font-bold shadow-2xs"
+                                             :class="isWrScanRequired ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-amber-300'">
+                                            <i class="fa-solid fa-qrcode"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <h4 class="text-xs font-black uppercase tracking-wide"
+                                                :class="isWrScanRequired ? 'text-amber-950' : 'text-slate-900'"
+                                                x-text="isWrScanRequired ? 'Wajib Pindai QR Tiket Fisik' : 'Pindai QR Tiket Material Handling'"></h4>
+                                            <p class="text-[10px] font-medium leading-tight"
+                                               :class="isWrScanRequired ? 'text-amber-800' : 'text-slate-500'">
+                                                Pindai QR lembar tiket WRI via kamera HP atau gun scanner.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider flex-shrink-0"
+                                          :class="isWrScanRequired ? 'bg-amber-200 text-amber-900' : 'bg-indigo-100 text-indigo-800'"
+                                          x-text="isWrScanRequired ? 'Terkunci' : 'Siaga'"></span>
+                                </div>
+
+                                <!-- Tombol Utama Pemindai Kamera QR -->
+                                <button type="button" 
+                                        @click="openActionCameraModal()" 
+                                        class="w-full py-2.5 bg-[#0a2342] hover:bg-slate-800 active:scale-[0.99] text-white rounded-2xl text-xs font-black transition flex items-center justify-center space-x-2 shadow-md hover:shadow-lg cursor-pointer">
+                                    <i class="fa-solid fa-camera text-amber-300 text-sm"></i>
+                                    <span class="tracking-wide">Buka Kamera Pemindai QR</span>
+                                    <span class="px-2 py-0.5 rounded-full bg-white/10 text-slate-200 text-[10px] font-normal font-sans">Kamera HP / Laptop</span>
+                                </button>
+
+                                <!-- Fallback Foto QR / Barcode Scanner Gun -->
+                                <div class="flex items-center gap-2">
+                                    <label class="flex-1 p-2 bg-white/90 hover:bg-slate-50 rounded-xl border border-dashed border-slate-300 flex items-center justify-center space-x-1.5 text-[10.5px] font-bold text-slate-700 cursor-pointer transition">
+                                        <i class="fa-solid fa-image text-indigo-600"></i>
+                                        <span>Foto / Pilih Gambar QR</span>
+                                        <input type="file" accept="image/*" capture="environment" class="hidden" @change="scanActionQrFile($event)">
+                                    </label>
+                                    <div class="px-2.5 py-2 bg-white/90 rounded-xl border border-amber-200/90 flex items-center space-x-1.5 text-[10px] font-extrabold text-amber-900 shrink-0" title="Arahkan barcode scanner gun & tembak QR lembar kerja">
+                                        <span class="relative flex h-2 w-2 shrink-0">
+                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                        </span>
+                                        <span>Gun Auto</span>
+                                    </div>
+                                </div>
+
+                                <template x-if="actionScanErrorMessage">
+                                    <div class="p-2 bg-rose-100 border border-rose-300 text-rose-900 rounded-xl text-[10px] font-bold flex items-center space-x-1.5">
+                                        <i class="fa-solid fa-circle-exclamation text-rose-600 shrink-0"></i>
+                                        <span x-text="actionScanErrorMessage"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
                         <!-- Hero Numeric Stepper -->
                         <div>
                             <div class="flex items-center justify-between text-xs mb-1.5">
@@ -920,7 +1006,7 @@
                                         class="px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-lg text-[10px] border border-amber-200/80 transition flex items-center space-x-1">
                                     <span>Semua:</span>
                                     <strong x-text="activeItem?.qty"></strong>
-                                    <span>PCS</span>
+                                    <span x-text="activeItem?.uom || 'PCS'">PCS</span>
                                 </button>
                             </div>
 
@@ -1032,17 +1118,114 @@
                         <div class="pt-2 border-t border-slate-100 flex items-center space-x-2">
                             <button type="button" 
                                     @click="closeActionModal()" 
-                                    class="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition">
+                                    class="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition cursor-pointer">
                                 Batal
                             </button>
                             <button type="submit" 
-                                    class="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition flex items-center justify-center space-x-1.5">
-                                <i class="fa-solid fa-truck-ramp-box"></i>
-                                <span>Konfirmasi Ambil Material</span>
+                                    :disabled="isWrScanRequired && !actionScanVerified"
+                                    :class="(isWrScanRequired && !actionScanVerified) ? 'bg-slate-400 text-white cursor-not-allowed opacity-60 shadow-none' : 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-black shadow-md shadow-amber-500/20 cursor-pointer'"
+                                    class="flex-1 py-2.5 rounded-xl text-xs transition flex items-center justify-center space-x-1.5">
+                                <template x-if="isWrScanRequired && !actionScanVerified">
+                                    <span class="flex items-center space-x-1.5 font-extrabold">
+                                        <i class="fa-solid fa-lock text-xs"></i>
+                                        <span>Pindai QR Lembar WRI Dahulu</span>
+                                    </span>
+                                </template>
+                                <template x-if="!(isWrScanRequired && !actionScanVerified)">
+                                    <span class="flex items-center space-x-1.5">
+                                        <i class="fa-solid fa-truck-ramp-box"></i>
+                                        <span>Konfirmasi Ambil Material</span>
+                                    </span>
+                                </template>
                             </button>
                         </div>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- MODAL KAMERA SCANNER AKSI VERIFIKASI AMBIL MH            -->
+        <!-- ======================================================== -->
+        <div x-show="actionCameraModalOpen" 
+             x-cloak 
+             style="display: none; z-index: 99999 !important;"
+             :class="{ 'pointer-events-none': !actionCameraModalOpen }"
+             class="fixed inset-0 z-[99999] overflow-y-auto" 
+             role="dialog" 
+             aria-modal="true">
+            <div x-show="actionCameraModalOpen"
+                 style="z-index: 99998 !important;"
+                 class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm transition-opacity"
+                 @click="closeActionCameraModal()"></div>
+
+            <div class="flex min-h-full items-center justify-center p-3 text-center sm:p-0 relative"
+                 style="z-index: 99999 !important;">
+                <div x-show="actionCameraModalOpen"
+                     style="z-index: 99999 !important;"
+                     class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 w-full sm:max-w-md border border-slate-200">
+                    
+                    <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-[#0a2342] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+                                <i class="fa-solid fa-camera text-amber-300"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-extrabold text-slate-900 leading-tight">Pindai QR Tiket Material Handling</h4>
+                                <p class="text-[10px] text-slate-500 font-medium">Arahkan kamera ke kode QR lembar kerja WRI</p>
+                            </div>
+                        </div>
+                        <button type="button" 
+                                @click="closeActionCameraModal()" 
+                                class="w-7 h-7 rounded-full bg-white hover:bg-slate-200 border border-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
+                    </div>
+
+                    <div class="p-4 space-y-3 bg-slate-950/90 text-white">
+                        <div class="relative w-full rounded-2xl overflow-hidden bg-black border border-slate-800 min-h-[240px] flex items-center justify-center">
+                            <div id="mh-action-camera-reader" class="w-full h-full min-h-[240px]"></div>
+                        </div>
+
+                        <template x-if="actionCameraError">
+                            <div class="p-2.5 bg-amber-950/80 border border-amber-500/60 text-amber-200 rounded-xl text-[11px] font-medium space-y-2">
+                                <div class="flex items-start space-x-2">
+                                    <i class="fa-solid fa-triangle-exclamation text-amber-400 mt-0.5 shrink-0"></i>
+                                    <span x-text="actionCameraError"></span>
+                                </div>
+                                <label class="w-full py-2 px-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center space-x-1.5 cursor-pointer transition">
+                                    <i class="fa-solid fa-camera"></i>
+                                    <span>Ambil Foto / Pilih Gambar QR</span>
+                                    <input type="file" accept="image/*" capture="environment" class="hidden" @change="scanActionQrFile($event)">
+                                </label>
+                            </div>
+                        </template>
+
+                        <div class="p-2.5 bg-slate-900/90 border border-slate-800 rounded-xl flex items-center justify-between text-xs gap-2">
+                            <div class="min-w-0">
+                                <span class="text-[10px] text-slate-400 uppercase tracking-wider block">Tiket Target:</span>
+                                <span class="font-mono font-black text-amber-400 text-xs break-all" x-text="activeItem?.wri_number"></span>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span class="text-[10px] text-slate-400 uppercase tracking-wider block">Part:</span>
+                                <span class="font-bold text-white text-xs truncate max-w-[140px] block" x-text="activeItem?.component_name"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <label class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 font-bold text-xs rounded-xl transition cursor-pointer inline-flex items-center space-x-1.5">
+                            <i class="fa-solid fa-image"></i>
+                            <span>Upload / Foto QR</span>
+                            <input type="file" accept="image/*" capture="environment" class="hidden" @change="scanActionQrFile($event)">
+                        </label>
+                        <button type="button" 
+                                @click="closeActionCameraModal()" 
+                                class="flex-1 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer">
+                            Tutup Kamera
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1130,6 +1313,28 @@
                     <div class="relative bg-slate-950 rounded-2xl overflow-hidden min-h-[220px] flex items-center justify-center border border-slate-800">
                         <div id="mh-scanner-reader" class="w-full"></div>
                         <div x-show="isScanningMh" class="absolute inset-x-8 top-1/2 -translate-y-1/2 h-1 bg-amber-400 shadow-[0_0_8px_#fbbf24] animate-pulse pointer-events-none"></div>
+                    </div>
+
+                    <template x-if="mhCameraError">
+                        <div class="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs space-y-2">
+                            <div class="font-bold flex items-start space-x-2">
+                                <i class="fa-solid fa-camera-slash text-amber-600 mt-0.5 shrink-0"></i>
+                                <span x-text="mhCameraError"></span>
+                            </div>
+                            <label class="w-full py-2 px-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center space-x-1.5 cursor-pointer transition">
+                                <i class="fa-solid fa-camera"></i>
+                                <span>Ambil Foto / Pilih Gambar QR</span>
+                                <input type="file" accept="image/*" capture="environment" class="hidden" @change="scanMhQrFile($event)">
+                            </label>
+                        </div>
+                    </template>
+
+                    <div class="flex items-center justify-between gap-2">
+                        <label class="w-full py-2 px-3 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 cursor-pointer transition">
+                            <i class="fa-solid fa-image"></i>
+                            <span>Scan dari Foto Kamera / Galeri QR</span>
+                            <input type="file" accept="image/*" capture="environment" class="hidden" @change="scanMhQrFile($event)">
+                        </label>
                     </div>
 
                     <div>
@@ -1253,12 +1458,24 @@
                 actionModalOpen: false,
                 activeItem: null,
                 pickupQty: 1,
+                isWrScanRequired: {{ ($isWrScanRequired ?? false) ? 'true' : 'false' }},
+                actionScanVerified: false,
+                actionScannedCode: '',
+                actionScanErrorMessage: '',
+                actionCameraModalOpen: false,
+                actionCameraError: '',
+                html5ActionQrCode: null,
+                gunScanBuffer: '',
+                gunScanStartTime: 0,
+                gunLastCharTime: 0,
+                gunScanHandler: null,
 
                 detailModalOpen: false,
                 detailItem: null,
 
                 mhScannerOpen: false,
                 isScanningMh: false,
+                mhCameraError: '',
                 scanQuery: '',
                 scannedTicket: null,
                 scanErrorMessage: null,
@@ -1299,7 +1516,12 @@
                 openActionModal(item) {
                     this.activeItem = item;
                     this.pickupQty = item.qty;
+                    this.actionScanVerified = false;
+                    this.actionScannedCode = '';
+                    this.actionScanErrorMessage = '';
+                    this.actionCameraError = '';
                     this.actionModalOpen = true;
+                    this.attachActionGunScannerListener();
                 },
 
                 incrementPickupQty() {
@@ -1321,8 +1543,188 @@
                 },
 
                 closeActionModal() {
+                    this.detachActionGunScannerListener();
+                    if (this.actionCameraModalOpen) {
+                        this.closeActionCameraModal();
+                    }
                     this.actionModalOpen = false;
                     this.activeItem = null;
+                    this.actionScanVerified = false;
+                    this.actionScannedCode = '';
+                    this.actionScanErrorMessage = '';
+                },
+
+                attachActionGunScannerListener() {
+                    if (this.gunScanHandler) return;
+                    this.gunScanBuffer = '';
+                    this.gunScanStartTime = 0;
+                    this.gunLastCharTime = 0;
+
+                    this.gunScanHandler = (e) => {
+                        if (!this.actionModalOpen || this.actionScanVerified) return;
+
+                        if (e.target && ['notes', 'defect_reason', 'defect_qty'].includes(e.target.name)) {
+                            return;
+                        }
+
+                        const now = Date.now();
+
+                        if (e.key === 'Enter') {
+                            if (this.gunScanBuffer.length > 0) {
+                                e.preventDefault();
+                                const totalTime = now - this.gunScanStartTime;
+                                const charCount = this.gunScanBuffer.length;
+                                const avgCharSpeed = totalTime / charCount;
+
+                                if (charCount >= 3 && avgCharSpeed <= 60) {
+                                    this.verifyActionScannedCode(this.gunScanBuffer);
+                                } else {
+                                    this.actionScanErrorMessage = 'Pengetikan manual dilarang! Gunakan pemindai kamera atau scanner gun fisik.';
+                                }
+                                this.gunScanBuffer = '';
+                                this.gunScanStartTime = 0;
+                            }
+                            return;
+                        }
+
+                        if (e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                            if (!this.gunScanStartTime || (now - this.gunLastCharTime > 150)) {
+                                this.gunScanBuffer = '';
+                                this.gunScanStartTime = now;
+                            }
+                            this.gunLastCharTime = now;
+                            this.gunScanBuffer += e.key;
+                        }
+                    };
+                    window.addEventListener('keydown', this.gunScanHandler);
+                },
+
+                detachActionGunScannerListener() {
+                    if (this.gunScanHandler) {
+                        window.removeEventListener('keydown', this.gunScanHandler);
+                        this.gunScanHandler = null;
+                    }
+                    this.gunScanBuffer = '';
+                    this.gunScanStartTime = 0;
+                    this.gunLastCharTime = 0;
+                },
+
+                verifyActionScannedCode(rawCode) {
+                    if (!rawCode || !rawCode.trim() || !this.activeItem) return;
+                    const input = rawCode.trim();
+                    const wriNum = (this.activeItem.wri_number || '').trim();
+                    const partNum = (this.activeItem.part_number || '').trim();
+
+                    const cleanScanned = input.replace(/HPK-PART\|/gi, '').replace(/[\s\-\/]/g, '').toLowerCase();
+                    const cleanWri = wriNum.replace(/[\s\-\/]/g, '').toLowerCase();
+                    const cleanPart = partNum.replace(/[\s\-\/]/g, '').toLowerCase();
+
+                    let isValid = false;
+                    if (cleanScanned && cleanWri && (cleanScanned === cleanWri || cleanScanned.includes(cleanWri) || cleanWri.includes(cleanScanned))) {
+                        isValid = true;
+                    } else if (cleanScanned && cleanPart && (cleanScanned === cleanPart || cleanScanned.includes(cleanPart))) {
+                        isValid = true;
+                    }
+
+                    if (isValid) {
+                        this.actionScannedCode = input;
+                        this.actionScanVerified = true;
+                        this.actionScanErrorMessage = '';
+                        this.detachActionGunScannerListener();
+                        if (this.actionCameraModalOpen) {
+                            this.closeActionCameraModal();
+                        }
+                    } else {
+                        this.actionScanErrorMessage = `Kode "${input}" tidak cocok dengan tiket ${wriNum}!`;
+                    }
+                },
+
+                resetActionScanVerification() {
+                    this.actionScanVerified = false;
+                    this.actionScannedCode = '';
+                    this.actionScanErrorMessage = '';
+                    this.attachActionGunScannerListener();
+                },
+
+                openActionCameraModal() {
+                    this.actionCameraError = '';
+                    this.actionCameraModalOpen = true;
+                    this.$nextTick(() => {
+                        this.startActionCameraScanner();
+                    });
+                },
+
+                async closeActionCameraModal() {
+                    await this.stopActionCameraScanner();
+                    this.actionCameraModalOpen = false;
+                },
+
+                async startActionCameraScanner() {
+                    const el = document.getElementById('mh-action-camera-reader');
+                    if (!el || typeof Html5Qrcode === 'undefined') {
+                        this.actionCameraError = 'Komponen scanner kamera tidak tersedia. Gunakan tombol Ambil Foto / Pilih Gambar QR di bawah.';
+                        return;
+                    }
+                    if (this.html5ActionQrCode) {
+                        await this.stopActionCameraScanner();
+                    }
+                    try {
+                        this.html5ActionQrCode = new Html5Qrcode('mh-action-camera-reader');
+                        const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+                        await this.html5ActionQrCode.start(
+                            { facingMode: 'environment' },
+                            config,
+                            (decodedText) => {
+                                this.verifyActionScannedCode(decodedText);
+                            },
+                            () => {}
+                        );
+                        if (!this.actionCameraModalOpen) {
+                            await this.stopActionCameraScanner();
+                        }
+                    } catch (err) {
+                        console.warn('Action camera start issue:', err);
+                        this.actionCameraError = 'Kamera live tidak dapat dibuka (pastikan izin kamera aktif atau gunakan HTTPS/localhost). Anda tetap dapat memindai memakai tombol Ambil Foto / Pilih Gambar QR di bawah.';
+                    }
+                },
+
+                async stopActionCameraScanner() {
+                    if (this.html5ActionQrCode) {
+                        const scanner = this.html5ActionQrCode;
+                        this.html5ActionQrCode = null;
+                        try {
+                            const state = typeof scanner.getState === 'function' ? scanner.getState() : null;
+                            if (state === 2 || state === 3) {
+                                await scanner.stop();
+                            }
+                        } catch (e) {}
+                        try {
+                            scanner.clear();
+                        } catch (e) {}
+                    }
+                },
+
+                async scanActionQrFile(event) {
+                    const file = event?.target?.files?.[0];
+                    if (!file) return;
+                    event.target.value = '';
+                    if (typeof Html5Qrcode === 'undefined') {
+                        this.actionScanErrorMessage = 'Library pembaca QR tidak ditemukan.';
+                        return;
+                    }
+                    await this.stopActionCameraScanner();
+                    try {
+                        const fileScanner = new Html5Qrcode('mh-action-camera-reader');
+                        const decodedText = await fileScanner.scanFile(file, false);
+                        try { fileScanner.clear(); } catch (e) {}
+                        this.verifyActionScannedCode(decodedText);
+                    } catch (err) {
+                        const msg = 'QR Code tidak terbaca pada foto tersebut. Pastikan gambar QR jelas dan tidak buram.';
+                        this.actionScanErrorMessage = msg;
+                        if (this.actionCameraModalOpen) {
+                            this.actionCameraError = msg;
+                        }
+                    }
                 },
 
                 openDetailModal(item) {
@@ -1339,6 +1741,7 @@
                     this.mhScannerOpen = true;
                     this.scannedTicket = null;
                     this.scanErrorMessage = null;
+                    this.mhCameraError = '';
                     this.scanQuery = '';
                     this.$nextTick(() => {
                         this.startCameraMh();
@@ -1352,7 +1755,10 @@
 
                 startCameraMh() {
                     const el = document.getElementById('mh-scanner-reader');
-                    if (!el || typeof Html5Qrcode === 'undefined') return;
+                    if (!el || typeof Html5Qrcode === 'undefined') {
+                        this.mhCameraError = 'Komponen kamera tidak siap. Gunakan tombol Scan dari Foto / Galeri atau kolom ketik di bawah.';
+                        return;
+                    }
 
                     if (this.html5QrMh) {
                         this.stopCameraMh();
@@ -1367,7 +1773,7 @@
                             config,
                             (decodedText) => {
                                 this.isScanningMh = true;
-                                this.performLookup(decodedText);
+                                this.performLookup(decodedText, true);
                             },
                             (error) => {}
                         ).then(() => {
@@ -1379,10 +1785,12 @@
                         }).catch(err => {
                             console.warn('Camera start issue:', err);
                             this.isScanningMh = false;
+                            this.mhCameraError = 'Kamera live tidak dapat dibuka (di HP pastikan izin kamera aktif & gunakan HTTPS/localhost). Gunakan tombol Ambil Foto / Pilih Gambar QR atau Scan Gun di bawah.';
                         });
                     } catch (e) {
                         console.warn('Failed to init MH camera:', e);
                         this.isScanningMh = false;
+                        this.mhCameraError = 'Gagal menginisialisasi kamera perangkat. Gunakan foto QR atau Scan Gun.';
                     }
                 },
 
@@ -1405,7 +1813,27 @@
                     }
                 },
 
-                async performLookup(code) {
+                async scanMhQrFile(event) {
+                    const file = event?.target?.files?.[0];
+                    if (!file) return;
+                    event.target.value = '';
+                    this.scanErrorMessage = null;
+                    if (typeof Html5Qrcode === 'undefined') {
+                        this.scanErrorMessage = 'Library pembaca QR tidak tersedia.';
+                        return;
+                    }
+                    await this.stopCameraMh();
+                    try {
+                        const fileScanner = new Html5Qrcode('mh-scanner-reader');
+                        const decodedText = await fileScanner.scanFile(file, false);
+                        try { fileScanner.clear(); } catch (e) {}
+                        this.performLookup(decodedText, true);
+                    } catch (err) {
+                        this.scanErrorMessage = 'QR Code gagal terbaca dari foto. Pastikan kode QR terlihat jelas.';
+                    }
+                },
+
+                async performLookup(code, stopCameraOnSuccess = false) {
                     if (!code || !code.trim()) return;
                     this.scanErrorMessage = null;
 
@@ -1415,6 +1843,9 @@
 
                         if (data.success && data.work_request) {
                             this.scannedTicket = data.work_request;
+                            if (stopCameraOnSuccess) {
+                                this.stopCameraMh();
+                            }
                         } else {
                             this.scannedTicket = null;
                             this.scanErrorMessage = data.message || 'Tiket WRI tidak ditemukan.';

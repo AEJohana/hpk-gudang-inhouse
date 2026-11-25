@@ -94,6 +94,7 @@
                     'currentBatchQty' => (float) $wri->current_batch_qty,
                     'targetRack' => $wri->target_specific_location_code ?: 'Belum di Rak',
                     'assignedOperator' => $wri->assigned_operator_name ?? '',
+                    'qrUrl' => $wri->qr_code_data_uri,
                     'actionUrl' => route('work-requests.process-action', $wri),
                 ];
 

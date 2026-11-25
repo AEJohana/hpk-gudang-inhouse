@@ -543,6 +543,7 @@
                     componentName: '',
                     partNumber: '',
                     uom: 'PCS',
+                    qrUrl: '',
                     currentStatus: '',
                     nextStatus: '',
                     nextActionLabel: '',

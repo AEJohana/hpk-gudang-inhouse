@@ -63,18 +63,35 @@
                     </div>
                 </div>
 
-                <!-- Tiket & Info Komponen Ringkas -->
-                <div class="mt-3 p-2.5 bg-slate-50 border border-slate-200/70 rounded-2xl flex items-center justify-between text-xs">
-                    <div class="min-w-0 flex-1 pr-2">
+                <!-- Tiket & Info Komponen Ringkas + QR Code WR -->
+                <div class="mt-3 p-2.5 bg-slate-50 border border-slate-200/70 rounded-2xl flex items-center justify-between gap-2.5 text-xs">
+                    <template x-if="processData.qrUrl">
+                        <button type="button"
+                                @click="openQrZoom(processData.qrUrl, processData.wriNumber, processData.componentName)"
+                                title="Klik untuk memperbesar QR Code WR"
+                                class="w-14 h-14 sm:w-16 sm:h-16 p-1 bg-white rounded-xl border border-slate-200 hover:border-amber-400 hover:shadow-sm transition flex items-center justify-center shrink-0 relative group cursor-pointer">
+                            <img :src="processData.qrUrl" alt="QR Tiket WR" class="w-full h-full object-contain group-hover:scale-105 transition">
+                            <span class="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 rounded-xl transition flex items-center justify-center">
+                                <i class="fa-solid fa-magnifying-glass-plus text-slate-800 text-[10px] bg-white/95 p-1 rounded-full shadow-2xs"></i>
+                            </span>
+                        </button>
+                    </template>
+                    <div class="min-w-0 flex-1 pr-1">
                         <div>
                             <span class="text-[10px] font-mono font-black uppercase text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/60 inline-block truncate max-w-full" x-text="processData.wriNumber"></span>
                         </div>
                         <div class="font-bold text-slate-800 text-xs truncate mt-1" x-text="processData.componentName"></div>
+                        <template x-if="processData.qrUrl">
+                            <div class="text-[9.5px] text-slate-400 mt-0.5 flex items-center space-x-1">
+                                <i class="fa-solid fa-qrcode text-slate-400"></i>
+                                <span>Ketuk QR untuk perbesar</span>
+                            </div>
+                        </template>
                     </div>
                     <div class="text-right flex-shrink-0">
                         <span class="text-[10px] text-slate-400 font-mono block" x-text="processData.partNumber"></span>
                         <template x-if="processData.nextStatus.includes('Sudah Diambil') && processData.targetRack">
-                            <span class="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                            <span class="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-1 inline-block">
                                 Rak: <span x-text="processData.targetRack"></span>
                             </span>
                         </template>

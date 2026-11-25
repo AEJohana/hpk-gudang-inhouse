@@ -75,6 +75,8 @@ class WorkStationSupplyController extends Controller
                     'destination' => $item->dept_pengaju ?: 'Gudang',
                     'tgl' => $item->created_at->format('d/m/Y'),
                     'tgl_raw' => $item->created_at->format('Y-m-d'),
+                    'uom' => $item->component?->uom ?? 'PCS',
+                    'qr_url' => $item->qr_code_data_uri,
                     'current_status' => 'Siap Diambil',
                     'target_status' => 'Menuju Pengaju',
                     'routing' => $item->routing_text,
@@ -166,6 +168,8 @@ class WorkStationSupplyController extends Controller
                         'destination' => $nextStep,
                         'tgl' => $item->created_at->format('d/m/Y'),
                         'tgl_raw' => $item->created_at->format('Y-m-d'),
+                        'uom' => $item->component?->uom ?? 'PCS',
+                        'qr_url' => $item->qr_code_data_uri,
                         'current_status' => "Proses: {$step} (Out)",
                         'target_status' => "MH Pickup: {$step}",
                         'routing' => $item->routing_text,
@@ -233,6 +237,8 @@ class WorkStationSupplyController extends Controller
         $transferHistory = array_slice($transferHistory, 0, 30);
         $finalHistory = array_slice($finalHistory, 0, 30);
 
+        $isWrScanRequired = \App\Models\Setting::isWrScanRequired();
+
         return view('work_station_supplies.index', compact(
             'transferWaiting',
             'transferTransit',
@@ -242,7 +248,8 @@ class WorkStationSupplyController extends Controller
             'finalHistory',
             'filterOrigins',
             'filterDestinations',
-            'filterFinalLocations'
+            'filterFinalLocations',
+            'isWrScanRequired'
         ));
     }
 
@@ -324,6 +331,7 @@ class WorkStationSupplyController extends Controller
             'defect_qty' => 'nullable|numeric|min:0.01',
             'defect_reason' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
+            'scanned_wri_code' => 'nullable|string|max:255',
         ]);
 
         $wr = WorkRequest::findOrFail($validated['work_request_id']);

@@ -260,6 +260,7 @@ class WorkRequestController extends Controller
                     'currentBatchQty' => (float) $targetWr->current_batch_qty,
                     'targetRack' => $targetWr->target_specific_location_code ?: 'Belum di Rak',
                     'assignedOperator' => $targetWr->assigned_operator_name ?? '',
+                    'qrUrl' => $targetWr->qr_code_data_uri,
                     'actionUrl' => route('work-requests.process-action', $targetWr),
                 ];
 
