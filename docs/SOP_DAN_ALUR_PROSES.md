@@ -48,10 +48,12 @@ flowchart TD
     end
 
     subgraph FASE_5["5. SERAH TERIMA & AUTO-UPDATE STOK (BR-08)"]
-        S -->|Serah Terima Fisik ke Pemohon| T[Status Akhir: Sudah Diambil]
+        S -->|Serah Terima Fisik ke Pemohon| T[Status: Sudah Diambil]
         T --> U[(Otomatis Tambah Saldo Fisik Rak: stock_balances)]
         T --> V[(Otomatis Terbitkan Transaksi Inbound Resmi)]
-        V --> W([Tiket Selesai / Closed])
+        V --> X{Seluruh Qty Terpenuhi 100%?}
+        X -->|Ya: Final| W([Tiket Selesai / Closed: is_final = true])
+        X -->|Tidak: Parsial| Y[Tiket Tetap Aktif: is_final = false] -->|Kembali ke Mesin untuk Sisa Qty| J
     end
 ```
 
@@ -503,7 +505,7 @@ Untuk memfasilitasi kebutuhan tanda tangan fisik, instruksi kerja stasiun mesin,
 3. **Penyimpanan Foto di Server NAS On-Premise:** 491 berkas foto fisik dari Google Drive lama diunduh dan disimpan langsung ke Drive Master NAS `Z:\...` dan `public/uploads/components/` dengan format penamaan standar (`[part_number].jpg` untuk part resmi, dan `NEW-YYYYMMDD-SEQ.jpg` untuk part baru).
 4. **Dokumentasi & Prosedur Teknis Lengkap:** Rincian teknis, pemetaan skema, dan panduan perintah CLI tercatat di [docs/MIGRASI_LOG_WR_SPREADSHEET.md](docs/MIGRASI_LOG_WR_SPREADSHEET.md).
 5. **Penyelarasan Aksi Scan Diterima & Implied Approval (Update 18 Nov 2026):**
-   - Tiket yang telah menyelesaikan siklus fabrikasi mesin hingga tahap akhir dan berada pada status `Siap diambil`, otomatis menampilkan tombol aksi hijau **`Scan Diterima (X pcs)`** bagi petugas Gudang (Pengaju).
+   - Tiket yang telah menyelesaikan siklus fabrikasi mesin hingga tahap akhir wajib dijemput oleh Material Handling (`Menuju Pengaju`), lalu otomatis menampilkan tombol aksi hijau **`Scan Diterima (X pcs)`** bagi petugas Gudang (Pengaju) sesuai Alur Wajib Logistik MH (Guardrail 4). Barikade sistem secara ketat menolak penerimaan gudang langsung dari mesin jika barang belum dijemput kurir MH.
    - Tiket dengan aktivitas pengerjaan fisik aktif (`quantity_produced > 0`) atau telah selesai dikerjakan tidak terkunci oleh badge "Menunggu Penerima" (penerapan *implied operational approval* dari alur lama).
    - Otorisasi dan pembagian peran tetap terisolasi: stasiun mesin tidak dapat mengambil aksi terima barang, dan penjemputan Material Handling antar-stasiun mesin tetap terintegrasi secara runtut.
 6. **SOP Pemutakhiran Data CSV Berkala & Production Cutover (Runbook Bab 12):**

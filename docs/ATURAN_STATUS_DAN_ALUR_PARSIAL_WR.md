@@ -2,6 +2,8 @@
 
 Dokumen ini adalah **pedoman resmi dan aturan baku mutlak (Single Source of Truth)** untuk arsitektur *State Machine*, kalkulasi saldo fisik, dan penampilan status Work Request (WRI) pada sistem HPK Gudang Inhouse ketika terjadi **pengerjaan dan pengiriman bertahap (parsial/cicilan)**.
 
+Dokumen ini merupakan **addendum teknis spesialis** yang terikat langsung dan memperkuat aturan bisnis **BR-07** pada buku manual induk [docs/SOP_DAN_ALUR_PROSES.md](SOP_DAN_ALUR_PROSES.md). Seluruh definisi, terminologi, dan alur di sini berpadu selaras 100% tanpa pertentangan dengan SOP Induk.
+
 Dokumen ini wajib dijadikan acuan mutlak bagi seluruh pengembang (*developer*), AI Agent, dan *user* agar logika sistem tidak berubah-ubah atau mengalami regresi di kemudian hari.
 
 ---
