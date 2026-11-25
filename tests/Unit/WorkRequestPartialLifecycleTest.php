@@ -296,4 +296,88 @@ class WorkRequestPartialLifecycleTest extends TestCase
         $this->assertFalse($wr->hasPhysicalWaitingPickup());
         $this->assertEquals(0, $wr->getInTransitQuantity());
     }
+
+    public function test_multi_step_inter_station_transit_and_step_authorization(): void
+    {
+        $component = Component::create([
+            'name' => 'As Pin Lodge',
+            'part_number' => 'CLOA10300100000',
+            'uom' => 'PCS',
+        ]);
+
+        $wr = WorkRequest::create([
+            'wri_number' => 'WRI/20261125/0002',
+            'component_id' => $component->id,
+            'quantity_requested' => 10,
+            'quantity_produced' => 0,
+            'quantity_received' => 0,
+            'status' => 'Dalam antrian',
+            'current_process_status' => 'Dalam antrian',
+            'dept_pengaju' => 'Dept Gudang',
+            'dept_penerima' => 'Dept M1',
+            'routing_text' => 'Dept M1 -> Dept Laser Cutting',
+            'approval_pengaju' => 'Diterima',
+            'approval_penerima' => 'Diterima',
+            'assigned_operator_name' => 'Dedi Pratama',
+            'is_final' => false,
+        ]);
+
+        WorkRequestStep::create([
+            'work_request_id' => $wr->id,
+            'step_number' => 1,
+            'process_name' => 'Dept M1',
+            'status' => 'completed',
+        ]);
+        WorkRequestStep::create([
+            'work_request_id' => $wr->id,
+            'step_number' => 2,
+            'process_name' => 'Dept Laser Cutting',
+            'status' => 'pending',
+        ]);
+
+        $opM1 = User::create([
+            'name' => 'Dedi Pratama',
+            'username' => 'dedi_m1_multi',
+            'email' => 'dedi_multi@hpk.local',
+            'password' => bcrypt('password'),
+            'work_area' => 'mesin_center',
+            'department' => 'Dept M1',
+        ]);
+
+        $opLaser = User::create([
+            'name' => 'Pak Nasrul',
+            'username' => 'nasrul_laser',
+            'email' => 'nasrul@hpk.local',
+            'password' => bcrypt('password'),
+            'work_area' => 'mesin_center',
+            'department' => 'Dept Laser Cutting',
+        ]);
+
+        // Step 1 M1 selesai, dan MH sudah pickup menuju Dept Laser Cutting
+        WorkRequestLog::create(['work_request_id' => $wr->id, 'action_type' => 'process', 'status_label' => 'Proses: Dept M1 (In)', 'quantity' => 10]);
+        WorkRequestLog::create(['work_request_id' => $wr->id, 'action_type' => 'process', 'status_label' => 'Proses: Dept M1 (Out)', 'quantity' => 10]);
+        WorkRequestLog::create(['work_request_id' => $wr->id, 'action_type' => 'process', 'status_label' => 'MH Pickup: Dept M1', 'quantity' => 10]);
+        $wr->update(['status' => 'MH Pickup: Dept M1']);
+
+        // 1. Tidak boleh terdeteksi waiting pickup MH lagi
+        $this->assertFalse($wr->hasPhysicalWaitingPickup());
+        // 2. Harus terdeteksi transit antar-stasiun ke Dept Laser Cutting
+        $this->assertEquals('Dept Laser Cutting', $wr->getInterStepTransitTarget());
+
+        // 3. Otorisasi ketat per tahapan:
+        // Dedi (Operator Dept M1) TIDAK BOLEH melihat tombol atau memproses Dept Laser Cutting!
+        $this->assertEmpty($wr->getAvailableActionsForUser($opM1, true));
+        $this->assertFalse($wr->canUserProcessAction($opM1, 'Proses: Dept Laser Cutting (In)'));
+
+        // Pak Nasrul (Dept Laser Cutting) HARUS melihat tombol dan DIIZINKAN memproses Dept Laser Cutting!
+        $actionsLaser = $wr->getAvailableActionsForUser($opLaser, true);
+        $this->assertNotEmpty($actionsLaser);
+        $this->assertEquals('Proses: Dept Laser Cutting (In)', $actionsLaser[0]['target_status']);
+        $this->assertTrue($wr->canUserProcessAction($opLaser, 'Proses: Dept Laser Cutting (In)'));
+
+        // 4. Setelah Dept Laser Cutting klik Mulai (In), transit antar-mesin selesai (null)
+        WorkRequestLog::create(['work_request_id' => $wr->id, 'action_type' => 'process', 'status_label' => 'Proses: Dept Laser Cutting (In)', 'quantity' => 10]);
+        $wr->update(['status' => 'Proses: Dept Laser Cutting (In)']);
+        $this->assertNull($wr->getInterStepTransitTarget());
+    }
 }

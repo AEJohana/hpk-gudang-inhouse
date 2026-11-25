@@ -30,13 +30,15 @@
                 // Reaktif Saldo Sisa Berbasis Ketersediaan Fisik Riil
                 $hasWaitingPickup = $wri->hasPhysicalWaitingPickup();
                 $inTransitQty = $wri->getInTransitQuantity();
+                $interStepTarget = $wri->getInterStepTransitTarget();
 
-                $isWaitingMH = in_array($cleanStatus, ['siap diambil', 'ready_for_warehouse']) 
-                    || str_starts_with($cleanStatus, 'mh pickup') 
-                    || str_ends_with($cleanStatus, '(out)')
-                    || (!$wri->is_final && $hasWaitingPickup);
+                $isWaitingMH = !$wri->is_final && (
+                    $hasWaitingPickup ||
+                    ($wri->steps->isEmpty() && (in_array($cleanStatus, ['siap diambil', 'ready_for_warehouse']) || str_ends_with($cleanStatus, '(out)')))
+                );
 
-                $isInTransitMH = !$isWaitingMH && (str_contains($cleanStatus, 'menuju pengaju') || $inTransitQty > 0);
+                $isInterStepTransit = !$wri->is_final && !$isWaitingMH && !empty($interStepTarget);
+                $isInTransitMH = !$wri->is_final && !$isWaitingMH && !$isInterStepTransit && (str_contains($cleanStatus, 'menuju pengaju') || $inTransitQty > 0);
                 $isReceivedGudang = $wri->is_final && (str_contains($cleanStatus, 'sudah diambil') || $cleanStatus === 'received');
 
                 $isLaserIn = stripos($nextStatus, '(In)') !== false;
@@ -299,6 +301,21 @@
                                             </a>
                                             @endcan
                                         </div>
+                                    @elseif($isInterStepTransit)
+                                        <div class="space-y-1 w-full">
+                                            <span class="inline-flex items-center px-2 py-1 text-indigo-900 bg-indigo-50 border border-indigo-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs text-center leading-tight">
+                                                <i class="fa-solid fa-truck-arrow-right text-indigo-600 me-1 text-[9px] shrink-0"></i>
+                                                <span>Diantar MH ke {{ $interStepTarget }}</span>
+                                            </span>
+                                            @can('material-handling.view')
+                                            <a href="{{ route('work-station-supplies.index') }}" 
+                                               class="inline-flex items-center justify-center px-2 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-[10px] rounded-lg shadow-2xs transition w-full space-x-1"
+                                               title="Buka menu Material Handling untuk memantau pengantaran antar-stasiun">
+                                                <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-slate-500"></i>
+                                                <span>Pantau di MH</span>
+                                            </a>
+                                            @endcan
+                                        </div>
                                     @elseif($isInTransitMH)
                                         <div class="space-y-1 w-full">
                                             <span class="inline-flex items-center px-2 py-1 text-purple-800 bg-purple-50 border border-purple-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
@@ -462,8 +479,12 @@
                         <div class="flex items-start space-x-1">
                             <span class="text-slate-400 w-14 shrink-0">Routing</span>
                             <span class="text-slate-400">:</span>
-                            <div class="flex items-center space-x-1.5 min-w-0 flex-wrap">
-                                <span class="font-bold text-slate-800 truncate" title="{{ $wri->dept_penerima ?: ($wri->routing_text ?: '-') }}">{{ $wri->dept_penerima ?: ($wri->routing_text ?: '-') }}</span>
+                            <div class="flex items-center space-x-1.5 min-w-0 flex-wrap gap-y-1">
+                                @php
+                                    $routeStepsList = $wri->getRoutingStepsList();
+                                    $displayRouting = !empty($routeStepsList) ? implode(' → ', $routeStepsList) : ($wri->routing_text ?: ($wri->dept_penerima ?: '-'));
+                                @endphp
+                                <span class="font-bold text-slate-800 leading-snug break-words" title="{{ $displayRouting }}">{{ $displayRouting }}</span>
                                 @if($canEditRouting)
                                     <button type="button" 
                                             @click='openEditRoutingModal(@json($editRoutingPayload))'

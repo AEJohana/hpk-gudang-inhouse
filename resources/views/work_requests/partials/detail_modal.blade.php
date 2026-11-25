@@ -328,7 +328,7 @@
                                                             </div>
                                                             <div>
                                                                 <span class="font-black text-xs uppercase tracking-wide text-emerald-950">SELESAI (FINAL)</span>
-                                                                <span class="block text-[10px] text-emerald-700 font-medium" x-text="log.time + ' • Parsial Terakhir Selesai'"></span>
+                                                                <span class="block text-[10px] text-emerald-700 font-medium" x-text="log.time + ' • ' + (log.qty < detailData.totalQty ? 'Parsial Terakhir Selesai' : 'Tahapan Selesai Tuntas')"></span>
                                                             </div>
                                                         </div>
                                                         <div class="text-end">
@@ -337,6 +337,28 @@
                                                         </div>
                                                     </div>
                                                     <div x-show="log.notes && log.notes !== '-'" class="mt-2 pt-2 border-t border-emerald-200/60 text-[10px] text-emerald-900" x-text="log.notes"></div>
+                                                </div>
+                                            </template>
+
+                                            <!-- E. EVENT BOX INDIGO: DIJEMPUT KURIR MH ANTAR MESIN -->
+                                            <template x-if="!log.is_defect && log.status.toLowerCase().includes('pickup')">
+                                                <div class="p-3 rounded-2xl border border-indigo-200 bg-indigo-50/80 shadow-2xs">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center space-x-2.5">
+                                                            <div class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-xs shrink-0">
+                                                                <i class="fa-solid fa-truck-arrow-right"></i>
+                                                            </div>
+                                                            <div>
+                                                                <span class="font-black text-xs uppercase tracking-wide text-indigo-950">DIJEMPUT MH (ANTAR TAHAP)</span>
+                                                                <span class="block text-[10px] text-indigo-700 font-medium" x-text="log.time"></span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-end">
+                                                            <div class="font-extrabold text-sm sm:text-base text-indigo-950 leading-tight" x-text="log.qty + ' ' + detailData.uom"></div>
+                                                            <div class="text-[10px] text-indigo-800 font-semibold" x-text="log.operator ? 'Kurir: ' + log.operator : ''"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div x-show="log.notes && log.notes !== '-'" class="mt-2 pt-2 border-t border-indigo-200/60 text-[10px] text-indigo-900" x-text="log.notes"></div>
                                                 </div>
                                             </template>
                                         </div>

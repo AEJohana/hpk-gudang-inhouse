@@ -105,7 +105,7 @@ Seluruh logika bisnis dari sistem lama telah diimplementasikan secara terstruktu
 4. **Parsial > Proses (Out):** Sebagian kuantitas selesai diproses di mesin dan siap dijemput sebagian oleh kurir MH.
 
 ### C. Status Logistik Material Handling & Serah Terima
-1. **MH Pickup:** Kurir logistik Material Handling telah memindai QR code tiket dan mengambil fisik barang dari stasiun mesin.
+1. **MH Pickup (Antar-Mesin):** Kurir logistik Material Handling telah memindai QR code tiket dan menjemput fisik barang dari stasiun mesin sebelumnya untuk diantar ke stasiun mesin berikutnya (`Diantar MH ke {Dept Tujuan}` sampai departemen tujuan memproses `(In)`). Otorisasi eksekusi tahapan ke-2 dst secara ketat dikunci hanya untuk departemen tahapan aktif tersebut.
 2. **Siap Diambil:** Barang telah tiba di area serah terima / gudang tujuan.
 3. **Menuju Pengaju:** Kurir sedang dalam perjalanan mengantarkan barang ke departemen pemohon.
 4. **Sudah Diambil (Parsial):** Serah terima batch cicilan divalidasi oleh gudang. Kuantitas fisik batch masuk stok gudang, sementara tiket tetap terbuka aktif (`is_final = false`). Sistem antrean WRI secara presisi memeriksa ketersediaan saldo fisik riil di lantai pabrik: jika sisa barang masih dikerjakan di stasiun mesin (`hasPhysicalWaitingPickup() = false` dan `inTransitQty = 0`), status tiket pengaju menampilkan **`Proses Line Dept {Mesin}`** (gear berputar). Lencana **`Menunggu Diambil MH`** dan tombol **`[Buka Menu MH]`** HANYA tampil jika stasiun mesin telah menyelesaikan pengerjaan dan barang fisik telah berada di palet tunggu penjemputan MH (`hasPhysicalWaitingPickup() = true`). Pedoman rinci mengacu pada [docs/ATURAN_STATUS_DAN_ALUR_PARSIAL_WR.md](ATURAN_STATUS_DAN_ALUR_PARSIAL_WR.md).

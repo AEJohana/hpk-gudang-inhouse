@@ -285,17 +285,23 @@ class WorkRequest extends Model
         if ($isSuperuser) {
             return true;
         }
+        $targetStepName = $this->getActiveStepNameForTarget($next);
+        $targetDept = strtolower(trim($targetStepName ?: $this->dept_penerima ?? ''));
+        $cleanTargetDept = preg_replace('/[^a-z0-9]/', '', $targetDept);
+
         $penerimaDept = strtolower(trim($this->dept_penerima ?? ''));
         $cleanPenerima = preg_replace('/[^a-z0-9]/', '', $penerimaDept);
-        $isMachineDept = str_contains($cleanUser, $cleanPenerima) || str_contains($cleanPenerima, $cleanUser);
+
+        $isMachineDept = !empty($cleanTargetDept) && (str_contains($cleanUser, $cleanTargetDept) || str_contains($cleanTargetDept, $cleanUser));
 
         $isAssignedOperator = !empty($this->assigned_operator_name) && (
             stripos($user->name, $this->assigned_operator_name) !== false || 
             stripos($this->assigned_operator_name, $user->name) !== false ||
             stripos($user->username, $this->assigned_operator_name) !== false
         );
+        $isFirstStepDept = ($cleanTargetDept === $cleanPenerima || empty($cleanTargetDept));
 
-        return ($isMachineDept || $isAssignedOperator);
+        return ($isMachineDept || ($isAssignedOperator && $isFirstStepDept));
     }
 
     public function getApprovalPengajuLogAttribute(): ?WorkRequestLog
@@ -649,6 +655,40 @@ class WorkRequest extends Model
     }
 
     /**
+     * Memeriksa apakah ada barang fisik antar-stasiun yang sudah dijemput kurir MH (MH Pickup)
+     * namun tahapan mesin tujuan berikutnya belum memulai pengerjaan (In).
+     * Mengembalikan nama departemen tujuan berikutnya jika sedang dalam transit antar-mesin.
+     */
+    public function getInterStepTransitTarget(): ?string
+    {
+        if ($this->is_final) {
+            return null;
+        }
+
+        $steps = $this->getRoutingStepsList();
+        if (count($steps) < 2) {
+            return null;
+        }
+
+        foreach ($steps as $idx => $step) {
+            if ($idx >= count($steps) - 1) {
+                continue;
+            }
+            $totalPickup = $this->getTotalProcessedForStatus("MH Pickup: {$step}");
+            $nextStep = $steps[$idx + 1] ?? null;
+            if (!$nextStep) {
+                continue;
+            }
+            $totalNextIn = $this->getTotalProcessedForStatus("Proses: {$nextStep} (In)");
+            if ($totalPickup > $totalNextIn) {
+                return $nextStep;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Get available operational actions for the specified user based on department balances (Legacy js_dashboard logic)
      */
     public function getAvailableActionsForUser(?User $user = null, bool $forWriView = false): array
@@ -686,7 +726,7 @@ class WorkRequest extends Model
             $cleanStep = preg_replace('/[^a-z0-9]/', '', strtolower($step));
             $matchesStep = str_contains($cleanUser, $cleanStep) || str_contains($cleanStep, $cleanUser);
 
-            if ($matchesStep || ($isMachineUser && $idx === 0) || $isAssignedOperator) {
+            if ($matchesStep || ($isMachineUser && $idx === 0) || ($isAssignedOperator && $idx === 0)) {
                 $bal = $this->getStepBalance($step, $idx);
 
                 if ($bal['saldo_in'] > 0) {

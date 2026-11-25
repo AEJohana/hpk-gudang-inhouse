@@ -97,8 +97,9 @@ Perhitungan saldo per tahapan proses mengikuti rumus matematika berikut:
 ### B. Helper Ketersediaan Saldo Fisik Riil
 Sistem menyediakan method resmi pada model `WorkRequest`:
 - `hasPhysicalWaitingPickup(): bool`: Bernilai `true` **HANYA JIKA** ada salah satu tahapan mesin yang memiliki $\text{waiting\_pickup} > 0$.
-- `getInTransitQuantity(): float`: Menghitung kuantitas yang sedang dibawa kurir MH:
+- `getInTransitQuantity(): float`: Menghitung kuantitas yang sedang dibawa kurir MH menuju pengaju:
   $$\text{in\_transit} = \max(0, \sum \text{Qty}(\text{Menuju Pengaju}) - \text{quantity\_received})$$
+- `getInterStepTransitTarget(): ?string`: Memeriksa transit kurir MH **antar-mesin** pada alur multi-tahap (misal: `Dept M1 -> Dept Laser Cutting`). Jika `total_pickup` (`MH Pickup: Step N`) lebih besar daripada `total_in` tahap berikutnya (`Step N+1`), mengembalikan nama departemen tujuan (`Dept Laser Cutting`).
 
 ---
 
@@ -118,30 +119,43 @@ Ketika sistem menentukan label status berikutnya untuk publik/pengaju yang tidak
 Pengecekan lencana status antrean tidak boleh hanya mengandalkan pencocokan *string* status sebelumnya, melainkan wajib mengevaluasi ketersediaan saldo fisik:
 
 ```php
-// Evaluasi Saldo Fisik Riil
+// Evaluasi Saldo Fisik Riil & Transit Antar-Mesin
 $hasWaitingPickup = $wri->hasPhysicalWaitingPickup();
 $inTransitQty = $wri->getInTransitQuantity();
+$interStepTarget = $wri->getInterStepTransitTarget();
 
-$isWaitingMH = in_array($cleanStatus, ['siap diambil', 'ready_for_warehouse']) 
-    || str_starts_with($cleanStatus, 'mh pickup') 
-    || str_ends_with($cleanStatus, '(out)')
-    || (!$wri->is_final && $hasWaitingPickup);
-
-$isInTransitMH = !$isWaitingMH && (str_contains($cleanStatus, 'menuju pengaju') || $inTransitQty > 0);
+$isWaitingMH = !$wri->is_final && (
+    $hasWaitingPickup ||
+    ($wri->steps->isEmpty() && (in_array($cleanStatus, ['siap diambil', 'ready_for_warehouse']) || str_ends_with($cleanStatus, '(out)')))
+);
+$isInterStepTransit = !$wri->is_final && !$isWaitingMH && !empty($interStepTarget);
+$isInTransitMH = !$wri->is_final && !$isWaitingMH && !$isInterStepTransit && (str_contains($cleanStatus, 'menuju pengaju') || $inTransitQty > 0);
 $isReceivedGudang = $wri->is_final && (str_contains($cleanStatus, 'sudah diambil') || $cleanStatus === 'received');
 ```
 
 Hierarki tampilan saat pengguna tidak memiliki aksi eksekusi langsung:
 1. `@if($isWaitingMH)` $\rightarrow$ Lencana **Menunggu Diambil MH** + Tombol **`[Buka Menu MH]`**
-2. `@elseif($isInTransitMH)` $\rightarrow$ Lencana **Sedang Diantar Kurir MH** + Tombol **`[Pantau di MH]`**
-3. `@elseif($isReceivedGudang)` $\rightarrow$ Lencana **Tunggu Terima Gudang**
-4. `@else` $\rightarrow$ Lencana **Proses Line {Nama Dept Aktif}** (dengan ikon *gear spin*)
+2. `@elseif($isInterStepTransit)` $\rightarrow$ Lencana **Diantar MH ke {Nama Dept Tujuan}** + Tombol **`[Pantau di MH]`** *(Status `MH Pickup: Step N` tidak boleh lagi tampil `Menunggu Diambil MH`)*
+3. `@elseif($isInTransitMH)` $\rightarrow$ Lencana **Sedang Diantar Kurir MH** + Tombol **`[Pantau di MH]`**
+4. `@elseif($isReceivedGudang)` $\rightarrow$ Lencana **Tunggu Terima Gudang**
+5. `@else` $\rightarrow$ Lencana **Proses Line {Nama Dept Aktif}** (dengan ikon *gear spin*)
 
 ---
 
-## 6. Guardrail Pencegahan Regresi (Anti-Regression Checklist)
+## 6. Aturan Mutlak Multi-Routing & Otorisasi Per Tahapan
+
+1. **Otorisasi Terisolasi per Tahapan (`canUserProcessAction` & `getAvailableActionsForUser`):**
+   - Operator atau Kepala Departemen pada Tahap 1 (misal `Dept M1`) **DILARANG** memproses Tahap 2 (`Dept Laser Cutting`), meskipun `assigned_operator_name` tiket tercatat atas nama operator Tahap 1.
+   - Sebaliknya, akun Departemen Tahap 2 (`Dept Laser Cutting`) **WAJIB** diizinkan memproses tahapan miliknya setelah barang diantar MH (`MH Pickup: Dept M1`), dan log aksi wajib mencatat nama operator Tahap 2 tersebut (bukan mewarisi nama operator Tahap 1).
+2. **Tampilan Kolom Routing Lengkap di Tabel:**
+   - Kolom `Routing` pada tabel antrean **WAJIB** menampilkan urutan penuh seluruh tahapan departemen (`implode(' → ', $wri->getRoutingStepsList())`, misal: `Dept M1 → Dept Laser Cutting`), tidak boleh hanya menampilkan `dept_penerima` tahap pertama.
+
+---
+
+## 7. Guardrail Pencegahan Regresi (Anti-Regression Checklist)
 
 Setiap pengembang atau AI Agent yang melakukan perubahan di masa mendatang **WAJIB** mematuhi aturan berikut:
 1. **Dilarang Menimpa Total Pickup Langkah Terakhir:** Jangan pernah menghapus pembacaan status `Menuju Pengaju` dari kalkulasi `$totalPickup` di `getStepBalance`.
 2. **Dilarang Mengembalikan 'Siap Diambil' di `getNextStatusLabel` saat `saldo_out > 0`:** Mengembalikan 'Siap Diambil' saat mesin masih bekerja akan merusak tampilan sisi pengaju seolah-olah barang sudah selesai.
-3. **Pemberian Tombol Eksekusi Tetap Presisi:** Tombol aksi operator mesin (seperti `Selesai: Siap Diambil` dengan kuantitas parsial sisa) tetap mutlak disediakan untuk peran operator yang berwenang, tanpa mengacaukan lencana pengaju.
+3. **Dilarang Memukul Rata Status `MH Pickup` sebagai `Menunggu Diambil MH`:** Status `MH Pickup: Step N` artinya kurir MH sudah mengambil barang dan sedang mengantar ke `Step N+1`.
+4. **Pemberian Tombol Eksekusi Tetap Presisi:** Tombol aksi operator mesin (seperti `Selesai: Siap Diambil` dengan kuantitas parsial sisa, atau `Mulai: Proses: Step N+1 (In)`) tetap mutlak disediakan hanya untuk peran departemen tahapan aktif bersangkutan.

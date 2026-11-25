@@ -1421,9 +1421,13 @@ class WorkRequestController extends Controller
             }
         }
 
+        $userDept = $user ? preg_replace('/[^a-z0-9]/', '', strtolower(trim($user->effective_department_name))) : '';
+        $penerimaDept = preg_replace('/[^a-z0-9]/', '', strtolower(trim($workRequest->dept_penerima ?? '')));
+        $isSameAsFirstDept = !empty($userDept) && !empty($penerimaDept) && (str_contains($userDept, $penerimaDept) || str_contains($penerimaDept, $userDept));
+
         $operator = !empty($validated['operator_name']) 
             ? $validated['operator_name'] 
-            : ($workRequest->assigned_operator_name ?: ($user?->name ?? 'System'));
+            : (($isSameAsFirstDept && !empty($workRequest->assigned_operator_name)) ? $workRequest->assigned_operator_name : ($user?->name ?? 'System'));
 
         return DB::transaction(function () use ($validated, $workRequest, $operator, $targetStatus) {
             $totalReq = (float) $workRequest->quantity_requested;
@@ -1573,6 +1577,16 @@ class WorkRequestController extends Controller
                     'completed_at' => $isPartial ? null : now(),
                     'operator_name' => $operator,
                 ]);
+            } elseif (stripos($cleanTarget, 'Siap Diambil') !== false) {
+                $lastStepModel = $workRequest->steps()->orderByDesc('step_number')->first();
+                if ($lastStepModel) {
+                    $stepStatus = $isPartial ? 'in_progress' : 'completed';
+                    $lastStepModel->update([
+                        'status' => $stepStatus,
+                        'completed_at' => $isPartial ? null : now(),
+                        'operator_name' => $operator,
+                    ]);
+                }
             }
 
             WorkRequestLog::create([
