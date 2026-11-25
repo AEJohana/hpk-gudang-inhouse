@@ -190,6 +190,9 @@ class WorkStationSupplyQrAndProcessModalTest extends TestCase
     {
         $content = file_get_contents(resource_path('views/work_station_supplies/index.blade.php'));
 
+        $this->assertStringContainsString('<template x-if="isWrScanRequired">', $content);
+        $this->assertStringContainsString('this.actionScanVerified = !this.isWrScanRequired;', $content);
+        $this->assertStringContainsString("if (this.isWrScanRequired) {\r\n                        this.attachActionGunScannerListener();", str_replace(["\r\n", "\n"], "\r\n", $content));
         $this->assertStringContainsString('name="scanned_wri_code"', $content);
         $this->assertStringContainsString('openActionCameraModal()', $content);
         $this->assertStringContainsString('mh-action-camera-reader', $content);
