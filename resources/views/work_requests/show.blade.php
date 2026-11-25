@@ -1037,10 +1037,10 @@
                                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                                     <div>
                                         <div class="flex items-center space-x-2">
-                                            <span class="font-mono text-xs font-bold text-blue-900 bg-blue-100/70 px-2 py-0.5 rounded">
-                                                {{ $step->machine->code }}
+                                            <span class="font-mono text-[10px] font-bold text-blue-900 bg-blue-100/70 px-2 py-0.5 rounded">
+                                                TAHAP {{ $step->step_number }}
                                             </span>
-                                            <span class="text-xs text-slate-500 font-semibold">{{ $step->machine->name }}</span>
+                                            <span class="text-xs text-slate-500 font-semibold">Stasiun Departemen</span>
                                         </div>
                                         <h4 class="font-extrabold text-sm text-slate-900 mt-1">
                                             {{ $step->process_name }}
@@ -1060,7 +1060,7 @@
                                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-slate-500 pt-2 border-t border-slate-200/60">
                                     <div>
                                         <span class="text-slate-400 block">Operator:</span>
-                                        <span class="font-semibold text-slate-700">{{ $step->operator_name ?: ($step->machine->operator_default ?: '-') }}</span>
+                                        <span class="font-semibold text-slate-700">{{ $step->operator_name ?: ($workRequest->assigned_operator_name ?: '-') }}</span>
                                     </div>
                                     <div>
                                         <span class="text-slate-400 block">Waktu Mulai:</span>

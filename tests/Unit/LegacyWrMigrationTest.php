@@ -5,7 +5,6 @@ namespace Tests\Unit;
 use App\Http\Controllers\WorkRequestController;
 use App\Models\Component;
 use App\Models\Department;
-use App\Models\Machine;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\WorkRequest;

@@ -19,7 +19,6 @@ class DatabaseSeeder extends Seeder
             ComponentSeeder::class,
             TransactionSeeder::class,
             SettingSeeder::class,
-            MachineCenterSeeder::class,
         ]);
 
         if (file_exists(base_path('Data acuan/Form Work Request - Data komponen.csv'))) {

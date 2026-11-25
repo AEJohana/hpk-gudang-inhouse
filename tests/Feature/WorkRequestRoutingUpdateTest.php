@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Component;
 use App\Models\Department;
-use App\Models\Machine;
 use App\Models\User;
 use App\Models\WorkRequest;
 use App\Models\WorkRequestStep;
@@ -22,8 +21,6 @@ class WorkRequestRoutingUpdateTest extends TestCase
     protected Department $deptGudang;
     protected Department $deptLaser;
     protected Department $deptM1;
-    protected Machine $machineLaser;
-    protected Machine $machineM1;
 
     protected function setUp(): void
     {
@@ -160,7 +157,7 @@ class WorkRequestRoutingUpdateTest extends TestCase
             $table->id();
             $table->foreignId('work_request_id');
             $table->integer('step_number');
-            $table->foreignId('machine_id');
+            $table->unsignedBigInteger('machine_id')->nullable();
             $table->string('process_name', 100);
             $table->string('status', 50)->default('pending');
             $table->string('operator_name', 100)->nullable();
@@ -204,9 +201,6 @@ class WorkRequestRoutingUpdateTest extends TestCase
         $this->deptGudang = Department::create(['code' => '11', 'name' => 'Dept Gudang']);
         $this->deptLaser = Department::create(['code' => '1', 'name' => 'Dept Laser Cutting']);
         $this->deptM1 = Department::create(['code' => '2', 'name' => 'Dept M1']);
-
-        $this->machineLaser = Machine::create(['name' => 'Laser Cutting Sheet CNC', 'machine_type' => 'Laser']);
-        $this->machineM1 = Machine::create(['name' => 'Machining Center M1', 'machine_type' => 'M1']);
 
         $this->admin = User::create([
             'name' => 'Admin Gudang',
@@ -277,7 +271,7 @@ class WorkRequestRoutingUpdateTest extends TestCase
         WorkRequestStep::create([
             'work_request_id' => $wr->id,
             'step_number' => 1,
-            'machine_id' => $this->machineM1->id,
+            'machine_id' => null,
             'process_name' => 'Dept M1',
             'status' => 'pending',
         ]);

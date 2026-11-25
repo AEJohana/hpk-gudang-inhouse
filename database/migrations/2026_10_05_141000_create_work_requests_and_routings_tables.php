@@ -39,7 +39,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('work_request_id')->constrained('work_requests')->cascadeOnDelete();
             $table->integer('step_number'); // 1 = Laser Cutting, 2 = Bending, 3 = ...
-            $table->foreignId('machine_id')->constrained('machines');
+            $table->unsignedBigInteger('machine_id')->nullable();
             $table->string('process_name', 100); // e.g. Potong Plat Laser, Bending Tekuk
             $table->enum('status', ['pending', 'in_progress', 'completed', 'skipped'])->default('pending');
             $table->string('operator_name', 100)->nullable();

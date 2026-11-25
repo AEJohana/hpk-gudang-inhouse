@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Models\Component;
 use App\Models\Location;
 use App\Models\Warehouse;
-use App\Models\Machine;
 use App\Models\WorkStation;
 use App\Models\Setting;
 use App\Models\Zone;
@@ -487,8 +486,6 @@ class HpkWmsTest extends TestCase
     {
         $comp = Component::where('part_number', 'CSFP10300250081')->first() ?? Component::first();
         $rak3 = Location::where('rack_number', 'Rak 3')->first() ?? Location::first();
-        $laser = \App\Models\Machine::where('code', 'MC-LC-01')->first() ?? \App\Models\Machine::first();
-        $bending = \App\Models\Machine::where('code', 'MC-BND-01')->first() ?? \App\Models\Machine::skip(1)->first();
 
         $initialBalance = \App\Models\StockBalance::where('component_id', $comp->id)
             ->where('location_id', $rak3->id)
@@ -508,11 +505,11 @@ class HpkWmsTest extends TestCase
             'notes' => 'Testing routing mesin dan auto stock update',
             'steps' => [
                 [
-                    'machine_id' => $laser->id,
+                    'machine_id' => null,
                     'process_name' => 'Potong Laser Plat Sasis 8mm',
                 ],
                 [
-                    'machine_id' => $bending->id,
+                    'machine_id' => null,
                     'process_name' => 'Bending Flange Sudut 90 Derajat',
                 ],
             ],
@@ -641,7 +638,6 @@ class HpkWmsTest extends TestCase
         $this->assertEquals(0, Warehouse::count());
         $this->assertEquals(0, Location::count());
         $this->assertEquals(0, Component::count());
-        $this->assertEquals(0, Machine::count());
 
         // 1. Warehouse Map on fresh install should NOT crash with 500 error, but auto-provision and render onboarding card
         $mapResponse = $this->actingAs($this->user)->get('/warehouse-map');
@@ -713,11 +709,9 @@ class HpkWmsTest extends TestCase
         $compCreateResponse->assertStatus(200);
         $compCreateResponse->assertSee('Rak 1');
 
-        // 6. Open Work Requests (should auto-provision 5 machines)
+        // 6. Open Work Requests
         $wriResponse = $this->actingAs($this->user)->get('/work-requests');
         $wriResponse->assertStatus(200);
-        $this->assertDatabaseHas('machines', ['code' => 'MC-LC-01']);
-        $this->assertDatabaseHas('machines', ['code' => 'MC-BND-01']);
 
         // 7. Open Work Station Supply (should auto-provision work stations)
         $supplyResponse = $this->actingAs($this->user)->get('/work-station-supplies/create');

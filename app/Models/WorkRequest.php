@@ -152,10 +152,9 @@ class WorkRequest extends Model
                          ->orWhere('dept_penerima', 'like', "%{$cleanDept}%")
                          ->orWhere('routing_text', 'like', "%{$deptName}%")
                          ->orWhere('routing_text', 'like', "%{$cleanDept}%")
-                         ->orWhereHas('steps.machine', function ($mq) use ($deptName, $cleanDept) {
-                             $mq->where('name', 'like', "%{$deptName}%")
-                                ->orWhere('name', 'like', "%{$cleanDept}%")
-                                ->orWhere('machine_type', 'like', "%{$cleanDept}%");
+                         ->orWhereHas('steps', function ($sq) use ($deptName, $cleanDept) {
+                             $sq->where('process_name', 'like', "%{$deptName}%")
+                                ->orWhere('process_name', 'like', "%{$cleanDept}%");
                          });
                 })->where('approval_pengaju', 'Diterima');
             });

@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Component;
 use App\Models\Department;
 use App\Models\Location;
-use App\Models\Machine;
 use App\Models\StockBalance;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
@@ -41,7 +40,7 @@ class WorkRequestController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        $query = WorkRequest::with(['component', 'requestedBy', 'targetLocation', 'steps.machine', 'logs']);
+        $query = WorkRequest::with(['component', 'requestedBy', 'targetLocation', 'steps', 'logs']);
 
         // 1. Department Scoping (User Biasa dibatasi ke departemennya via BR-06, Admin mengawasi seluruh 15 departemen)
         if (!$user->canAccessAllDepartments()) {
@@ -223,7 +222,7 @@ class WorkRequestController extends Controller
 
         $openDetailPayload = null;
         if ($request->filled('open_detail')) {
-            $targetWr = WorkRequest::with(['component', 'requestedBy', 'targetLocation', 'steps.machine', 'logs'])->find($request->open_detail);
+            $targetWr = WorkRequest::with(['component', 'requestedBy', 'targetLocation', 'steps', 'logs'])->find($request->open_detail);
             if ($targetWr) {
                 $userActions = $targetWr->getAvailableActionsForUser($user);
                 $hasUserAction = !empty($userActions);
@@ -393,7 +392,6 @@ class WorkRequestController extends Controller
      */
     public function create()
     {
-        Machine::ensureDefaultMachinesExist();
         Warehouse::ensureDefaultWarehouseExists();
         Location::ensureDefaultLocationExists();
 
@@ -403,7 +401,6 @@ class WorkRequestController extends Controller
             ->with(['defaultLocation', 'stockBalances'])
             ->orderBy('name')
             ->get();
-        $machines = Machine::orderBy('id')->get();
         $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
         $warehouses = Warehouse::all();
         
@@ -420,7 +417,6 @@ class WorkRequestController extends Controller
 
         return view('work_requests.create', compact(
             'components',
-            'machines',
             'locations',
             'warehouses',
             'departments',
@@ -450,7 +446,7 @@ class WorkRequestController extends Controller
             'target_departments.*.notes' => 'nullable|string',
             // Kompatibilitas alur legacy steps
             'steps' => 'nullable|array|min:1',
-            'steps.*.machine_id' => 'nullable|exists:machines,id',
+            'steps.*.machine_id' => 'nullable',
             'steps.*.process_name' => 'nullable|string|max:100',
             'steps.*.notes' => 'nullable|string',
             'dept_penerima' => 'nullable|string|max:100',
@@ -504,25 +500,18 @@ class WorkRequestController extends Controller
             $targetSlot = $component->default_slot_number ?? '01';
             $targetWarehouseId = $component->defaultLocation?->warehouse_id ?? Warehouse::first()?->id;
 
-            // Resolusi tahapan proses & multi-departemen
+            // Resolusi tahapan proses & multi-departemen (Murni Berbasis Departemen)
             $stepsData = [];
-            $machines = Machine::all();
-            $defaultMachine = $machines->first();
 
             if (!empty($validated['target_departments'])) {
                 foreach ($validated['target_departments'] as $td) {
                     $deptName = trim($td['department_name'] ?? '');
                     if (!$deptName) continue;
 
-                    // Cocokkan mesin yang relevan atau gunakan default
-                    $matchedMachine = $machines->first(function ($m) use ($deptName) {
-                        return stripos($m->name, $deptName) !== false || stripos($m->machine_type, $deptName) !== false;
-                    }) ?? $defaultMachine;
-
                     $cleanDeptLabel = str_starts_with($deptName, 'Dept ') ? $deptName : 'Dept ' . $deptName;
 
                     $stepsData[] = [
-                        'machine_id' => $matchedMachine?->id ?? 1,
+                        'machine_id' => null,
                         'process_name' => $cleanDeptLabel,
                         'notes' => $td['notes'] ?? null,
                     ];
@@ -530,7 +519,7 @@ class WorkRequestController extends Controller
             } elseif (!empty($validated['steps'])) {
                 foreach ($validated['steps'] as $st) {
                     $stepsData[] = [
-                        'machine_id' => $st['machine_id'] ?? $defaultMachine?->id ?? 1,
+                        'machine_id' => null,
                         'process_name' => $st['process_name'] ?? 'Proses Fabrikasi',
                         'notes' => $st['notes'] ?? null,
                     ];
@@ -539,7 +528,7 @@ class WorkRequestController extends Controller
 
             if (empty($stepsData)) {
                 $stepsData[] = [
-                    'machine_id' => $defaultMachine?->id ?? 1,
+                    'machine_id' => null,
                     'process_name' => 'Dept Laser Cutting',
                     'notes' => null,
                 ];
@@ -662,7 +651,7 @@ class WorkRequestController extends Controller
             'receivedBy',
             'targetWarehouse',
             'targetLocation',
-            'steps.machine',
+            'steps',
             'transactions.items',
             'logs',
         ]);
@@ -829,22 +818,15 @@ class WorkRequestController extends Controller
         ]);
 
         return DB::transaction(function () use ($validated, $workRequest, $user, $request) {
-            $machines = Machine::all();
-            $defaultMachine = $machines->first();
-
             $stepsData = [];
             foreach ($validated['target_departments'] as $td) {
                 $deptName = trim($td['department_name'] ?? '');
                 if (!$deptName) continue;
 
-                $matchedMachine = $machines->first(function ($m) use ($deptName) {
-                    return stripos($m->name, $deptName) !== false || stripos($m->machine_type, $deptName) !== false;
-                }) ?? $defaultMachine;
-
                 $cleanDeptLabel = str_starts_with($deptName, 'Dept ') ? $deptName : 'Dept ' . $deptName;
 
                 $stepsData[] = [
-                    'machine_id' => $matchedMachine?->id ?? 1,
+                    'machine_id' => null,
                     'process_name' => $cleanDeptLabel,
                     'notes' => !empty($td['notes']) ? trim($td['notes']) : null,
                 ];
@@ -852,7 +834,7 @@ class WorkRequestController extends Controller
 
             if (empty($stepsData)) {
                 $stepsData[] = [
-                    'machine_id' => $defaultMachine?->id ?? 1,
+                    'machine_id' => null,
                     'process_name' => 'Dept Laser Cutting',
                     'notes' => null,
                 ];
@@ -1028,8 +1010,6 @@ class WorkRequestController extends Controller
                 }
             }
 
-            $machines = Machine::all();
-            $defaultMachine = $machines->first();
             $isPrivileged = $user->isSupervisor() || $user->isAdmin();
 
             // Track item count per component within this batch & today
@@ -1124,14 +1104,10 @@ class WorkRequestController extends Controller
                 ]);
 
                 foreach ($deptSteps as $sIdx => $sDept) {
-                    $matchedMachine = $machines->first(function ($m) use ($sDept) {
-                        return stripos($m->name, $sDept) !== false || stripos($m->machine_type, $sDept) !== false;
-                    }) ?? $defaultMachine;
-
                     WorkRequestStep::create([
                         'work_request_id' => $workRequest->id,
                         'step_number' => $sIdx + 1,
-                        'machine_id' => $matchedMachine?->id ?? 1,
+                        'machine_id' => null,
                         'process_name' => $sDept,
                         'status' => 'pending',
                         'notes' => $notes,
@@ -1189,7 +1165,7 @@ class WorkRequestController extends Controller
     public function printQueue(Request $request)
     {
         $user = auth()->user();
-        $query = WorkRequest::with(['component', 'requestedBy', 'targetLocation', 'steps.machine', 'logs'])->printable();
+        $query = WorkRequest::with(['component', 'requestedBy', 'targetLocation', 'steps', 'logs'])->printable();
 
         $scope = $request->input('scope', ($user->canAccessAllDepartments() ? 'all' : 'my_dept'));
         if ($scope === 'my_dept') {
@@ -1273,7 +1249,7 @@ class WorkRequestController extends Controller
                 ->with('error', 'Dokumen WR #' . $workRequest->wri_number . ' belum dapat dicetak. ' . $workRequest->getPrintValidationMessage());
         }
 
-        $workRequest->load(['component', 'requestedBy', 'targetLocation', 'steps.machine', 'logs']);
+        $workRequest->load(['component', 'requestedBy', 'targetLocation', 'steps', 'logs']);
 
         $user = auth()->user();
         $printCount = $workRequest->logs()->where('action_type', 'printed')->count();
@@ -1315,7 +1291,7 @@ class WorkRequestController extends Controller
             'ids.*' => 'integer|exists:work_requests,id',
         ]);
 
-        $workRequests = WorkRequest::with(['component', 'requestedBy', 'targetLocation', 'steps.machine', 'logs'])
+        $workRequests = WorkRequest::with(['component', 'requestedBy', 'targetLocation', 'steps', 'logs'])
             ->whereIn('id', $validated['ids'])
             ->get();
 

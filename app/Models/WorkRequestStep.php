@@ -32,11 +32,6 @@ class WorkRequestStep extends Model
         return $this->belongsTo(WorkRequest::class);
     }
 
-    public function machine(): BelongsTo
-    {
-        return $this->belongsTo(Machine::class);
-    }
-
     public function getStatusBadgeAttribute(): array
     {
         return match($this->status) {

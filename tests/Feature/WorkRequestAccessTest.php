@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Component;
 use App\Models\Department;
 use App\Models\Location;
-use App\Models\Machine;
 use App\Models\User;
 use App\Models\WorkRequest;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -24,7 +23,6 @@ class WorkRequestAccessTest extends TestCase
     protected Department $deptGudang;
     protected Department $deptLaser;
     protected Component $component;
-    protected Machine $machine;
     protected Location $location;
 
     protected function setUp(): void
@@ -63,7 +61,6 @@ class WorkRequestAccessTest extends TestCase
         $this->restrictedUser->syncRoles([$guestRole]);
 
         $this->component = Component::first();
-        $this->machine = Machine::first();
         $this->location = Location::first();
     }
 
@@ -82,7 +79,7 @@ class WorkRequestAccessTest extends TestCase
             'priority' => 'normal',
             'steps' => [
                 [
-                    'machine_id' => $this->machine->id,
+                    'machine_id' => null,
                     'process_name' => 'Potong Laser Dasar',
                 ],
             ],

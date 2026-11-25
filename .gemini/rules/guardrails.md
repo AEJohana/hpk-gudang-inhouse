@@ -24,3 +24,8 @@
 ## 7. PRINSIP SATU PINTU MASTER KOMPONEN (DILARANG MASUK DARI WR)
 - Penambahan katalog master resmi HPK mutlak melalui menu Master Komponen oleh pihak berwenang.
 - Komponen non-master yang dibuat melalui form Work Request (WR) berstatus `source = 'wr_adhoc'` untuk kebutuhan pesanan saat itu saja ("buat lewat aja") dan **100% TERISOLASI/DILARANG TAMPIL** di modul Master Komponen, Safety Stock, maupun KPI inventaris utama.
+
+## 8. PEMBERSIHAN KODE USANG & KONFIRMASI PENGHAPUSAN (NO DEAD CODE, KEEP REAL DATA)
+- **Kode/Tampilan Lama Wajib Dihapus Jika Tidak Dipakai:** Setiap kali ada pengembangan atau pembaruan yang menggantikan fitur, logika, file, atau elemen tampilan lama, bagian lama yang sudah tidak terpakai **WAJIB dihapus** agar program tetap bersih, ringan, dan tidak memicu bug tersembunyi.
+- **Wajib Memastikan & Konfirmasi ke User:** Sebelum menghapus kode atau fitur lama, AI Agent **wajib menanyakan/memastikan terlebih dahulu kepada user** apakah bagian lama tersebut benar-benar sudah tidak terpakai dan boleh dihapus.
+- **Batas Mutlak Larangan Hapus Data:** Kewajiban penghapusan ini **HANYA berlaku untuk kode program dan tampilan (*source code / UI*)** serta data dummy yang diizinkan user. **DILARANG KERAS menghapus database, tabel produksi, atau data riwayat transaksi operasional (WRI, Stok, Komponen, User) yang sedang berjalan.**

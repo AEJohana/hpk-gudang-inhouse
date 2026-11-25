@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Models\Component;
 use App\Models\Department;
-use App\Models\Machine;
 use App\Models\User;
 use App\Models\WorkRequest;
 use App\Models\WorkRequestLog;
@@ -64,10 +63,7 @@ class MigrateLegacySpreadsheetWr extends Command
             $this->warn(">>> FILTER AKTIF: Hanya memproses tiket yang belum selesai (In-Progress) <<<");
         }
 
-        // 1. Persiapan Mapping Mesin & User
-        $machines = Machine::all();
-        $defaultMachine = $machines->first();
-
+        // 1. Persiapan Mapping User
         $adminUser = User::where('role', 'admin_gudang')->first() ?? User::first();
         $userMap = $this->buildUserMap($adminUser);
 
@@ -182,9 +178,6 @@ class MigrateLegacySpreadsheetWr extends Command
             // Resolusi Komponen & Foreign Key (Membawa $noWr untuk item sequence yang akurat)
             $component = $this->resolveOrCreateComponent($kodePart, $namaPart, $dimensi, $tglOrder, $baruCodeMap, $dryRun, $noWr);
 
-            // Cocokkan Mesin Tujuan
-            $matchedMachine = $this->resolveMachine($deptPenerima, $machines, $defaultMachine);
-
             // Tentukan Timestamp Pembuatan Tiket sesuai Tanggal Order & Data Proses
             $targetCreatedAt = $this->determineWorkRequestCreatedAt($tglOrder, $dataProses);
 
@@ -262,7 +255,7 @@ class MigrateLegacySpreadsheetWr extends Command
                     $noWr, $component, $requesterUser, $deptPengaju, $deptPenerima,
                     $routing, $approvalPengaju, $approvalPenerima, $opPenerima, $kepalaPenerima,
                     $qty, $qtyProduced, $qtyReceived, $stBarang, $dbStatus, $isFinal, $priority, $deskripsi,
-                    $tglOrder, $matchedMachine, $dataProses, $targetCreatedAt
+                    $tglOrder, $dataProses, $targetCreatedAt
                 ) {
                     $wr = WorkRequest::create([
                         'wri_number' => $noWr,
@@ -292,7 +285,7 @@ class MigrateLegacySpreadsheetWr extends Command
                     WorkRequestStep::create([
                         'work_request_id' => $wr->id,
                         'step_number' => 1,
-                        'machine_id' => $matchedMachine?->id ?? 1,
+                        'machine_id' => null,
                         'process_name' => $deptPenerima,
                         'status' => $isFinal ? 'completed' : ($stBarang === 'Dalam antrian' ? 'pending' : 'in_progress'),
                         'operator_name' => $opPenerima ?: null,
@@ -569,34 +562,6 @@ class MigrateLegacySpreadsheetWr extends Command
             'produced' => max($produced, $received),
             'received' => min($received, $totalQty),
         ];
-    }
-
-    /**
-     * Cocokkan mesin yang relevan berdasarkan nama departemen.
-     */
-    protected function resolveMachine(string $deptName, $machines, $defaultMachine): Machine
-    {
-        $clean = strtolower($deptName);
-        foreach ($machines as $m) {
-            $mName = strtolower($m->name);
-            $mType = strtolower($m->machine_type);
-            if (str_contains($clean, 'laser') && (str_contains($mName, 'laser') || str_contains($mType, 'laser'))) {
-                return $m;
-            }
-            if (str_contains($clean, 'bending') && (str_contains($mName, 'bending') || str_contains($mType, 'bending'))) {
-                return $m;
-            }
-            if (str_contains($clean, 'sharing') && (str_contains($mName, 'shearing') || str_contains($mType, 'shearing'))) {
-                return $m;
-            }
-            if (str_contains($clean, 'cnc') && (str_contains($mName, 'cnc') || str_contains($mType, 'cnc'))) {
-                return $m;
-            }
-            if (str_contains($clean, 'm1') && (str_contains($mName, 'shearing') || str_contains($mName, 'bubut'))) {
-                return $m;
-            }
-        }
-        return $defaultMachine ?? Machine::first();
     }
 
     /**

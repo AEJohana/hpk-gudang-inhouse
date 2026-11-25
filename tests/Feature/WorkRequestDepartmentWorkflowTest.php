@@ -28,7 +28,6 @@ class WorkRequestDepartmentWorkflowTest extends TestCase
     protected User $operatorMH;
     protected Component $component;
     protected Location $location;
-    protected \App\Models\Machine $machine;
 
     protected function setUp(): void
     {
@@ -40,11 +39,6 @@ class WorkRequestDepartmentWorkflowTest extends TestCase
         $roleOp = Role::firstOrCreate(['name' => 'operator']);
         $roleOpMh = Role::firstOrCreate(['name' => 'operator_mh']);
         $roleStaff = Role::firstOrCreate(['name' => 'staff']);
-
-        $this->machine = \App\Models\Machine::firstOrCreate(['code' => 'M1'], [
-            'name' => 'Mesin M1',
-            'machine_type' => 'Laser Cutting',
-        ]);
 
         Permission::firstOrCreate(['name' => 'work-request.view']);
         Permission::firstOrCreate(['name' => 'work-request.create']);
@@ -232,7 +226,7 @@ class WorkRequestDepartmentWorkflowTest extends TestCase
         WorkRequestStep::create([
             'work_request_id' => $wri->id,
             'step_number' => 1,
-            'machine_id' => $this->machine->id,
+            'machine_id' => null,
             'process_name' => 'Dept M1',
             'status' => 'pending',
         ]);
@@ -543,7 +537,7 @@ class WorkRequestDepartmentWorkflowTest extends TestCase
         WorkRequestStep::create([
             'work_request_id' => $wri->id,
             'step_number' => 1,
-            'machine_id' => $this->machine->id,
+            'machine_id' => null,
             'process_name' => 'Dept M1',
             'status' => 'pending',
         ]);

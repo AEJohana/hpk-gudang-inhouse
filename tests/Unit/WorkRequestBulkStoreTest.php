@@ -5,7 +5,6 @@ namespace Tests\Unit;
 use App\Models\Component;
 use App\Models\Department;
 use App\Models\Location;
-use App\Models\Machine;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WorkRequest;
@@ -154,11 +153,6 @@ class WorkRequestBulkStoreTest extends TestCase
         });
 
         // Seed basic dependencies
-        Machine::create([
-            'code' => 'MC-LC-01',
-            'name' => 'Mesin Laser Cutting',
-            'machine_type' => 'laser_cutting',
-        ]);
         Warehouse::create([
             'code' => 'WH-01',
             'name' => 'Gudang Utama',

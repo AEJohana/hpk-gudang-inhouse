@@ -24,7 +24,7 @@ class WorkStationSupplyController extends Controller
     public function index(Request $request)
     {
         // Ambil tiket WRI aktif yang sudah disetujui (siap diproses logistik) dan riwayat recent
-        $workRequests = WorkRequest::with(['component.defaultLocation', 'targetLocation', 'steps.machine', 'requestedBy', 'logs'])
+        $workRequests = WorkRequest::with(['component.defaultLocation', 'targetLocation', 'steps', 'requestedBy', 'logs'])
             ->where('approval_pengaju', 'Diterima')
             ->where('approval_penerima', 'Diterima')
             ->where(function ($q) {
@@ -264,7 +264,7 @@ class WorkStationSupplyController extends Controller
             $searchCandidates = array_unique(array_merge($searchCandidates, $tokens));
         }
 
-        $wr = WorkRequest::with(['component', 'targetLocation', 'steps.machine'])
+        $wr = WorkRequest::with(['component', 'targetLocation', 'steps'])
             ->whereIn('wri_number', $searchCandidates)
             ->orWhere(function ($q) use ($searchCandidates) {
                 foreach ($searchCandidates as $c) {

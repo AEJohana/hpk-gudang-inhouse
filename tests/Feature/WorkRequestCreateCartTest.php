@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Component;
 use App\Models\Department;
-use App\Models\Machine;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WorkRequest;
@@ -218,8 +217,6 @@ class WorkRequestCreateCartTest extends TestCase
         Department::create(['code' => '02', 'name' => 'Dept M1']);
         Department::create(['code' => '03', 'name' => 'Dept UNP']);
 
-        Machine::create(['code' => 'MC-LC-01', 'name' => 'Mesin Laser Cutting', 'machine_type' => 'laser_cutting']);
-        Machine::create(['code' => 'MC-M1-01', 'name' => 'Mesin M1', 'machine_type' => 'm1']);
         Warehouse::create(['code' => 'WH-01', 'name' => 'Gudang Utama']);
     }
 
