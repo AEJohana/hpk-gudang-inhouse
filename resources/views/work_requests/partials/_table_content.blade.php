@@ -27,18 +27,16 @@
                 $cleanStatus = strtolower(trim(preg_replace('/^Parsial\s*>\s*/i', '', $wri->status ?: '')));
                 $cleanNext = strtolower(trim(preg_replace('/^Parsial\s*>\s*/i', '', $nextStatus ?: '')));
 
-                // Reaktif Saldo Sisa: Jika tiket belum final, periksa apakah sisa fisik masih butuh penjemputan MH
-                $hasRemainingMHPickup = !$wri->is_final && (
-                    in_array($cleanNext, ['siap diambil', 'menuju pengaju']) || 
-                    str_starts_with($cleanNext, 'mh pickup')
-                );
+                // Reaktif Saldo Sisa Berbasis Ketersediaan Fisik Riil
+                $hasWaitingPickup = $wri->hasPhysicalWaitingPickup();
+                $inTransitQty = $wri->getInTransitQuantity();
 
                 $isWaitingMH = in_array($cleanStatus, ['siap diambil', 'ready_for_warehouse']) 
                     || str_starts_with($cleanStatus, 'mh pickup') 
                     || str_ends_with($cleanStatus, '(out)')
-                    || $hasRemainingMHPickup;
+                    || (!$wri->is_final && $hasWaitingPickup);
 
-                $isInTransitMH = !$hasRemainingMHPickup && (str_contains($cleanStatus, 'menuju pengaju') || $cleanNext === 'sudah diambil');
+                $isInTransitMH = !$isWaitingMH && (str_contains($cleanStatus, 'menuju pengaju') || $inTransitQty > 0);
                 $isReceivedGudang = $wri->is_final && (str_contains($cleanStatus, 'sudah diambil') || $cleanStatus === 'received');
 
                 $isLaserIn = stripos($nextStatus, '(In)') !== false;
@@ -320,8 +318,11 @@
                                             <i class="fa-solid fa-warehouse text-emerald-600 me-1 text-[9px]"></i> Tunggu Terima {{ $wri->dept_pengaju ?: 'Gudang' }}
                                         </span>
                                     @else
+                                        @php
+                                            $activeDept = $wri->getActiveStepNameForTarget($nextStatus) ?: ($wri->dept_penerima ?: 'Penerima');
+                                        @endphp
                                         <span class="inline-flex items-center px-2 py-1 text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
-                                            <i class="fa-solid fa-gear fa-spin text-indigo-500 me-1 text-[9px]"></i> Proses Line {{ $wri->dept_penerima ?: 'Penerima' }}
+                                            <i class="fa-solid fa-gear fa-spin text-indigo-500 me-1 text-[9px]"></i> Proses Line {{ $activeDept }}
                                         </span>
                                     @endif
                                 @endif

@@ -525,7 +525,9 @@ class WorkRequest extends Model
             ? ($this->getTotalProcessedForStatus('Siap diambil') ?: $this->getTotalProcessedForStatus("Proses: {$stepName} (Out)"))
             : $this->getTotalProcessedForStatus("Proses: {$stepName} (Out)");
 
-        $totalPickup = $this->getTotalProcessedForStatus("MH Pickup: {$stepName}");
+        $totalPickup = $isLastStep
+            ? max($this->getTotalProcessedForStatus('Menuju Pengaju'), $this->getTotalProcessedForStatus("MH Pickup: {$stepName}"))
+            : $this->getTotalProcessedForStatus("MH Pickup: {$stepName}");
 
         $totalSupply = ($stepIndex === 0)
             ? $totalReq
@@ -609,6 +611,42 @@ class WorkRequest extends Model
             'saldo_out' => $saldoOut,
             'waiting_pickup' => $waitingPickup,
         ];
+    }
+
+    /**
+     * Memeriksa apakah ada saldo fisik barang yang sudah selesai (Out/Siap Diambil)
+     * di salah satu stasiun mesin dan sedang menunggu penjemputan oleh Material Handling.
+     */
+    public function hasPhysicalWaitingPickup(): bool
+    {
+        if ($this->is_final) {
+            return false;
+        }
+
+        $steps = $this->getRoutingStepsList();
+        foreach ($steps as $idx => $step) {
+            $bal = $this->getStepBalance($step, $idx);
+            if ($bal['waiting_pickup'] > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Menghitung total kuantitas barang fisik yang sedang dalam perjalanan dibawa kurir MH menuju pengaju.
+     */
+    public function getInTransitQuantity(): float
+    {
+        if ($this->is_final) {
+            return 0.0;
+        }
+
+        $totalMenuju = $this->getTotalProcessedForStatus('Menuju Pengaju');
+        $totalSudah = (float) $this->quantity_received ?: $this->getTotalProcessedForStatus('Sudah diambil');
+
+        return max(0.0, $totalMenuju - $totalSudah);
     }
 
     /**
@@ -842,7 +880,7 @@ class WorkRequest extends Model
                     return "Proses: {$step} (In)";
                 }
                 if ($bal['saldo_out'] > 0) {
-                    return $bal['is_last_step'] ? 'Siap Diambil' : "Proses: {$step} (Out)";
+                    return "Proses: {$step} (Out)";
                 }
                 if ($bal['waiting_pickup'] > 0) {
                     return $bal['is_last_step'] ? 'Menuju Pengaju' : "MH Pickup: {$step}";

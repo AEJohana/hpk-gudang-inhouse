@@ -343,8 +343,11 @@ class WorkRequestDefectAndHandoverTest extends TestCase
         $this->assertEquals('Siap Diambil', $actionsM1[0]['target_status']);
 
         // C. getNextStatusLabel TIDAK boleh mengembalikan 'Selesai'
+        // Untuk operator mesin: mengembalikan target tombol aksi 'Siap Diambil'
+        // Untuk publik/gudang: mengembalikan status pengerjaan sisa mesin 'Proses: Laser (Out)'
         $this->assertEquals('Siap Diambil', $wr->getNextStatusLabel($userM1));
-        $this->assertEquals('Siap Diambil', $wr->getNextStatusLabel(null), 'Rekomendasi alur tiket harus mengarah ke sisa pengerjaan mesin');
+        $this->assertEquals('Proses: Laser (Out)', $wr->getNextStatusLabel(null), 'Rekomendasi alur tiket harus mengarah ke sisa pengerjaan mesin');
+        $this->assertFalse($wr->hasPhysicalWaitingPickup(), 'Tidak boleh ada saldo fisik menunggu jemputan MH sebelum mesin selesai');
 
         // D. Status badge menginformasikan parsial diterima 50/100
         $this->assertStringContainsString('50/100', $wr->status_badge['label']);
