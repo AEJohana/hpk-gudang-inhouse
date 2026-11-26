@@ -43,7 +43,7 @@ class WorkRequestTablePartialStatusTest extends TestCase
 
         // Assert Menunggu Pengaju badge uses identical pill geometry and single-line format
         $this->assertStringContainsString(
-            '<span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Menunggu persetujuan Ka. Bagian Pengaju terlebih dahulu">',
+            '<span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-200/80 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Menunggu persetujuan Ka. Bagian Pengaju terlebih dahulu">',
             $content
         );
         $this->assertStringContainsString(
@@ -53,12 +53,34 @@ class WorkRequestTablePartialStatusTest extends TestCase
 
         // Assert Belum Verifikasi badge uses the same pill geometry
         $this->assertStringContainsString(
-            '<span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Menunggu verifikasi oleh Ka. {{ $wri->dept_penerima ?: \'Penerima\' }}">',
+            '<span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-200/80 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Menunggu verifikasi oleh Ka. {{ $wri->dept_penerima ?: \'Penerima\' }}">',
             $content
         );
         $this->assertStringContainsString(
             '<i class="fa-solid fa-clock text-slate-400 me-1 text-[9px]"></i> Belum Verifikasi',
             $content
         );
+    }
+
+    /**
+     * Test table buttons and info pills use neutral borders without colored border lines.
+     */
+    public function test_table_content_has_no_colored_border_lines(): void
+    {
+        $viewPath = dirname(__DIR__, 2) . '/resources/views/work_requests/partials/_table_content.blade.php';
+        $content = file_get_contents($viewPath);
+
+        foreach ([
+            'border-rose-',
+            'border-amber-',
+            'border-indigo-',
+            'border-purple-',
+            'border-emerald-',
+            'border-blue-',
+            'border-cyan-',
+            'border-red-',
+        ] as $forbiddenClass) {
+            $this->assertStringNotContainsString($forbiddenClass, $content);
+        }
     }
 }

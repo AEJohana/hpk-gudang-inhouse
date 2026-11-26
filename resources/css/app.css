@@ -150,7 +150,7 @@ body {
   padding: 14px 16px;
   box-shadow: 0 4px 18px rgba(10, 35, 66, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02);
   transition: all 0.28s cubic-bezier(0.25, 0.8, 0.25, 1);
-  border: 1px solid rgba(74, 158, 158, 0.15);
+  border: 1px solid rgba(226, 232, 240, 0.9);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -187,7 +187,7 @@ body {
   opacity: 0.04;
   transform: rotate(-15deg);
   z-index: 0;
-  color: var(--hpk-teal);
+  color: #0f172a;
   transition: all 0.3s ease;
   pointer-events: none;
   user-select: none;
@@ -210,7 +210,7 @@ body {
   .dash-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 14px 30px rgba(10, 35, 66, 0.12);
-    border-color: rgba(74, 158, 158, 0.4);
+    border-color: rgba(148, 163, 184, 0.55);
   }
 
   .dash-card:hover .icon-box {

@@ -294,7 +294,7 @@
                                 <i class="fa-solid fa-camera text-amber-600 text-[11px]"></i>
                                 <span>Foto Komponen (Opsional)</span>
                             </label>
-                            <div class="p-2 bg-white border border-slate-200 rounded-xl">
+                            <div data-drop-zone class="p-2 bg-white border border-slate-200 rounded-xl">
                                 <input type="file" 
                                        @change="handleFileUpload($event)" 
                                        accept="image/*" 

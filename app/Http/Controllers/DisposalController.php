@@ -25,7 +25,7 @@ class DisposalController extends Controller
             $query->where('disposal_type', $request->type);
         }
 
-        $disposals = $query->latest()->paginate(15)->withQueryString();
+        $disposals = $query->latest()->paginate($this->resolvePerPage($request, 15))->withQueryString();
 
         return view('disposals.index', compact('disposals'));
     }

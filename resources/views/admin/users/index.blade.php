@@ -69,33 +69,41 @@
         <!-- 2. MAIN CARD: FILTER & USER TABLE -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
             
-            <!-- Filter Toolbar -->
-            <form method="GET" action="{{ route('admin.users.index') }}" class="mb-6 p-4 bg-slate-50 border border-slate-200/80 rounded-xl">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
-                    <!-- Search Input -->
-                    <div class="lg:col-span-1">
+            <!-- Filter Toolbar (Live Auto-Filter) -->
+            <form method="GET" action="{{ route('admin.users.index') }}" data-live-filter data-live-target="#users-results" class="mb-6 p-4 bg-slate-50 border border-slate-200/80 rounded-xl">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                    <!-- Search Input (Live Debounced) -->
+                    <div class="lg:col-span-4">
                         <label for="search" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Cari User
                         </label>
                         <div class="relative">
-                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
                             <input type="text" 
                                    id="search" 
                                    name="search" 
                                    value="{{ request('search') }}" 
                                    placeholder="Cari nama atau username..." 
-                                   class="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white shadow-xs transition">
+                                   class="w-full pl-8 pr-8 py-2 text-xs rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white shadow-xs transition">
+                            <span data-live-spinner class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-amber-600 text-xs pointer-events-none">
+                                <i class="fa-solid fa-spinner fa-spin"></i>
+                            </span>
+                            <button type="button" 
+                                    data-live-clear="#search" 
+                                    class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 p-0.5 transition cursor-pointer" 
+                                    title="Hapus pencarian">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
                         </div>
                     </div>
 
                     <!-- Role Dropdown -->
-                    <div>
+                    <div class="lg:col-span-2">
                         <label for="role" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Filter Role
                         </label>
                         <select name="role" 
                                 id="role" 
-                                onchange="this.form.submit()"
                                 class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white shadow-xs transition cursor-pointer">
                             <option value="">Semua Role</option>
                             @foreach($roles as $roleKey => $roleLabel)
@@ -107,13 +115,12 @@
                     </div>
 
                     <!-- Bagian Dropdown -->
-                    <div>
+                    <div class="lg:col-span-2">
                         <label for="work_area" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Filter Bagian
                         </label>
                         <select name="work_area" 
                                 id="work_area" 
-                                onchange="this.form.submit()"
                                 class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white shadow-xs transition cursor-pointer">
                             <option value="">Semua Bagian</option>
                             @foreach($workAreas as $areaKey => $areaLabel)
@@ -125,13 +132,12 @@
                     </div>
 
                     <!-- Departemen Dropdown -->
-                    <div>
+                    <div class="lg:col-span-3">
                         <label for="department_id" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Departemen Pabrik
                         </label>
                         <select name="department_id" 
                                 id="department_id" 
-                                onchange="this.form.submit()"
                                 class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white shadow-xs transition cursor-pointer">
                             <option value="">Semua Departemen ({{ $departments->count() }})</option>
                             @foreach($departments as $dept)
@@ -142,22 +148,22 @@
                         </select>
                     </div>
 
-                    <!-- Filter Actions -->
-                    <div class="flex items-center space-x-2">
-                        <button type="submit" 
-                                class="flex-1 py-2 px-3 bg-[#0a2342] hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center">
-                            <i class="fa-solid fa-filter me-1.5"></i> Terapkan
-                        </button>
-                        @if(request()->hasAny(['search', 'role', 'work_area', 'department_id', 'status']))
+                    <!-- Reset Action -->
+                    <div class="lg:col-span-1 flex items-center justify-end">
                         <a href="{{ route('admin.users.index') }}" 
-                           class="py-2 px-3 bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 rounded-xl text-xs font-semibold transition" 
+                           data-live-reset
+                           class="{{ request()->hasAny(['search', 'role', 'work_area', 'department_id', 'status']) ? '' : 'hidden' }} w-full py-2 px-3 bg-white hover:bg-rose-50 hover:text-rose-600 text-slate-600 border border-slate-300 rounded-xl text-xs font-semibold transition inline-flex items-center justify-center cursor-pointer" 
                            title="Reset Filter">
                             <i class="fa-solid fa-rotate-left"></i>
                         </a>
-                        @endif
                     </div>
                 </div>
             </form>
+
+            <div id="users-results">
+            @fragment('results')
+
+            <x-pagination-bar :paginator="$users" position="top" wrapper-class="mb-4 p-3 sm:px-4 sm:py-3 bg-slate-50/80 rounded-xl border border-slate-200/80" />
 
             <!-- Mobile Card View (< md) -->
             <div class="block md:hidden space-y-3">
@@ -487,11 +493,9 @@
             </div>
 
             <!-- Pagination -->
-            @if(method_exists($users, 'links'))
-            <div class="mt-5">
-                {{ $users->links() }}
+            <x-pagination-bar :paginator="$users" position="bottom" wrapper-class="mt-5 p-3 sm:px-4 sm:py-3 bg-slate-50/80 rounded-xl border border-slate-200/80" />
+            @endfragment
             </div>
-            @endif
 
         </div>
 

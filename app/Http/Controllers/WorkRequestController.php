@@ -136,7 +136,7 @@ class WorkRequestController extends Controller
             $query->latest('id');
         }
 
-        $workRequests = $query->paginate(12)->withQueryString();
+        $workRequests = $query->paginate($this->resolvePerPage($request, 12))->withQueryString();
 
         // 5. Scoped Summary Statistics (Single Consolidated Aggregation Query with short 15s cache)
         $baseStatQuery = WorkRequest::query();
@@ -399,7 +399,25 @@ class WorkRequestController extends Controller
         $user = auth()->user();
         $components = Component::masterCatalog()
             ->where('is_active', true)
-            ->with(['defaultLocation', 'stockBalances'])
+            ->select([
+                'id',
+                'part_number',
+                'name',
+                'category',
+                'uom',
+                'specification',
+                'length_mm',
+                'width_or_diameter_mm',
+                'thickness_or_height_mm',
+                'minimum_stock',
+                'default_location_id',
+                'default_shelf_level',
+                'default_slot_number',
+                'image_path',
+                'updated_at',
+            ])
+            ->with(['defaultLocation'])
+            ->withSum('stockBalances as total_stock_sum', 'quantity')
             ->orderBy('name')
             ->get();
         $locations = Location::orderBy('zone_code')->orderBy('rack_number')->get();
@@ -941,7 +959,7 @@ class WorkRequestController extends Controller
             });
         }
 
-        $criticalComponents = $query->orderBy('minimum_stock', 'desc')->paginate(15)->withQueryString();
+        $criticalComponents = $query->orderBy('minimum_stock', 'desc')->paginate($this->resolvePerPage($request, 15))->withQueryString();
         $totalCritical = Component::masterCatalog()->where('is_active', true)
             ->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) <= components.minimum_stock')
             ->count();
@@ -952,7 +970,8 @@ class WorkRequestController extends Controller
             ->orderBy('id')
             ->get();
 
-        return view('work_requests.safety_stock', compact('criticalComponents', 'totalCritical', 'departments', 'fabricationDepartments'));
+        return view('work_requests.safety_stock', compact('criticalComponents', 'totalCritical', 'departments', 'fabricationDepartments'))
+            ->fragmentIf($request->boolean('_live'), 'results');
     }
 
     /**
@@ -1224,7 +1243,7 @@ class WorkRequestController extends Controller
         $totalUnprinted = (clone $baseStat)->whereDoesntHave('logs', fn($q) => $q->where('action_type', 'printed'))->count();
         $totalPrinted = (clone $baseStat)->whereHas('logs', fn($q) => $q->where('action_type', 'printed'))->count();
 
-        $workRequests = $query->latest('id')->paginate(15)->withQueryString();
+        $workRequests = $query->latest('id')->paginate($this->resolvePerPage($request, 15))->withQueryString();
 
         return view('work_requests.print_queue', compact(
             'workRequests',
@@ -1236,7 +1255,7 @@ class WorkRequestController extends Controller
             'totalPrintable',
             'totalUnprinted',
             'totalPrinted'
-        ));
+        ))->fragmentIf($request->boolean('_live'), 'results');
     }
 
     /**

@@ -84,7 +84,7 @@ class AuditLogController extends Controller
             });
         }
 
-        $logs = $query->latest('id')->paginate(25)->withQueryString();
+        $logs = $query->latest('id')->paginate($this->resolvePerPage($request, 25))->withQueryString();
 
         // 3. Reference Data for Dropdowns
         $usersList = User::orderBy('name')->get(['id', 'name', 'department']);
@@ -99,7 +99,8 @@ class AuditLogController extends Controller
             'system' => 'Administrasi Sistem',
         ];
 
-        return view('admin.audit_logs.index', compact('logs', 'kpis', 'usersList', 'modulesList'));
+        return view('admin.audit_logs.index', compact('logs', 'kpis', 'usersList', 'modulesList'))
+            ->fragmentIf($request->boolean('_live'), 'results');
     }
 
     private function getModuleName(string $logName): string

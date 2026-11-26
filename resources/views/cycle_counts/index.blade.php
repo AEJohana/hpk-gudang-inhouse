@@ -44,6 +44,8 @@
             </a>
         </div>
 
+        <x-pagination-bar :paginator="$cycleCounts" position="top" />
+
         <!-- Mobile Card View (< md) -->
         <div class="block md:hidden space-y-3">
             @forelse ($cycleCounts as $cc)
@@ -151,11 +153,7 @@
             </table>
         </div>
 
-        @if ($cycleCounts->hasPages())
-            <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
-                {{ $cycleCounts->links() }}
-            </div>
-        @endif
+        <x-pagination-bar :paginator="$cycleCounts" position="bottom" />
 
     </div>
 </x-app-layout>

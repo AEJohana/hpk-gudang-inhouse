@@ -24,7 +24,7 @@ class CycleCountController extends Controller
             $query->where('status', $request->status);
         }
 
-        $cycleCounts = $query->latest()->paginate(15)->withQueryString();
+        $cycleCounts = $query->latest()->paginate($this->resolvePerPage($request, 15))->withQueryString();
 
         return view('cycle_counts.index', compact('cycleCounts'));
     }

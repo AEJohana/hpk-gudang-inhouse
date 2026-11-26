@@ -3,12 +3,6 @@
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
     <div class="glass-card text-center p-5 sm:p-8" x-data="{
-        fillUser(username) {
-            const userInput = document.getElementById('username') || document.getElementById('email');
-            if (userInput) userInput.value = username;
-            document.getElementById('password').value = 'password';
-            document.getElementById('remember_me').checked = true;
-        },
         init() {
             const remembered = localStorage.getItem('hpk_remembered_username');
             const userInput = document.getElementById('username') || document.getElementById('email');
@@ -172,30 +166,7 @@
             </button>
         </form>
 
-        <!-- 1-Click Demo Login Switcher from our previous polish -->
-        <div class="mt-6 pt-4 border-t border-slate-200/80 text-left">
-            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Akses Cepat Uji Coba (1-Click Fill):</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                <button type="button" @click="fillUser('admin')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left cursor-pointer">
-                    <span class="font-bold text-blue-900 block text-[11px]"><i class="fas fa-user-shield text-[10px] me-1 text-teal-600"></i> Admin Gudang</span>
-                    <span class="text-[10px] text-slate-500 font-mono">@admin</span>
-                </button>
-                <button type="button" @click="fillUser('operator')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left cursor-pointer">
-                    <span class="font-bold text-blue-900 block text-[11px]"><i class="fas fa-dolly text-[10px] me-1 text-teal-600"></i> Operator Picker</span>
-                    <span class="text-[10px] text-slate-500 font-mono">@operator</span>
-                </button>
-                <button type="button" @click="fillUser('spv_gudang')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left cursor-pointer">
-                    <span class="font-bold text-blue-900 block text-[11px]"><i class="fas fa-user-tie text-[10px] me-1 text-teal-600"></i> Kepala Gudang</span>
-                    <span class="text-[10px] text-slate-500 font-mono">@spv_gudang</span>
-                </button>
-                <button type="button" @click="fillUser('engineer')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 text-slate-700 transition text-left cursor-pointer">
-                    <span class="font-bold text-blue-900 block text-[11px]"><i class="fas fa-drafting-compass text-[10px] me-1 text-teal-600"></i> Engineering (ECR)</span>
-                    <span class="text-[10px] text-slate-500 font-mono">@engineer</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="mt-5 pt-3 border-t border-slate-100">
+        <div class="mt-6 pt-3 border-t border-slate-100">
             <small class="text-slate-400 font-bold text-[10px] tracking-wider uppercase">PT. HYDRAXLE PERKASA &copy; 2026</small>
         </div>
     </div>

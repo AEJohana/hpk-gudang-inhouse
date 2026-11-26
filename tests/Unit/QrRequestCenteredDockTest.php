@@ -31,8 +31,11 @@ class QrRequestCenteredDockTest extends TestCase
         // 3. Assert subtle divider exists
         $this->assertStringContainsString('hidden md:block w-px h-6 bg-slate-200/90 mx-1', $content);
 
-        // 4. Assert integrated search capsule exists inside the dock
+        // 4. Assert integrated live search capsule exists inside the dock
         $this->assertStringContainsString('action="{{ route(\'qr-requests.index\') }}"', $content);
+        $this->assertStringContainsString('data-live-filter', $content);
+        $this->assertStringContainsString('data-live-target="#qr-requests-results"', $content);
+        $this->assertStringContainsString("@fragment('results')", $content);
         $this->assertStringContainsString('name="q"', $content);
         $this->assertStringContainsString('Cari', $content);
     }

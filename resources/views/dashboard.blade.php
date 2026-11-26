@@ -45,11 +45,11 @@
                         <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Komponen (SKU)</p>
                         <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight"><span class="counter-value">{{ $totalComponents }}</span> <span class="text-[10px] sm:text-xs font-normal text-slate-500">Item</span></h3>
                     </div>
-                    <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
+                    <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-slate-100 text-[#4a9e9e] flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
                         <i class="fa-solid fa-boxes-stacked"></i>
                     </div>
                 </div>
-                <p class="text-[10px] sm:text-[11px] text-teal-600 mt-1.5 sm:mt-2 flex items-center font-semibold truncate">
+                <p class="text-[10px] sm:text-[11px] text-slate-500 mt-1.5 sm:mt-2 flex items-center font-semibold truncate">
                     <i class="fa-solid fa-check me-1 sm:me-1.5 shrink-0 text-[9px] sm:text-[11px]"></i>
                     <span class="truncate">Katalog Part Terdaftar</span>
                 </p>
@@ -57,13 +57,10 @@
 
             <!-- Alert Stok Kritis / Minimum -->
             @can('master-komponen.view')
-            <a href="{{ route('components.index', ['low_stock' => 1]) }}" class="bg-white rounded-2xl p-3.5 sm:p-5 border {{ $lowStockCount > 0 ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200/80' }} shadow-2xs flex flex-col justify-between group hover:border-rose-400 hover:shadow-md transition hover-spring">
+            <a href="{{ route('components.index', ['low_stock' => 1]) }}" class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between group hover:border-slate-300 hover:shadow-md transition hover-spring">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
-                        <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-rose-600 flex items-center truncate">
-                            <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-rose-500 me-1 sm:me-1.5 animate-pulse shrink-0"></span>
-                            <span class="truncate">Stok Menipis (Kritis)</span>
-                        </p>
+                        <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">Stok Menipis (Kritis)</p>
                         <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight"><span class="counter-value">{{ $lowStockCount }}</span> <span class="text-[10px] sm:text-xs font-normal text-slate-500">Item</span></h3>
                     </div>
                     <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
@@ -75,20 +72,17 @@
                 </p>
             </a>
             @else
-            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border {{ $lowStockCount > 0 ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200/80' }} shadow-2xs flex flex-col justify-between hover-spring">
+            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between hover-spring">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
-                        <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-rose-600 flex items-center truncate">
-                            <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-rose-500 me-1 sm:me-1.5 animate-pulse shrink-0"></span>
-                            <span class="truncate">Stok Menipis (Kritis)</span>
-                        </p>
+                        <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">Stok Menipis (Kritis)</p>
                         <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight"><span class="counter-value">{{ $lowStockCount }}</span> <span class="text-[10px] sm:text-xs font-normal text-slate-500">Item</span></h3>
                     </div>
                     <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                     </div>
                 </div>
-                <p class="text-[10px] sm:text-[11px] text-slate-400 mt-1.5 sm:mt-2 font-semibold truncate">
+                <p class="text-[10px] sm:text-[11px] text-slate-500 mt-1.5 sm:mt-2 font-semibold truncate">
                     <span class="truncate">Katalog Gudang</span>
                 </p>
             </div>
@@ -101,11 +95,11 @@
                         <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">Transaksi Hari Ini</p>
                         <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight"><span class="counter-value">{{ $todayTransactionsCount }}</span> <span class="text-[10px] sm:text-xs font-normal text-slate-500">Mutasi</span></h3>
                     </div>
-                    <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
+                    <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-slate-100 text-[#4a9e9e] flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
                         <i class="fa-solid fa-right-left"></i>
                     </div>
                 </div>
-                <p class="text-[10px] sm:text-[11px] text-blue-600 mt-1.5 sm:mt-2 font-medium truncate">
+                <p class="text-[10px] sm:text-[11px] text-slate-500 mt-1.5 sm:mt-2 font-medium truncate">
                     <span class="truncate">Inbound, Outbound & Transfer</span>
                 </p>
             </div>
@@ -117,11 +111,11 @@
                         <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">Menunggu Approval</p>
                         <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1 leading-tight"><span class="counter-value">{{ $pendingApprovalsCount }}</span> <span class="text-[10px] sm:text-xs font-normal text-slate-500">Pengajuan</span></h3>
                     </div>
-                    <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
+                    <div class="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-slate-100 text-[#4a9e9e] flex items-center justify-center text-sm sm:text-xl shadow-2xs shrink-0">
                         <i class="fa-solid fa-stamp"></i>
                     </div>
                 </div>
-                <p class="text-[10px] sm:text-[11px] text-purple-600 mt-1.5 sm:mt-2 font-semibold truncate">
+                <p class="text-[10px] sm:text-[11px] text-slate-500 mt-1.5 sm:mt-2 font-semibold truncate">
                     <span class="truncate">ECR & Pengajuan Disposal</span>
                 </p>
             </div>
@@ -137,17 +131,17 @@
             <div class="dashboard-grid gsap-stagger-cards">
                 <!-- 1. Work Request Inhouse (Machine Center) -->
                 @can('work-request.view')
-                <a href="{{ route('work-requests.index') }}" class="dash-card group border-amber-300 bg-amber-50/20 hover-spring">
+                <a href="{{ route('work-requests.index') }}" class="dash-card group hover-spring">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-industry card-icon-bg"></i>
-                    <div class="icon-box text-amber-800 bg-amber-100">
+                    <div class="icon-box bg-slate-100 text-[#4a9e9e]">
                         <i class="fa-solid fa-industry"></i>
                     </div>
                     <div class="relative z-10 flex-1 min-w-0 pr-5">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-amber-800 transition truncate">Work Request Mesin</h4>
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-slate-950 transition truncate">Work Request Mesin</h4>
                             @if ($readyForWarehouseWriCount > 0)
-                                <span class="text-[10px] font-black text-slate-950 bg-amber-400 px-2 py-0.5 rounded-full animate-pulse">{{ $readyForWarehouseWriCount }} Siap Gudang</span>
+                                <span class="text-[10px] font-black text-slate-950 bg-amber-400 px-2 py-0.5 rounded-full animate-pulse">{{ $readyForWarehouseWriCount }} Siap Pickup MH</span>
                             @elseif ($inProductionWriCount > 0)
                                 <span class="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{{ $inProductionWriCount }} di Mesin</span>
                             @endif
@@ -162,12 +156,12 @@
                 <a href="{{ route('components.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-boxes-stacked card-icon-bg"></i>
-                    <div class="icon-box text-[#4a9e9e] bg-teal-50">
+                    <div class="icon-box bg-slate-100 text-[#4a9e9e]">
                         <i class="fa-solid fa-boxes-stacked"></i>
                     </div>
                     <div class="relative z-10 flex-1 min-w-0 pr-5">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-teal-700 transition truncate">Master Komponen</h4>
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-slate-950 transition truncate">Master Komponen</h4>
                             @if(!empty($unallocatedComponentsCount) && $unallocatedComponentsCount > 0)
                                 <span class="text-[10px] font-extrabold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200" title="{{ $unallocatedComponentsCount }} part butuh alokasi rak">
                                     ⚠️ {{ $unallocatedComponentsCount }} Perlu Rak
@@ -182,15 +176,15 @@
 
                 <!-- 3. Material Handling (Task Gudang) -->
                 @can('material-handling.view')
-                <a href="{{ route('work-station-supplies.index') }}" class="dash-card group border-teal-200 bg-teal-50/20">
+                <a href="{{ route('work-station-supplies.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-truck-ramp-box card-icon-bg"></i>
-                    <div class="icon-box text-teal-700 bg-teal-100">
+                    <div class="icon-box bg-slate-100 text-[#4a9e9e]">
                         <i class="fa-solid fa-truck-ramp-box"></i>
                     </div>
                     <div class="relative z-10 flex-1 min-w-0 pr-5">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-teal-800 transition truncate">Material Handling</h4>
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-slate-950 transition truncate">Material Handling</h4>
                             <span class="text-[10px] font-bold text-teal-800 bg-teal-100 px-2 py-0.5 rounded-full">Task Gudang</span>
                         </div>
                         <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">Logistik antar stasiun</p>
@@ -203,13 +197,12 @@
                 <a href="{{ route('transactions.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-right-left card-icon-bg"></i>
-                    <div class="icon-box text-blue-600 bg-blue-50">
+                    <div class="icon-box bg-slate-100 text-[#4a9e9e]">
                         <i class="fa-solid fa-right-left"></i>
                     </div>
                     <div class="relative z-10 flex-1 min-w-0 pr-5">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-blue-700 transition truncate">Transaksi Komponen</h4>
-                            <span class="text-[10px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full">{{ $todayTransactionsCount }} Hari Ini</span>
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-slate-950 transition truncate">Transaksi Komponen</h4>
                         </div>
                         <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">Inbound & outbound fisik</p>
                     </div>
@@ -221,12 +214,12 @@
                 <a href="{{ route('ecrs.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-file-pen card-icon-bg"></i>
-                    <div class="icon-box text-purple-600 bg-purple-50">
+                    <div class="icon-box bg-slate-100 text-[#4a9e9e]">
                         <i class="fa-solid fa-file-pen"></i>
                     </div>
                     <div class="relative z-10 flex-1 min-w-0 pr-5">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-purple-700 transition truncate">ECR Revisi Part</h4>
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-slate-950 transition truncate">ECR Revisi Part</h4>
                             @if ($pendingEcrsCount > 0)
                                 <span class="text-[10px] font-bold text-purple-700 bg-purple-100/70 px-2 py-0.5 rounded-full">{{ $pendingEcrsCount }} Review</span>
                             @endif
@@ -241,12 +234,12 @@
                 <a href="{{ route('cycle-counts.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-clipboard-check card-icon-bg"></i>
-                    <div class="icon-box text-amber-600 bg-amber-50">
+                    <div class="icon-box bg-slate-100 text-[#4a9e9e]">
                         <i class="fa-solid fa-clipboard-check"></i>
                     </div>
                     <div class="relative z-10 flex-1 min-w-0 pr-5">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-amber-700 transition truncate">Cycle Count</h4>
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-slate-950 transition truncate">Cycle Count</h4>
                             <span class="text-[10px] font-bold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full">Opname Fisik</span>
                         </div>
                         <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">Audit opname berkala</p>
@@ -259,12 +252,12 @@
                 <a href="{{ route('qr-requests.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-qrcode card-icon-bg"></i>
-                    <div class="icon-box text-cyan-600 bg-cyan-50">
+                    <div class="icon-box bg-slate-100 text-[#4a9e9e]">
                         <i class="fa-solid fa-qrcode"></i>
                     </div>
                     <div class="relative z-10 flex-1 min-w-0 pr-5">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-cyan-700 transition truncate">Permintaan Label QR</h4>
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-slate-950 transition truncate">Permintaan Label QR</h4>
                             @if ($pendingQrRequestsCount > 0)
                                 <span class="text-[10px] font-bold text-cyan-700 bg-cyan-100/70 px-2 py-0.5 rounded-full">{{ $pendingQrRequestsCount }} Siap Cetak</span>
                             @endif
@@ -279,12 +272,12 @@
                 <a href="{{ route('disposals.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-trash-can card-icon-bg"></i>
-                    <div class="icon-box text-rose-600 bg-rose-50">
+                    <div class="icon-box bg-slate-100 text-[#4a9e9e]">
                         <i class="fa-solid fa-trash-can"></i>
                     </div>
                     <div class="relative z-10 flex-1 min-w-0 pr-5">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-rose-700 transition truncate">Pengajuan Disposal</h4>
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-slate-950 transition truncate">Pengajuan Disposal</h4>
                             @if ($pendingDisposalsCount > 0)
                                 <span class="text-[10px] font-bold text-rose-700 bg-rose-100/70 px-2 py-0.5 rounded-full">{{ $pendingDisposalsCount }} Pending</span>
                             @endif
@@ -296,15 +289,15 @@
 
                 <!-- 9. Log Aktivitas Sistem (Audit Trail) -->
                 @if(Auth::user()->hasAnyRole(['admin_gudang', 'supervisor', 'qc', 'engineering']))
-                <a href="{{ route('activities.index') }}" class="dash-card group border-amber-200 bg-amber-50/10">
+                <a href="{{ route('activities.index') }}" class="dash-card group">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-clipboard-list card-icon-bg"></i>
-                    <div class="icon-box text-amber-700 bg-amber-100">
+                    <div class="icon-box bg-slate-100 text-[#4a9e9e]">
                         <i class="fa-solid fa-clock-rotate-left"></i>
                     </div>
                     <div class="relative z-10 flex-1 min-w-0 pr-5">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-amber-800 transition truncate">Log Aktivitas Sistem</h4>
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-slate-950 transition truncate">Log Aktivitas Sistem</h4>
                             <span class="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">Audit Trail</span>
                         </div>
                         <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">Jejak audit trail</p>
@@ -314,15 +307,15 @@
 
                 <!-- 10. Panel Administrasi Sistem (Khusus Admin Gudang) -->
                 @if(Auth::user()->hasRole('admin_gudang'))
-                <a href="{{ route('admin.dashboard') }}" class="dash-card group border-slate-300 bg-slate-50/50 hover:bg-white hover:border-[#0a2342]/40 transition">
+                <a href="{{ route('admin.dashboard') }}" class="dash-card group transition">
                     <i class="fa-solid fa-arrow-right arrow-action"></i>
                     <i class="fa-solid fa-user-shield card-icon-bg"></i>
-                    <div class="icon-box text-slate-800 bg-slate-100 group-hover:bg-[#0a2342] group-hover:text-amber-400 transition">
+                    <div class="icon-box bg-slate-100 text-[#4a9e9e] group-hover:bg-[#4a9e9e] group-hover:text-white transition">
                         <i class="fa-solid fa-user-shield"></i>
                     </div>
                     <div class="relative z-10 flex-1 min-w-0 pr-5">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-[#0a2342] transition truncate">Panel Administrasi</h4>
+                            <h4 class="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-slate-950 transition truncate">Panel Administrasi</h4>
                             <span class="text-[10px] font-bold text-slate-800 bg-slate-200/80 px-2 py-0.5 rounded-full">Admin Center</span>
                         </div>
                         <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">User & konfigurasi</p>

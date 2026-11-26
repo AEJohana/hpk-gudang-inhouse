@@ -44,6 +44,8 @@
             </a>
         </div>
 
+        <x-pagination-bar :paginator="$disposals" position="top" />
+
         <!-- 1. Mobile Card List (< md screens) -->
         <div class="block md:hidden space-y-3">
             @forelse ($disposals as $dsp)
@@ -150,11 +152,7 @@
             </table>
         </div>
 
-        @if ($disposals->hasPages())
-            <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
-                {{ $disposals->links() }}
-            </div>
-        @endif
+        <x-pagination-bar :paginator="$disposals" position="bottom" />
 
     </div>
 </x-app-layout>

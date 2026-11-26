@@ -52,32 +52,45 @@
                 </a>
             </div>
 
-            <!-- Right: Search Input, Category Select & Compact Filter Button (Sejajar) -->
-            <form method="GET" action="{{ route('components.index') }}" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full xl:w-auto">
+            <!-- Right: Search Input, Category Select & Live Auto-Filter (Tanpa Tombol Filter) -->
+            <form method="GET" 
+                  action="{{ route('components.index') }}" 
+                  data-live-filter 
+                  data-live-target="#components-results" 
+                  data-live-count-target="#components-total-count"
+                  class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full xl:w-auto">
                 @if(request('uncategorized'))
-                    <input type="hidden" name="uncategorized" value="1">
+                    <input type="hidden" name="uncategorized" value="1" data-active-filter="1">
                 @endif
                 @if(request('unallocated'))
-                    <input type="hidden" name="unallocated" value="1">
+                    <input type="hidden" name="unallocated" value="1" data-active-filter="1">
                 @endif
                 @if(request('low_stock'))
-                    <input type="hidden" name="low_stock" value="1">
+                    <input type="hidden" name="low_stock" value="1" data-active-filter="1">
                 @endif
 
-                <!-- Search Input -->
+                <!-- Search Input (Live Debounced) -->
                 <div class="relative flex-1 sm:w-56 md:w-64 min-w-[170px]">
                     <input type="text" 
                            name="search" 
                            value="{{ request('search') }}" 
                            placeholder="Cari Kode Part, Nama, Spek..." 
-                           class="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none transition">
-                    <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 text-xs"></i>
+                           class="w-full pl-8 pr-8 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none transition">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 text-xs pointer-events-none"></i>
+                    <span data-live-spinner class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-600 text-xs pointer-events-none">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                    </span>
+                    <button type="button" 
+                            data-live-clear="input[name='search']" 
+                            class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 p-0.5 transition cursor-pointer" 
+                            title="Hapus pencarian">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
                 </div>
 
-                <!-- Category Select Dropdown (Auto-Submit Saat Memilih) -->
+                <!-- Category Select Dropdown (Live Auto-Filter) -->
                 <div class="w-full sm:w-44 flex-shrink-0">
                     <select name="category" 
-                            onchange="this.form.submit()" 
                             class="w-full py-2 px-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-700 font-medium cursor-pointer">
                         <option value="">-- Semua Kategori --</option>
                         @foreach ($categories as $catKey => $catLabel)
@@ -86,29 +99,29 @@
                     </select>
                 </div>
 
-                <!-- Tombol Filter (Diperkecil) & Reset -->
+                <!-- Tombol Reset -->
                 <div class="flex items-center space-x-1 flex-shrink-0">
-                    <button type="submit" 
-                            class="py-2 px-3 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center space-x-1 cursor-pointer"
-                            title="Terapkan Filter">
-                        <i class="fa-solid fa-filter text-teal-400 text-xs"></i>
-                        <span>Filter</span>
-                    </button>
-                    @if (request()->hasAny(['search', 'category', 'low_stock', 'unallocated', 'uncategorized']))
-                        <a href="{{ route('components.index') }}" 
-                           class="py-2 px-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-xs rounded-xl inline-flex items-center justify-center font-bold transition cursor-pointer"
-                           title="Reset Seluruh Filter">
-                            <i class="fa-solid fa-rotate-left text-xs"></i>
-                        </a>
-                    @endif
+                    <a href="{{ route('components.index') }}" 
+                       data-live-reset
+                       @if(request()->hasAny(['low_stock', 'unallocated', 'uncategorized'])) data-live-reset-mode="navigate" @endif
+                       class="{{ request()->hasAny(['search', 'category', 'low_stock', 'unallocated', 'uncategorized']) ? '' : 'hidden' }} py-2 px-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-xs rounded-xl inline-flex items-center justify-center font-bold transition cursor-pointer"
+                       title="Reset Seluruh Filter">
+                        <i class="fa-solid fa-rotate-left text-xs"></i>
+                    </a>
                 </div>
 
                 <!-- Total Count -->
-                <span class="text-xs text-slate-400 font-medium whitespace-nowrap hidden 2xl:inline-block ms-1">
+                <span id="components-total-count" class="text-xs text-slate-400 font-medium whitespace-nowrap hidden 2xl:inline-block ms-1">
                     ({{ method_exists($components, 'total') ? $components->total() : $components->count() }})
                 </span>
             </form>
         </div>
+
+        <div id="components-results">
+        @fragment('results')
+        <div data-live-meta data-live-count="{{ method_exists($components, 'total') ? $components->total() : $components->count() }}">
+
+        <x-pagination-bar :paginator="$components" position="top" />
 
         <!-- 1. Mobile Card List View (< md screens) -->
         <div class="block md:hidden space-y-3">
@@ -310,11 +323,10 @@
         </div>
 
         <!-- Pagination -->
-        @if ($components instanceof \Illuminate\Pagination\LengthAwarePaginator && $components->hasPages())
-            <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
-                {{ $components->links() }}
-            </div>
-        @endif
+        <x-pagination-bar :paginator="$components" position="bottom" />
+        </div>
+        @endfragment
+        </div>
 
     </div>
 

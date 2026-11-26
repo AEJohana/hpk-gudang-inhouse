@@ -43,7 +43,7 @@ class ComponentController extends Controller
                 ->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) <= components.minimum_stock');
         }
 
-        $components = $query->latest()->paginate(15)->withQueryString();
+        $components = $query->latest()->paginate($this->resolvePerPage($request, 15))->withQueryString();
 
         $unallocatedCount = Cache::remember('components_unallocated_count', 30, fn() => Component::masterCatalog()->whereNull('default_location_id')->count());
         $uncategorizedCount = Cache::remember('components_uncategorized_count', 30, fn() => Component::masterCatalog()->whereNull('category')->count());
@@ -57,7 +57,8 @@ class ComponentController extends Controller
             'spo' => 'SPO',
         ];
 
-        return view('master_components.index', compact('components', 'categories', 'unallocatedCount', 'uncategorizedCount'));
+        return view('master_components.index', compact('components', 'categories', 'unallocatedCount', 'uncategorizedCount'))
+            ->fragmentIf($request->boolean('_live'), 'results');
     }
 
     public function create()
@@ -217,12 +218,15 @@ class ComponentController extends Controller
         /** @var \App\Services\ComponentPhotoStorageService $storageService */
         $storageService = app(\App\Services\ComponentPhotoStorageService::class);
 
+        $photoUpdated = false;
         if ($request->hasFile('image')) {
             $imagePath = $storageService->storeUploadedFile($request->file('image'), $component->part_number);
+            $photoUpdated = true;
         } elseif (!empty($request->camera_snapshot)) {
             $newPath = $storageService->storeBase64($request->camera_snapshot, $component->part_number);
             if ($newPath) {
                 $imagePath = $newPath;
+                $photoUpdated = true;
             }
         }
 
@@ -241,6 +245,11 @@ class ComponentController extends Controller
             'default_location_id' => $newLocationId,
             'image_path' => $imagePath,
         ]);
+
+        // Ensure updated_at always advances when photo is replaced (even if image_path string stays identical)
+        if ($photoUpdated) {
+            $component->touch();
+        }
 
         // If component was previously unassigned and now has a physical rack,
         // move any stock from HOLDING location to the newly selected rack
@@ -294,17 +303,17 @@ class ComponentController extends Controller
             $fileMtime = @filemtime($filePath) ?: 1;
             $etag = '"' . md5("{$filePath}_{$fileMtime}_{$fileSize}") . '"';
 
-            // Dukungan HTTP 304 Not Modified untuk performa tinggi intranet
+            // Dukungan HTTP 304 Not Modified dengan revalidasi ringan agar perubahan fisik langsung di NAS tetap terdeteksi
             if ($request->headers->get('If-None-Match') === $etag) {
                 return response('', 304, [
-                    'Cache-Control' => 'public, max-age=86400',
+                    'Cache-Control' => 'public, max-age=300, must-revalidate',
                     'ETag' => $etag,
                 ]);
             }
 
             $headers = [
                 'Content-Type' => $mimeType,
-                'Cache-Control' => 'public, max-age=86400',
+                'Cache-Control' => 'public, max-age=300, must-revalidate',
                 'ETag' => $etag,
             ];
 

@@ -50,9 +50,10 @@ class TransactionController extends Controller
             });
         }
 
-        $transactions = $query->latest('transaction_date')->latest('id')->paginate(15)->withQueryString();
+        $transactions = $query->latest('transaction_date')->latest('id')->paginate($this->resolvePerPage($request, 15))->withQueryString();
 
-        return view('transactions.index', compact('transactions'));
+        return view('transactions.index', compact('transactions'))
+            ->fragmentIf($request->boolean('_live'), 'results');
     }
 
     public function create(Request $request)

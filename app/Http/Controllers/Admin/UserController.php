@@ -67,12 +67,13 @@ class UserController extends Controller
             }
         }
 
-        $users = $query->latest()->paginate(15)->withQueryString();
+        $users = $query->latest()->paginate($this->resolvePerPage($request, 15))->withQueryString();
         $roles = $this->standardRoles;
         $workAreas = $this->workAreas;
         $departments = Department::active()->orderBy('id')->get();
 
-        return view('admin.users.index', compact('users', 'roles', 'workAreas', 'departments'));
+        return view('admin.users.index', compact('users', 'roles', 'workAreas', 'departments'))
+            ->fragmentIf($request->boolean('_live'), 'results');
     }
 
     public function create()

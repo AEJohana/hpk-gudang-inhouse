@@ -185,4 +185,59 @@ class ComponentPhotoStorageTest extends TestCase
             @rmdir($tempDir);
         }
     }
+
+    /**
+     * Test component image_url uses lightweight DB timestamp and does not hit filesystem/SMB during SSR.
+     */
+    public function test_image_url_uses_lightweight_timestamp_without_filesystem_io(): void
+    {
+        config(['services.components.photo_dir' => 'Q:\\NonExistent\\Unreachable\\Share']);
+
+        $comp = new Component([
+            'part_number' => 'FAST-SSR-001',
+            'name' => 'Fast SSR Component',
+        ]);
+        $comp->id = 4242;
+        $comp->updated_at = \Illuminate\Support\Carbon::createFromTimestamp(1760000000);
+
+        $start = microtime(true);
+        for ($i = 0; $i < 500; $i++) {
+            $url = $comp->image_url;
+        }
+        $elapsed = microtime(true) - $start;
+
+        $this->assertStringContainsString('/components/4242/photo-stream', $url);
+        $this->assertStringContainsString('v=1760000000', $url);
+        $this->assertLessThan(0.5, $elapsed);
+    }
+
+    /**
+     * Test circuit breaker for unreachable directory and cache invalidation when storing new photo.
+     */
+    public function test_unreachable_directory_circuit_breaker_and_cache_invalidation(): void
+    {
+        ComponentPhotoStorageService::clearDirectoryIndexCache();
+        $service = new ComponentPhotoStorageService();
+
+        $missingDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'nonexistent_nas_dir_' . uniqid();
+        $this->assertFalse($service->isDirectoryAvailable($missingDir));
+        // Second call hits in-memory unreachable circuit breaker immediately
+        $this->assertFalse($service->isDirectoryAvailable($missingDir));
+        $this->assertSame([], $service->getDirectoryIndex($missingDir));
+
+        // Even when photo_dir is unreachable, storing a binary to mirror + clearing cache makes it discoverable
+        config(['services.components.photo_dir' => $missingDir]);
+        $pn = 'CIRCUIT-TEST-' . uniqid();
+        $this->assertNull($service->findLocalPhoto($pn));
+
+        $relative = $service->storeBinary(str_repeat('B', 150), $pn, 'jpg');
+        $this->assertEquals("uploads/components/{$pn}.jpg", $relative);
+
+        $resolved = $service->findLocalPhoto($pn);
+        $this->assertNotNull($resolved);
+        $this->assertFileExists($resolved);
+
+        @unlink(public_path($relative));
+        $service->clearCache();
+    }
 }

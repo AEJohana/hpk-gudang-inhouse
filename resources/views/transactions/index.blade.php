@@ -27,6 +27,7 @@
     </x-slot>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6"
+         @live-filter-updated="if ($event.detail.ids) { allIds = $event.detail.ids; selectedIds = selectedIds.filter(id => allIds.includes(id)); }"
          x-data="{
              selectedIds: [],
              allIds: {{ json_encode($transactions->pluck('id')->all()) }},
@@ -42,23 +43,31 @@
              }
          }">
 
-        <!-- Search & Filter Bar (Sejajar & Otomatis Filter Saat Memilih) -->
+        <!-- Search & Filter Bar (Sejajar & Otomatis Filter Secara Live) -->
         <div class="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200/80 shadow-xs">
-            <form method="GET" action="{{ route('transactions.index') }}" class="flex items-center gap-2 w-full">
-                <!-- Search Input -->
+            <form method="GET" action="{{ route('transactions.index') }}" data-live-filter data-live-target="#transactions-results" class="flex items-center gap-2 w-full">
+                <!-- Search Input (Live Debounced) -->
                 <div class="relative flex-1 min-w-[130px]">
                     <input type="text" 
                            name="search" 
                            value="{{ request('search') }}" 
                            placeholder="Cari No. Transaksi, No. SPK Unit, atau Surat Jalan..." 
-                           class="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none bg-slate-50/50 focus:bg-white transition">
+                           class="w-full pl-9 pr-8 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none bg-slate-50/50 focus:bg-white transition">
                     <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none"></i>
+                    <span data-live-spinner class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-teal-600 text-xs pointer-events-none">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                    </span>
+                    <button type="button" 
+                            data-live-clear="input[name='search']" 
+                            class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 p-0.5 transition cursor-pointer" 
+                            title="Hapus pencarian">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
                 </div>
 
-                <!-- Jenis Transaksi Filter (Auto-Submit Saat Memilih) -->
+                <!-- Jenis Transaksi Filter (Live Auto-Filter) -->
                 <div class="w-44 sm:w-64 shrink-0">
                     <select name="type" 
-                            onchange="this.form.submit()" 
                             class="w-full py-2 px-2.5 sm:px-3 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-700 font-semibold bg-white cursor-pointer shadow-2xs">
                         <option value="">Semua Jenis Transaksi</option>
                         <option value="inbound" {{ request('type') == 'inbound' ? 'selected' : '' }}>Semua Penerimaan (Inbound)</option>
@@ -70,25 +79,24 @@
                     </select>
                 </div>
 
-                <!-- Action Buttons: Cari & Reset (Sejajar) -->
+                <!-- Reset Button -->
                 <div class="flex items-center space-x-1.5 shrink-0">
-                    <button type="submit" 
-                            class="py-2 px-3 sm:px-4 bg-[#0a2342] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
-                            title="Terapkan Filter Transaksi">
-                        <i class="fa-solid fa-filter text-teal-400 text-xs"></i>
-                        <span class="hidden sm:inline">Cari</span>
-                    </button>
-                    @if (request()->hasAny(['search', 'type']))
-                        <a href="{{ route('transactions.index') }}" 
-                           class="py-2 px-2.5 sm:px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs rounded-xl flex items-center justify-center font-bold transition shadow-2xs"
-                           title="Reset Seluruh Filter">
-                            <i class="fa-solid fa-rotate-left text-xs sm:mr-1"></i>
-                            <span class="hidden sm:inline">Reset</span>
-                        </a>
-                    @endif
+                    <a href="{{ route('transactions.index') }}" 
+                       data-live-reset
+                       class="{{ request()->hasAny(['search', 'type']) ? '' : 'hidden' }} py-2 px-2.5 sm:px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs rounded-xl flex items-center justify-center font-bold transition shadow-2xs cursor-pointer"
+                       title="Reset Seluruh Filter">
+                        <i class="fa-solid fa-rotate-left text-xs sm:mr-1"></i>
+                        <span class="hidden sm:inline">Reset</span>
+                    </a>
                 </div>
             </form>
         </div>
+
+        <div id="transactions-results">
+        @fragment('results')
+        <div data-live-meta data-page-ids='@json($transactions->pluck("id")->values())'>
+
+        <x-pagination-bar :paginator="$transactions" position="top" />
 
         <!-- 1. Mobile Card List View (< md screens) -->
         <div class="block md:hidden space-y-3">
@@ -257,11 +265,10 @@
             </table>
         </div>
 
-        @if ($transactions->hasPages())
-            <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
-                {{ $transactions->links() }}
-            </div>
-        @endif
+        <x-pagination-bar :paginator="$transactions" position="bottom" />
+        </div>
+        @endfragment
+        </div>
 
         <!-- Sticky Floating Action Bar for Bulk Slip Print (Hemat Kertas @2 Slip / HVS) -->
         <div x-show="selectedIds.length > 0" 

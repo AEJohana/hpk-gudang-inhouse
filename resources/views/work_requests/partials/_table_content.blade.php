@@ -1,3 +1,5 @@
+<x-pagination-bar :paginator="$workRequests" position="top" wrapper-class="px-4 py-3 border-b border-slate-100 bg-slate-50/50" />
+
 <div class="overflow-x-auto w-full">
     <table class="w-full text-left text-xs text-slate-600">
         <thead class="bg-slate-50/80 text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200">
@@ -218,7 +220,7 @@
                             {{ $wri->priority_badge['label'] }}
                         </span>
                         @if($wri->isOverdue())
-                            <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-300 shadow-2xs" title="Pengerjaan tertunda lebih dari 3 hari">
+                            <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-slate-200/80 shadow-2xs" title="Pengerjaan tertunda lebih dari 3 hari">
                                 <i class="fa-solid fa-triangle-exclamation text-rose-600 me-1 text-[8px]"></i> Terlambat > 3 Hari
                             </span>
                         @endif
@@ -226,7 +228,7 @@
                             @if($wri->isPrintable())
                                 <a href="{{ route('work-requests.print-sheet', $wri) }}" 
                                    target="_blank" 
-                                   class="inline-flex items-center space-x-1 px-1.5 py-0.2 rounded text-[9px] bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-slate-300 font-medium transition shadow-2xs"
+                                   class="inline-flex items-center space-x-1 px-1.5 py-0.2 rounded text-[9px] bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-slate-200/80 font-medium transition shadow-2xs"
                                    title="Cetak formulir resmi 3 duplikat">
                                     <i class="fa-solid fa-print text-[8.5px] text-slate-500"></i>
                                     <span>Cetak</span>
@@ -238,15 +240,15 @@
                     <!-- Tombol Aksi Status / Lencana Status -->
                     <div class="mt-2">
                         @if($wri->approval_pengaju === 'Ditolak')
-                            <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-rose-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs" title="Pengajuan tiket ini ditolak oleh Kepala Bagian Pengaju">
+                            <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-slate-200/80 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs" title="Pengajuan tiket ini ditolak oleh Kepala Bagian Pengaju">
                                 <i class="fa-solid fa-ban text-rose-600 me-1 text-[9px]"></i> Ditolak Pengaju
                             </span>
                         @elseif($wri->approval_penerima === 'Ditolak')
-                            <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-rose-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs" title="Pengerjaan tiket ini ditolak oleh Kepala Bagian Penerima">
+                            <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-slate-200/80 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs" title="Pengerjaan tiket ini ditolak oleh Kepala Bagian Penerima">
                                 <i class="fa-solid fa-ban text-rose-600 me-1 text-[9px]"></i> Ditolak Penerima
                             </span>
                         @elseif($wri->status === 'cancelled' || $wri->status === 'ditolak')
-                            <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-rose-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                            <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-slate-200/80 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
                                 <i class="fa-solid fa-ban text-rose-600 me-1 text-[9px]"></i> Dibatalkan
                             </span>
                         @elseif(!$wri->is_final)
@@ -260,7 +262,7 @@
                                         <span>Setujui Pengaju</span>
                                     </button>
                                 @else
-                                    <span class="inline-flex items-center px-2 py-1 text-amber-800 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                    <span class="inline-flex items-center px-2 py-1 text-amber-800 bg-amber-50 border border-slate-200/80 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
                                         <i class="fa-solid fa-clock text-amber-500 me-1 text-[9px]"></i> Menunggu Pengaju
                                     </span>
                                 @endif
@@ -268,13 +270,13 @@
                                 @if($canApprovePenerima)
                                     <button type="button" 
                                             @click='openAssignModal(@json($assignPayload))'
-                                            class="w-full inline-flex items-center justify-center px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[10px] rounded-lg shadow-2xs transition space-x-1 text-center cursor-pointer"
+                                            class="w-full inline-flex items-center justify-center px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-slate-200/80 font-bold text-[10px] rounded-lg shadow-2xs transition space-x-1 text-center cursor-pointer"
                                             title="Tiket menunggu verifikasi Anda. Klik untuk tugaskan operator pelaksana.">
                                         <i class="fa-solid fa-clock text-amber-600 text-[9px]"></i>
                                         <span class="truncate">Menunggu Approval Penerima</span>
                                     </button>
                                 @else
-                                    <span class="inline-flex items-center px-2 py-1 text-amber-900 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs"
+                                    <span class="inline-flex items-center px-2 py-1 text-amber-900 bg-amber-50 border border-slate-200/80 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs"
                                           title="Menunggu persetujuan dan penugasan operator oleh Ka. Bagian Penerima ({{ $wri->dept_penerima ?: 'Penerima' }})">
                                         <i class="fa-solid fa-clock text-amber-500 me-1 text-[9px]"></i> Menunggu Approval Penerima
                                     </span>
@@ -290,12 +292,12 @@
                                 @else
                                     @if($isWaitingMH)
                                         <div class="space-y-1 w-full">
-                                            <span class="inline-flex items-center px-2 py-1 text-amber-900 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                            <span class="inline-flex items-center px-2 py-1 text-amber-900 bg-amber-50 border border-slate-200/80 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
                                                 <i class="fa-solid fa-truck-ramp-box text-amber-600 me-1 text-[9px]"></i> Menunggu Diambil MH
                                             </span>
                                             @can('material-handling.view')
                                             <a href="{{ route('work-station-supplies.index') }}" 
-                                               class="inline-flex items-center justify-center px-2 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-[10px] rounded-lg shadow-2xs transition w-full space-x-1"
+                                               class="inline-flex items-center justify-center px-2 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 font-semibold text-[10px] rounded-lg shadow-2xs transition w-full space-x-1"
                                                title="Buka menu Material Handling untuk eksekusi penjemputan">
                                                 <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-slate-500"></i>
                                                 <span>Buka Menu MH</span>
@@ -304,13 +306,13 @@
                                         </div>
                                     @elseif($isInterStepTransit)
                                         <div class="space-y-1 w-full">
-                                            <span class="inline-flex items-center px-2 py-1 text-indigo-900 bg-indigo-50 border border-indigo-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs text-center leading-tight">
+                                            <span class="inline-flex items-center px-2 py-1 text-indigo-900 bg-indigo-50 border border-slate-200/80 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs text-center leading-tight">
                                                 <i class="fa-solid fa-truck-arrow-right text-indigo-600 me-1 text-[9px] shrink-0"></i>
                                                 <span>Diantar MH ke {{ $interStepTarget }}</span>
                                             </span>
                                             @can('material-handling.view')
                                             <a href="{{ route('work-station-supplies.index') }}" 
-                                               class="inline-flex items-center justify-center px-2 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-[10px] rounded-lg shadow-2xs transition w-full space-x-1"
+                                               class="inline-flex items-center justify-center px-2 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 font-semibold text-[10px] rounded-lg shadow-2xs transition w-full space-x-1"
                                                title="Buka menu Material Handling untuk memantau pengantaran antar-stasiun">
                                                 <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-slate-500"></i>
                                                 <span>Pantau di MH</span>
@@ -319,12 +321,12 @@
                                         </div>
                                     @elseif($isInTransitMH)
                                         <div class="space-y-1 w-full">
-                                            <span class="inline-flex items-center px-2 py-1 text-purple-800 bg-purple-50 border border-purple-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                            <span class="inline-flex items-center px-2 py-1 text-purple-800 bg-purple-50 border border-slate-200/80 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
                                                 <i class="fa-solid fa-truck-fast text-purple-600 me-1 text-[9px]"></i> Sedang Diantar Kurir MH
                                             </span>
                                             @can('material-handling.view')
                                             <a href="{{ route('work-station-supplies.index') }}" 
-                                               class="inline-flex items-center justify-center px-2 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-[10px] rounded-lg shadow-2xs transition w-full space-x-1"
+                                               class="inline-flex items-center justify-center px-2 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 font-semibold text-[10px] rounded-lg shadow-2xs transition w-full space-x-1"
                                                title="Buka menu Material Handling untuk memantau pengantaran">
                                                 <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-slate-500"></i>
                                                 <span>Pantau di MH</span>
@@ -332,21 +334,21 @@
                                             @endcan
                                         </div>
                                     @elseif($isReceivedGudang)
-                                        <span class="inline-flex items-center px-2 py-1 text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                        <span class="inline-flex items-center px-2 py-1 text-emerald-800 bg-emerald-50 border border-slate-200/80 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
                                             <i class="fa-solid fa-warehouse text-emerald-600 me-1 text-[9px]"></i> Tunggu Terima {{ $wri->dept_pengaju ?: 'Gudang' }}
                                         </span>
                                     @else
                                         @php
                                             $activeDept = $wri->getActiveStepNameForTarget($nextStatus) ?: ($wri->dept_penerima ?: 'Penerima');
                                         @endphp
-                                        <span class="inline-flex items-center px-2 py-1 text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                                        <span class="inline-flex items-center px-2 py-1 text-indigo-900 bg-indigo-50 border border-slate-200/80 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
                                             <i class="fa-solid fa-gear fa-spin text-indigo-500 me-1 text-[9px]"></i> Proses Line {{ $activeDept }}
                                         </span>
                                     @endif
                                 @endif
                             @endif
                         @else
-                            <span class="inline-flex items-center px-2 py-1 text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
+                            <span class="inline-flex items-center px-2 py-1 text-emerald-800 bg-emerald-50 border border-slate-200/80 rounded-lg text-[10px] font-bold w-full justify-center shadow-2xs">
                                 <i class="fa-solid fa-circle-check text-emerald-600 me-1 text-[9px]"></i> Selesai Diterima {{ $wri->dept_pengaju ?: 'Gudang' }}
                             </span>
                         @endif
@@ -399,22 +401,22 @@
                                 </button>
                                 <button type="button" 
                                         @click="openRejectModal('{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')" 
-                                        class="inline-flex items-center px-2 py-1 text-xs font-medium bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg shadow-2xs transition"
+                                        class="inline-flex items-center px-2 py-1 text-xs font-medium bg-white hover:bg-rose-50 text-rose-600 border border-slate-200/80 rounded-lg shadow-2xs transition"
                                         title="Tolak tiket ini">
                                     <i class="fa-solid fa-ban text-[10px]"></i>
                                 </button>
                             </div>
                         @else
-                            <span class="inline-flex items-center px-2 py-1 text-amber-800 bg-amber-50 border border-amber-300 rounded-lg text-[11px] font-bold whitespace-nowrap">
+                            <span class="inline-flex items-center px-2 py-1 text-amber-800 bg-amber-50 border border-slate-200/80 rounded-lg text-[11px] font-bold whitespace-nowrap">
                                 <i class="fa-solid fa-clock text-amber-500 me-1 text-[9px]"></i> Menunggu
                             </span>
                         @endif
                     @elseif($wri->approval_pengaju === 'Diterima')
-                        <span class="inline-flex items-center px-2.5 py-1 text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-bold whitespace-nowrap shadow-2xs" title="Disetujui oleh: {{ $approvalPengajuBy }} ({{ $approvalPengajuAt }})">
+                        <span class="inline-flex items-center px-2.5 py-1 text-emerald-800 bg-emerald-50 border border-slate-200/80 rounded-lg text-xs font-bold whitespace-nowrap shadow-2xs" title="Disetujui oleh: {{ $approvalPengajuBy }} ({{ $approvalPengajuAt }})">
                             <i class="fa-solid fa-check text-[9px] me-1 text-emerald-600"></i> Diterima
                         </span>
                     @else
-                        <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-rose-300 rounded-lg text-xs font-bold whitespace-nowrap">
+                        <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-slate-200/80 rounded-lg text-xs font-bold whitespace-nowrap">
                             <i class="fa-solid fa-xmark text-[9px] me-1 text-rose-600"></i> Ditolak
                         </span>
                     @endif
@@ -423,11 +425,11 @@
                 <!-- 5. Sts Penerima -->
                 <td class="py-3 px-2 align-top text-center">
                     @if($wri->approval_pengaju === 'Ditolak')
-                        <span class="inline-flex items-center px-2 py-1 text-slate-500 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Dibatalkan karena pengajuan tiket ini ditolak oleh Kepala Bagian Pengaju">
+                        <span class="inline-flex items-center px-2 py-1 text-slate-500 bg-slate-100 border border-slate-200/80 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Dibatalkan karena pengajuan tiket ini ditolak oleh Kepala Bagian Pengaju">
                             <i class="fa-solid fa-minus text-slate-400 me-1 text-[9px]"></i> Batal
                         </span>
                     @elseif($wri->approval_pengaju === 'Menunggu')
-                        <span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Menunggu persetujuan Ka. Bagian Pengaju terlebih dahulu">
+                        <span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-200/80 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Menunggu persetujuan Ka. Bagian Pengaju terlebih dahulu">
                             <i class="fa-solid fa-clock text-slate-400 me-1 text-[9px]"></i> Menunggu Pengaju
                         </span>
                     @elseif($wri->approval_penerima === 'Menunggu')
@@ -442,22 +444,22 @@
                                 </button>
                                 <button type="button" 
                                         @click="openRejectModal('{{ route('work-requests.reject', $wri) }}', '{{ $wri->wri_number }}')" 
-                                        class="inline-flex items-center px-2 py-1 text-xs font-medium bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg shadow-2xs transition"
+                                        class="inline-flex items-center px-2 py-1 text-xs font-medium bg-white hover:bg-rose-50 text-rose-600 border border-slate-200/80 rounded-lg shadow-2xs transition"
                                         title="Tolak pengerjaan mesin">
                                     <i class="fa-solid fa-ban text-[10px]"></i>
                                 </button>
                             </div>
                         @else
-                            <span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Menunggu verifikasi oleh Ka. {{ $wri->dept_penerima ?: 'Penerima' }}">
+                            <span class="inline-flex items-center px-2 py-1 text-slate-700 bg-slate-100 border border-slate-200/80 rounded-lg text-[11px] font-bold whitespace-nowrap" title="Menunggu verifikasi oleh Ka. {{ $wri->dept_penerima ?: 'Penerima' }}">
                                 <i class="fa-solid fa-clock text-slate-400 me-1 text-[9px]"></i> Belum Verifikasi
                             </span>
                         @endif
                     @elseif($wri->approval_penerima === 'Diterima')
-                        <span class="inline-flex items-center px-2.5 py-1 text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-bold whitespace-nowrap shadow-2xs" title="Diverifikasi oleh: {{ $approvalPenerimaBy }} ({{ $approvalPenerimaAt }})">
+                        <span class="inline-flex items-center px-2.5 py-1 text-emerald-800 bg-emerald-50 border border-slate-200/80 rounded-lg text-xs font-bold whitespace-nowrap shadow-2xs" title="Diverifikasi oleh: {{ $approvalPenerimaBy }} ({{ $approvalPenerimaAt }})">
                             <i class="fa-solid fa-check text-[9px] me-1 text-emerald-600"></i> Diterima
                         </span>
                     @else
-                        <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-rose-300 rounded-lg text-xs font-bold whitespace-nowrap">
+                        <span class="inline-flex items-center px-2 py-1 text-rose-800 bg-rose-50 border border-slate-200/80 rounded-lg text-xs font-bold whitespace-nowrap">
                             <i class="fa-solid fa-xmark text-[9px] me-1 text-rose-600"></i> Ditolak
                         </span>
                     @endif
@@ -467,7 +469,7 @@
                 <td class="py-3 px-2 align-top text-center">
                     <button type="button" 
                             @click='openImageModal(@json($imagePayload))'
-                            class="inline-flex items-center px-3 py-1 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-300 rounded-full font-medium text-xs shadow-2xs transition space-x-1.5"
+                            class="inline-flex items-center px-3 py-1 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200/80 rounded-full font-medium text-xs shadow-2xs transition space-x-1.5"
                             title="Lihat foto komponen">
                         <i class="fa-regular fa-image text-[11px] text-slate-500"></i>
                         <span>Lihat</span>
@@ -489,7 +491,7 @@
                                 @if($canEditRouting)
                                     <button type="button" 
                                             @click='openEditRoutingModal(@json($editRoutingPayload))'
-                                            class="inline-flex items-center justify-center w-5 h-5 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 hover:text-amber-900 border border-amber-300/80 transition cursor-pointer shrink-0 shadow-2xs" 
+                                            class="inline-flex items-center justify-center w-5 h-5 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 hover:text-amber-900 border border-slate-200/80 transition cursor-pointer shrink-0 shadow-2xs" 
                                             title="Ubah Alur / Routing Mesin">
                                         <i class="fa-solid fa-pencil text-[9px]"></i>
                                     </button>
@@ -567,8 +569,4 @@
 </div>
 
 <!-- Pagination -->
-@if($workRequests->hasPages())
-<div class="p-4 border-t border-slate-100 bg-slate-50/50">
-    {{ $workRequests->links() }}
-</div>
-@endif
+<x-pagination-bar :paginator="$workRequests" position="bottom" wrapper-class="p-4 border-t border-slate-100 bg-slate-50/50" />

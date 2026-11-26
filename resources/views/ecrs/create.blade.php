@@ -122,7 +122,7 @@
                 </div>
 
                 <!-- Attachment -->
-                <div class="pt-2">
+                <div data-drop-zone class="pt-2">
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                         Dokumen Pendukung (Gambar CAD / PDF Gambar Teknik)
                     </label>

@@ -116,6 +116,8 @@
                         </span>
                     </div>
 
+                    <x-pagination-bar :paginator="$locations" position="top" wrapper-class="mb-4 p-3 sm:px-4 sm:py-3 bg-slate-50/80 rounded-xl border border-slate-200/80" />
+
                     <div class="overflow-x-auto rounded-xl border border-slate-200/80 shadow-xs">
                         <table class="w-full text-left text-xs whitespace-nowrap">
                             <thead class="bg-slate-50 uppercase tracking-wider text-slate-600 font-extrabold border-b border-slate-200">
@@ -189,11 +191,7 @@
                     </div>
 
                     <!-- Pagination -->
-                    @if(method_exists($locations, 'links'))
-                    <div class="mt-5">
-                        {{ $locations->links() }}
-                    </div>
-                    @endif
+                    <x-pagination-bar :paginator="$locations" position="bottom" wrapper-class="mt-5 p-3 sm:px-4 sm:py-3 bg-slate-50/80 rounded-xl border border-slate-200/80" />
                 </div>
             </div>
 

@@ -1,4 +1,4 @@
-<nav class="bg-[#0a2342] border-b border-white/10 text-slate-200 sticky top-0 z-40 shadow-lg w-full max-w-full overflow-hidden">
+<nav class="bg-[#0a2342] border-b border-white/10 text-slate-200 sticky top-0 z-40 shadow-lg w-full max-w-full">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16 gap-2">
@@ -40,10 +40,10 @@
                     <!-- Master Data Dropdown -->
                     <x-dropdown align="left" width="48">
                         <x-slot name="trigger">
-                            <button class="px-3 py-1.5 text-xs font-semibold rounded-lg transition flex items-center {{ request()->routeIs('admin.component-categories.*', 'admin.uoms.*', 'admin.locations-master.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                            <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition flex items-center {{ request()->routeIs('admin.component-categories.*', 'admin.uoms.*', 'admin.locations-master.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
                                 <i class="fa-solid fa-database me-1.5 text-[11px]"></i>
                                 <span>Master Data</span>
-                                <i class="fa-solid fa-chevron-down text-[9px] ms-1.5 opacity-70"></i>
+                                <i class="fa-solid fa-chevron-down text-[9px] ms-1.5 opacity-70 transition-transform duration-200" :class="{ 'rotate-180': open }"></i>
                             </button>
                         </x-slot>
                         <x-slot name="content">
@@ -62,10 +62,10 @@
                     <!-- Pengaturan Dropdown -->
                     <x-dropdown align="left" width="56">
                         <x-slot name="trigger">
-                            <button class="px-3 py-1.5 text-xs font-semibold rounded-lg transition flex items-center {{ request()->routeIs('admin.settings.*', 'admin.operational-settings.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                            <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition flex items-center {{ request()->routeIs('admin.settings.*', 'admin.operational-settings.*') ? 'bg-white/15 text-amber-300 font-bold' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
                                 <i class="fa-solid fa-gears me-1.5 text-[11px]"></i>
                                 <span>Pengaturan</span>
-                                <i class="fa-solid fa-chevron-down text-[9px] ms-1.5 opacity-70"></i>
+                                <i class="fa-solid fa-chevron-down text-[9px] ms-1.5 opacity-70 transition-transform duration-200" :class="{ 'rotate-180': open }"></i>
                             </button>
                         </x-slot>
                         <x-slot name="content">
@@ -96,7 +96,7 @@
                 <!-- User Profile Glass Pill -->
                 <x-dropdown align="right" width="56">
                     <x-slot name="trigger">
-                        <button class="user-glass-pill focus:outline-none">
+                        <button type="button" class="user-glass-pill focus:outline-none">
                             <div class="w-8 h-8 rounded-full bg-amber-500/30 border border-amber-400/50 text-amber-200 font-extrabold text-xs flex items-center justify-center shadow-xs">
                                 {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
                             </div>
@@ -104,7 +104,7 @@
                                 <span class="font-bold text-xs text-white tracking-wide truncate max-w-[130px]">{{ Auth::user()->name }}</span>
                                 <span class="text-[10px] text-amber-300 font-medium truncate max-w-[130px]">{{ Auth::user()->role_badge }}</span>
                             </div>
-                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-300 ml-0.5"></i>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-300 ml-0.5 transition-transform duration-200" :class="{ 'rotate-180': open }"></i>
                         </button>
                     </x-slot>
 

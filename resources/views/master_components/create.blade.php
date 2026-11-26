@@ -47,7 +47,7 @@
                 </div>
 
                 <!-- Mode 1: File Upload -->
-                <div x-show="mode === 'upload'" class="flex items-center space-x-4">
+                <div x-show="mode === 'upload'" data-drop-zone class="flex items-center space-x-4">
                     <div class="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
                         <template x-if="isPdf">
                             <div class="text-center">

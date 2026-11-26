@@ -101,6 +101,9 @@ class Component extends Model
 
     public function getTotalStockAttribute(): float
     {
+        if (array_key_exists('total_stock_sum', $this->attributes)) {
+            return (float) ($this->attributes['total_stock_sum'] ?? 0);
+        }
         if ($this->relationLoaded('stockBalances')) {
             return (float) $this->stockBalances->sum('quantity');
         }
@@ -244,22 +247,17 @@ class Component extends Model
     }
 
     /**
-     * Get dynamic version string for browser cache-busting based on physical file timestamp and size.
+     * Get lightweight version string for browser cache-busting using in-memory DB timestamp.
+     * Avoids synchronous SMB/filesystem I/O during SSR page rendering.
      */
     public function getPhotoVersionAttribute(): string
     {
-        $filePath = $this->local_photo_file_path;
-        if ($filePath && @file_exists($filePath)) {
-            $mtime = @filemtime($filePath);
-            $size = @filesize($filePath);
-            return (string) ($mtime ? "{$mtime}_{$size}" : ($this->updated_at?->timestamp ?? 1));
-        }
-        return (string) ($this->updated_at?->timestamp ?? 'none');
+        return (string) ($this->updated_at?->timestamp ?? '1');
     }
 
     public function getImageUrlAttribute(): string
     {
-        // 1. Asynchronous Photo Streaming Route (High-Performance Zero-Blocking Stream with Cache-Buster)
+        // 1. Asynchronous Photo Streaming Route (Zero-Blocking Stream with Lightweight DB Cache-Buster)
         if ($this->id && \Illuminate\Support\Facades\Route::has('components.photo-stream')) {
             return route('components.photo-stream', [
                 'component' => $this->id,

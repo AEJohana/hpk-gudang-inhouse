@@ -37,15 +37,17 @@ class QrRequestController extends Controller
             });
         }
 
-        $qrRequests = $query->latest()->paginate(15)->withQueryString();
+        $qrRequests = $query->latest()->paginate($this->resolvePerPage($request, 15))->withQueryString();
 
-        return view('qr_requests.index', compact('qrRequests', 'currentStatus', 'counts'));
+        return view('qr_requests.index', compact('qrRequests', 'currentStatus', 'counts'))
+            ->fragmentIf($request->boolean('_live'), 'results');
     }
 
     public function create(Request $request)
     {
         $components = Component::where('is_active', true)
-            ->with(['defaultLocation', 'componentCategory', 'uomRelation', 'stockBalances'])
+            ->with(['defaultLocation', 'componentCategory', 'uomRelation'])
+            ->withSum('stockBalances as total_stock_sum', 'quantity')
             ->orderBy('name')
             ->get();
         $selectedComponentId = (string) $request->get('component_id', '');
@@ -63,7 +65,7 @@ class QrRequestController extends Controller
                 'dimension' => $comp->dimension_formatted,
                 'total_stock' => (float) $comp->total_stock,
                 'image_url' => $comp->image_url,
-                'is_pdf' => (bool) $comp->is_pdf_drawing,
+                'is_pdf' => $comp->image_path ? str_ends_with(strtolower($comp->image_path), '.pdf') : false,
                 'specs' => $comp->description ?: '',
             ];
         });

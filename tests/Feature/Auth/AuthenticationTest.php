@@ -54,6 +54,11 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Ingat saya');
         $response->assertSee('Lupa password?');
+        $response->assertSee('togglePassword()', false);
+        $response->assertDontSee('Akses Cepat Uji Coba', false);
+        $response->assertDontSee('fillUser(', false);
+        $response->assertDontSee('@spv_gudang', false);
+        $response->assertDontSee('@engineer', false);
     }
 
     public function test_users_can_authenticate_using_the_login_screen(): void

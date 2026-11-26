@@ -43,4 +43,44 @@ class WorkRequestControlBarDropdownTest extends TestCase
         // 6. Assert search box exists in column 2
         $this->assertStringContainsString('placeholder="Cari No. WRI, komponen, SPK, departemen..."', $content);
     }
+
+    /**
+     * Test KPI summary cards use clean neutral borders without colored border lines.
+     */
+    public function test_wri_kpi_cards_have_no_colored_border_lines(): void
+    {
+        $viewPath = dirname(__DIR__, 2) . '/resources/views/work_requests/index.blade.php';
+        $content = file_get_contents($viewPath);
+
+        $start = strpos($content, '<!-- 1. KPI SUMMARY STATS CARDS');
+        $end = strpos($content, '<!-- 2. UNIFIED WORK REQUEST CONTROL BAR');
+        $this->assertNotFalse($start);
+        $this->assertNotFalse($end);
+
+        $kpiSection = substr($content, $start, $end - $start);
+
+        $this->assertStringContainsString('border-slate-200/80', $kpiSection);
+        $this->assertStringContainsString('grid-cols-2 sm:grid-cols-3 xl:grid-cols-6', $kpiSection);
+        $this->assertStringNotContainsString('lg:grid-cols-6', $kpiSection);
+        $this->assertStringContainsString('min-w-0 flex-1', $kpiSection);
+        $this->assertStringContainsString('data-flip-grid', $kpiSection);
+        $this->assertStringContainsString('data-flip-card', $kpiSection);
+        $this->assertStringContainsString('renderTableHtml(', $content);
+        foreach ([
+            'border-[#0a2342]',
+            'border-amber-',
+            'border-blue-',
+            'border-teal-',
+            'border-emerald-',
+            'border-rose-',
+            'ring-[#0a2342]',
+            'ring-amber-',
+            'ring-blue-',
+            'ring-teal-',
+            'ring-emerald-',
+            'ring-rose-',
+        ] as $forbiddenClass) {
+            $this->assertStringNotContainsString($forbiddenClass, $kpiSection);
+        }
+    }
 }

@@ -88,32 +88,41 @@
         <!-- 3. AUDIT LOGS CARD WITH EXPANDED FILTERS -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
             
-            <!-- Filter Toolbar -->
-            <form method="GET" action="{{ request()->routeIs('admin.*') ? route('admin.audit-logs.index') : route('activities.index') }}" class="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-4">
+            <!-- Filter Toolbar (Live Auto-Filter) -->
+            <form method="GET" action="{{ request()->routeIs('admin.*') ? route('admin.audit-logs.index') : route('activities.index') }}" data-live-filter data-live-target="#audit-logs-results" data-live-debounce="400" class="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-4">
                 <!-- Row 1: Search Input -->
                 <div class="relative w-full">
                     <label for="search" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                         Pencarian Kata Kunci
                     </label>
                     <div class="relative">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
                         <input type="text" 
                                id="search" 
                                name="search" 
                                value="{{ request('search') }}" 
                                placeholder="Cari nama user, nomor WRI/TRX, kode part, event, atau aksi..." 
-                               class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 bg-white shadow-2xs transition">
+                               class="w-full pl-9 pr-9 py-2 text-xs rounded-xl border border-slate-300 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 bg-white shadow-2xs transition">
+                        <span data-live-spinner class="hidden absolute right-3.5 top-1/2 -translate-y-1/2 text-cyan-600 text-xs pointer-events-none">
+                            <i class="fa-solid fa-spinner fa-spin"></i>
+                        </span>
+                        <button type="button" 
+                                data-live-clear="#search" 
+                                class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 p-0.5 transition cursor-pointer" 
+                                title="Hapus pencarian">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
                     </div>
                 </div>
 
                 <!-- Row 2: Dropdown Filters -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-10 gap-3 items-end">
                     <!-- Filter Rentang Waktu -->
-                    <div>
+                    <div class="lg:col-span-3">
                         <label for="period" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Rentang Waktu
                         </label>
-                        <select name="period" id="period" onchange="this.form.submit()" class="w-full py-2 px-3 text-xs rounded-xl border border-slate-300 bg-white focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 cursor-pointer">
+                        <select name="period" id="period" data-default-value="all" class="w-full py-2 px-3 text-xs rounded-xl border border-slate-300 bg-white focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 cursor-pointer">
                             <option value="all" {{ request('period', 'all') === 'all' ? 'selected' : '' }}>Semua Riwayat</option>
                             <option value="today" {{ request('period') === 'today' ? 'selected' : '' }}>Hari Ini (24 Jam)</option>
                             <option value="7_days" {{ request('period') === '7_days' ? 'selected' : '' }}>7 Hari Terakhir</option>
@@ -122,12 +131,12 @@
                     </div>
 
                     <!-- Filter Modul -->
-                    <div>
+                    <div class="lg:col-span-3">
                         <label for="module" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Modul Aplikasi
                         </label>
-                        <select name="module" id="module" onchange="this.form.submit()" class="w-full py-2 px-3 text-xs rounded-xl border border-slate-300 bg-white focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 cursor-pointer">
-                            <option value="all">Semua Modul</option>
+                        <select name="module" id="module" data-default-value="all" class="w-full py-2 px-3 text-xs rounded-xl border border-slate-300 bg-white focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 cursor-pointer">
+                            <option value="all" {{ request('module', 'all') === 'all' ? 'selected' : '' }}>Semua Modul</option>
                             @foreach($modulesList as $modKey => $modLabel)
                                 <option value="{{ $modKey }}" {{ request('module') === $modKey ? 'selected' : '' }}>{{ $modLabel }}</option>
                             @endforeach
@@ -135,12 +144,12 @@
                     </div>
 
                     <!-- Filter Pengguna -->
-                    <div>
+                    <div class="lg:col-span-3">
                         <label for="user_id" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Pengguna (User)
                         </label>
-                        <select name="user_id" id="user_id" onchange="this.form.submit()" class="w-full py-2 px-3 text-xs rounded-xl border border-slate-300 bg-white focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 cursor-pointer">
-                            <option value="all">Semua Pengguna</option>
+                        <select name="user_id" id="user_id" data-default-value="all" class="w-full py-2 px-3 text-xs rounded-xl border border-slate-300 bg-white focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 cursor-pointer">
+                            <option value="all" {{ request('user_id', 'all') === 'all' ? 'selected' : '' }}>Semua Pengguna</option>
                             @foreach($usersList as $u)
                                 <option value="{{ $u->id }}" {{ request('user_id') == $u->id ? 'selected' : '' }}>
                                     {{ $u->name }} ({{ $u->department ?? 'Gudang' }})
@@ -149,22 +158,22 @@
                         </select>
                     </div>
 
-                    <!-- Action Buttons -->
-                    <div class="flex items-center space-x-2">
-                        <button type="submit" 
-                                class="flex-1 py-2 px-4 bg-[#0a2342] hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center">
-                            <i class="fa-solid fa-filter me-1.5"></i> Terapkan
-                        </button>
-                        @if(request()->hasAny(['search', 'period', 'module', 'user_id', 'event']))
+                    <!-- Reset Action -->
+                    <div class="lg:col-span-1 flex items-center justify-end">
                         <a href="{{ request()->routeIs('admin.*') ? route('admin.audit-logs.index') : route('activities.index') }}" 
-                           class="py-2 px-3 bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 rounded-xl text-xs font-semibold transition" 
+                           data-live-reset
+                           class="{{ request()->hasAny(['search', 'period', 'module', 'user_id', 'event']) ? '' : 'hidden' }} w-full py-2 px-3 bg-white hover:bg-rose-50 hover:text-rose-600 text-slate-600 border border-slate-300 rounded-xl text-xs font-semibold transition inline-flex items-center justify-center cursor-pointer" 
                            title="Reset Seluruh Filter">
                             <i class="fa-solid fa-rotate-left"></i>
                         </a>
-                        @endif
                     </div>
                 </div>
             </form>
+
+            <div id="audit-logs-results">
+            @fragment('results')
+
+            <x-pagination-bar :paginator="$logs" position="top" wrapper-class="mb-4 p-3 sm:px-4 sm:py-3 bg-slate-50 rounded-xl border border-slate-200" />
 
             <!-- Table Section -->
             <div class="overflow-x-auto rounded-xl border border-slate-200/80 shadow-xs">
@@ -275,11 +284,9 @@
             </div>
 
             <!-- Pagination -->
-            @if(method_exists($logs, 'hasPages') && $logs->hasPages())
-            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                {{ $logs->links() }}
+            <x-pagination-bar :paginator="$logs" position="bottom" wrapper-class="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200" />
+            @endfragment
             </div>
-            @endif
 
         </div>
 

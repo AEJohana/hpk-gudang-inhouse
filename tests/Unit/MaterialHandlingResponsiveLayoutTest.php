@@ -26,7 +26,23 @@ class MaterialHandlingResponsiveLayoutTest extends TestCase
         $this->assertStringNotContainsString("Item Menunggu Ambil", $content);
         $this->assertStringNotContainsString("Item Siap Diambil", $content);
 
-        // 3. Compact 2x2 grid filters on tablet/mobile and flex on desktop
-        $this->assertStringContainsString("grid grid-cols-2 md:flex md:items-center gap-2 w-full", $content);
+        // 3. White shape frame, 3-column sub-tab row, dynamic item counter badge, and pill search + dropdown filters
+        $this->assertStringContainsString("bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm", $content);
+        $this->assertStringContainsString("grid-cols-3 gap-2 sm:gap-3", $content);
+        $this->assertStringContainsString("currentFilteredCount() + ' Item'", $content);
+        $this->assertStringContainsString("rounded-full bg-white border border-slate-200/80", $content);
+        $this->assertStringContainsString("partials._task_list", $content);
+
+        // 4. Unified horizontal swipeable table partial (no vertical mobile cards), synchronized labels, & contextual Ambil buttons
+        $partialPath = dirname(__DIR__, 2) . '/resources/views/work_station_supplies/partials/_task_list.blade.php';
+        $this->assertFileExists($partialPath);
+        $partialContent = file_get_contents($partialPath);
+        $this->assertStringContainsString('overflow-x-auto', $partialContent);
+        $this->assertStringContainsString('min-w-[780px]', $partialContent);
+        $this->assertStringNotContainsString('block md:hidden', $partialContent);
+        $this->assertStringContainsString('Dalam Perjalanan', $partialContent);
+        $this->assertStringContainsString('Siap Diambil', $partialContent);
+        $this->assertStringContainsString('bg-rose-600', $partialContent);
+        $this->assertStringContainsString('bg-emerald-600', $partialContent);
     }
 }

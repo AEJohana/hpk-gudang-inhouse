@@ -27,6 +27,7 @@
     </x-slot>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6"
+         @live-filter-updated="if ($event.detail.ids) { allIds = $event.detail.ids; selectedIds = selectedIds.filter(id => allIds.includes(id)); }"
          x-data="{
             selectedIds: [],
             allIds: {{ json_encode($qrRequests->pluck('id')->values()->all()) }},
@@ -139,10 +140,10 @@
                 <!-- 2. Subtle Divider (Desktop Only) -->
                 <div class="hidden md:block w-px h-6 bg-slate-200/90 mx-1"></div>
 
-                <!-- 3. Integrated Search Capsule -->
-                <form method="GET" action="{{ route('qr-requests.index') }}" class="w-full md:w-auto flex items-center gap-1.5">
-                    <input type="hidden" name="status" value="{{ $currentStatus }}">
-                    <div class="relative w-full md:w-64">
+                <!-- 3. Integrated Live Search Capsule -->
+                <form method="GET" action="{{ route('qr-requests.index') }}" data-live-filter data-live-target="#qr-requests-results" class="w-full md:w-auto flex items-center gap-1.5">
+                    <input type="hidden" name="status" value="{{ $currentStatus }}" data-default-value="{{ $currentStatus }}">
+                    <div class="relative w-full md:w-72">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                             <i class="fa-solid fa-magnifying-glass text-xs"></i>
                         </div>
@@ -150,22 +151,27 @@
                                name="q" 
                                value="{{ request('q') }}" 
                                placeholder="Cari no. request, part, atau nama..." 
-                               class="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl md:rounded-full border border-slate-200 bg-slate-50/80 hover:bg-slate-100/60 focus:bg-white focus:outline-hidden focus:border-[#0a2342] focus:ring-1 focus:ring-[#0a2342] transition">
-                        @if (request('q'))
-                            <a href="{{ route('qr-requests.index', ['status' => $currentStatus]) }}" 
-                               class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-rose-600"
-                               title="Hapus Pencarian">
-                                <i class="fa-solid fa-xmark text-xs"></i>
-                            </a>
-                        @endif
+                               class="w-full pl-8 pr-8 py-1.5 text-xs rounded-xl md:rounded-full border border-slate-200 bg-slate-50/80 hover:bg-slate-100/60 focus:bg-white focus:outline-hidden focus:border-[#0a2342] focus:ring-1 focus:ring-[#0a2342] transition">
+                        <span data-live-spinner class="hidden absolute inset-y-0 right-7 flex items-center text-cyan-700 pointer-events-none">
+                            <i class="fa-solid fa-spinner fa-spin text-xs"></i>
+                        </span>
+                        <button type="button" 
+                                data-live-clear="input[name='q']"
+                                class="{{ request('q') ? '' : 'hidden' }} absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-rose-600 cursor-pointer"
+                                title="Hapus Pencarian">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
                     </div>
-                    <button type="submit" class="px-3.5 py-1.5 bg-[#0a2342] hover:bg-slate-800 text-white text-xs font-bold rounded-xl md:rounded-full shadow-xs transition cursor-pointer shrink-0">
-                        Cari
-                    </button>
                 </form>
 
             </div>
         </div>
+
+        <div id="qr-requests-results">
+        @fragment('results')
+        <div data-live-meta data-page-ids='@json($qrRequests->pluck("id")->values())'>
+
+        <x-pagination-bar :paginator="$qrRequests" position="top" />
 
         <!-- Mobile Card View (< md) -->
         <div class="block md:hidden space-y-3">
@@ -338,11 +344,10 @@
             </table>
         </div>
 
-        @if ($qrRequests->hasPages())
-            <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
-                {{ $qrRequests->links() }}
-            </div>
-        @endif
+        <x-pagination-bar :paginator="$qrRequests" position="bottom" />
+        </div>
+        @endfragment
+        </div>
 
         <!-- Floating Action Bar Cetak Bersamaan Massal -->
         <div x-show="selectedIds.length > 0"

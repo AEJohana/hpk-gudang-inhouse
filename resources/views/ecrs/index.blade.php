@@ -44,6 +44,8 @@
             </a>
         </div>
 
+        <x-pagination-bar :paginator="$ecrs" position="top" />
+
         <!-- 1. Mobile Card List (< md screens) -->
         <div class="block md:hidden space-y-3">
             @forelse ($ecrs as $ecr)
@@ -171,11 +173,7 @@
             </table>
         </div>
 
-        @if ($ecrs->hasPages())
-            <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
-                {{ $ecrs->links() }}
-            </div>
-        @endif
+        <x-pagination-bar :paginator="$ecrs" position="bottom" />
 
     </div>
 </x-app-layout>

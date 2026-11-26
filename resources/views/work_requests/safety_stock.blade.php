@@ -45,6 +45,7 @@
 @endphp
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6"
+         @live-filter-updated="if ($event.detail.components) availableComponents = $event.detail.components"
          x-data="safetyStockCart({ 
              components: @js($criticalComponentsJson), 
              fabricationDepartments: @js($fabricationDepartmentsJson) 
@@ -87,16 +88,47 @@
                     <h4 class="font-bold text-xs uppercase tracking-wider text-slate-800">Daftar Komponen Defisit Stok</h4>
                 </div>
 
-                <!-- Search -->
-                <form method="GET" action="{{ route('work-requests.safety-stock') }}" class="relative w-full sm:w-72">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <!-- Live Search -->
+                <form method="GET" action="{{ route('work-requests.safety-stock') }}" data-live-filter data-live-target="#safety-stock-results" class="relative w-full sm:w-72">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
                     <input type="text" 
                            name="search" 
                            value="{{ request()->search }}" 
                            placeholder="Cari part number atau nama..." 
-                           class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
+                           class="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
+                    <span data-live-spinner class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-amber-600 text-xs pointer-events-none">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                    </span>
+                    <button type="button" 
+                            data-live-clear="input[name='search']" 
+                            class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 p-0.5 transition cursor-pointer" 
+                            title="Hapus pencarian">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
                 </form>
             </div>
+
+            <div id="safety-stock-results">
+            @fragment('results')
+            @php
+                $fragmentComponentsJson = $criticalComponents->map(function($c) {
+                    $deficit = max(1, (int)$c->minimum_stock - (int)$c->total_stock);
+                    return [
+                        'id' => $c->id,
+                        'name' => $c->name,
+                        'part_number' => $c->part_number,
+                        'category' => $c->category->name ?? 'Fabrikasi',
+                        'stock' => (float)$c->total_stock,
+                        'min_stock' => (float)$c->minimum_stock,
+                        'deficit' => (float)$deficit,
+                        'uom' => $c->uom ?: 'PCS',
+                        'location' => $c->defaultLocation ? $c->defaultLocation->code : '-',
+                        'image_url' => $c->image_url,
+                    ];
+                })->values();
+            @endphp
+            <div data-live-meta data-page-components='@json($fragmentComponentsJson)'>
+            <x-pagination-bar :paginator="$criticalComponents" position="top" wrapper-class="px-4 py-3 border-b border-slate-100 bg-slate-50/40" />
 
             <!-- DESKTOP / TABLET VIEW (TABLE WITH MIN-WIDTH & NO-WRAP BADGES) -->
             <div class="hidden md:block overflow-x-auto">
@@ -296,11 +328,10 @@
                 @endforelse
             </div>
 
-            @if($criticalComponents->hasPages())
-            <div class="p-4 border-t border-slate-100">
-                {{ $criticalComponents->links() }}
+            <x-pagination-bar :paginator="$criticalComponents" position="bottom" wrapper-class="p-4 border-t border-slate-100" />
             </div>
-            @endif
+            @endfragment
+            </div>
         </div>
 
         <!-- 3. FLOATING ACTION BAR KERANJANG (Melayang saat ada item dipilih) -->

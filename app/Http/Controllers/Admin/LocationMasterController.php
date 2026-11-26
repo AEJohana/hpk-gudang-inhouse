@@ -23,7 +23,7 @@ class LocationMasterController extends Controller
             $query->where('zone_id', $request->zone_id);
         }
 
-        $locations = $query->orderBy('zone_code')->orderBy('aisle')->orderBy('rack_number')->orderBy('bin_level')->paginate(50)->withQueryString();
+        $locations = $query->orderBy('zone_code')->orderBy('aisle')->orderBy('rack_number')->orderBy('bin_level')->paginate($this->resolvePerPage($request, 50))->withQueryString();
 
         return view('admin.locations.index', compact('warehouses', 'locations'));
     }

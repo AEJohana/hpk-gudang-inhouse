@@ -120,7 +120,7 @@
                         </div>
                     </div>
 
-                    <div>
+                    <div data-drop-zone>
                         <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Foto Bukti Fisik Kerusakan / Timbangan Scrap:</label>
                         <input type="file" 
                                name="items[0][photo]" 

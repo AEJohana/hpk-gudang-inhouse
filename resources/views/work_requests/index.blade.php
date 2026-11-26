@@ -49,95 +49,101 @@
         @include('work_requests.partials.sub_nav')
 
         <!-- 1. KPI SUMMARY STATS CARDS (INTERACTIVE QUICK FILTERS - 6 STATUS UTAMA) -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3" data-flip-grid>
             <a href="{{ route('work-requests.index', ['scope' => $scope]) }}" 
                @click.prevent="switchTab('all', '{{ route('work-requests.index', ['scope' => $scope]) }}')"
-               class="bg-white hover:bg-slate-50 rounded-2xl p-4 border shadow-xs flex items-center space-x-3 transition group active:scale-[0.99] cursor-pointer"
-               :class="activeTab === 'all' ? 'border-[#0a2342] ring-2 ring-[#0a2342]/10 bg-slate-50/80' : 'border-slate-200'"
+               data-flip-card
+               class="bg-white hover:bg-slate-50/80 rounded-2xl p-3.5 xl:p-3 border border-slate-200/80 shadow-xs flex items-center space-x-2.5 transition duration-300 ease-out group active:scale-[0.99] cursor-pointer min-w-0"
+               :class="activeTab === 'all' ? 'bg-slate-50/90 shadow-sm -translate-y-0.5' : ''"
                title="Klik untuk menampilkan semua tiket">
-                <div class="w-11 h-11 rounded-xl bg-slate-100 group-hover:bg-[#0a2342] group-hover:text-amber-400 text-slate-700 flex items-center justify-center flex-shrink-0 text-lg font-bold transition">
+                <div class="w-10 h-10 xl:w-9 xl:h-9 rounded-xl bg-slate-100 group-hover:bg-[#0a2342] group-hover:text-amber-400 text-slate-700 flex items-center justify-center flex-shrink-0 text-base font-bold transition">
                     <i class="fa-solid fa-file-invoice"></i>
                 </div>
-                <div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total WRI</span>
+                <div class="min-w-0 flex-1">
+                    <span class="block truncate text-[10px] font-bold uppercase tracking-wider text-slate-400">Total WRI</span>
                     <h3 class="text-xl font-black text-slate-900 leading-tight mt-0.5">{{ $totalWri }}</h3>
-                    <span class="text-[10px] text-slate-500">Semua tiket order</span>
+                    <span class="block truncate text-[10px] text-slate-500" title="Semua tiket order">Semua tiket order</span>
                 </div>
             </a>
 
             <a href="{{ route('work-requests.index', ['scope' => $scope, 'status' => 'verifikasi']) }}" 
                @click.prevent="switchTab('verifikasi', '{{ route('work-requests.index', ['scope' => $scope, 'status' => 'verifikasi']) }}')"
-               class="bg-white hover:bg-amber-50/50 rounded-2xl p-4 border shadow-xs flex items-center space-x-3 transition group active:scale-[0.99] cursor-pointer"
-               :class="activeTab === 'verifikasi' ? 'border-amber-400 ring-2 ring-amber-400/20 bg-amber-50/30' : '{{ $needsApprovalCount > 0 ? 'border-amber-300 bg-amber-50/20' : 'border-slate-200' }}'"
+               data-flip-card
+               class="bg-white hover:bg-slate-50/80 rounded-2xl p-3.5 xl:p-3 border border-slate-200/80 shadow-xs flex items-center space-x-2.5 transition duration-300 ease-out group active:scale-[0.99] cursor-pointer min-w-0"
+               :class="activeTab === 'verifikasi' ? 'bg-slate-50/90 shadow-sm -translate-y-0.5' : ''"
                title="Klik untuk menyaring tiket yang butuh verifikasi">
-                <div class="w-11 h-11 rounded-xl {{ $needsApprovalCount > 0 ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-100 text-slate-600' }} flex items-center justify-center flex-shrink-0 text-lg font-bold transition">
+                <div class="w-10 h-10 xl:w-9 xl:h-9 rounded-xl {{ $needsApprovalCount > 0 ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-100 text-slate-600' }} flex items-center justify-center flex-shrink-0 text-base font-bold transition">
                     <i class="fa-solid fa-stamp"></i>
                 </div>
-                <div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800">Perlu Verifikasi</span>
+                <div class="min-w-0 flex-1">
+                    <span class="block truncate text-[10px] font-bold uppercase tracking-wider text-amber-800">Perlu Verifikasi</span>
                     <h3 class="text-xl font-black text-amber-950 leading-tight mt-0.5">{{ $needsApprovalCount }}</h3>
-                    <span class="text-[10px] text-amber-700 font-medium">Pengaju & Penerima</span>
+                    <span class="block truncate text-[10px] text-amber-700 font-medium" title="Pengaju & Penerima">Pengaju & Penerima</span>
                 </div>
             </a>
 
             <a href="{{ route('work-requests.index', ['scope' => $scope, 'status' => 'proses']) }}" 
                @click.prevent="switchTab('proses', '{{ route('work-requests.index', ['scope' => $scope, 'status' => 'proses']) }}')"
-               class="bg-white hover:bg-blue-50/50 rounded-2xl p-4 border shadow-xs flex items-center space-x-3 transition group active:scale-[0.99] cursor-pointer"
-               :class="activeTab === 'proses' ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/30' : 'border-blue-200'"
+               data-flip-card
+               class="bg-white hover:bg-slate-50/80 rounded-2xl p-3.5 xl:p-3 border border-slate-200/80 shadow-xs flex items-center space-x-2.5 transition duration-300 ease-out group active:scale-[0.99] cursor-pointer min-w-0"
+               :class="activeTab === 'proses' ? 'bg-slate-50/90 shadow-sm -translate-y-0.5' : ''"
                title="Klik untuk menyaring tiket yang sedang dalam proses / antrian">
-                <div class="w-11 h-11 rounded-xl bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-700 flex items-center justify-center flex-shrink-0 text-lg font-bold transition">
+                <div class="w-10 h-10 xl:w-9 xl:h-9 rounded-xl bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-700 flex items-center justify-center flex-shrink-0 text-base font-bold transition">
                     <i class="fa-solid fa-gears animate-spin" style="animation-duration: 6s;"></i>
                 </div>
-                <div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600">Sedang Proses</span>
+                <div class="min-w-0 flex-1">
+                    <span class="block truncate text-[10px] font-bold uppercase tracking-wider text-blue-600">Sedang Proses</span>
                     <h3 class="text-xl font-black text-blue-700 leading-tight mt-0.5">{{ $inProcessCount }}</h3>
-                    <span class="text-[10px] text-blue-500">Antrian, Mesin, MH</span>
+                    <span class="block truncate text-[10px] text-blue-500" title="Antrian, Mesin, MH">Antrian, Mesin, MH</span>
                 </div>
             </a>
 
             <a href="{{ route('work-requests.index', ['scope' => $scope, 'status' => 'siap']) }}" 
                @click.prevent="switchTab('siap', '{{ route('work-requests.index', ['scope' => $scope, 'status' => 'siap']) }}')"
-               class="bg-white hover:bg-teal-50/50 rounded-2xl p-4 border shadow-xs flex items-center space-x-3 transition group active:scale-[0.99] cursor-pointer"
-               :class="activeTab === 'siap' ? 'border-teal-500 ring-2 ring-teal-500/20 bg-teal-50/40' : 'border-teal-200 bg-teal-50/20'"
+               data-flip-card
+               class="bg-white hover:bg-slate-50/80 rounded-2xl p-3.5 xl:p-3 border border-slate-200/80 shadow-xs flex items-center space-x-2.5 transition duration-300 ease-out group active:scale-[0.99] cursor-pointer min-w-0"
+               :class="activeTab === 'siap' ? 'bg-slate-50/90 shadow-sm -translate-y-0.5' : ''"
                title="Klik untuk menyaring tiket siap diambil / menuju pengaju">
-                <div class="w-11 h-11 rounded-xl bg-teal-500 group-hover:bg-teal-600 text-white flex items-center justify-center flex-shrink-0 text-lg font-bold transition">
+                <div class="w-10 h-10 xl:w-9 xl:h-9 rounded-xl bg-teal-500 group-hover:bg-teal-600 text-white flex items-center justify-center flex-shrink-0 text-base font-bold transition">
                     <i class="fa-solid fa-dolly"></i>
                 </div>
-                <div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-teal-800">Siap Diambil</span>
+                <div class="min-w-0 flex-1">
+                    <span class="block truncate text-[10px] font-bold uppercase tracking-wider text-teal-800">Siap Diambil</span>
                     <h3 class="text-xl font-black text-teal-900 leading-tight mt-0.5">{{ $readyForWarehouseCount }}</h3>
-                    <span class="text-[10px] text-teal-700 font-semibold">Menuju Pengaju</span>
+                    <span class="block truncate text-[10px] text-teal-700 font-semibold" title="Menuju Pengaju">Menuju Pengaju</span>
                 </div>
             </a>
 
             <a href="{{ route('work-requests.index', ['scope' => $scope, 'status' => 'selesai']) }}" 
                @click.prevent="switchTab('selesai', '{{ route('work-requests.index', ['scope' => $scope, 'status' => 'selesai']) }}')"
-               class="bg-white hover:bg-emerald-50/50 rounded-2xl p-4 border shadow-xs flex items-center space-x-3 transition group active:scale-[0.99] cursor-pointer"
-               :class="activeTab === 'selesai' ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/30' : 'border-emerald-200'"
+               data-flip-card
+               class="bg-white hover:bg-slate-50/80 rounded-2xl p-3.5 xl:p-3 border border-slate-200/80 shadow-xs flex items-center space-x-2.5 transition duration-300 ease-out group active:scale-[0.99] cursor-pointer min-w-0"
+               :class="activeTab === 'selesai' ? 'bg-slate-50/90 shadow-sm -translate-y-0.5' : ''"
                title="Klik untuk menyaring tiket yang sudah selesai">
-                <div class="w-11 h-11 rounded-xl bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-700 flex items-center justify-center flex-shrink-0 text-lg font-bold transition">
+                <div class="w-10 h-10 xl:w-9 xl:h-9 rounded-xl bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-700 flex items-center justify-center flex-shrink-0 text-base font-bold transition">
                     <i class="fa-solid fa-circle-check"></i>
                 </div>
-                <div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Selesai</span>
+                <div class="min-w-0 flex-1">
+                    <span class="block truncate text-[10px] font-bold uppercase tracking-wider text-emerald-600">Selesai</span>
                     <h3 class="text-xl font-black text-emerald-700 leading-tight mt-0.5">{{ $receivedCount }}</h3>
-                    <span class="text-[10px] text-emerald-600">Diterima Pengaju</span>
+                    <span class="block truncate text-[10px] text-emerald-600" title="Diterima Pengaju">Diterima Pengaju</span>
                 </div>
             </a>
 
             <!-- 6. Ditolak / Batal -->
             <a href="{{ route('work-requests.index', ['scope' => $scope, 'status' => 'ditolak']) }}" 
                @click.prevent="switchTab('ditolak', '{{ route('work-requests.index', ['scope' => $scope, 'status' => 'ditolak']) }}')"
-               class="bg-white hover:bg-rose-50/50 rounded-2xl p-4 border shadow-xs flex items-center space-x-3 transition group active:scale-[0.99] cursor-pointer"
-               :class="activeTab === 'ditolak' ? 'border-rose-400 ring-2 ring-rose-400/20 bg-rose-50/30' : '{{ $rejectedCount > 0 ? 'border-rose-200 bg-rose-50/10' : 'border-slate-200' }}'"
+               data-flip-card
+               class="bg-white hover:bg-slate-50/80 rounded-2xl p-3.5 xl:p-3 border border-slate-200/80 shadow-xs flex items-center space-x-2.5 transition duration-300 ease-out group active:scale-[0.99] cursor-pointer min-w-0"
+               :class="activeTab === 'ditolak' ? 'bg-slate-50/90 shadow-sm -translate-y-0.5' : ''"
                title="Klik untuk menyaring tiket yang ditolak atau dibatalkan">
-                <div class="w-11 h-11 rounded-xl {{ $rejectedCount > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500' }} group-hover:bg-rose-600 group-hover:text-white flex items-center justify-center flex-shrink-0 text-lg font-bold transition">
+                <div class="w-10 h-10 xl:w-9 xl:h-9 rounded-xl {{ $rejectedCount > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500' }} group-hover:bg-rose-600 group-hover:text-white flex items-center justify-center flex-shrink-0 text-base font-bold transition">
                     <i class="fa-solid fa-ban"></i>
                 </div>
-                <div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-rose-600">Ditolak / Batal</span>
+                <div class="min-w-0 flex-1">
+                    <span class="block truncate text-[10px] font-bold uppercase tracking-wider text-rose-600">Ditolak / Batal</span>
                     <h3 class="text-xl font-black text-rose-700 leading-tight mt-0.5">{{ $rejectedCount }}</h3>
-                    <span class="text-[10px] text-rose-500 font-medium">Approval Ditolak</span>
+                    <span class="block truncate text-[10px] text-rose-500 font-medium" title="Approval Ditolak">Approval Ditolak</span>
                 </div>
             </a>
         </div>
@@ -313,28 +319,36 @@
                 </div>
             </div>
 
-            <!-- Kolom 2: Kolom Pencarian Fleksibel -->
+            <!-- Kolom 2: Kolom Pencarian Fleksibel (Live Debounced) -->
             <div class="relative flex-1 min-w-0">
-                <form method="GET" action="{{ route('work-requests.index') }}" class="relative w-full">
-                    @if(request()->filled('status'))
-                        <input type="hidden" name="status" value="{{ request()->status }}">
-                    @endif
-                    @if(request()->boolean('overdue_sla'))
-                        <input type="hidden" name="overdue_sla" value="1">
-                    @endif
+                <form method="GET" action="{{ route('work-requests.index') }}" @submit.prevent="applySearchNow()" class="relative w-full">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
                     <input type="text" 
                            name="search" 
+                           x-model="searchQuery"
+                           @input="onSearchInput()"
                            value="{{ request()->search }}" 
                            placeholder="Cari No. WRI, komponen, SPK, departemen..." 
-                           class="w-full pl-8 sm:pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition shadow-2xs">
+                           class="w-full pl-8 sm:pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition shadow-2xs">
+                    <span x-show="isSearching" x-cloak style="display: none;" class="absolute right-8 top-1/2 -translate-y-1/2 text-amber-600 text-xs pointer-events-none">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                    </span>
+                    <button type="button" 
+                            x-show="searchQuery.trim().length > 0" 
+                            x-cloak
+                            style="display: none;"
+                            @click="clearSearch()" 
+                            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 p-0.5 transition cursor-pointer" 
+                            title="Hapus pencarian">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
                 </form>
             </div>
         </div>
 
         <!-- 2.5. PERINGATAN TERLAMBAT (> 3 HARI) BANNER (LAMPIRAN 1 STYLE) -->
         @if($overdueSlaCount > 0 || request()->boolean('overdue_sla'))
-        <div class="bg-red-50/80 border border-red-200/90 rounded-2xl p-3.5 sm:px-5 sm:py-3.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="bg-red-50/80 border border-slate-200/80 rounded-2xl p-3.5 sm:px-5 sm:py-3.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center space-x-3.5">
                 <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 text-xl shadow-2xs">
                     <i class="fa-solid fa-triangle-exclamation"></i>
@@ -407,6 +421,10 @@
                 gunLastCharTime: 0,
                 gunScanHandler: null,
                 activeTab: '{{ request()->boolean('overdue_sla') ? 'overdue' : (request('status') ?: 'all') }}',
+                searchQuery: @js(request('search', '')),
+                searchDebounceTimer: null,
+                activeFetchController: null,
+                isSearching: false,
                 tabLoading: false,
                 tabCache: {},
                 departmentOperators: @json($departmentOperatorsMap ?? []),
@@ -415,7 +433,8 @@
                 init() {
                     const container = document.getElementById('wri-table-container');
                     if (container) {
-                        this.tabCache[this.activeTab] = container.innerHTML;
+                        container.dataset.livePagination = 'true';
+                        this.tabCache[this.getCacheKey(this.activeTab)] = container.innerHTML;
                     }
 
                     // Intercept pagination clicks within the table container for seamless navigation
@@ -423,46 +442,119 @@
                         const link = e.target.closest('#wri-table-container .pagination a, #wri-table-container a[href*="page="]');
                         if (link && link.href) {
                             e.preventDefault();
+                            window.history.replaceState({ tab: this.activeTab }, '', link.href);
                             this.fetchPartial(link.href, null, false);
                         }
+                    });
+
+                    // Intercept per-page selector changes within the table container
+                    document.addEventListener('change', (e) => {
+                        const select = e.target.closest('#wri-table-container select[data-per-page-select]');
+                        if (!select) return;
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('per_page', select.value);
+                        url.searchParams.delete('page');
+                        this.tabCache = {};
+                        window.history.replaceState({ tab: this.activeTab }, '', url.toString());
+                        this.fetchPartial(url.toString(), this.getCacheKey(this.activeTab), true);
                     });
 
                     // Handle browser back/forward buttons
                     window.addEventListener('popstate', (e) => {
                         if (e.state && e.state.tab) {
+                            const params = new URLSearchParams(window.location.search);
+                            this.searchQuery = params.get('search') || '';
                             this.switchTab(e.state.tab, window.location.href, false);
                         }
                     });
                 },
+                getCacheKey(tabKey) {
+                    return `${tabKey}|${(this.searchQuery || '').trim()}`;
+                },
+                buildTabUrl(tabKey) {
+                    const url = new URL(@js(route('work-requests.index')), window.location.origin);
+                    url.searchParams.set('scope', @js($scope));
+                    if (tabKey === 'overdue') {
+                        url.searchParams.set('overdue_sla', '1');
+                    } else if (tabKey && tabKey !== 'all') {
+                        url.searchParams.set('status', tabKey);
+                    }
+                    const q = (this.searchQuery || '').trim();
+                    if (q !== '') {
+                        url.searchParams.set('search', q);
+                    }
+                    const activePerPage = new URLSearchParams(window.location.search).get('per_page');
+                    if (activePerPage) {
+                        url.searchParams.set('per_page', activePerPage);
+                    }
+                    return url.toString();
+                },
+                onSearchInput() {
+                    clearTimeout(this.searchDebounceTimer);
+                    const delay = this.searchQuery.trim() === '' ? 120 : 350;
+                    this.searchDebounceTimer = setTimeout(() => this.applySearchNow(), delay);
+                },
+                clearSearch() {
+                    this.searchQuery = '';
+                    clearTimeout(this.searchDebounceTimer);
+                    this.applySearchNow();
+                },
+                applySearchNow() {
+                    const targetUrl = this.buildTabUrl(this.activeTab);
+                    window.history.replaceState({ tab: this.activeTab }, '', targetUrl);
+                    this.isSearching = true;
+                    this.fetchPartial(targetUrl, this.getCacheKey(this.activeTab), true);
+                },
+                renderTableHtml(html) {
+                    const container = document.getElementById('wri-table-container');
+                    if (!container) return;
+
+                    container.style.transition = 'none';
+                    container.style.opacity = '0';
+                    container.style.transform = 'translateY(4px)';
+                    container.innerHTML = html;
+
+                    if (window.Alpine) {
+                        window.Alpine.initTree(container);
+                    }
+
+                    window.requestAnimationFrame(() => {
+                        container.style.transition = 'opacity 220ms ease-out, transform 220ms ease-out';
+                        container.style.opacity = '1';
+                        container.style.transform = 'translateY(0)';
+                    });
+                },
                 switchTab(tabKey, targetUrl, pushState = true) {
-                    if (this.activeTab === tabKey && this.tabCache[tabKey]) {
+                    const resolvedUrl = this.buildTabUrl(tabKey);
+                    const cacheKey = this.getCacheKey(tabKey);
+
+                    if (this.activeTab === tabKey && this.tabCache[cacheKey]) {
                         return;
                     }
                     this.activeTab = tabKey;
                     if (pushState) {
-                        window.history.pushState({ tab: tabKey }, '', targetUrl);
+                        window.history.pushState({ tab: tabKey }, '', resolvedUrl);
                     }
 
-                    // Check in-memory cache first (0ms instant response)
-                    if (this.tabCache[tabKey]) {
-                        const container = document.getElementById('wri-table-container');
-                        if (container) {
-                            container.innerHTML = this.tabCache[tabKey];
-                            if (window.Alpine) {
-                                window.Alpine.initTree(container);
-                            }
-                        }
+                    // Check in-memory cache first (0ms instant response) with smooth fade-slide
+                    if (this.tabCache[cacheKey]) {
+                        this.renderTableHtml(this.tabCache[cacheKey]);
                         return;
                     }
 
                     // Otherwise fetch partial via AJAX
-                    this.fetchPartial(targetUrl, tabKey, true);
+                    this.fetchPartial(resolvedUrl, cacheKey, true);
                 },
                 fetchPartial(url, cacheKey = null, saveToCache = true) {
+                    if (this.activeFetchController) {
+                        this.activeFetchController.abort();
+                    }
+                    this.activeFetchController = new AbortController();
                     this.tabLoading = true;
                     const fetchUrl = url + (url.includes('?') ? '&' : '?') + '_partial=1';
                     
                     fetch(fetchUrl, {
+                        signal: this.activeFetchController.signal,
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
                             'X-Partial': '1'
@@ -470,21 +562,20 @@
                     })
                     .then(res => res.text())
                     .then(html => {
-                        const container = document.getElementById('wri-table-container');
-                        if (container) {
-                            container.innerHTML = html;
-                            if (window.Alpine) {
-                                window.Alpine.initTree(container);
-                            }
-                        }
+                        this.renderTableHtml(html);
                         if (saveToCache && cacheKey) {
                             this.tabCache[cacheKey] = html;
                         }
                         this.tabLoading = false;
+                        this.isSearching = false;
                     })
                     .catch(err => {
+                        if (err.name === 'AbortError') {
+                            return;
+                        }
                         console.error('Gagal memuat partial tab:', err);
                         this.tabLoading = false;
+                        this.isSearching = false;
                         window.location.href = url;
                     });
                 },

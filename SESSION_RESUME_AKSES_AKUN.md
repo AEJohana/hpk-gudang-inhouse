@@ -967,6 +967,97 @@ Dokumen ini adalah *checkpoint* resmi agar AI Agent / Developer di sesi berikutn
   - Seluruh pengujian otomatis `WorkRequestAuthorizationTest`, `WorkRequestDefectAndHandoverTest`, dan `ComponentPhotoStorageTest` (20 passed, 72 assertions) lulus 100%.
   - Route cache & Blade view templates berhasil dikompilasi ulang dengan status sukses 100%.
 
+### VVV. Eliminasi Total Timeout 60 Detik & Optimasi Loading Submenu Membuat WR (Update 26 Nov 2026 - Tuntas 100%)
+- **Akar Masalah Berulang (`ComponentPhotoStorageService.php:373`):**
+  - Pada implementasi sebelumnya (`b81b2c3`), `Component::getImageUrlAttribute()` memanggil `$this->photo_version` -> `local_photo_file_path` -> `findLocalPhoto()` secara sinkron. Akibatnya, saat `work_requests/create.blade.php` memetakan seluruh 777+ komponen master ke JSON, PHP melakukan scan direktori SMB/NAS berulang kali.
+  - Selain itu, `dir_index_*` hanya bertahan 60 detik, `getDirectoryIndex()` memanggil `@realpath()`/`@is_dir()` sebelum mengecek cache, tidak ada *negative cache* untuk part tanpa foto, serta belum ada *circuit breaker* saat Drive `Z:` / UNC `\\192.168.1.150` lambat atau putus.
+- **Perbaikan Arsitektural Permanen:**
+  - `app/Models/Component.php`: `getPhotoVersionAttribute()` kini murni menggunakan stempel waktu DB (`updated_at->timestamp`, **0 I/O disk/SMB** saat SSR), dan `getTotalStockAttribute()` mendukung fast-path atribut agregat `total_stock_sum` dari `withSum`.
+  - `app/Services/ComponentPhotoStorageService.php`: Implementasi **cache-first `getDirectoryIndex()`** (TTL 300s + generasi `component_photo_cache_version` O(1)), **circuit breaker `isDirectoryAvailable()`** (`dir_unreachable_*` 60s), **negative cache** 60s untuk part tanpa foto, serta **smart UNC fallback** (jalur UNC hanya dicek jika Drive primer `Z:` / mount tidak terjangkau).
+  - `app/Http/Controllers/ComponentController.php`: `photoStream()` menggunakan `Cache-Control: public, max-age=300, must-revalidate` + `ETag` (`304 Not Modified`), dan `update()` memanggil `$component->touch()` saat foto diperbarui.
+  - `app/Http/Controllers/WorkRequestController.php` & `QrRequestController.php`: Query `create()` menggunakan `withSum('stockBalances as total_stock_sum', 'quantity')` serta menghindari scan SMB sinkron saat memuat daftar komponen.
+
+### WWW. Penyederhanaan Warna Line Border Kartu KPI Antrean WRI (Update 26 Nov 2026 - Tuntas 100%)
+- **Pembaruan Antarmuka (`resources/views/work_requests/index.blade.php`):**
+  - Menghilangkan seluruh garis border dan *focus ring* berwarna (`border-[#0a2342]`, `border-amber-*`, `border-blue-*`, `border-teal-*`, `border-emerald-*`, `border-rose-*`, `ring-2`) pada ke-6 kartu KPI status (`Total WRI`, `Perlu Verifikasi`, `Sedang Proses`, `Siap Diambil`, `Selesai`, `Ditolak / Batal`).
+  - Menyeragamkan seluruh kartu dengan border abu-abu halus netral (`border-slate-200/80`) dan penanda kartu aktif melalui latar lembut + shadow (`bg-slate-50/90 shadow-sm`), menjaga aksen warna tetap terfokus pada ikon dan angka KPI.
+
+### XXX. Penyeragaman Border Netral pada Banner SLA, Tombol, dan Pill Informasi WRI (Update 26 Nov 2026 - Tuntas 100%)
+- **Pembaruan Antarmuka (`index.blade.php`, `_table_content.blade.php`, `WorkRequest.php`):**
+  - Menghilangkan garis border berwarna pada banner Peringatan SLA > 3 Hari (`border-red-200/90` -> `border-slate-200/80`).
+  - Menyeragamkan seluruh border pill status, badge approval, badge SLA, serta tombol aksi di tabel WRI dan `WorkRequest::getStatusBadgeAttribute()` menjadi garis abu-abu halus `border-slate-200/80` selaras dengan kartu KPI di atasnya.
+
+### YYY. Optimasi Breakpoint & Kepadatan Kartu KPI WRI Anti-Mepet (Update 26 Nov 2026 - Tuntas 100%)
+- **Pembaruan Responsivitas (`resources/views/work_requests/index.blade.php` & Bundel Vite):**
+  - Mengubah grid kartu KPI dari `lg:grid-cols-6` menjadi `grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3`, sehingga pada rentang layar laptop/scaling `640px–1279px` kartu otomatis turun simetris **3 kolom × 2 baris** sebelum terjepit.
+  - Merampingkan ruang internal kartu (`p-3.5 xl:p-3`, ikon `w-10 h-10 xl:w-9 xl:h-9`, `space-x-2.5`, serta `min-w-0 flex-1` + `block truncate` pada judul & sub-label) agar pada layar lebar (`>= 1280px`) seluruh 6 kartu dan sub-label seperti `Pengaju & Penerima` muat **1 baris rapi**.
+  - Mengompilasi ulang aset CSS Tailwind via `npm run build`.
+
+### ZZZ. Transisi FLIP Grid Responsif & Transisi Pergantian Filter WRI (Update 26 Nov 2026 - Tuntas 100%)
+- **Animasi FLIP Grid (`resources/js/animations/motion-effects.js` & `resources/js/app.js`):**
+  - Menambahkan `initResponsiveGridFlip()` berbasis `ResizeObserver` + GSAP GPU `transform` (`duration: 0.34s`, *stagger* `0.02s`) pada kontainer `[data-flip-grid]` dan item `[data-flip-card]`. Ketika lebar layar berpindah antar breakpoint (`6×1 ⇄ 3×2 ⇄ 2×3`), kartu KPI meluncur halus ke posisi baris baru, lengkap dengan dukungan `prefers-reduced-motion` dan pembersihan observer otomatis pada `cleanupMotionEffects()` saat navigasi Turbo.
+- **Transisi Kartu & Konten Tabel (`resources/views/work_requests/index.blade.php`):**
+  - Menambahkan `duration-300 ease-out` + subtle lift `-translate-y-0.5` saat kartu aktif, serta mengekstrak helper `renderTableHtml()` pada `wriQueueManager` dengan transisi *fade + slide* (`220ms ease-out`) saat `switchTab()` atau `fetchPartial()` mengganti isi tabel `#wri-table-container`.
+
+### AAAA. Sistem Live Auto-Filter Terpadu (Tanpa Enter / Tanpa Tombol Filter) di 8 Menu Utama (Update 26 Nov 2026 - Tuntas 100%)
+- **Frontend Helper Terpadu (`resources/js/components/live-filter.js` & `resources/js/app.js`):**
+  - Dibuat modul reusable `initLiveFilters()` & `cleanupLiveFilters()` yang terintegrasi dengan lifecycle Turbo (`turbo:load`, `turbo:before-render`, `turbo:before-visit`).
+  - Mendukung filter instan saat memilih dropdown (`<select>`) dan input tanggal (`<input type="date">`), serta *live search* dengan **debounce 350ms** dan **`AbortController`** (mencegah *race condition* antar ketikan), spinner loading, tombol clear `×`, tombol reset dinamis, AJAX pagination, sinkronisasi URL via `history.replaceState`, serta pembaruan `allIds` / `availableComponents` checkbox massal melalui custom event `live-filter-updated`.
+- **Backend Laravel `@fragment('results')` (`_live=1`):**
+  - Diterapkan pada `ComponentController::index`, `TransactionController::index`, `QrRequestController::index`, `WorkRequestController::safetyStock`, `WorkRequestController::printQueue`, `Admin\UserController::index`, dan `Admin\AuditLogController::index` sehingga hanya fragmen hasil (tabel, mobile cards, pagination) yang dikirim ulang tanpa merender shell navbar/sidebar dan tanpa memutus fokus kursor pencarian.
+- **Work Request Mesin (`resources/views/work_requests/index.blade.php`):**
+  - Menghubungkan input pencarian `search` ke `wriQueueManager()` (`onSearchInput`, `applySearchNow`, `clearSearch`, `AbortController`) sehingga mengetik pencarian langsung memfilter tabel via `_partial=1` serta tetap terbawa saat berpindah tab status.
+- **Pembersihan Tombol Lama:**
+  - Menghapus tombol submit `[Filter]` / `[Cari]` / `[Terapkan]` / `[Terapkan Rentang]` dan `onchange="this.form.submit()"` yang usang pada ke-8 menu terkait.
+
+### BBBB. Pagination Responsif Atas-Bawah, Dropdown `per_page` Bar Atas, & Minimal 4 Tab di HP (Update 26 Nov 2026 - Tuntas 100%)
+- **Template Pagination Kustom Global (`resources/views/vendor/pagination/tailwind.blade.php`, `resources/views/components/pagination-bar.blade.php`, & `AppServiceProvider::boot()`):**
+  - Mengganti template bawaan Laravel yang menghilangkan angka halaman di `< 640px` (`sm:hidden`) dan memicu kotak hitam `dark:bg-gray-800` saat browser/OS dalam mode gelap.
+  - Menerapkan *sliding window* kompak dengan **minimal 4 tab angka** pada layar HP & laptop sedang (`< 1280px` / `xl:hidden`: `« ‹ 1 2 3 ... N › »`) serta *wide window* di desktop `>= 1280px` (`hidden xl:flex`). Teks ringkasan dikunci `whitespace-nowrap shrink-0` dan grup kanan `per_page` + tombol dikunci `sm:flex-nowrap` sehingga seluruh kontrol sejajar **1 baris utuh** tanpa teks `"data"` turun atau dropdown terlempar ke baris atas.
+  - Menempatkan bar pagination secara seragam di **atas** (dengan dropdown **`N / halaman`** memakai `h-8 py-0 leading-tight pr-7` agar bebas *clipping* padding default `@tailwindcss/forms`, tetap tampil saat total > 0 meski hasil 1 halaman) dan **bawah** (**tanpa dropdown**) di seluruh 12 halaman ber-pagination (`Work Request`, `Master Komponen`, `Transaksi`, `Cetak QR`, `Safety Stock`, `Antrean Cetak WR`, `Manajemen User`, `Audit Log`, `ECR`, `Disposal`, `Cycle Count`, `Lokasi Admin`).
+- **Whitelist Backend & Sinkronisasi Live Filter (`Controller::resolvePerPage`, `live-filter.js`, `wriQueueManager`):**
+  - Menambahkan `resolvePerPage(Request $request, int $default = 15, array $allowed = [10, 12, 15, 20, 25, 50, 100])` di base `Controller` untuk mencegah penyalahgunaan query ekstrem sekaligus menjaga default awal tiap modul.
+  - Mengubah dropdown `per_page` pada 8 modul live-filter agar memuat ulang fragmen via AJAX (reset ke `page=1` + invalidasi cache tab WRI) serta mempertahankan nilai `per_page` saat user mengetik pencarian atau pindah filter/tab.
+
+### CCCC. Penyempurnaan Label Notifikasi Kartu Menu Beranda Utama (Update 26 Nov 2026 - Tuntas 100%)
+- **Beranda Utama (`resources/views/dashboard.blade.php`):**
+  - Mengubah badge kartu **Work Request Mesin** dari `{{ $readyForWarehouseWriCount }} Siap Gudang` menjadi **`{{ $readyForWarehouseWriCount }} Siap Pickup MH`** agar selaras dengan alur logistik resmi (`Siap Diambil` dari mesin menunggu penjemputan kurir Material Handling).
+  - Menghapus badge redundan `{{ $todayTransactionsCount }} Hari Ini` pada kartu menu **Transaksi Komponen** karena ringkasan *Transaksi Hari Ini* sudah tersedia pada kartu KPI bagian atas.
+  - Mempertahankan badge pada **Master Komponen** (`Perlu Rak`, `SKU`) dan **Permintaan Label QR** (`Siap Cetak`).
+
+### DDDD. Penyeragaman Skema Warna Kartu KPI Beranda (Monokrom Hitam–Abu + Aksen Kritis Terfokus, Update 26 Nov 2026 - Tuntas 100%)
+- **Kartu KPI Beranda (`resources/views/dashboard.blade.php`):**
+  - Menyeragamkan seluruh teks judul (`text-slate-400`), angka utama (`text-slate-900`), sub-label bawah kartu 1, 3, dan 4 (`text-slate-500`), serta kotak ikon kanan (`bg-slate-100 text-slate-700`) ke skema monokrom hitam dan abu-abu.
+  - Menghapus border merah, ring merah (`border-rose-300 ring-2 ring-rose-100 hover:border-rose-400`), serta titik merah berdenyut pada kartu **Stok Menipis (Kritis)** (`border-slate-200/80`).
+  - Memfokuskan aksen warna merah hanya pada **ikon tanda seru (`bg-rose-50 text-rose-600`)** dan **teks bawah `Di bawah safety stock →` (`text-rose-600`)**.
+
+### EEEE. Penyeragaman Ikon Beranda `bg-slate-100` + HPK Teal (`#4a9e9e`) (Update 26 Nov 2026 - Tuntas 100%)
+- **Kartu KPI & Menu Modul Beranda (`resources/views/dashboard.blade.php` & `resources/css/app.css`):**
+  - Menyeragamkan ke-10 kotak ikon (`.icon-box`) di grid `Modul Aplikasi Pergudangan HPK` sekaligus ke-3 kotak ikon KPI non-alert (`Total Komponen`, `Transaksi Hari Ini`, `Menunggu Approval`) menjadi **`bg-slate-100 text-[#4a9e9e]`** (`hpk.teal`) dengan border kartu netral halus (`rgba(226, 232, 240, 0.9)`), *watermark* `.card-icon-bg` `#0f172a`, dan panah hover `var(--hpk-teal)`.
+  - Tetap mempertahankan warna merah khusus pada tanda seru (`bg-rose-50 text-rose-600`) dan teks `Di bawah safety stock →` kartu `Stok Menipis`, serta badge notifikasi operasional pada kartu menu.
+
+### FFFF. Redesign Antarmuka Material Handling Bergaya Kartu Mengambang (*Floating Card Rows*, Update 26 Nov 2026 - Tuntas 100%)
+- **Tampilan Material Handling (`resources/views/work_station_supplies/index.blade.php` & `partials/_task_list.blade.php`):**
+  - Merombak bar tab utama (`Antar Mesin` | `Siap Diambil`) ke dalam 1 *shape* pembungkus putih besar (`rounded-3xl border border-slate-200/80 shadow-sm`) bersama sub-tab 3 kolom (`overflow-x-auto` tanpa terpotong di HP), counter dinamis `X Item`, filter pill `rounded-full` + search bar, serta 1 struktur tabel *floating-card* tunggal (`overflow-x-auto` `min-w-[780px]`) agar di mode HP tetap memakai tabel yang dapat digeser kanan–kiri tanpa card vertikal terpisah.
+  - Seluruh logika backend controller, modal pickup `openActionModal()`, modal detail `openDetailModal()`, serta scanner QR wajib (`isWrScanRequired`) tetap utuh 100%.
+
+### GGGG. Aktivasi *Silent Drag & Drop* Upload Foto & Dokumen di 7 Form (Update 26 Nov 2026 - Tuntas 100%)
+- **Frontend Helper (`resources/js/components/silent-file-drop.js` & `resources/js/app.js`):**
+  - Mengaktifkan *drag & drop* file langsung pada input `Choose File` maupun kotak pratinjau tanpa menambah teks petunjuk atau tampilan dropzone khusus (*silent enhancement*), terintegrasi dengan siklus `turbo:load` / `turbo:before-render` / `turbo:before-visit`.
+  - Mendukung validasi atribut `accept` (`image/*`, `application/pdf`, `.pdf`, `.jpg`, `.png`, `.zip`), mengisi `input.files` via `DataTransfer`, dan memicu event `change` sehingga handler Alpine (`handleFileUpload`, `previewFile`) berjalan otomatis.
+- **7 Form Terintegrasi (`[data-drop-zone]`):**
+  - `work_requests/create`, `master_components/create`, `master_components/edit`, `ecrs/create`, `disposals/create`, `admin/users/create`, dan `admin/users/edit` (sedangkan `import_modal.blade.php` tetap memakai dropzone Excel bawaan).
+
+### HHHH. Penghapusan *Akses Cepat Uji Coba (1-Click Fill)* pada Halaman Login (Update 26 Nov 2026 - Tuntas 100%)
+- **Halaman Login (`resources/views/auth/login.blade.php`):**
+  - Menghapus blok tombol demo *Akses Cepat Uji Coba (1-Click Fill)* (`@admin`, `@operator`, `@spv_gudang`, `@engineer`) beserta fungsi JS usang `fillUser(username)` yang sebelumnya meng-hardcode `'password'` di HTML klien.
+  - Mempertahankan fitur resmi `Ingat saya` (`hpk_remembered_username`), tombol toggle password 5 detik (`togglePassword`, `hidePassword`), tautan `Lupa password?`, dan menjaga seluruh data akun di database tetap utuh.
+
+### IIII. Perbaikan Bug Dropdown Profil Akun Navbar Terpotong CSS (Update 26 Nov 2026 - Tuntas 100%)
+- **Navbar & Komponen Dropdown (`navigation.blade.php`, `admin-navigation.blade.php`, `dropdown.blade.php`, `dropdown-link.blade.php`):**
+  - Menghapus `overflow-hidden` pada elemen `<nav>` agar dropdown akun (`Login sebagai`, `Profil Akun`, `Dashboard WMS`, `Keluar`), serta dropdown Admin (`Master Data`, `Pengaturan`) tidak lagi terpotong di batas bawah navbar (`64px`).
+  - Memperbaiki mapping `width="56"` -> `w-56` (serta `w-64`) di `dropdown.blade.php` yang sebelumnya menghasilkan class invalid `"56"`, menghapus kelas `dark:bg-gray-700` / `dark:text-gray-300`, dan menambahkan `type="button"` serta rotasi halus ikon chevron saat terbuka.
+
 ---
 
 ## 2. Struktur 15 Departemen Resmi

@@ -966,60 +966,60 @@ class WorkRequest extends Model
         $clean = trim(preg_replace('/^Parsial\s*>\s*/i', '', $st));
 
         if ($this->approval_pengaju === 'Menunggu') {
-            return ['label' => 'Menunggu Ka. Pengaju', 'class' => 'bg-amber-100 text-amber-900 border-amber-300 font-bold'];
+            return ['label' => 'Menunggu Ka. Pengaju', 'class' => 'bg-amber-100 text-amber-900 border-slate-200/80 font-bold'];
         }
 
         if ($this->approval_penerima === 'Menunggu') {
-            return ['label' => 'Menunggu Ka. Penerima', 'class' => 'bg-amber-100 text-amber-900 border-amber-300 font-bold'];
+            return ['label' => 'Menunggu Ka. Penerima', 'class' => 'bg-amber-100 text-amber-900 border-slate-200/80 font-bold'];
         }
 
         if ($this->approval_pengaju === 'Ditolak' || $this->approval_penerima === 'Ditolak' || $clean === 'cancelled') {
-            return ['label' => 'Ditolak / Batal', 'class' => 'bg-rose-100 text-rose-800 border-rose-300 font-bold'];
+            return ['label' => 'Ditolak / Batal', 'class' => 'bg-rose-100 text-rose-800 border-slate-200/80 font-bold'];
         }
 
         if (in_array(strtolower($clean), ['dalam antrian', 'submitted', 'belum verifikasi'])) {
-            return ['label' => 'Dalam Antrian', 'class' => 'bg-slate-100 text-slate-800 border-slate-300'];
+            return ['label' => 'Dalam Antrian', 'class' => 'bg-slate-100 text-slate-800 border-slate-200/80'];
         }
 
         if (preg_match('/\(In\)/i', $clean)) {
             return [
                 'label' => ($isPartial ? '[Parsial] ' : '') . $clean,
-                'class' => 'bg-blue-100 text-blue-800 border-blue-300'
+                'class' => 'bg-blue-100 text-blue-800 border-slate-200/80'
             ];
         }
 
         if (preg_match('/\(Out\)/i', $clean)) {
             return [
                 'label' => ($isPartial ? '[Parsial] ' : '') . $clean,
-                'class' => 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                'class' => 'bg-indigo-100 text-indigo-800 border-slate-200/80'
             ];
         }
 
         if (stripos($clean, 'MH Pickup') !== false) {
             return [
                 'label' => ($isPartial ? '[Parsial] ' : '') . $clean,
-                'class' => 'bg-amber-100 text-amber-900 border-amber-300'
+                'class' => 'bg-amber-100 text-amber-900 border-slate-200/80'
             ];
         }
 
         if (stripos($clean, 'Siap Diambil') !== false || $clean === 'ready_for_warehouse') {
             return [
                 'label' => ($isPartial ? '[Parsial] ' : '') . 'Siap Diambil',
-                'class' => 'bg-cyan-100 text-cyan-800 border-cyan-300 font-semibold'
+                'class' => 'bg-cyan-100 text-cyan-800 border-slate-200/80 font-semibold'
             ];
         }
 
         if (stripos($clean, 'Menuju Pengaju') !== false) {
             return [
                 'label' => ($isPartial ? '[Parsial] ' : '') . 'Menuju Pengaju',
-                'class' => 'bg-purple-100 text-purple-800 border-purple-300 font-semibold'
+                'class' => 'bg-purple-100 text-purple-800 border-slate-200/80 font-semibold'
             ];
         }
 
         if (stripos($clean, 'Defect Penuh') !== false || ($this->is_final && (float)$this->quantity_requested <= 0 && (float)$this->quantity_defect > 0 && (float)$this->quantity_received == 0)) {
             return [
                 'label' => 'Selesai (Defect 100%)',
-                'class' => 'bg-rose-100 text-rose-800 border-rose-300 font-bold'
+                'class' => 'bg-rose-100 text-rose-800 border-slate-200/80 font-bold'
             ];
         }
 
@@ -1030,12 +1030,12 @@ class WorkRequest extends Model
             return [
                 'label' => $label,
                 'class' => $this->is_final 
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold' 
-                    : 'bg-amber-100 text-amber-900 border-amber-300 font-bold'
+                    ? 'bg-emerald-100 text-emerald-800 border-slate-200/80 font-bold' 
+                    : 'bg-amber-100 text-amber-900 border-slate-200/80 font-bold'
             ];
         }
 
-        return ['label' => $st, 'class' => 'bg-gray-100 text-gray-800 border-gray-300'];
+        return ['label' => $st, 'class' => 'bg-gray-100 text-gray-800 border-slate-200/80'];
     }
 
     public function getPriorityBadgeAttribute(): array

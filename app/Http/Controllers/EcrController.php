@@ -26,7 +26,7 @@ class EcrController extends Controller
             });
         }
 
-        $ecrs = $query->latest()->paginate(15)->withQueryString();
+        $ecrs = $query->latest()->paginate($this->resolvePerPage($request, 15))->withQueryString();
 
         return view('ecrs.index', compact('ecrs'));
     }

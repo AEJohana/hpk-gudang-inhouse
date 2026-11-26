@@ -23,7 +23,9 @@
         </div>
     </x-slot>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6" x-data="printQueueManager()">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6" 
+         @live-filter-updated="if ($event.detail.ids) { allIds = $event.detail.ids; selectedIds = selectedIds.filter(id => allIds.includes(id)); }"
+         x-data="printQueueManager()">
 
         <!-- 0. INTEGRATED WRI SUB-NAVIGATION TABS (Antrean, Safety Stock, Cetak WR) -->
         @include('work_requests.partials.sub_nav')
@@ -263,18 +265,18 @@
                             </a>
                         </div>
 
-                        <!-- Rentang Kustom Form -->
+                        <!-- Rentang Kustom Form (Live Auto-Filter) -->
                         <div class="mt-2.5 pt-2.5 border-t border-slate-100">
                             <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Rentang Tanggal Kustom</span>
-                            <form method="GET" action="{{ route('work-requests.print-queue') }}" class="space-y-2">
-                                <input type="hidden" name="scope" value="{{ $scope }}">
+                            <form method="GET" action="{{ route('work-requests.print-queue') }}" data-live-filter data-live-target="#print-queue-results" data-live-include="#print-queue-search-input" class="space-y-2">
+                                <input type="hidden" name="scope" value="{{ $scope }}" data-default-value="{{ $scope }}">
                                 @if(request()->filled('print_status'))
-                                    <input type="hidden" name="print_status" value="{{ request()->print_status }}">
+                                    <input type="hidden" name="print_status" value="{{ request()->print_status }}" data-default-value="{{ request()->print_status }}">
                                 @endif
                                 @if(request()->filled('search'))
-                                    <input type="hidden" name="search" value="{{ request()->search }}">
+                                    <input type="hidden" name="search" value="{{ request()->search }}" data-default-value="{{ request()->search }}">
                                 @endif
-                                <input type="hidden" name="date_preset" value="custom">
+                                <input type="hidden" name="date_preset" value="custom" data-default-value="custom">
 
                                 <div class="grid grid-cols-2 gap-1.5">
                                     <div>
@@ -294,38 +296,42 @@
                                                class="w-full text-xs p-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-indigo-500 focus:outline-none">
                                     </div>
                                 </div>
-
-                                <button type="submit" 
-                                        class="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center space-x-1 cursor-pointer">
-                                    <i class="fa-solid fa-filter text-[10px]"></i>
-                                    <span>Terapkan Rentang</span>
-                                </button>
                             </form>
                         </div>
                     </div>
                 </div>
 
-                <!-- Search Input Form -->
-                <form method="GET" action="{{ route('work-requests.print-queue') }}" class="relative flex-1 sm:w-64">
-                    <input type="hidden" name="scope" value="{{ $scope }}">
+                <!-- Live Search Input Form -->
+                <form method="GET" action="{{ route('work-requests.print-queue') }}" data-live-filter data-live-target="#print-queue-results" data-live-include="#custom_start_date, #custom_end_date" class="relative flex-1 sm:w-64">
+                    <input type="hidden" name="scope" value="{{ $scope }}" data-default-value="{{ $scope }}">
                     @if(request()->filled('print_status'))
-                        <input type="hidden" name="print_status" value="{{ request()->print_status }}">
+                        <input type="hidden" name="print_status" value="{{ request()->print_status }}" data-default-value="{{ request()->print_status }}">
                     @endif
                     @if($datePreset && $datePreset !== 'custom')
-                        <input type="hidden" name="date_preset" value="{{ $datePreset }}">
+                        <input type="hidden" name="date_preset" value="{{ $datePreset }}" data-default-value="{{ $datePreset }}">
                     @endif
                     @if($startDate)
-                        <input type="hidden" name="start_date" value="{{ $startDate }}">
+                        <input type="hidden" name="start_date" value="{{ $startDate }}" data-default-value="{{ $startDate }}">
                     @endif
                     @if($endDate)
-                        <input type="hidden" name="end_date" value="{{ $endDate }}">
+                        <input type="hidden" name="end_date" value="{{ $endDate }}" data-default-value="{{ $endDate }}">
                     @endif
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
                     <input type="text" 
+                           id="print-queue-search-input"
                            name="search" 
                            value="{{ request()->search }}" 
                            placeholder="Cari No. WRI, komponen..." 
-                           class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                           class="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                    <span data-live-spinner class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-indigo-600 text-xs pointer-events-none">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                    </span>
+                    <button type="button" 
+                            data-live-clear="input[name='search']" 
+                            class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 p-0.5 transition cursor-pointer" 
+                            title="Hapus pencarian">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
                 </form>
             </div>
         </div>
@@ -338,6 +344,12 @@
                     <input type="hidden" name="ids[]" :value="id">
                 </template>
             </form>
+
+            <div id="print-queue-results">
+            @fragment('results')
+            <div data-live-meta data-page-ids='@json($workRequests->pluck("id")->values())'>
+
+            <x-pagination-bar :paginator="$workRequests" position="top" wrapper-class="px-4 py-3 border-b border-slate-100 bg-slate-50/40" />
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs text-slate-600">
@@ -474,11 +486,10 @@
             </div>
 
             <!-- Pagination -->
-            @if($workRequests->hasPages())
-            <div class="px-4 py-3 bg-slate-50/70 border-t border-slate-200">
-                {{ $workRequests->links() }}
+            <x-pagination-bar :paginator="$workRequests" position="bottom" wrapper-class="px-4 py-3 bg-slate-50/70 border-t border-slate-200" />
             </div>
-            @endif
+            @endfragment
+            </div>
         </div>
 
     </div>

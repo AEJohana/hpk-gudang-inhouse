@@ -229,12 +229,58 @@ class ComponentPhotoStorageService
     protected static array $dirIndexMemoryCache = [];
 
     /**
+     * In-memory circuit breaker for unreachable/disconnected directories (e.g. offline SMB/NAS).
+     */
+    protected static array $unreachableDirCache = [];
+
+    /**
+     * In-memory cache generation version for instant O(1) cache invalidation.
+     */
+    protected static ?string $cacheVersion = null;
+
+    /**
+     * Normalize directory path consistently without performing blocking filesystem I/O.
+     */
+    protected function normalizeDirectoryPath(?string $dir): string
+    {
+        return rtrim(trim((string) $dir), '\\/');
+    }
+
+    /**
+     * Determine whether Laravel persistent cache should be used.
+     */
+    protected function shouldUsePersistentCache(): bool
+    {
+        return function_exists('app') && app()->has('cache') && !app()->environment('testing');
+    }
+
+    /**
+     * Get current cache generation version for photo indexes & negative caches.
+     */
+    protected function getCacheVersion(): string
+    {
+        if (self::$cacheVersion !== null) {
+            return self::$cacheVersion;
+        }
+
+        if ($this->shouldUsePersistentCache()) {
+            try {
+                return self::$cacheVersion = (string) \Illuminate\Support\Facades\Cache::rememberForever('component_photo_cache_version', fn () => '1');
+            } catch (\Throwable $e) {}
+        }
+
+        return self::$cacheVersion = '1';
+    }
+
+    /**
      * Clear memory caches.
      */
     public static function clearDirectoryIndexCache(): void
     {
         self::$resolvedCache = [];
         self::$dirIndexMemoryCache = [];
+        self::$unreachableDirCache = [];
+        self::$cacheVersion = null;
     }
 
     /**
@@ -247,56 +293,141 @@ class ComponentPhotoStorageService
             try {
                 \Illuminate\Support\Facades\Cache::forget('component_photo_index');
                 \Illuminate\Support\Facades\Cache::forget('nas_status_info');
+                $nextVersion = str_replace('.', '_', (string) microtime(true));
+                \Illuminate\Support\Facades\Cache::forever('component_photo_cache_version', $nextVersion);
+                self::$cacheVersion = $nextVersion;
             } catch (\Throwable $e) {}
         }
     }
 
     /**
+     * Check if a directory is reachable using cache-first circuit breaker to prevent SMB timeouts.
+     */
+    public function isDirectoryAvailable(?string $dir): bool
+    {
+        $normalized = $this->normalizeDirectoryPath($dir);
+        if ($normalized === '') {
+            return false;
+        }
+
+        $cacheKey = md5($normalized);
+
+        if (isset(self::$unreachableDirCache[$cacheKey])) {
+            return false;
+        }
+
+        if (isset(self::$dirIndexMemoryCache[$cacheKey])) {
+            return true;
+        }
+
+        if ($this->shouldUsePersistentCache()) {
+            $ver = $this->getCacheVersion();
+            try {
+                if (\Illuminate\Support\Facades\Cache::has("dir_index_{$ver}_{$cacheKey}")) {
+                    return true;
+                }
+                if (\Illuminate\Support\Facades\Cache::get("dir_unreachable_{$ver}_{$cacheKey}")) {
+                    self::$unreachableDirCache[$cacheKey] = true;
+                    return false;
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        if (!@is_dir($normalized)) {
+            self::$unreachableDirCache[$cacheKey] = true;
+            if ($this->shouldUsePersistentCache()) {
+                $ver = $this->getCacheVersion();
+                try {
+                    \Illuminate\Support\Facades\Cache::put("dir_unreachable_{$ver}_{$cacheKey}", true, 60);
+                } catch (\Throwable $e) {}
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Get indexed filename map for a directory (keys in lowercase, values are real file basenames).
+     * Uses cache-first strategy and circuit breaker so SMB shares are not probed repeatedly.
      */
     public function getDirectoryIndex(string $dir): array
     {
-        $realDir = @realpath($dir) ?: $dir;
-        $cacheKey = md5($realDir);
+        $normalizedDir = $this->normalizeDirectoryPath($dir);
+        if ($normalizedDir === '') {
+            return [];
+        }
+
+        $cacheKey = md5($normalizedDir);
 
         if (isset(self::$dirIndexMemoryCache[$cacheKey])) {
             return self::$dirIndexMemoryCache[$cacheKey];
         }
 
-        if (!@is_dir($realDir)) {
-            return self::$dirIndexMemoryCache[$cacheKey] = [];
+        if (isset(self::$unreachableDirCache[$cacheKey])) {
+            return [];
         }
 
-        $resolver = function() use ($realDir) {
-            $files = @scandir($realDir);
-            if (!is_array($files)) {
-                return [];
-            }
+        $usePersistent = $this->shouldUsePersistentCache();
+        $ver = $usePersistent ? $this->getCacheVersion() : '1';
 
-            $index = [];
-            foreach ($files as $f) {
-                if ($f === '.' || $f === '..') {
-                    continue;
+        if ($usePersistent) {
+            try {
+                $cached = \Illuminate\Support\Facades\Cache::get("dir_index_{$ver}_{$cacheKey}");
+                if (is_array($cached)) {
+                    return self::$dirIndexMemoryCache[$cacheKey] = $cached;
                 }
-                $base = pathinfo($f, PATHINFO_FILENAME);
-                $raw = strtolower($base);
-                $clean = strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '-', $base));
-                $condensed = preg_replace('/[^a-z0-9]/', '', $raw);
-
-                $index[$raw] = $f;
-                $index[$clean] = $f;
-                $index[$condensed] = $f;
-                $index[strtolower($f)] = $f; // Also indexed with extension
-            }
-            return $index;
-        };
-
-        if (function_exists('app') && app()->has('cache') && !app()->environment('testing')) {
-            $index = \Illuminate\Support\Facades\Cache::remember("dir_index_{$cacheKey}", 60, $resolver);
-            return self::$dirIndexMemoryCache[$cacheKey] = $index;
+                if (\Illuminate\Support\Facades\Cache::get("dir_unreachable_{$ver}_{$cacheKey}")) {
+                    self::$unreachableDirCache[$cacheKey] = true;
+                    return [];
+                }
+            } catch (\Throwable $e) {}
         }
 
-        return self::$dirIndexMemoryCache[$cacheKey] = $resolver();
+        if (!@is_dir($normalizedDir)) {
+            self::$unreachableDirCache[$cacheKey] = true;
+            if ($usePersistent) {
+                try {
+                    \Illuminate\Support\Facades\Cache::put("dir_unreachable_{$ver}_{$cacheKey}", true, 60);
+                } catch (\Throwable $e) {}
+            }
+            return [];
+        }
+
+        $files = @scandir($normalizedDir);
+        if (!is_array($files)) {
+            self::$unreachableDirCache[$cacheKey] = true;
+            if ($usePersistent) {
+                try {
+                    \Illuminate\Support\Facades\Cache::put("dir_unreachable_{$ver}_{$cacheKey}", true, 60);
+                } catch (\Throwable $e) {}
+            }
+            return [];
+        }
+
+        $index = [];
+        foreach ($files as $f) {
+            if ($f === '.' || $f === '..') {
+                continue;
+            }
+            $base = pathinfo($f, PATHINFO_FILENAME);
+            $raw = strtolower($base);
+            $clean = strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '-', $base));
+            $condensed = preg_replace('/[^a-z0-9]/', '', $raw);
+
+            $index[$raw] = $f;
+            $index[$clean] = $f;
+            $index[$condensed] = $f;
+            $index[strtolower($f)] = $f; // Also indexed with extension
+        }
+
+        if ($usePersistent) {
+            try {
+                \Illuminate\Support\Facades\Cache::put("dir_index_{$ver}_{$cacheKey}", $index, 300);
+            } catch (\Throwable $e) {}
+        }
+
+        return self::$dirIndexMemoryCache[$cacheKey] = $index;
     }
 
     /**
@@ -313,18 +444,28 @@ class ComponentPhotoStorageService
             return self::$resolvedCache[$cacheKey];
         }
 
-        // Cache resolution ONLY when successfully found (prevent negative cache poisoning)
-        if (function_exists('app') && app()->has('cache') && !app()->environment('testing')) {
-            $cacheName = "comp_photo_resolved_{$cacheKey}";
-            $cached = \Illuminate\Support\Facades\Cache::get($cacheName);
-            if ($cached !== null) {
-                return self::$resolvedCache[$cacheKey] = $cached;
-            }
+        if ($this->shouldUsePersistentCache()) {
+            $ver = $this->getCacheVersion();
+            $cacheName = "comp_photo_resolved_{$ver}_{$cacheKey}";
+            try {
+                $cached = \Illuminate\Support\Facades\Cache::get($cacheName);
+                if ($cached === '__NONE__') {
+                    return self::$resolvedCache[$cacheKey] = null;
+                }
+                if (is_string($cached) && $cached !== '') {
+                    return self::$resolvedCache[$cacheKey] = $cached;
+                }
+            } catch (\Throwable $e) {}
 
             $resolved = $this->doFindLocalPhoto($partNumber, $imagePath);
-            if ($resolved) {
-                \Illuminate\Support\Facades\Cache::put($cacheName, $resolved, 600); // 10 minutes for positive hits
-            }
+            try {
+                if ($resolved) {
+                    \Illuminate\Support\Facades\Cache::put($cacheName, $resolved, 600); // 10 minutes for positive hits
+                } else {
+                    \Illuminate\Support\Facades\Cache::put($cacheName, '__NONE__', 60); // 60s short negative cache
+                }
+            } catch (\Throwable $e) {}
+
             return self::$resolvedCache[$cacheKey] = $resolved;
         }
 
@@ -332,7 +473,45 @@ class ComponentPhotoStorageService
     }
 
     /**
-     * Internal filesystem search for component photo prioritizing Master Shared Drive Z: & UNC.
+     * Search a single directory index for matching part keys or database image basename.
+     */
+    protected function matchFileInDirectory(string $dir, array $keysToTry, ?string $imagePath = null): ?string
+    {
+        if (!$this->isDirectoryAvailable($dir)) {
+            return null;
+        }
+
+        $index = $this->getDirectoryIndex($dir);
+        if (empty($index)) {
+            return null;
+        }
+
+        $dirTrimmed = $this->normalizeDirectoryPath($dir);
+
+        foreach ($keysToTry as $lk) {
+            if (isset($index[$lk])) {
+                $full = $dirTrimmed . DIRECTORY_SEPARATOR . $index[$lk];
+                if (@file_exists($full) && @filesize($full) > 50) {
+                    return @realpath($full) ?: $full;
+                }
+            }
+        }
+
+        if ($imagePath && !str_starts_with($imagePath, 'http')) {
+            $baseImg = strtolower(basename($imagePath));
+            if (isset($index[$baseImg])) {
+                $full = $dirTrimmed . DIRECTORY_SEPARATOR . $index[$baseImg];
+                if (@file_exists($full) && @filesize($full) > 50) {
+                    return @realpath($full) ?: $full;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Internal filesystem search for component photo prioritizing Master Shared Drive Z: (with UNC fallback) & Mirror.
      */
     protected function doFindLocalPhoto(string $partNumber, ?string $imagePath = null): ?string
     {
@@ -347,49 +526,40 @@ class ComponentPhotoStorageService
         ])));
 
         // =========================================================================
-        // PRIORITAS 1: MASTER NETWORK DRIVE Z: / UNC & SUBFOLDER NewKomponenWR
-        // Kecepatan mikrodetik (In-Memory Directory Indexing, 4ms untuk seluruh katalog)
+        // PRIORITAS 1: MASTER NETWORK DRIVE Z: & SUBFOLDER NewKomponenWR (Fallback UNC jika Z: tidak terjangkau)
         // =========================================================================
         $extDir = $this->getExternalDirectory();
-        $externalDirsToCheck = [];
+        $primaryDirs = [];
         if (!empty($extDir)) {
-            $externalDirsToCheck[] = $extDir;
-            $newWrDir = $this->getNewWrComponentDirectory();
-            if (!in_array($newWrDir, $externalDirsToCheck, true)) {
-                $externalDirsToCheck[] = $newWrDir;
-            }
+            $primaryDirs = array_values(array_unique(array_filter([
+                $extDir,
+                $this->getNewWrComponentDirectory(),
+            ])));
 
-            $uncDir = $this->getUncDirectory();
-            if (!in_array($uncDir, $externalDirsToCheck, true)) {
-                $externalDirsToCheck[] = $uncDir;
-            }
-            $newWrUnc = $this->getNewWrUncDirectory();
-            if (!in_array($newWrUnc, $externalDirsToCheck, true)) {
-                $externalDirsToCheck[] = $newWrUnc;
-            }
-        }
-
-        foreach ($externalDirsToCheck as $dir) {
-            if (@file_exists($dir)) {
-                $index = $this->getDirectoryIndex($dir);
-                $dirTrimmed = rtrim($dir, '\\/');
-
-                foreach ($keysToTry as $lk) {
-                    if (isset($index[$lk])) {
-                        $full = $dirTrimmed . DIRECTORY_SEPARATOR . $index[$lk];
-                        if (@file_exists($full) && @filesize($full) > 50) {
-                            return realpath($full) ?: $full;
-                        }
+            $anyPrimaryReachable = false;
+            foreach ($primaryDirs as $dir) {
+                if ($this->isDirectoryAvailable($dir)) {
+                    $anyPrimaryReachable = true;
+                    $found = $this->matchFileInDirectory($dir, $keysToTry, $imagePath);
+                    if ($found) {
+                        return $found;
                     }
                 }
+            }
 
-                if ($imagePath && !str_starts_with($imagePath, 'http')) {
-                    $baseImg = strtolower(basename($imagePath));
-                    if (isset($index[$baseImg])) {
-                        $full = $dirTrimmed . DIRECTORY_SEPARATOR . $index[$baseImg];
-                        if (@file_exists($full) && @filesize($full) > 50) {
-                            return realpath($full) ?: $full;
-                        }
+            // Hanya fallback ke UNC jika Drive primer (Z: / mount) benar-benar tidak terjangkau
+            if (!$anyPrimaryReachable) {
+                $uncDirs = array_values(array_unique(array_filter([
+                    $this->getUncDirectory(),
+                    $this->getNewWrUncDirectory(),
+                ])));
+                foreach ($uncDirs as $uncDir) {
+                    if (in_array($uncDir, $primaryDirs, true)) {
+                        continue;
+                    }
+                    $found = $this->matchFileInDirectory($uncDir, $keysToTry, $imagePath);
+                    if ($found) {
+                        return $found;
                     }
                 }
             }
@@ -399,18 +569,9 @@ class ComponentPhotoStorageService
         // PRIORITAS 2: Folder Cermin Lokal (public/uploads/components/)
         // =========================================================================
         $mirrorDir = $this->getMirrorDirectory();
-        if (@file_exists($mirrorDir)) {
-            $mirrorIndex = $this->getDirectoryIndex($mirrorDir);
-            $mirrorTrimmed = rtrim($mirrorDir, '\\/');
-
-            foreach ($keysToTry as $lk) {
-                if (isset($mirrorIndex[$lk])) {
-                    $full = $mirrorTrimmed . DIRECTORY_SEPARATOR . $mirrorIndex[$lk];
-                    if (@file_exists($full) && @filesize($full) > 50) {
-                        return realpath($full) ?: $full;
-                    }
-                }
-            }
+        $foundMirror = $this->matchFileInDirectory($mirrorDir, $keysToTry, $imagePath);
+        if ($foundMirror) {
+            return $foundMirror;
         }
 
         // =========================================================================
@@ -419,7 +580,7 @@ class ComponentPhotoStorageService
         if ($imagePath && !str_starts_with($imagePath, 'http')) {
             $fullDbPath = $this->resolvePublicPath($imagePath);
             if (@file_exists($fullDbPath) && @filesize($fullDbPath) > 50) {
-                return realpath($fullDbPath) ?: $fullDbPath;
+                return @realpath($fullDbPath) ?: $fullDbPath;
             }
         }
 
@@ -427,17 +588,10 @@ class ComponentPhotoStorageService
         // PRIORITAS 4: Cadangan Fisik Lokal D:\Ali Magang\KOMPONEN (Jika Tersedia)
         // =========================================================================
         $localBackupDir = env('COMPONENT_LOCAL_BACKUP_DIR', 'D:\Ali Magang\KOMPONEN');
-        if (@file_exists($localBackupDir) && !in_array($localBackupDir, $externalDirsToCheck, true)) {
-            $backupIndex = $this->getDirectoryIndex($localBackupDir);
-            $localTrimmed = rtrim($localBackupDir, '\\/');
-
-            foreach ($keysToTry as $lk) {
-                if (isset($backupIndex[$lk])) {
-                    $full = $localTrimmed . DIRECTORY_SEPARATOR . $backupIndex[$lk];
-                    if (@file_exists($full) && @filesize($full) > 50) {
-                        return realpath($full) ?: $full;
-                    }
-                }
+        if (!empty($localBackupDir) && !in_array($localBackupDir, $primaryDirs, true)) {
+            $foundBackup = $this->matchFileInDirectory($localBackupDir, $keysToTry, $imagePath);
+            if ($foundBackup) {
+                return $foundBackup;
             }
         }
 

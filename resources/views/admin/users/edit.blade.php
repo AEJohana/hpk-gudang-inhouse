@@ -239,7 +239,7 @@
                     </div>
 
                     <!-- Tanda Tangan Digital -->
-                    <div class="md:col-span-2">
+                    <div data-drop-zone class="md:col-span-2">
                         <label for="signature_file" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Berkas Tanda Tangan Digital (PNG/JPG transparan) <span class="text-slate-400 font-normal lowercase">(opsional)</span>
                         </label>

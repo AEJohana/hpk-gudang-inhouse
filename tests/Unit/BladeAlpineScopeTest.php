@@ -76,13 +76,20 @@ class BladeAlpineScopeTest extends TestCase
             }
 
             if ($depth <= 0) {
-                // Check if this closure happened before the end of the view file (line 1200+)
-                $linesBefore = substr_count(substr($sub, 0, $offset), "\n");
-                $lineNum = substr_count(substr($content, 0, $divPos), "\n") + $linesBefore + 1;
-                if ($lineNum < 1200) {
-                    $prematureZeroLine = $lineNum;
-                    break;
+                $closeOffsetInContent = $divPos + $offset;
+                $scriptPos = strpos($content, '<script>');
+                $closedSlice = substr($content, $divPos, $closeOffsetInContent - $divPos);
+
+                if (
+                    ($scriptPos !== false && $closeOffsetInContent > $scriptPos) ||
+                    ! str_contains($closedSlice, 'actionModalOpen') ||
+                    ! str_contains($closedSlice, 'detailModalOpen') ||
+                    ! str_contains($closedSlice, 'mhScannerOpen')
+                ) {
+                    $linesBefore = substr_count(substr($sub, 0, $offset), "\n");
+                    $prematureZeroLine = substr_count(substr($content, 0, $divPos), "\n") + $linesBefore + 1;
                 }
+                break;
             }
         }
 
