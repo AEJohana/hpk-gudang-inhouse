@@ -261,6 +261,20 @@ Buka antarmuka HPK WMS di browser (`http://localhost/work-requests`):
 | **Tanggal tiket tertulis hari ini** | Atribut `created_at` tidak masuk `$fillable` | Pastikan `created_at` dan `updated_at` selalu terdaftar di `$fillable` pada `WorkRequest` dan `WorkRequestLog`. |
 | **Stok gudang berubah setelah migrasi** | Terjadi pelanggaran guardrails | Script migrasi diisolasi murni dari tabel `transactions`. Jangan pernah menambahkan mutasi stok manual saat migrasi CSV. |
 
-### E. Larangan Mutlak (Guardrails)
+### E. Pembaruan Protokol Cutover & Hasil Eksekusi Pra-Go-Live (27 November 2026)
+Untuk keperluan **rombak total (*Clean Cutover*) Database Komponen + Log WR pra-Go-Live**, prosedur lengkap (backup `.sql` wajib, reset berurutan aman FK, dry-run validasi, import komponen, migrasi WR, hingga unduh foto NAS) didokumentasikan pada dokumen khusus: [docs/SOP_CUTOVER_DATABASE_KOMPONEN_DAN_WR.md](docs/SOP_CUTOVER_DATABASE_KOMPONEN_DAN_WR.md).
+
+Perbaikan teknis pada command migrasi yang diterapkan & hasil eksekusi cutover 27 November 2026:
+1. **Isolasi Komponen Non-Master (`source = 'wr_adhoc'`):** `wr:migrate-legacy-spreadsheet` mengisi `'source' => 'wr_adhoc'` secara eksplisit untuk seluruh part `"Baru"` (`NEW-YYYYMMDD-SEQ`) dan kode non-master (Guardrail #7), sementara `import:csv-komponen` mengisi `'source' => 'master'` serta mendukung pemetaan kolom CSV dinamis berdasarkan nama header (`resolveColumnIndexes`) dan pengaman duplikasi frekuensi (`$rawCodeCounts`).
+2. **Pemetaan Rak Penerimaan WR (`target_location_id`):** Tiket WR hasil migrasi otomatis mewarisi `default_location_id`, `default_shelf_level`, dan `default_slot_number` dari master komponennya agar penerimaan `Sudah Diambil` masuk tepat ke rak komponen (bukan nyasar ke `HOLDING`).
+3. **Multi-Routing `work_request_steps` & `current_batch_qty`:** Kolom `Routing` (`->` atau `,`) dipecah utuh menjadi seluruh tahapan `work_request_steps` berurutan.
+4. **Sinkronisasi Penamaan Foto `NEW-`:** `wr:download-legacy-photos` diselaraskan menggunakan segmen ke-6 `No WR` dan ikut membaca `Data acuan/Form Work Request - Data komponen.csv`.
+5. **Hasil Eksekusi Cutover Aktual (27 November 2026):**
+   - **Backup Penuh Pra-Cutover:** `storage/app/backups/hpk_gudang_pre_cutover_20261127_014706.sql`.
+   - **Master Komponen & Stok Awal (`Data komponen.csv`):** `799` komponen `master` (`0` duplikasi, `315` di rak fisik, `484` area `HOLDING`), `648` baris `stock_balances` dengan total kuantitas `97.760,00`.
+   - **Log WR (`Form Work Request - Log WR.csv`):** `900` tiket unik (`857` selesai/final termasuk `761` `Sudah Diambil` dan `96` ditolak, serta `43` tiket aktif berjalan: `19` `Belum Verifikasi`, `13` `Dalam antrian`, `11` `Proses: Dept Laser Cutting (In)`), `900` `work_request_steps`, `3.340` `work_request_logs`, `209` part `wr_adhoc` terisolasi penuh, `0` mutasi transaksi fiktif (`transactions = 0`).
+   - **Foto NAS & Mirror:** `47` foto baru terunduh (`985` sudah ada, `1` link privat/gagal pada `NEW-20260729-004`); audit `components:check-nas` mencatat `996 / 1008` (`98.8%`) komponen telah memiliki berkas fisik.
+
+### F. Larangan Mutlak (Guardrails)
 1. **DILARANG KERAS** menjalankan `php artisan migrate:fresh` atau `db:wipe` pada database operasional MySQL `hpk_gudang`.
 2. **DILARANG KERAS** mengubah format nomor WR menjadi format non-standar tanpa koordinasi dengan modul pencetakan label barcode dan QR scanner.

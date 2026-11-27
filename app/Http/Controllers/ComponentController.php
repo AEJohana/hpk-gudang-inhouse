@@ -39,8 +39,7 @@ class ComponentController extends Controller
         }
 
         if ($request->filled('low_stock')) {
-            $query->where('minimum_stock', '>', 0)
-                ->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) <= components.minimum_stock');
+            $query->lowStock();
         }
 
         $components = $query->latest()->paginate($this->resolvePerPage($request, 15))->withQueryString();

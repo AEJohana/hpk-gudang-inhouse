@@ -89,6 +89,15 @@ class Component extends Model
         return $query->where('source', 'wr_adhoc');
     }
 
+    /**
+     * Scope: Komponen yang stok fisiknya strictly berada di bawah batas minimum (Saldo < Saldo Minimum & minimum_stock > 0).
+     */
+    public function scopeLowStock($query)
+    {
+        return $query->where('minimum_stock', '>', 0)
+            ->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) < components.minimum_stock');
+    }
+
     public function getIsMasterAttribute(): bool
     {
         return ($this->source ?? 'master') === 'master';
@@ -115,7 +124,7 @@ class Component extends Model
         if (empty($this->minimum_stock) || $this->minimum_stock <= 0) {
             return false;
         }
-        return $this->total_stock <= $this->minimum_stock;
+        return $this->total_stock < $this->minimum_stock;
     }
 
     public function getHasLocationAttribute(): bool

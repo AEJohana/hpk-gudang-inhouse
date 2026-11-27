@@ -25,9 +25,7 @@ class DashboardController extends Controller
             // 1. KPI & Summary Metrics
             $totalComponents = Component::masterCatalog()->count();
             
-            $lowStockCount = Component::masterCatalog()->where('minimum_stock', '>', 0)
-                ->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) <= components.minimum_stock')
-                ->count();
+            $lowStockCount = Component::masterCatalog()->lowStock()->count();
 
             $todayTransactionsCount = Transaction::whereBetween('transaction_date', [
                 now()->startOfDay()->toDateString(),

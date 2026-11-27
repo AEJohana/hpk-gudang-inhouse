@@ -284,9 +284,14 @@ Users have specific roles and departmental scopes that dictate their permissions
 
 ## Technical Documentation References
 - [docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md](docs/PANDUAN_STRUKTUR_FOLDER_DAN_FRAMEWORK.md) - Buku Panduan Resmi Struktur Folder, Arsitektur Framework Laravel, Node.js & Esensi Berkas Sistem
-- [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - Standar Operasional Prosedur, Diagram Alur Proses & Aturan Bisnis (BR-01 s/d BR-14)
+- [docs/SOP_DAN_ALUR_PROSES.md](docs/SOP_DAN_ALUR_PROSES.md) - Standar Operasional Prosedur, Diagram Alur Proses & Aturan Bisnis (BR-01 s/d BR-18)
 - [docs/MIGRASI_LOG_WR_SPREADSHEET.md](docs/MIGRASI_LOG_WR_SPREADSHEET.md) - Panduan Resmi Migrasi Data Work Request Historis & In-Progress dari Spreadsheet ke MySQL
+- [docs/SOP_CUTOVER_DATABASE_KOMPONEN_DAN_WR.md](docs/SOP_CUTOVER_DATABASE_KOMPONEN_DAN_WR.md) - SOP Resmi Cutover & Rombak Total Database Komponen + Log WR Pra-Go-Live
 - [SESSION_RESUME_AKSES_AKUN.md](SESSION_RESUME_AKSES_AKUN.md) - Log Checkpoint Pengembangan & Kredensial Akun Pengujian
+
+### 32. Penyeragaman Rumus Batas Safety Stock (`Saldo < Minimum`) & Isolasi `minimum_stock > 0`
+- **Shared Scope `Component::scopeLowStock()`:** Menyatukan seluruh perhitungan stok kritis pada Dashboard (`DashboardController`), filter *Stok Kritis* Master Komponen (`ComponentController`), modul *Safety Stock Alert* (`WorkRequestController::safetyStock`), helper `$component->is_low_stock`, dan daftar komponen form transaksi (`transactions/create.blade.php`) ke standar tunggal `minimum_stock > 0` dan `total_stock < minimum_stock` (strictly di bawah minimum, selaras 100% dengan sistem lama di `sync_safety_stock.js`).
+- **Perbaikan Filter Menu Safety Stock Alert:** Menutup celah sebelumnya di `WorkRequestController::safetyStock()` yang belum menyaring `minimum_stock > 0`, sehingga komponen tanpa target minimum (`min = 0`) tidak lagi masuk ke antrean defisit.
 
 ## Summary
 The system is an enterprise-grade, unified Warehouse Management System (WMS) and Work Request (WRI) platform. It seamlessly connects raw material warehouse storage (Zones A-F), multi-station production machine routing (Laser, M1, UNP, CNC, etc.), internal logistics transit (Material Handling), quality engineering control (ECR & Disposal), and inventory reconciliation into a single cohesive, auditable, and QR-driven ecosystem.

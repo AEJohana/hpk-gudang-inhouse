@@ -38,11 +38,14 @@ class LegacyWrMigrationTest extends TestCase
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('email')->unique();
+            $table->string('username')->nullable();
+            $table->string('email')->nullable();
             $table->string('password');
+            $table->string('role')->default('operator');
             $table->string('work_area')->nullable();
             $table->string('department')->nullable();
             $table->boolean('can_access_all_departments')->default(false);
+            $table->softDeletes();
             $table->timestamps();
         });
 
@@ -53,12 +56,28 @@ class LegacyWrMigrationTest extends TestCase
             $table->string('specification')->nullable();
             $table->string('category')->nullable();
             $table->string('uom')->default('PCS');
+            $table->unsignedBigInteger('uom_id')->nullable();
+            $table->string('length_mm', 100)->nullable();
+            $table->string('width_or_diameter_mm', 100)->nullable();
+            $table->string('thickness_or_height_mm', 100)->nullable();
             $table->decimal('minimum_stock', 12, 2)->default(0);
+            $table->decimal('maximum_stock', 12, 2)->nullable();
             $table->decimal('total_stock', 12, 2)->default(0);
             $table->unsignedBigInteger('default_location_id')->nullable();
             $table->string('default_shelf_level')->nullable();
             $table->string('default_slot_number')->nullable();
+            $table->string('image_path')->nullable();
+            $table->string('qr_code_payload')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->string('source', 20)->default('master');
+            $table->timestamps();
+        });
+
+        Schema::create('uoms', function (Blueprint $table) {
+            $table->id();
+            $table->string('code')->unique();
+            $table->string('name');
+            $table->softDeletes();
             $table->timestamps();
         });
 
@@ -83,13 +102,52 @@ class LegacyWrMigrationTest extends TestCase
             $table->timestamps();
         });
 
+        Schema::create('zones', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('warehouse_id')->nullable();
+            $table->string('code');
+            $table->string('name');
+            $table->string('type')->default('storage');
+            $table->text('description')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
         Schema::create('locations', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('warehouse_id')->nullable();
+            $table->unsignedBigInteger('zone_id')->nullable();
             $table->string('zone_code')->nullable();
+            $table->string('zone_name')->nullable();
+            $table->string('aisle')->nullable();
+            $table->string('rack_code')->nullable();
             $table->string('rack_number')->nullable();
+            $table->string('storage_type')->default('rack');
+            $table->string('bin_level')->nullable();
+            $table->text('description')->nullable();
+            $table->integer('max_capacity')->default(100);
+            $table->integer('total_levels')->default(4);
+            $table->integer('slots_per_level')->default(10);
+            $table->integer('grid_x')->default(1);
+            $table->integer('grid_y')->default(1);
+            $table->integer('grid_w')->default(1);
+            $table->integer('grid_h')->default(1);
+            $table->string('color')->nullable();
             $table->string('code')->nullable();
             $table->string('name')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('stock_balances', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('component_id');
+            $table->unsignedBigInteger('location_id');
+            $table->decimal('quantity', 12, 2)->default(0);
+            $table->string('shelf_level')->nullable();
+            $table->string('slot_number')->nullable();
+            $table->string('specific_location_code')->nullable();
+            $table->string('batch_lot_number')->nullable();
             $table->timestamps();
         });
 
@@ -138,6 +196,8 @@ class LegacyWrMigrationTest extends TestCase
             $table->date('due_date')->nullable();
             $table->string('spk_reference')->nullable();
             $table->text('notes')->nullable();
+            $table->string('assigned_operator_name')->nullable();
+            $table->decimal('current_batch_qty', 12, 2)->default(0);
             $table->boolean('is_final')->default(false);
             $table->timestamps();
         });
@@ -149,6 +209,9 @@ class LegacyWrMigrationTest extends TestCase
             $table->unsignedBigInteger('machine_id')->nullable();
             $table->string('process_name');
             $table->string('status')->default('pending');
+            $table->string('operator_name')->nullable();
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
         });
@@ -669,5 +732,204 @@ class LegacyWrMigrationTest extends TestCase
         $fresh = WorkRequest::find($wr->id);
         $this->assertEquals('2026-11-17', $fresh->created_at->format('Y-m-d'));
         $this->assertEquals('17 Nov 2026', $fresh->created_at->format('d M Y'));
+    }
+
+    /**
+     * Uji perbaikan Fase 1 pada wr:migrate-legacy-spreadsheet:
+     * 1. Part "Baru" mendapat source = 'wr_adhoc' (tidak bocor ke masterCatalog).
+     * 2. Tiket WR mewarisi target_location_id dari komponen master.
+     * 3. Multi-routing ("Dept Laser Cutting -> Dept M1") dipecah lengkap menjadi 2 WorkRequestStep.
+     */
+    public function test_migrated_wr_populates_target_location_multi_routing_and_isolates_wr_adhoc(): void
+    {
+        $user = User::create([
+            'name' => 'Admin Cutover',
+            'role' => 'admin_gudang',
+            'password' => bcrypt('secret'),
+            'work_area' => 'Gudang',
+            'department' => 'Dept Gudang',
+        ]);
+
+        $loc = \App\Models\Location::create([
+            'warehouse_id' => 1,
+            'zone_code' => '1',
+            'zone_name' => 'Area 1',
+            'rack_code' => 'R8',
+            'rack_number' => 'Rak 8',
+        ]);
+
+        $masterComp = Component::create([
+            'name' => 'HANDLE',
+            'part_number' => 'CSBA30100360000',
+            'default_location_id' => $loc->id,
+            'default_shelf_level' => 'L1',
+            'default_slot_number' => '06',
+            'source' => 'master',
+        ]);
+
+        $tmpCsv = tempnam(sys_get_temp_dir(), 'wr_test_');
+        $rows = [
+            ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+            ['', 'Tanggal Order', 'No WR', 'Kode Komponen', 'Nama Komponen', 'Gambar Komponen', 'Routing', 'Dimensi', 'Qty', 'Dept Pengaju', 'Dept Penerima', 'Deskripsi', 'Status Pengaju', 'Status Penerima', 'Status Barang', 'Keterangan Print', '', '', 'Data Proses', '', 'OP Pengaju', 'Kepala Pengaju', 'OP Penerima', 'Kepala Penerima', 'Nama Pengambil (MH)'],
+            ['', '2026-11-20', 'WR/Dept Gudang/20261120/1/CSBA30100360000/1', 'CSBA30100360000', 'HANDLE', '', 'Dept Laser Cutting -> Dept M1', '358 x 12', '10', 'Dept Gudang', 'Dept Laser Cutting', 'Order Multi', 'Diterima', 'Diterima', 'Siap diambil', '', '', '', '[ Proses: Dept Laser Cutting (In) - 10 pcs - 20/11 09:00 - Mulai ] ; [ Proses: Dept Laser Cutting (Out) - 10 pcs - 20/11 10:00 - Out ] ; [ MH Pickup: Dept Laser Cutting - 10 pcs - 20/11 10:30 - Ambil ] ; [ Proses: Dept M1 (In) - 10 pcs - 20/11 11:00 - Masuk M1 ] ; [ Siap diambil - 10 (Final) - 20/11 13:00 - Selesai ]', '', 'Budi', 'KaGudang', 'Nasrul', 'KaLaser', ''],
+            ['', '2026-11-20', 'WR/Dept Gudang/20261120/2/Baru/1', 'Baru', 'Bracket Adhoc Test', '', 'Dept M1', '100x50x5', '5', 'Dept Gudang', 'Dept M1', 'Part Baru Test', 'Diterima', 'Diterima', 'Dalam antrian', '', '', '', '', '', 'Budi', 'KaGudang', 'Fajar', 'KaM1', ''],
+        ];
+        $fp = fopen($tmpCsv, 'w');
+        foreach ($rows as $r) {
+            fputcsv($fp, $r);
+        }
+        fclose($fp);
+
+        try {
+            $exitCode = \Illuminate\Support\Facades\Artisan::call('wr:migrate-legacy-spreadsheet', [
+                '--file' => $tmpCsv,
+                '--komponen-baru-file' => $tmpCsv . '_missing',
+            ]);
+            $this->assertEquals(0, $exitCode);
+
+            $wrMaster = WorkRequest::where('wri_number', 'WR/Dept Gudang/20261120/1/CSBA30100360000/1')->first();
+            $this->assertNotNull($wrMaster);
+            $this->assertEquals($loc->id, $wrMaster->target_location_id);
+            $this->assertEquals('L1', $wrMaster->target_shelf_level);
+            $this->assertEquals('06', $wrMaster->target_slot_number);
+            $this->assertEquals(10.0, (float) $wrMaster->current_batch_qty);
+
+            $steps = $wrMaster->steps()->orderBy('step_number')->get();
+            $this->assertCount(2, $steps);
+            $this->assertEquals('Dept Laser Cutting', $steps[0]->process_name);
+            $this->assertEquals('Dept M1', $steps[1]->process_name);
+
+            $adhocComp = Component::where('part_number', 'NEW-20261120-001')->first();
+            $this->assertNotNull($adhocComp);
+            $this->assertEquals('wr_adhoc', $adhocComp->source);
+            $this->assertEquals(1, Component::masterCatalog()->count());
+        } finally {
+            @unlink($tmpCsv);
+        }
+    }
+
+    /**
+     * Uji import:csv-komponen mode --dry-run (0 perubahan DB) dan mode live (source = 'master' + StockBalance).
+     */
+    public function test_import_csv_komponen_dry_run_and_live_sets_master_source(): void
+    {
+        \App\Models\Warehouse::create(['code' => 'WH-HPK-1', 'name' => 'HPK Warehouse']);
+
+        $tmpCsv = tempnam(sys_get_temp_dir(), 'comp_test_');
+        $rows = [
+            ['', '', '', '', '', '', '', '', '', '', ''],
+            ['', '', 'Kode Komponen', 'Nama Komponen', 'Gambar Komponen', 'Kode Rak', 'Saldo', 'Saldo Minimum', 'Panjang ( mm )', 'Diameter / Lebar ( mm )', 'Tebal ( mm )'],
+            ['', '', 'COMP-CUTOVER-01', 'PLAT TEST CUTOVER', 'https://drive.google.com/open?id=abc123', '1-R8-L1-06', '25', '10', '350', '120', 'PEJAL'],
+        ];
+        $fp = fopen($tmpCsv, 'w');
+        foreach ($rows as $r) {
+            fputcsv($fp, $r);
+        }
+        fclose($fp);
+
+        try {
+            // 1. Dry-run tidak boleh menulis ke DB
+            $dryExit = \Illuminate\Support\Facades\Artisan::call('import:csv-komponen', [
+                '--file' => $tmpCsv,
+                '--dry-run' => true,
+            ]);
+            $this->assertEquals(0, $dryExit);
+            $this->assertEquals(0, Component::count());
+            $this->assertEquals(0, \App\Models\StockBalance::count());
+
+            // 2. Live run menulis komponen berstatus source = 'master' dan StockBalance
+            $liveExit = \Illuminate\Support\Facades\Artisan::call('import:csv-komponen', [
+                '--file' => $tmpCsv,
+            ]);
+            $this->assertEquals(0, $liveExit, \Illuminate\Support\Facades\Artisan::output());
+
+            $comp = Component::where('part_number', 'COMP-CUTOVER-01')->first();
+            $this->assertNotNull($comp);
+            $this->assertEquals('master', $comp->source);
+            $this->assertEquals('PEJAL', $comp->thickness_or_height_mm);
+            $this->assertEquals(25.0, (float) $comp->total_stock);
+        } finally {
+            @unlink($tmpCsv);
+        }
+    }
+
+    /**
+     * Uji system:cutover-reset pada SQLite :memory::
+     * Membersihkan komponen & WR uji coba tanpa menghapus users maupun locations.
+     */
+    public function test_system_cutover_reset_preserves_users_and_locations(): void
+    {
+        $user = User::create([
+            'name' => 'Admin Tetap Ada',
+            'role' => 'admin_gudang',
+            'password' => bcrypt('secret'),
+        ]);
+        $loc = \App\Models\Location::create([
+            'zone_code' => '1',
+            'rack_code' => 'R1',
+            'rack_number' => 'Rak 1',
+        ]);
+        $comp = Component::create([
+            'name' => 'Dummy Pre Cutover',
+            'part_number' => 'DUMMY-001',
+            'source' => 'master',
+        ]);
+        \App\Models\StockBalance::create([
+            'component_id' => $comp->id,
+            'location_id' => $loc->id,
+            'quantity' => 50,
+        ]);
+        WorkRequest::create([
+            'wri_number' => 'WRI/TEST/001',
+            'component_id' => $comp->id,
+            'status' => 'Dalam antrian',
+        ]);
+
+        $exitCode = \Illuminate\Support\Facades\Artisan::call('system:cutover-reset', [
+            '--skip-backup' => true,
+            '--confirm' => true,
+        ]);
+        $this->assertEquals(0, $exitCode);
+
+        $this->assertEquals(0, Component::count());
+        $this->assertEquals(0, \App\Models\StockBalance::count());
+        $this->assertEquals(0, WorkRequest::count());
+        $this->assertEquals(1, User::count());
+        $this->assertEquals(1, \App\Models\Location::count());
+    }
+
+    /**
+     * Uji import:csv-komponen mendukung layout header bergeser (Kode Komponen di kolom index 1 + kolom tanggal transaksi).
+     */
+    public function test_import_csv_komponen_supports_shifted_header_layout(): void
+    {
+        \App\Models\Warehouse::create(['code' => 'WH-HPK-1', 'name' => 'HPK Warehouse']);
+
+        $tmpCsv = tempnam(sys_get_temp_dir(), 'comp_shifted_');
+        $rows = [
+            ['', '', '', '', '', '', '', '', '2', '', '', '', '', '', '', ''],
+            ['', 'Kode Komponen', 'Nama Komponen', 'Gambar Komponen', 'Kode Rak', 'Saldo', 'Transaksi Masuk Terakhir', 'Transaksi Keluar Terakhir', 'Stock Opname Terakhir', 'Routing', 'Saldo Minimum', 'Panjang ( mm )', 'Diameter / Lebar ( mm )', 'Tebal ( mm )'],
+            ['1', 'SHIFT-001', 'HANDLE SHIFTED', 'https://drive.google.com/open?id=xyz', '1-R8-L1-06', '82', '05/08/2026', '27/10/2026', '02/07/2026', '', '60', '358', '', '12'],
+        ];
+        $fp = fopen($tmpCsv, 'w');
+        foreach ($rows as $r) {
+            fputcsv($fp, $r);
+        }
+        fclose($fp);
+
+        try {
+            $exit = \Illuminate\Support\Facades\Artisan::call('import:csv-komponen', ['--file' => $tmpCsv]);
+            $this->assertEquals(0, $exit, \Illuminate\Support\Facades\Artisan::output());
+
+            $comp = Component::where('part_number', 'SHIFT-001')->first();
+            $this->assertNotNull($comp);
+            $this->assertEquals('HANDLE SHIFTED', $comp->name);
+            $this->assertEquals(60, $comp->minimum_stock);
+            $this->assertEquals('358', $comp->length_mm);
+            $this->assertEquals('12', $comp->thickness_or_height_mm);
+            $this->assertEquals(82.0, (float) $comp->total_stock);
+        } finally {
+            @unlink($tmpCsv);
+        }
     }
 }

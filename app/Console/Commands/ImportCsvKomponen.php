@@ -5,8 +5,10 @@ namespace App\Console\Commands;
 use App\Models\Component;
 use App\Models\Location;
 use App\Models\StockBalance;
+use App\Models\Uom;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ImportCsvKomponen extends Command
 {
@@ -15,14 +17,17 @@ class ImportCsvKomponen extends Command
      *
      * @var string
      */
-    protected $signature = 'import:csv-komponen {--file= : Path to CSV file}';
+    protected $signature = 'import:csv-komponen
+                            {--file= : Path ke berkas CSV komponen acuan}
+                            {--dry-run : Jalankan simulasi validasi tanpa menulis perubahan ke database}
+                            {--preserve-stock : Pertahankan saldo stock_balances eksisting (jangan timpa stok dari CSV)}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Import 613 master komponen karoseri dari file CSV acuan ke database HPK WMS';
+    protected $description = 'Import master komponen karoseri dari file CSV acuan ke database HPK WMS secara aman dan tervalidasi';
 
     /**
      * Execute the console command.
@@ -30,6 +35,8 @@ class ImportCsvKomponen extends Command
     public function handle()
     {
         $filePath = $this->option('file') ?: base_path('Data acuan/Form Work Request - Data komponen.csv');
+        $dryRun = (bool) $this->option('dry-run');
+        $preserveStock = (bool) $this->option('preserve-stock');
 
         if (!file_exists($filePath)) {
             $this->error("File CSV tidak ditemukan di: {$filePath}");
@@ -38,6 +45,12 @@ class ImportCsvKomponen extends Command
 
         $this->info("Memulai proses import data acuan komponen...");
         $this->line("Sumber File: <comment>{$filePath}</comment>");
+        if ($dryRun) {
+            $this->warn(">>> MODE SIMULASI (DRY-RUN) AKTIF: Database tidak akan dimodifikasi <<<");
+        }
+        if ($preserveStock) {
+            $this->info(">>> MODE PRESERVE STOCK AKTIF: Saldo stock_balances eksisting tidak akan ditimpa <<<");
+        }
 
         $f = fopen($filePath, 'r');
         if (!$f) {
@@ -45,10 +58,8 @@ class ImportCsvKomponen extends Command
             return 1;
         }
 
-        // Ensure HOLDING location exists
-        $holdingLoc = Location::ensureUnassignedLocationExists();
-
         $lineNum = 0;
+        $headerRow = null;
         $totalProcessed = 0;
         $seenCodes = [];
         $duplicatesResolved = 0;
@@ -57,41 +68,77 @@ class ImportCsvKomponen extends Command
         $multiRackCount = 0;
         $stockBalancesCreated = 0;
         $locationsCreated = 0;
+        $warnings = [];
 
-        // Collect rows first to determine progress bar count
+        // Collect rows first to validate header & determine progress bar count
         $rows = [];
         while (($row = fgetcsv($f)) !== false) {
             $lineNum++;
-            if ($lineNum <= 2) continue; // Skip header / title
+            if ($lineNum === 1) {
+                continue;
+            }
+            if ($lineNum === 2) {
+                $headerRow = $row;
+                continue;
+            }
             if (count(array_filter($row)) === 0) continue; // Skip empty rows
             $rows[] = array_merge(['csv_line' => $lineNum], $row);
         }
         fclose($f);
 
+        // Pre-flight dynamic header mapping (aman terhadap pergeseran kolom antara layout lama dan baru)
+        $colMap = $this->resolveColumnIndexes($headerRow);
+        if ($colMap['code'] === null || $colMap['name'] === null) {
+            $this->error("Format header baris ke-2 tidak sesuai standar! Harus memuat kolom 'Kode Komponen' dan 'Nama Komponen'.");
+            return 1;
+        }
+        $this->line("Pemetaan Kolom Terdeteksi: Kode=[{$colMap['code']}], Nama=[{$colMap['name']}], Rak=[" . ($colMap['rack'] ?? '-') . "], Saldo=[" . ($colMap['stock'] ?? '-') . "], Min=[" . ($colMap['min_stock'] ?? '-') . "]");
+
+        $holdingLoc = !$dryRun ? Location::ensureUnassignedLocationExists() : null;
+        $simulatedLocations = [];
+        $hasUomTable = Schema::hasTable('uoms');
+
         $this->info("Ditemukan " . count($rows) . " baris data komponen di file CSV.");
         $bar = $this->output->createProgressBar(count($rows));
         $bar->start();
 
-        DB::beginTransaction();
+        if (!$dryRun) {
+            DB::beginTransaction();
+        }
 
         try {
-            // Clean up any legacy unsuffixed duplicate records from earlier runs
-            Component::whereIn('part_number', [
-                'CLOP10180100120', 'CRDA10200390000', 'CSPA40150320000', 'SD3RD0240060550'
-            ])->delete();
+            // Hitung frekuensi kode mentah terlebih dahulu agar suffix duplikat hanya diterapkan jika benar-benar ada duplikasi di CSV
+            $rawCodeCounts = [];
+            foreach ($rows as $rowCheck) {
+                $rc = trim($rowCheck[$colMap['code']] ?? '');
+                if ($rc !== '') {
+                    $rawCodeCounts[$rc] = ($rawCodeCounts[$rc] ?? 0) + 1;
+                }
+            }
+
+            // Clean up any legacy unsuffixed duplicate records only when those codes are genuinely duplicated in CSV
+            $duplicatedLegacy = array_intersect(
+                ['CLOP10180100120', 'CRDA10200390000', 'CSPA40150320000', 'SD3RD0240060550'],
+                array_keys(array_filter($rawCodeCounts, fn ($cnt) => $cnt > 1))
+            );
+            if (!$dryRun && !empty($duplicatedLegacy)) {
+                Component::whereIn('part_number', $duplicatedLegacy)->delete();
+            }
 
             foreach ($rows as $r) {
-                $rawCode = trim($r[2] ?? '');
-                $rawName = trim($r[3] ?? '');
-                $rawImg = trim($r[4] ?? ''); // Kolom 4: Gambar Komponen (Google Drive URL)
-                $rawPos = trim($r[5] ?? ''); // Kolom 5: Posisi Rak
-                $rawStock = trim($r[6] ?? ''); // Kolom 6: Saldo
-                $rawMinStock = trim($r[7] ?? ''); // Kolom 7: Saldo Minimum
-                $rawP = trim($r[8] ?? ''); // Kolom 8: Panjang
-                $rawL = trim($r[9] ?? ''); // Kolom 9: Diameter / Lebar
-                $rawT = trim($r[10] ?? ''); // Kolom 10: Tebal
+                $rawCode = trim($r[$colMap['code']] ?? '');
+                $rawName = trim($r[$colMap['name']] ?? '');
+                $rawImg = $colMap['image'] !== null ? trim($r[$colMap['image']] ?? '') : '';
+                $rawPos = $colMap['rack'] !== null ? trim($r[$colMap['rack']] ?? '') : '';
+                $rawStock = $colMap['stock'] !== null ? trim($r[$colMap['stock']] ?? '') : '';
+                $rawMinStock = $colMap['min_stock'] !== null ? trim($r[$colMap['min_stock']] ?? '') : '';
+                $rawP = $colMap['length'] !== null ? trim($r[$colMap['length']] ?? '') : '';
+                $rawL = $colMap['width'] !== null ? trim($r[$colMap['width']] ?? '') : '';
+                $rawT = $colMap['thickness'] !== null ? trim($r[$colMap['thickness']] ?? '') : '';
 
                 if (!$rawCode) {
+                    $warnings[] = "Baris CSV #{$r['csv_line']}: Kode Komponen kosong (dilewati).";
+                    $bar->advance();
                     continue;
                 }
 
@@ -101,23 +148,30 @@ class ImportCsvKomponen extends Command
                     $rawUom = 'SET';
                 }
 
-                // 1. Resolve Duplicate Part Numbers with explicit symmetrical suffixes (Isu 2)
+                // 1. Resolve Duplicate Part Numbers only when rawCode actually appears > 1 time in CSV
                 $code = $rawCode;
-                if ($rawCode === 'CLOP10180100120') {
-                    $code = str_contains(strtoupper($rawName), 'LODGE B') ? 'CLOP10180100120-B' : 'CLOP10180100120-A';
-                    $duplicatesResolved++;
-                } elseif ($rawCode === 'CRDA10200390000') {
-                    $code = str_contains(strtoupper($rawName), 'KANAN') ? 'CRDA10200390000R' : 'CRDA10200390000L';
-                    $duplicatesResolved++;
-                } elseif ($rawCode === 'CSPA40150320000') {
-                    $code = str_contains($rawT, '7') || str_contains(strtoupper($rawName), 'D7') ? 'CSPA40150320000-D7' : 'CSPA40150320000-D25';
-                    $duplicatesResolved++;
-                } elseif ($rawCode === 'SD3RD0240060550') {
-                    $code = str_contains(strtoupper($rawName), 'ULIR') ? 'SD3RD0240060550-1' : 'SD3RD0240060550-2';
-                    $duplicatesResolved++;
+                if (($rawCodeCounts[$rawCode] ?? 0) > 1) {
+                    if ($rawCode === 'CLOP10180100120') {
+                        $code = str_contains(strtoupper($rawName), 'LODGE B') ? 'CLOP10180100120-B' : 'CLOP10180100120-A';
+                        $duplicatesResolved++;
+                    } elseif ($rawCode === 'CRDA10200390000') {
+                        $code = str_contains(strtoupper($rawName), 'KANAN') ? 'CRDA10200390000R' : 'CRDA10200390000L';
+                        $duplicatesResolved++;
+                    } elseif ($rawCode === 'CSPA40150320000') {
+                        $code = str_contains($rawT, '7') || str_contains(strtoupper($rawName), 'D7') ? 'CSPA40150320000-D7' : 'CSPA40150320000-D25';
+                        $duplicatesResolved++;
+                    } elseif ($rawCode === 'SD3RD0240060550') {
+                        $code = str_contains(strtoupper($rawName), 'ULIR') ? 'SD3RD0240060550-1' : 'SD3RD0240060550-2';
+                        $duplicatesResolved++;
+                    } elseif (isset($seenCodes[$rawCode])) {
+                        $duplicatesResolved++;
+                        $code = $rawCode . '-DUPL-' . $duplicatesResolved;
+                        $warnings[] = "Baris CSV #{$r['csv_line']}: Kode duplikat '{$rawCode}' diubah otomatis menjadi '{$code}'.";
+                    }
                 } elseif (isset($seenCodes[$rawCode])) {
                     $duplicatesResolved++;
                     $code = $rawCode . '-DUPL-' . $duplicatesResolved;
+                    $warnings[] = "Baris CSV #{$r['csv_line']}: Kode duplikat '{$rawCode}' diubah otomatis menjadi '{$code}'.";
                 }
                 $seenCodes[$code] = true;
 
@@ -151,9 +205,12 @@ class ImportCsvKomponen extends Command
                     $allocatedCount++;
                     $first = $parsedRacks[0];
 
-                    // Find or create location in locations table
-                    $locRecord = $this->findOrCreateLocation($first['zone'], $first['rack_code'], $first['rack_number'], $locationsCreated);
-                    $primaryLocationId = $locRecord->id;
+                    if (!$dryRun) {
+                        $locRecord = $this->findOrCreateLocation($first['zone'], $first['rack_code'], $first['rack_number'], $locationsCreated);
+                        $primaryLocationId = $locRecord->id;
+                    } else {
+                        $this->simulateFindOrCreateLocation($first['zone'], $first['rack_code'], $first['rack_number'], $simulatedLocations, $locationsCreated);
+                    }
                     $primaryLevel = $first['level'];
                     $primarySlot = $first['slot'];
 
@@ -164,27 +221,40 @@ class ImportCsvKomponen extends Command
                     $unallocatedCount++;
                 }
 
-                // 5. Create or Update Component Record
-                $component = Component::updateOrCreate(
-                    ['part_number' => $code],
-                    [
-                        'name' => $rawName,
-                        'category' => null, // Isu 1: Nullable with proactive alert badge
-                        'uom' => $rawUom,
-                        'length_mm' => $panjang,
-                        'width_or_diameter_mm' => $lebarDiameter,
-                        'thickness_or_height_mm' => $tebalTinggi,
-                        'specification' => count($parsedRacks) > 1 ? "Catatan Multi-Lokasi Rak: {$rawPos}" : null,
-                        'minimum_stock' => $minStock,
-                        'maximum_stock' => null,
-                        'default_location_id' => $primaryLocationId,
-                        'default_shelf_level' => $primaryLevel,
-                        'default_slot_number' => $primarySlot,
-                        'image_path' => $rawImg ?: null,
-                        'qr_code_payload' => "HPK-PART|{$code}",
-                        'is_active' => true,
-                    ]
-                );
+                $uomId = null;
+                if (!$dryRun && $hasUomTable) {
+                    $uomModel = Uom::firstOrCreate(
+                        ['code' => strtoupper($rawUom)],
+                        ['name' => $rawUom]
+                    );
+                    $uomId = $uomModel->id;
+                }
+
+                // 5. Create or Update Component Record (Prinsip Satu Pintu: source = 'master')
+                if (!$dryRun) {
+                    $component = Component::updateOrCreate(
+                        ['part_number' => $code],
+                        [
+                            'name' => $rawName,
+                            'category' => null, // Isu 1: Nullable with proactive alert badge
+                            'uom' => $rawUom,
+                            'uom_id' => $uomId,
+                            'length_mm' => $panjang,
+                            'width_or_diameter_mm' => $lebarDiameter,
+                            'thickness_or_height_mm' => $tebalTinggi,
+                            'specification' => count($parsedRacks) > 1 ? "Catatan Multi-Lokasi Rak: {$rawPos}" : null,
+                            'minimum_stock' => $minStock,
+                            'maximum_stock' => null,
+                            'default_location_id' => $primaryLocationId,
+                            'default_shelf_level' => $primaryLevel,
+                            'default_slot_number' => $primarySlot,
+                            'image_path' => $rawImg ?: null,
+                            'qr_code_payload' => "HPK-PART|{$code}",
+                            'is_active' => true,
+                            'source' => 'master',
+                        ]
+                    );
+                }
 
                 // 6. Process Initial Stock Balances
                 $stockQty = 0;
@@ -192,57 +262,65 @@ class ImportCsvKomponen extends Command
                     $stockQty = max(0, (float) str_replace(',', '.', $rawStock));
                 }
 
-                // Remove previous initial stock balances for this component to prevent duplication on rerun
-                StockBalance::where('component_id', $component->id)
-                    ->where('batch_lot_number', 'like', 'LOT-INIT%')
-                    ->delete();
+                if (!$preserveStock) {
+                    if (!$dryRun) {
+                        StockBalance::where('component_id', $component->id)
+                            ->where('batch_lot_number', 'like', 'LOT-INIT%')
+                            ->delete();
+                    }
 
-                if ($stockQty > 0) {
-                    if (empty($parsedRacks)) {
-                        // Place in HOLDING area
-                        StockBalance::create([
-                            'component_id' => $component->id,
-                            'location_id' => $holdingLoc->id,
-                            'quantity' => $stockQty,
-                            'shelf_level' => 'L1',
-                            'slot_number' => '01',
-                            'specific_location_code' => 'HOLDING-TRANSIT',
-                            'batch_lot_number' => 'LOT-INIT-HOLDING',
-                        ]);
-                        $stockBalancesCreated++;
-                    } elseif (count($parsedRacks) === 1) {
-                        // Single physical rack
-                        $firstRack = $parsedRacks[0];
-                        StockBalance::create([
-                            'component_id' => $component->id,
-                            'location_id' => $primaryLocationId,
-                            'quantity' => $stockQty,
-                            'shelf_level' => $firstRack['level'],
-                            'slot_number' => $firstRack['slot'],
-                            'specific_location_code' => $firstRack['full_code'],
-                            'batch_lot_number' => 'LOT-INIT-' . date('Ym'),
-                        ]);
-                        $stockBalancesCreated++;
-                    } else {
-                        // Multi-location: split stock proportionally across all allocated slots
-                        $slotCount = count($parsedRacks);
-                        $qtyPerSlot = floor($stockQty / $slotCount);
-                        $remainder = $stockQty - ($qtyPerSlot * $slotCount);
-
-                        foreach ($parsedRacks as $idx => $rInfo) {
-                            $slotQty = $qtyPerSlot + ($idx === 0 ? $remainder : 0);
-                            $slotLoc = $this->findOrCreateLocation($rInfo['zone'], $rInfo['rack_code'], $rInfo['rack_number'], $locationsCreated);
-
-                            StockBalance::create([
-                                'component_id' => $component->id,
-                                'location_id' => $slotLoc->id,
-                                'quantity' => $slotQty,
-                                'shelf_level' => $rInfo['level'],
-                                'slot_number' => $rInfo['slot'],
-                                'specific_location_code' => $rInfo['full_code'],
-                                'batch_lot_number' => 'LOT-INIT-MULTI',
-                            ]);
+                    if ($stockQty > 0) {
+                        if (empty($parsedRacks)) {
+                            if (!$dryRun) {
+                                StockBalance::create([
+                                    'component_id' => $component->id,
+                                    'location_id' => $holdingLoc->id,
+                                    'quantity' => $stockQty,
+                                    'shelf_level' => 'L1',
+                                    'slot_number' => '01',
+                                    'specific_location_code' => 'HOLDING-TRANSIT',
+                                    'batch_lot_number' => 'LOT-INIT-HOLDING',
+                                ]);
+                            }
                             $stockBalancesCreated++;
+                        } elseif (count($parsedRacks) === 1) {
+                            $firstRack = $parsedRacks[0];
+                            if (!$dryRun) {
+                                StockBalance::create([
+                                    'component_id' => $component->id,
+                                    'location_id' => $primaryLocationId,
+                                    'quantity' => $stockQty,
+                                    'shelf_level' => $firstRack['level'],
+                                    'slot_number' => $firstRack['slot'],
+                                    'specific_location_code' => $firstRack['full_code'],
+                                    'batch_lot_number' => 'LOT-INIT-' . date('Ym'),
+                                ]);
+                            }
+                            $stockBalancesCreated++;
+                        } else {
+                            $slotCount = count($parsedRacks);
+                            $qtyPerSlot = floor($stockQty / $slotCount);
+                            $remainder = $stockQty - ($qtyPerSlot * $slotCount);
+
+                            foreach ($parsedRacks as $idx => $rInfo) {
+                                $slotQty = $qtyPerSlot + ($idx === 0 ? $remainder : 0);
+                                if (!$dryRun) {
+                                    $slotLoc = $this->findOrCreateLocation($rInfo['zone'], $rInfo['rack_code'], $rInfo['rack_number'], $locationsCreated);
+
+                                    StockBalance::create([
+                                        'component_id' => $component->id,
+                                        'location_id' => $slotLoc->id,
+                                        'quantity' => $slotQty,
+                                        'shelf_level' => $rInfo['level'],
+                                        'slot_number' => $rInfo['slot'],
+                                        'specific_location_code' => $rInfo['full_code'],
+                                        'batch_lot_number' => 'LOT-INIT-MULTI',
+                                    ]);
+                                } else {
+                                    $this->simulateFindOrCreateLocation($rInfo['zone'], $rInfo['rack_code'], $rInfo['rack_number'], $simulatedLocations, $locationsCreated);
+                                }
+                                $stockBalancesCreated++;
+                            }
                         }
                     }
                 }
@@ -251,9 +329,13 @@ class ImportCsvKomponen extends Command
                 $bar->advance();
             }
 
-            DB::commit();
+            if (!$dryRun) {
+                DB::commit();
+            }
         } catch (\Exception $e) {
-            DB::rollBack();
+            if (!$dryRun) {
+                DB::rollBack();
+            }
             $this->error("\nTerjadi error saat import: " . $e->getMessage());
             $this->error("File: " . $e->getFile() . ":" . $e->getLine());
             return 1;
@@ -263,22 +345,108 @@ class ImportCsvKomponen extends Command
         $this->newLine(2);
 
         $this->info("=================================================");
-        $this->info("  PROSES IMPORT DATA ACUAN KOMPONEN BERHASIL!  ");
+        $this->info($dryRun ? "  SIMULASI DRY-RUN IMPORT KOMPONEN SELESAI!  " : "  PROSES IMPORT DATA ACUAN KOMPONEN BERHASIL!  ");
         $this->info("=================================================");
         $this->table(
             ['Metrik', 'Jumlah'],
             [
-                ['Total Baris CSV Berhasil Diimport', $totalProcessed],
+                ['Mode Eksekusi', $dryRun ? 'SIMULASI (Dry-Run)' : 'RIIL DATABASE'],
+                ['Total Baris CSV Berhasil Diproses', $totalProcessed],
                 ['Duplikasi Kode Selesai (Diberi Suffix)', $duplicatesResolved],
                 ['Komponen Terpetakan ke Rak Fisik', $allocatedCount],
                 ['Komponen Belum Ditempatkan (Area HOLDING)', $unallocatedCount],
                 ['Komponen Multi-Lokasi Rak (Pemisah ;)', $multiRackCount],
-                ['Catatan Saldo Fisik (Stock Balances) Dibuat', $stockBalancesCreated],
+                ['Catatan Saldo Fisik (Stock Balances)', $preserveStock ? 'Dipertahankan (--preserve-stock)' : $stockBalancesCreated],
                 ['Lokasi Rak Baru Dibuat Otomatis', $locationsCreated],
             ]
         );
 
+        if (!empty($warnings)) {
+            $this->warn("Peringatan Pre-Flight (" . count($warnings) . "):");
+            foreach (array_slice($warnings, 0, 15) as $w) {
+                $this->line("  - {$w}");
+            }
+            if (count($warnings) > 15) {
+                $this->line("  ... dan " . (count($warnings) - 15) . " peringatan lainnya.");
+            }
+        }
+
         return 0;
+    }
+
+    /**
+     * Petakan indeks kolom CSV secara dinamis berdasarkan nama header baris ke-2.
+     */
+    protected function resolveColumnIndexes(?array $headerRow): array
+    {
+        $map = [
+            'code' => null,
+            'name' => null,
+            'image' => null,
+            'rack' => null,
+            'stock' => null,
+            'min_stock' => null,
+            'length' => null,
+            'width' => null,
+            'thickness' => null,
+        ];
+
+        if (!$headerRow) {
+            return $map;
+        }
+
+        foreach ($headerRow as $idx => $rawHeader) {
+            $h = strtolower(trim((string) $rawHeader));
+            if ($h === '' || str_contains($h, '|')) {
+                continue;
+            }
+
+            if ($map['code'] === null && (str_contains($h, 'kode komponen') || $h === 'kode')) {
+                $map['code'] = (int) $idx;
+            } elseif ($map['name'] === null && (str_contains($h, 'nama komponen') || $h === 'nama')) {
+                $map['name'] = (int) $idx;
+            } elseif ($map['image'] === null && str_contains($h, 'gambar')) {
+                $map['image'] = (int) $idx;
+            } elseif ($map['rack'] === null && (str_contains($h, 'kode rak') || str_contains($h, 'posisi rak'))) {
+                $map['rack'] = (int) $idx;
+            } elseif ($map['min_stock'] === null && str_contains($h, 'saldo minimum')) {
+                $map['min_stock'] = (int) $idx;
+            } elseif ($map['stock'] === null && $h === 'saldo') {
+                $map['stock'] = (int) $idx;
+            } elseif ($map['length'] === null && str_contains($h, 'panjang')) {
+                $map['length'] = (int) $idx;
+            } elseif ($map['width'] === null && (str_contains($h, 'diameter') || str_contains($h, 'lebar'))) {
+                $map['width'] = (int) $idx;
+            } elseif ($map['thickness'] === null && (str_contains($h, 'tebal') || str_contains($h, 'tinggi'))) {
+                $map['thickness'] = (int) $idx;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Simulasi deteksi lokasi rak pada mode --dry-run tanpa menulis ke database.
+     */
+    protected function simulateFindOrCreateLocation(string $zone, string $rackCode, string $rackNumber, array &$simulatedLocations, int &$locationsCreated): void
+    {
+        $key = "{$zone}|{$rackCode}|{$rackNumber}";
+        if (isset($simulatedLocations[$key])) {
+            return;
+        }
+
+        $exists = Location::where('zone_code', $zone)
+            ->where(function ($q) use ($rackCode, $rackNumber) {
+                $q->where('rack_code', $rackCode)
+                  ->orWhere('rack_code', 'R' . preg_replace('/[^0-9]/', '', $rackCode))
+                  ->orWhere('rack_number', $rackNumber);
+            })
+            ->exists();
+
+        if (!$exists) {
+            $locationsCreated++;
+        }
+        $simulatedLocations[$key] = true;
     }
 
     /**

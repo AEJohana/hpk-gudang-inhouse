@@ -14,6 +14,7 @@ class DownloadLegacyWrPhotos extends Command
      * @var string
      */
     protected $signature = 'wr:download-legacy-photos
+                            {--komponen-file= : Path kustom ke Data komponen.csv}
                             {--limit= : Batasi jumlah file yang diunduh (untuk uji coba)}
                             {--force : Unduh ulang meskipun file sudah ada di disk}
                             {--dry-run : Simulasi pengecekan tanpa mengunduh fisik}';
@@ -34,6 +35,7 @@ class DownloadLegacyWrPhotos extends Command
         $this->info(" HPK GUDANG - AUTO-DOWNLOAD FOTO GOOGLE DRIVE WR LAMA KE NAS (Z:)");
         $this->info("==================================================================");
 
+        $dataKomponenFile = $this->option('komponen-file') ?: base_path('Data acuan/Form Work Request - Data komponen.csv');
         $dbKomponenFile = base_path('System WR lama/Spreadsheet/Form Work Request - Database Komponen.csv');
         $kompBaruFile = base_path('System WR lama/Spreadsheet/Form Work Request - Komponen baru.csv');
         $logWrFile = base_path('System WR lama/Spreadsheet/Form Work Request - Log WR.csv');
@@ -75,31 +77,16 @@ class DownloadLegacyWrPhotos extends Command
         $dailyCounters = [];
         $partTargets = []; // sanitized_pn => ['part_number' => ..., 'name' => ..., 'url' => ..., 'file_id' => ...]
 
-        // Sumber 1: Master Catalog (Database Komponen.csv)
+        // Sumber 0: Data Acuan Komponen Terbaru (Data acuan/Form Work Request - Data komponen.csv)
+        if (file_exists($dataKomponenFile)) {
+            $this->line(" - Membaca Data Acuan Komponen: " . basename($dataKomponenFile));
+            $this->collectComponentCsvTargets($dataKomponenFile, 'Data Komponen Acuan', $storageService, $partTargets, true);
+        }
+
+        // Sumber 1: Master Catalog Lama (Database Komponen.csv)
         if (file_exists($dbKomponenFile)) {
             $this->line(" - Membaca Katalog Master: " . basename($dbKomponenFile));
-            $h0 = fopen($dbKomponenFile, 'r');
-            fgetcsv($h0); fgetcsv($h0); // lewati header 2 baris
-            while (($r = fgetcsv($h0)) !== false) {
-                $code = trim($r[2] ?? '');
-                $nama = trim($r[3] ?? '');
-                $url = trim($r[4] ?? '');
-
-                if (empty($code) || empty($url)) continue;
-
-                if (preg_match('/(?:id=|file\/d\/)([a-zA-Z0-9_-]+)/', $url, $um)) {
-                    $fileId = $um[1];
-                    $sanitizedPn = strtoupper($storageService->sanitizePartNumber($code));
-                    $partTargets[$sanitizedPn] = [
-                        'part_number' => $code,
-                        'name' => $nama,
-                        'url' => $url,
-                        'file_id' => $fileId,
-                        'source' => 'Database Komponen',
-                    ];
-                }
-            }
-            fclose($h0);
+            $this->collectComponentCsvTargets($dbKomponenFile, 'Database Komponen', $storageService, $partTargets, false);
         }
 
         // Sumber 2: Komponen Baru (Komponen baru.csv)
@@ -151,6 +138,7 @@ class DownloadLegacyWrPhotos extends Command
             fgetcsv($h1); fgetcsv($h1); // lewati header
             while (($r = fgetcsv($h1)) !== false) {
                 $rawTgl = trim($r[1] ?? '');
+                $noWr = trim($r[2] ?? '');
                 $code = trim($r[3] ?? '');
                 $nama = trim($r[4] ?? '');
                 $url = trim($r[5] ?? '');
@@ -164,12 +152,26 @@ class DownloadLegacyWrPhotos extends Command
                     $cleanNameKey = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $nama));
                     $tglFormatted = !empty($rawTgl) ? str_replace('-', '', $rawTgl) : date('Ymd');
 
-                    if (!isset($baruCodeMap[$cleanNameKey])) {
-                        $dailyCounters[$tglFormatted] = ($dailyCounters[$tglFormatted] ?? 0) + 1;
-                        $seqStr = sprintf('%03d', $dailyCounters[$tglFormatted]);
-                        $baruCodeMap[$cleanNameKey] = "NEW-{$tglFormatted}-{$seqStr}";
+                    // Selaraskan dengan MigrateLegacySpreadsheetWr: prioritaskan segmen ke-6 No WR (/1, /2, ...)
+                    $itemSeq = null;
+                    if ($noWr !== '') {
+                        $wrParts = explode('/', $noWr);
+                        $lastSeg = end($wrParts);
+                        if (is_numeric($lastSeg)) {
+                            $itemSeq = sprintf('%03d', (int) $lastSeg);
+                        }
                     }
-                    $partCode = $baruCodeMap[$cleanNameKey];
+
+                    if ($itemSeq !== null) {
+                        $partCode = "NEW-{$tglFormatted}-{$itemSeq}";
+                    } else {
+                        if (!isset($baruCodeMap[$cleanNameKey])) {
+                            $dailyCounters[$tglFormatted] = ($dailyCounters[$tglFormatted] ?? 0) + 1;
+                            $seqStr = sprintf('%03d', $dailyCounters[$tglFormatted]);
+                            $baruCodeMap[$cleanNameKey] = "NEW-{$tglFormatted}-{$seqStr}";
+                        }
+                        $partCode = $baruCodeMap[$cleanNameKey];
+                    }
                 } else {
                     $partCode = $code;
                 }
@@ -306,6 +308,66 @@ class DownloadLegacyWrPhotos extends Command
         $this->info("Cache indeks foto sistem telah disegarkan secara otomatis.");
 
         return 0;
+    }
+
+    /**
+     * Ekstrak target foto dari CSV master komponen dengan deteksi header kolom dinamis.
+     */
+    protected function collectComponentCsvTargets(
+        string $filePath,
+        string $sourceLabel,
+        ComponentPhotoStorageService $storageService,
+        array &$partTargets,
+        bool $overwriteExisting
+    ): void {
+        $handle = fopen($filePath, 'r');
+        if (!$handle) {
+            return;
+        }
+
+        fgetcsv($handle); // baris 1
+        $header = fgetcsv($handle) ?: [];
+
+        $codeIdx = 2;
+        $nameIdx = 3;
+        $imgIdx = 4;
+        foreach ($header as $idx => $rawHeader) {
+            $h = strtolower(trim((string) $rawHeader));
+            if ($h === '' || str_contains($h, '|')) {
+                continue;
+            }
+            if (str_contains($h, 'kode komponen')) {
+                $codeIdx = (int) $idx;
+            } elseif (str_contains($h, 'nama komponen')) {
+                $nameIdx = (int) $idx;
+            } elseif (str_contains($h, 'gambar')) {
+                $imgIdx = (int) $idx;
+            }
+        }
+
+        while (($r = fgetcsv($handle)) !== false) {
+            $code = trim($r[$codeIdx] ?? '');
+            $nama = trim($r[$nameIdx] ?? '');
+            $url = trim($r[$imgIdx] ?? '');
+
+            if ($code === '' || $url === '') {
+                continue;
+            }
+
+            if (preg_match('/(?:id=|file\/d\/)([a-zA-Z0-9_-]+)/', $url, $um)) {
+                $sanitizedPn = strtoupper($storageService->sanitizePartNumber($code));
+                if ($overwriteExisting || !isset($partTargets[$sanitizedPn])) {
+                    $partTargets[$sanitizedPn] = [
+                        'part_number' => $code,
+                        'name' => $nama,
+                        'url' => $url,
+                        'file_id' => $um[1],
+                        'source' => $sourceLabel,
+                    ];
+                }
+            }
+        }
+        fclose($handle);
     }
 
     /**

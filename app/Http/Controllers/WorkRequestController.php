@@ -947,9 +947,7 @@ class WorkRequestController extends Controller
         $query = Component::masterCatalog()->with(['defaultLocation', 'stockBalances'])
             ->withSum('stockBalances as total_stock_sum', 'quantity')
             ->where('is_active', true)
-            ->where(function ($q) {
-                $q->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) <= components.minimum_stock');
-            });
+            ->lowStock();
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -961,7 +959,7 @@ class WorkRequestController extends Controller
 
         $criticalComponents = $query->orderBy('minimum_stock', 'desc')->paginate($this->resolvePerPage($request, 15))->withQueryString();
         $totalCritical = Component::masterCatalog()->where('is_active', true)
-            ->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM stock_balances WHERE stock_balances.component_id = components.id) <= components.minimum_stock')
+            ->lowStock()
             ->count();
         $departments = Department::active()->orderBy('id')->get();
         $fabricationDepartments = Department::active()
@@ -1632,14 +1630,28 @@ class WorkRequestController extends Controller
                 ]);
 
                 $targetLocationId = $workRequest->target_location_id;
+                $shelfLevel = $workRequest->target_shelf_level;
+                $slotNumber = $workRequest->target_slot_number;
+
+                if (!$targetLocationId && $workRequest->component?->default_location_id) {
+                    $targetLocationId = $workRequest->component->default_location_id;
+                    $shelfLevel = $shelfLevel ?: $workRequest->component->default_shelf_level;
+                    $slotNumber = $slotNumber ?: $workRequest->component->default_slot_number;
+                    $workRequest->update([
+                        'target_location_id' => $targetLocationId,
+                        'target_shelf_level' => $shelfLevel,
+                        'target_slot_number' => $slotNumber,
+                    ]);
+                }
+
                 if (!$targetLocationId) {
                     $holdingLoc = Location::ensureUnassignedLocationExists();
                     $targetLocationId = $holdingLoc->id;
                     $workRequest->update(['target_location_id' => $targetLocationId]);
                 }
 
-                $shelfLevel = $workRequest->target_shelf_level ?: 'L1';
-                $slotNumber = $workRequest->target_slot_number ?: '01';
+                $shelfLevel = $shelfLevel ?: 'L1';
+                $slotNumber = $slotNumber ?: '01';
 
                 $stockBalance = StockBalance::firstOrCreate([
                     'component_id' => $workRequest->component_id,

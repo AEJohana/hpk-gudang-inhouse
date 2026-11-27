@@ -364,7 +364,7 @@
                         'total_stock' => (float) ($c->total_stock ?? 0),
                         'minimum_stock' => (float) ($c->minimum_stock ?? 0),
                         'default_location_id' => $c->default_location_id,
-                        'is_low_stock' => (($c->minimum_stock ?? 0) > 0 && ($c->total_stock ?? 0) <= $c->minimum_stock),
+                        'is_low_stock' => (($c->minimum_stock ?? 0) > 0 && ($c->total_stock ?? 0) < $c->minimum_stock),
                     ];
                 })) !!},
 

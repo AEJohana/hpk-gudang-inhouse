@@ -19,6 +19,8 @@ class MigrateLegacySpreadsheetWr extends Command
      * @var string
      */
     protected $signature = 'wr:migrate-legacy-spreadsheet
+                            {--file= : Path kustom ke file Log WR.csv}
+                            {--komponen-baru-file= : Path kustom ke file Komponen baru.csv}
                             {--dry-run : Jalankan simulasi validasi tanpa menyimpan perubahan ke database}
                             {--sync : Sinkronkan dan perbarui status tiket eksis jika di spreadsheet statusnya telah maju/selesai}
                             {--only-in-progress : Hanya migrasikan tiket yang belum selesai (in-progress)}
@@ -40,8 +42,8 @@ class MigrateLegacySpreadsheetWr extends Command
         $this->info(" HPK GUDANG - MIGRASI WORK REQUEST LAMA KE DATABASE (ZERO STOCK)");
         $this->info("==================================================================");
 
-        $logWrFile = base_path('System WR lama/Spreadsheet/Form Work Request - Log WR.csv');
-        $kompBaruFile = base_path('System WR lama/Spreadsheet/Form Work Request - Komponen baru.csv');
+        $logWrFile = $this->option('file') ?: base_path('System WR lama/Spreadsheet/Form Work Request - Log WR.csv');
+        $kompBaruFile = $this->option('komponen-baru-file') ?: base_path('System WR lama/Spreadsheet/Form Work Request - Komponen baru.csv');
 
         if (!file_exists($logWrFile)) {
             $this->error("Berkas Log WR.csv tidak ditemukan: {$logWrFile}");
@@ -65,18 +67,27 @@ class MigrateLegacySpreadsheetWr extends Command
 
         // 1. Persiapan Mapping User
         $adminUser = User::where('role', 'admin_gudang')->first() ?? User::first();
-        $userMap = $this->buildUserMap($adminUser);
+        $userMap = $adminUser ? $this->buildUserMap($adminUser) : [];
 
         // 2. Persiapan Mapping Komponen Baru
         $this->line("1. Menyiapkan kamus data Komponen Baru...");
         $baruCodeMap = $this->buildBaruComponentMap($kompBaruFile);
         $this->info("Kamus komponen baru siap: " . count($baruCodeMap) . " item.");
 
-        // 3. Baca dan proses Log WR.csv
+        // 3. Baca dan validasi header Log WR.csv
         $this->line("2. Membaca berkas Log WR.csv...");
         $h = fopen($logWrFile, 'r');
         fgetcsv($h); // empty line 1
         $header = fgetcsv($h); // header line 2
+
+        $hWr = strtolower(trim($header[2] ?? ''));
+        $hKode = strtolower(trim($header[3] ?? ''));
+        $hStatus = strtolower(trim($header[14] ?? ''));
+        if (!str_contains($hWr, 'wr') || !str_contains($hKode, 'kode') || !str_contains($hStatus, 'status')) {
+            fclose($h);
+            $this->error("Format header baris ke-2 Log WR.csv tidak valid! Ditemukan [2]='{$hWr}', [3]='{$hKode}', [14]='{$hStatus}'.");
+            return 1;
+        }
 
         $totalRead = 0;
         $totalMigrated = 0;
@@ -164,16 +175,19 @@ class MigrateLegacySpreadsheetWr extends Command
             $isFinal = ($stBarang === 'Sudah diambil' || strtolower($stBarang) === 'sudah diambil' || $stBarang === 'cancelled' || $approvalPengaju === 'Ditolak' || $approvalPenerima === 'Ditolak');
             $dbStatus = (strtolower($stBarang) === 'sudah diambil') ? 'Sudah Diambil' : $stBarang;
 
-            // Parsing Qty Selesai & Diterima dari Data Proses
+            // Parsing Qty Selesai, Diterima, dan Defect dari Data Proses
             $parsedQty = $this->parseDataProsesQuantities($dataProses, $qty, $stBarang);
             $qtyProduced = $parsedQty['produced'];
             $qtyReceived = $parsedQty['received'];
+            $qtyDefect = $parsedQty['defect'];
+            $activeQty = max(0, $qty - $qtyDefect);
+            $currentBatchQty = $this->computeCurrentBatchQty($dbStatus, $isFinal, $qtyProduced, $qtyReceived, $dataProses);
 
             // Normalisasi Prioritas
             $priority = (stripos($deskripsi, 'urgent') !== false) ? 'urgent_line_stop' : 'normal';
 
             // Resolusi User ID Pembuat
-            $requesterUser = $this->resolveUser($opPengaju, $kepalaPengaju, $userMap, $adminUser);
+            $requesterUser = $adminUser ? $this->resolveUser($opPengaju, $kepalaPengaju, $userMap, $adminUser) : null;
 
             // Resolusi Komponen & Foreign Key (Membawa $noWr untuk item sequence yang akurat)
             $component = $this->resolveOrCreateComponent($kodePart, $namaPart, $dimensi, $tglOrder, $baruCodeMap, $dryRun, $noWr);
@@ -186,24 +200,28 @@ class MigrateLegacySpreadsheetWr extends Command
             if ($existingWr) {
                 $needsComponentUpdate = ($existingWr->component_id !== $component->id);
                 $needsDateUpdate = ($existingWr->created_at?->format('Y-m-d') !== $tglOrder);
+                $needsLocationBackfill = (empty($existingWr->target_location_id) && !empty($component->default_location_id));
 
                 $needsUpdate = (
                     $existingWr->status !== $dbStatus
                     || (bool)$existingWr->is_final !== (bool)$isFinal
                     || (float)$existingWr->quantity_received < (float)$qtyReceived
                     || (float)$existingWr->quantity_produced < (float)$qtyProduced
+                    || (float)$existingWr->quantity_defect < (float)$qtyDefect
                     || $existingWr->approval_pengaju !== $approvalPengaju
                     || $existingWr->approval_penerima !== $approvalPenerima
                     || $needsComponentUpdate
                     || $needsDateUpdate
+                    || $needsLocationBackfill
                 );
 
                 if ($sync && ($needsUpdate || !empty($dataProses))) {
                     if (!$dryRun) {
                         DB::transaction(function () use (
                             $existingWr, $dbStatus, $isFinal, $approvalPengaju, $approvalPenerima,
-                            $qtyProduced, $qtyReceived, $dataProses, $tglOrder, $component,
-                            $needsComponentUpdate, $needsDateUpdate, $targetCreatedAt
+                            $qtyProduced, $qtyReceived, $qtyDefect, $activeQty, $currentBatchQty,
+                            $dataProses, $tglOrder, $component,
+                            $needsComponentUpdate, $needsDateUpdate, $needsLocationBackfill, $targetCreatedAt
                         ) {
                             $updateData = [
                                 'status' => $dbStatus,
@@ -211,11 +229,19 @@ class MigrateLegacySpreadsheetWr extends Command
                                 'is_final' => $isFinal,
                                 'approval_pengaju' => $approvalPengaju,
                                 'approval_penerima' => $approvalPenerima,
+                                'quantity_requested' => $activeQty,
                                 'quantity_produced' => max((float)$existingWr->quantity_produced, (float)$qtyProduced),
                                 'quantity_received' => max((float)$existingWr->quantity_received, (float)$qtyReceived),
+                                'quantity_defect' => max((float)$existingWr->quantity_defect, (float)$qtyDefect),
+                                'current_batch_qty' => $currentBatchQty,
                             ];
                             if ($needsComponentUpdate) {
                                 $updateData['component_id'] = $component->id;
+                            }
+                            if ($needsLocationBackfill || $needsComponentUpdate) {
+                                $updateData['target_location_id'] = $component->default_location_id;
+                                $updateData['target_shelf_level'] = $component->default_shelf_level;
+                                $updateData['target_slot_number'] = $component->default_slot_number;
                             }
                             if ($needsDateUpdate) {
                                 $updateData['created_at'] = $targetCreatedAt;
@@ -254,23 +280,28 @@ class MigrateLegacySpreadsheetWr extends Command
                 DB::transaction(function () use (
                     $noWr, $component, $requesterUser, $deptPengaju, $deptPenerima,
                     $routing, $approvalPengaju, $approvalPenerima, $opPenerima, $kepalaPenerima,
-                    $qty, $qtyProduced, $qtyReceived, $stBarang, $dbStatus, $isFinal, $priority, $deskripsi,
+                    $activeQty, $qtyProduced, $qtyReceived, $qtyDefect, $currentBatchQty,
+                    $stBarang, $dbStatus, $isFinal, $priority, $deskripsi,
                     $tglOrder, $dataProses, $targetCreatedAt
                 ) {
                     $wr = WorkRequest::create([
                         'wri_number' => $noWr,
                         'component_id' => $component->id,
-                        'requested_by_user_id' => $requesterUser->id,
+                        'requested_by_user_id' => $requesterUser?->id,
                         'dept_pengaju' => $deptPengaju,
                         'dept_penerima' => $deptPenerima,
                         'routing_text' => $routing ?: $deptPenerima,
                         'approval_pengaju' => $approvalPengaju,
                         'approval_penerima' => $approvalPenerima,
                         'assigned_operator_name' => $opPenerima ?: ($kepalaPenerima ?: null),
-                        'quantity_requested' => $qty,
+                        'target_location_id' => $component->default_location_id,
+                        'target_shelf_level' => $component->default_shelf_level,
+                        'target_slot_number' => $component->default_slot_number,
+                        'quantity_requested' => $activeQty,
                         'quantity_produced' => $qtyProduced,
                         'quantity_received' => $qtyReceived,
-                        'quantity_defect' => 0,
+                        'quantity_defect' => $qtyDefect,
+                        'current_batch_qty' => $currentBatchQty,
                         'is_final' => $isFinal,
                         'priority' => $priority,
                         'status' => $dbStatus,
@@ -281,17 +312,8 @@ class MigrateLegacySpreadsheetWr extends Command
                         'updated_at' => $isFinal ? ($tglOrder . ' 17:00:00') : $targetCreatedAt,
                     ]);
 
-                    // Buat Step Pengerjaan Mesin
-                    WorkRequestStep::create([
-                        'work_request_id' => $wr->id,
-                        'step_number' => 1,
-                        'machine_id' => null,
-                        'process_name' => $deptPenerima,
-                        'status' => $isFinal ? 'completed' : ($stBarang === 'Dalam antrian' ? 'pending' : 'in_progress'),
-                        'operator_name' => $opPenerima ?: null,
-                        'started_at' => $tglOrder . ' 08:30:00',
-                        'completed_at' => $isFinal ? $tglOrder . ' 16:30:00' : null,
-                    ]);
+                    // Buat Step Pengerjaan Mesin (mendukung Single maupun Multi-Routing)
+                    $this->createMultiRoutingSteps($wr->id, $routing, $deptPenerima, $opPenerima, $tglOrder, $isFinal, $stBarang, $dataProses);
 
                     // Parsing dan Insert Log Riwayat Proses
                     $this->insertWorkRequestLogs($wr->id, $dataProses, $tglOrder);
@@ -423,7 +445,7 @@ class MigrateLegacySpreadsheetWr extends Command
                 return $comp;
             }
 
-            // Jika belum ada di master components, buat master baru
+            // Jika belum ada di master components, buat sebagai komponen ad-hoc WR (Guardrail #7: Satu Pintu Master)
             if (!$dryRun) {
                 return Component::create([
                     'part_number' => $kodePart,
@@ -433,6 +455,7 @@ class MigrateLegacySpreadsheetWr extends Command
                     'category' => 'fabricated',
                     'minimum_stock' => 0,
                     'is_active' => true,
+                    'source' => 'wr_adhoc',
                 ]);
             }
 
@@ -440,6 +463,7 @@ class MigrateLegacySpreadsheetWr extends Command
                 'id' => 9999,
                 'part_number' => $kodePart,
                 'name' => $namaPart,
+                'source' => 'wr_adhoc',
             ]);
         }
 
@@ -496,6 +520,7 @@ class MigrateLegacySpreadsheetWr extends Command
                 'category' => 'fabricated',
                 'minimum_stock' => 0,
                 'is_active' => true,
+                'source' => 'wr_adhoc',
             ]);
         }
 
@@ -503,7 +528,114 @@ class MigrateLegacySpreadsheetWr extends Command
             'id' => 9999,
             'part_number' => $targetCode,
             'name' => $namaPart,
+            'source' => 'wr_adhoc',
         ]);
+    }
+
+    /**
+     * Buat tahapan work_request_steps secara berurutan (mendukung single maupun multi-routing).
+     */
+    protected function createMultiRoutingSteps(
+        int $workRequestId,
+        string $routing,
+        string $deptPenerima,
+        string $opPenerima,
+        string $tglOrder,
+        bool $isFinal,
+        string $stBarang,
+        string $dataProses
+    ): void {
+        $rawSource = trim($routing) !== '' ? $routing : $deptPenerima;
+        $steps = array_values(array_filter(array_map('trim', preg_split('/\s*(?:->|,)\s*/', $rawSource))));
+        if (empty($steps)) {
+            $steps = [$deptPenerima ?: 'Dept Laser Cutting'];
+        }
+
+        foreach ($steps as $idx => $stepName) {
+            $stepNumber = $idx + 1;
+            $isLastStep = ($idx === count($steps) - 1);
+
+            $stepStatus = 'pending';
+            $startedAt = null;
+            $completedAt = null;
+
+            if ($isFinal) {
+                $stepStatus = 'completed';
+                $startedAt = $tglOrder . ' 08:30:00';
+                $completedAt = $tglOrder . ' 16:30:00';
+            } elseif (
+                ($isLastStep && (stripos($stBarang, 'Siap diambil') !== false || stripos($stBarang, 'Menuju Pengaju') !== false))
+                || stripos($dataProses, "Proses: {$stepName} (Out)") !== false
+                || stripos($dataProses, "MH Pickup: {$stepName}") !== false
+            ) {
+                $stepStatus = 'completed';
+                $startedAt = $tglOrder . ' 08:30:00';
+                $completedAt = $tglOrder . ' 16:30:00';
+            } elseif (
+                stripos($stBarang, $stepName) !== false
+                || stripos($dataProses, "Proses: {$stepName} (In)") !== false
+                || ($stepNumber === 1 && stripos($stBarang, 'Dalam antrian') === false && stripos($stBarang, 'Belum Verifikasi') === false)
+            ) {
+                $stepStatus = 'in_progress';
+                $startedAt = $tglOrder . ' 08:30:00';
+            }
+
+            WorkRequestStep::create([
+                'work_request_id' => $workRequestId,
+                'step_number' => $stepNumber,
+                'machine_id' => null,
+                'process_name' => $stepName,
+                'status' => $stepStatus,
+                'operator_name' => ($stepNumber === 1 && $opPenerima) ? $opPenerima : null,
+                'started_at' => $startedAt,
+                'completed_at' => $completedAt,
+            ]);
+        }
+    }
+
+    /**
+     * Hitung kuantitas batch berjalan untuk kebutuhan serah terima MH / Gudang.
+     */
+    protected function computeCurrentBatchQty(
+        string $dbStatus,
+        bool $isFinal,
+        float $qtyProduced,
+        float $qtyReceived,
+        string $dataProses
+    ): float {
+        if ($isFinal) {
+            return 0.0;
+        }
+
+        if (stripos($dbStatus, 'Menuju Pengaju') !== false || stripos($dbStatus, 'Siap diambil') !== false) {
+            return max(0.0, $qtyProduced - $qtyReceived);
+        }
+
+        if (stripos($dbStatus, '(Out)') !== false || stripos($dbStatus, 'MH Pickup') !== false) {
+            $snippets = array_reverse(explode(' ; ', $dataProses));
+            foreach ($snippets as $snip) {
+                if (stripos($snip, '(Out)') !== false || stripos($snip, 'MH Pickup') !== false) {
+                    $parsed = $this->parseLogSnippet($snip, date('Y-m-d'));
+                    if ($parsed && $parsed['qty'] > 0) {
+                        return (float) $parsed['qty'];
+                    }
+                }
+            }
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * Tentukan tahun yang tepat untuk log DD/MM HH:mm terhadap tanggal order (aman lintas tahun Des -> Jan).
+     */
+    protected function resolveLogTimestamp(int $day, int $month, string $time, string $fallbackDate): string
+    {
+        $orderYear = (int) substr($fallbackDate, 0, 4) ?: (int) date('Y');
+        $orderMonth = (int) substr($fallbackDate, 5, 2) ?: $month;
+        $year = ($month < $orderMonth && ($orderMonth - $month) >= 6) ? ($orderYear + 1) : $orderYear;
+
+        return sprintf('%04d-%02d-%02d %s:00', $year, $month, $day, $time);
     }
 
     /**
@@ -517,11 +649,7 @@ class MigrateLegacySpreadsheetWr extends Command
                 $clean = trim($snip, " []\t\n\r");
                 $parts = explode(' - ', $clean);
                 if (isset($parts[2]) && preg_match('/^(\d{1,2})\/(\d{1,2})\s*(\d{1,2}:\d{2})$/', trim($parts[2]), $tm)) {
-                    $day = (int) $tm[1];
-                    $month = (int) $tm[2];
-                    $time = $tm[3];
-                    $year = (int) substr($tglOrder, 0, 4) ?: (int) date('Y');
-                    return sprintf('%04d-%02d-%02d %s:00', $year, $month, $day, $time);
+                    return $this->resolveLogTimestamp((int) $tm[1], (int) $tm[2], $tm[3], $tglOrder);
                 }
             }
         }
@@ -529,38 +657,89 @@ class MigrateLegacySpreadsheetWr extends Command
     }
 
     /**
-     * Hitung kuantitas selesai & diterima dari log naratif Data Proses.
+     * Hitung kuantitas selesai, diterima, dan defect dari log naratif Data Proses.
      */
     protected function parseDataProsesQuantities(string $dataProses, float $totalQty, string $statusOperasional): array
     {
         if ($statusOperasional === 'Sudah diambil') {
-            return ['produced' => $totalQty, 'received' => $totalQty];
+            return ['produced' => $totalQty, 'received' => $totalQty, 'defect' => 0.0];
         }
 
-        $produced = 0;
-        $received = 0;
+        $produced = 0.0;
+        $received = 0.0;
+        $defect = 0.0;
 
         if (empty($dataProses)) {
-            return ['produced' => $produced, 'received' => $received];
+            return ['produced' => $produced, 'received' => $received, 'defect' => $defect];
         }
 
         // Cari pola: [ Parsial > Sudah diambil - 176 ... ] atau [ Sudah diambil - 752 ... ]
-        if (preg_match_all('/Sudah diambil\s*-\s*(\d+)/i', $dataProses, $m)) {
+        if (preg_match_all('/Sudah diambil\s*-\s*(\d+(?:[.,]\d+)?)/i', $dataProses, $m)) {
             foreach ($m[1] as $q) {
-                $received += (float) $q;
+                $received += (float) str_replace(',', '.', $q);
             }
         }
 
         // Cari pola: [ Parsial > Siap diambil - 176 ... ] atau [ Siap diambil - 752 ... ]
-        if (preg_match_all('/Siap diambil\s*-\s*(\d+)/i', $dataProses, $m)) {
+        if (preg_match_all('/Siap diambil\s*-\s*(\d+(?:[.,]\d+)?)/i', $dataProses, $m)) {
             foreach ($m[1] as $q) {
-                $produced += (float) $q;
+                $produced += (float) str_replace(',', '.', $q);
+            }
+        }
+
+        // Cari pola defect historis bila ada: [ Defect > ... - 2 ... ]
+        if (preg_match_all('/Defect\s*[^-]*-\s*(\d+(?:[.,]\d+)?)/i', $dataProses, $m)) {
+            foreach ($m[1] as $q) {
+                $defect += (float) str_replace(',', '.', $q);
             }
         }
 
         return [
             'produced' => max($produced, $received),
-            'received' => min($received, $totalQty),
+            'received' => min($received, max(0.0, $totalQty - $defect)),
+            'defect' => min($defect, $totalQty),
+        ];
+    }
+
+    /**
+     * Parsing 1 segmen snippet dari kolom Data Proses menjadi struktur log standar.
+     */
+    protected function parseLogSnippet(string $snip, string $fallbackDate): ?array
+    {
+        $clean = trim($snip, " []\t\n\r");
+        if (empty($clean)) {
+            return null;
+        }
+
+        $parts = explode(' - ', $clean);
+        $statusLabel = trim($parts[0] ?? 'Proses');
+        $qty = 0.0;
+        if (isset($parts[1]) && preg_match('/(\d+(?:[.,]\d+)?)/', $parts[1], $qm)) {
+            $qty = (float) str_replace(',', '.', $qm[1]);
+        }
+
+        $logTimestamp = $fallbackDate . ' 12:00:00';
+        $notes = trim($parts[3] ?? ($parts[2] ?? ''));
+        if (isset($parts[2]) && preg_match('/^(\d{1,2})\/(\d{1,2})\s*(\d{1,2}:\d{2})$/', trim($parts[2]), $tm)) {
+            $logTimestamp = $this->resolveLogTimestamp((int) $tm[1], (int) $tm[2], $tm[3], $fallbackDate);
+            $notes = trim($parts[3] ?? '');
+        }
+
+        $actionType = 'process';
+        if (stripos($statusLabel, 'Defect') !== false) {
+            $actionType = 'defect';
+        } elseif (str_contains($statusLabel, 'Pickup')) {
+            $actionType = 'pickup';
+        } elseif (str_contains($statusLabel, 'Parsial')) {
+            $actionType = 'partial';
+        }
+
+        return [
+            'action_type' => $actionType,
+            'status_label' => $statusLabel,
+            'qty' => $qty,
+            'notes' => $notes ?: null,
+            'timestamp' => $logTimestamp,
         ];
     }
 
@@ -572,42 +751,24 @@ class MigrateLegacySpreadsheetWr extends Command
         if (empty($dataProses)) return;
 
         $snippets = explode(' ; ', $dataProses);
-        $accumulated = 0;
+        $accumulated = 0.0;
 
         foreach ($snippets as $snip) {
-            $clean = trim($snip, " []\t\n\r");
-            if (empty($clean)) continue;
+            $parsed = $this->parseLogSnippet($snip, $fallbackDate);
+            if (!$parsed) continue;
 
-            $parts = explode(' - ', $clean);
-            $statusLabel = trim($parts[0] ?? 'Proses');
-            $qty = 0;
-            if (isset($parts[1]) && preg_match('/(\d+)/', $parts[1], $qm)) {
-                $qty = (float) $qm[1];
-            }
-
-            $logTimestamp = $fallbackDate . ' 12:00:00';
-            $notes = trim($parts[3] ?? ($parts[2] ?? ''));
-            if (isset($parts[2]) && preg_match('/^(\d{1,2})\/(\d{1,2})\s*(\d{1,2}:\d{2})$/', trim($parts[2]), $tm)) {
-                $day = (int) $tm[1];
-                $month = (int) $tm[2];
-                $time = $tm[3];
-                $year = (int) substr($fallbackDate, 0, 4) ?: (int) date('Y');
-                $logTimestamp = sprintf('%04d-%02d-%02d %s:00', $year, $month, $day, $time);
-                $notes = trim($parts[3] ?? '');
-            }
-
-            $accumulated += $qty;
+            $accumulated += $parsed['qty'];
 
             WorkRequestLog::create([
                 'work_request_id' => $workRequestId,
-                'action_type' => str_contains($statusLabel, 'Pickup') ? 'pickup' : (str_contains($statusLabel, 'Parsial') ? 'partial' : 'process'),
-                'status_label' => $statusLabel,
-                'quantity' => $qty,
+                'action_type' => $parsed['action_type'],
+                'status_label' => $parsed['status_label'],
+                'quantity' => $parsed['qty'],
                 'quantity_accumulated' => $accumulated,
                 'operator_name' => null,
-                'notes' => $notes ?: null,
-                'created_at' => $logTimestamp,
-                'updated_at' => $logTimestamp,
+                'notes' => $parsed['notes'],
+                'created_at' => $parsed['timestamp'],
+                'updated_at' => $parsed['timestamp'],
             ]);
         }
     }
@@ -620,60 +781,39 @@ class MigrateLegacySpreadsheetWr extends Command
         if (empty($dataProses)) return;
 
         $snippets = explode(' ; ', $dataProses);
-        $accumulated = 0;
-
+        $accumulated = 0.0;
         $existingLogs = WorkRequestLog::where('work_request_id', $workRequestId)->get();
 
         foreach ($snippets as $snip) {
-            $clean = trim($snip, " []\t\n\r");
-            if (empty($clean)) continue;
+            $parsed = $this->parseLogSnippet($snip, $fallbackDate);
+            if (!$parsed) continue;
 
-            $parts = explode(' - ', $clean);
-            $statusLabel = trim($parts[0] ?? 'Proses');
-            $qty = 0;
-            if (isset($parts[1]) && preg_match('/(\d+)/', $parts[1], $qm)) {
-                $qty = (float) $qm[1];
-            }
+            $accumulated += $parsed['qty'];
 
-            $logTimestamp = $fallbackDate . ' 12:00:00';
-            $notes = trim($parts[3] ?? ($parts[2] ?? ''));
-            if (isset($parts[2]) && preg_match('/^(\d{1,2})\/(\d{1,2})\s*(\d{1,2}:\d{2})$/', trim($parts[2]), $tm)) {
-                $day = (int) $tm[1];
-                $month = (int) $tm[2];
-                $time = $tm[3];
-                $year = (int) substr($fallbackDate, 0, 4) ?: (int) date('Y');
-                $logTimestamp = sprintf('%04d-%02d-%02d %s:00', $year, $month, $day, $time);
-                $notes = trim($parts[3] ?? '');
-            }
-
-            $accumulated += $qty;
-
-            // Cari apakah log dengan status_label dan quantity yang sama sudah pernah ada
-            $matchedLog = $existingLogs->first(function ($l) use ($statusLabel, $qty) {
-                return $l->status_label === $statusLabel && (float)$l->quantity === (float)$qty;
+            $matchedLog = $existingLogs->first(function ($l) use ($parsed) {
+                return $l->status_label === $parsed['status_label'] && (float)$l->quantity === (float)$parsed['qty'];
             });
 
             if ($matchedLog) {
-                // Perbarui timestamp jika berbeda dengan logTimestamp aktual dari Data Proses
-                if ($matchedLog->created_at?->format('Y-m-d H:i') !== substr($logTimestamp, 0, 16)) {
-                    $matchedLog->created_at = $logTimestamp;
-                    $matchedLog->updated_at = $logTimestamp;
-                    if ($notes && empty($matchedLog->notes)) {
-                        $matchedLog->notes = $notes;
+                if ($matchedLog->created_at?->format('Y-m-d H:i') !== substr($parsed['timestamp'], 0, 16)) {
+                    $matchedLog->created_at = $parsed['timestamp'];
+                    $matchedLog->updated_at = $parsed['timestamp'];
+                    if ($parsed['notes'] && empty($matchedLog->notes)) {
+                        $matchedLog->notes = $parsed['notes'];
                     }
                     $matchedLog->save();
                 }
             } else {
                 WorkRequestLog::create([
                     'work_request_id' => $workRequestId,
-                    'action_type' => str_contains($statusLabel, 'Pickup') ? 'pickup' : (str_contains($statusLabel, 'Parsial') ? 'partial' : 'process'),
-                    'status_label' => $statusLabel,
-                    'quantity' => $qty,
+                    'action_type' => $parsed['action_type'],
+                    'status_label' => $parsed['status_label'],
+                    'quantity' => $parsed['qty'],
                     'quantity_accumulated' => $accumulated,
                     'operator_name' => null,
-                    'notes' => $notes ?: null,
-                    'created_at' => $logTimestamp,
-                    'updated_at' => $logTimestamp,
+                    'notes' => $parsed['notes'],
+                    'created_at' => $parsed['timestamp'],
+                    'updated_at' => $parsed['timestamp'],
                 ]);
             }
         }
